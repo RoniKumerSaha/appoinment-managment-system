@@ -1,0 +1,302 @@
+# =========================================
+# .gitignore - Generic / Multi-purpose
+# =========================================
+
+# ---------- Operating Systems ----------
+# Windows
+Thumbs.db
+Thumbs.db:Encryptable
+ehthumbs.db
+ehthumbs_view.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+.AppleDouble
+.LSOverride
+Icon
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+.fuse_hidden*
+.Trash-*
+.nfs*
+
+# ---------- Environment / Secrets ----------
+.env
+.env.*
+!.env.example
+*.env
+*.env.*
+!.env.example
+secrets.yml
+secrets.yaml
+config.local.*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ---------- Logs ----------
+logs/
+*.log
+*.log.*
+log/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ---------- Runtime / Build Output ----------
+bin/
+obj/
+out/
+build/
+dist/
+target/
+tmp/
+temp/
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.svelte-kit/
+.vite/
+.turbo/
+storybook-static/
+
+# ---------- Dependencies ----------
+node_modules/
+jspm_packages/
+bower_components/
+vendor/
+.pnp.*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnpm-store/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Compiled / generated source
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.obj
+*.gch
+*.pdb
+
+# ---------- IDEs / Editors ----------
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains (IntelliJ, PyCharm, WebStorm, etc.)
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+.factorypath
+.apt_generated/
+.springBeans
+.sts4-cache/
+bin/
+tmp/
+
+# NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# Sublime / Vim / Emacs
+*.sublime-project
+*.sublime-workspace
+*~
+.vs/
+.history/
+.swp
+*.swo
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# ---------- Testing / Coverage ----------
+coverage/
+*.lcov
+.nyc_output/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.pytest_cache/
+.cache/
+junit.xml
+test-results/
+playwright-report/
+playwright/.cache/
+
+# ---------- Misc ----------
+*.swp
+*.bak
+*.orig
+*.rej
+*.tmp
+*.temp
+*.pid
+*.seed
+*.pid.lock
+
+# OS / editor dumps
+.directory
+*.esproj
+*.user
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+
+# Docker / orchestration (override as needed)
+docker-compose.override.yml
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Large media / binary
+*.psd
+*.ai
+*.sketch
+*.fig
+*.blend
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wav
+*.flac
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# =========================================
+# Language-specific sections (uncomment/use as needed)
+# =========================================
+
+# ---------- Node / JavaScript / TypeScript ----------
+# Already covered above (node_modules, .env, dist, build, logs)
+
+# ---------- Python ----------
+# Already covered above (__pycache__, *.pyc, .pytest_cache, venv)
+
+# ---------- Java / Gradle / Maven ----------
+# Already covered above (bin/, out/, target/, *.class)
+
+# ---------- Go ----------
+# Already covered above (vendor/, *.exe, *.dll, *.so)
+
+# ---------- PHP / Laravel ----------
+# /vendor
+# /node_modules
+# /public/storage
+# /public/hot
+# /storage/*.key
+# Homestead.json
+# Homestead.yaml
+# .vagrant
+# auth.json
+
+# ---------- Ruby / Rails ----------
+# /log
+# /tmp
+# /vendor/bundle
+# .byebug_history
+# .rspec_status
+
+# ---------- Android / Kotlin ----------
+# *.apk
+# *.aab
+# *.ap_
+# *.dex
+# .gradle/
+# local.properties
+# /captures
+# .externalNativeBuild
+# .cxx
+
+# ---------- Swift / iOS ----------
+# Already covered above (DerivedData, *.xcuserstate, build)
