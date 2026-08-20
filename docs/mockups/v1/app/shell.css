@@ -58,15 +58,8 @@ body {
 .logo-mark {
   width: 28px;
   height: 28px;
-  background: var(--teal-700);
-  color: white;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 16px;
-  box-shadow: 0 1px 3px rgba(15, 118, 110, 0.3);
+  display: block;
+  flex-shrink: 0;
 }
 .logo-text {
   font-weight: 700;

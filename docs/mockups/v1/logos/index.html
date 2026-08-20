@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MediSlot — Logo Options · 10 Directions</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .topbar { background: white; border-bottom: 1px solid #e5e7eb; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .brand { font-weight: 700; color: #0f766e; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  .brand-mark { width: 26px; height: 26px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 700; }
+  .page { max-width: 1280px; margin: 0 auto; padding: 28px 32px 60px; }
+  .intro h1 { font-size: 26px; color: #111827; font-weight: 600; margin-bottom: 6px; letter-spacing: -0.02em; }
+  .intro p { color: #6b7280; font-size: 14px; max-width: 640px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; margin-top: 24px; }
+  .card { background: white; border: 1.5px solid #e5e7eb; border-radius: 14px; overflow: hidden; transition: border-color 0.15s, transform 0.1s; }
+  .card:hover { border-color: #99f6e4; transform: translateY(-1px); }
+  .card-stage { padding: 40px 24px; display: flex; align-items: center; justify-content: center; min-height: 200px; position: relative; }
+  .card-info { padding: 14px 18px; border-top: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; }
+  .card-info .num { font-size: 11px; color: #6b7280; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+  .card-info .name { font-weight: 600; color: #111827; font-size: 14px; }
+  .card-info a { font-size: 12px; color: #0f766e; text-decoration: none; font-weight: 600; }
+
+  /* ── Logo 01 ── */
+  .l-01 { display: flex; align-items: center; gap: 12px; font-family: "Inter", sans-serif; }
+  .l-01 .mark { width: 36px; height: 36px; border-radius: 8px; background: #0f766e; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 18px; }
+  .l-01 .word { font-size: 22px; font-weight: 700; color: #0f766e; letter-spacing: -0.04em; }
+  .l-01 .word .accent { color: #111827; font-weight: 600; }
+
+  /* ── Logo 02 ── */
+  .l-02 { display: flex; align-items: center; gap: 12px; font-family: "Inter", sans-serif; }
+  .l-02 .mark { width: 42px; height: 42px; border-radius: 14px; background: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 20px; box-shadow: 0 4px 12px rgba(15,118,110,0.25); }
+  .l-02 .word { font-size: 24px; font-weight: 800; color: #111827; letter-spacing: -0.04em; }
+  .l-02 .word .slot { background: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  /* ── Logo 03 ── */
+  .l-03 { display: flex; align-items: center; gap: 12px; font-family: "Inter", sans-serif; }
+  .l-03 .mark { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; }
+  .l-03 .mark svg { width: 100%; height: 100%; }
+  .l-03 .word { font-size: 22px; font-weight: 600; color: #111827; letter-spacing: -0.03em; }
+  .l-03 .word .med { color: #0f766e; }
+
+  /* ── Logo 04 ── */
+  .l-04 { display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: "Playfair Display", Georgia, serif; }
+  .l-04 .mark { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid #d4af37; display: flex; align-items: center; justify-content: center; color: #d4af37; font-style: italic; font-size: 16px; font-weight: 600; }
+  .l-04 .word { font-size: 26px; font-weight: 700; color: #d4af37; letter-spacing: 0.02em; }
+
+  /* ── Logo 05 ── */
+  .l-05 { display: flex; align-items: center; gap: 12px; font-family: "Inter", sans-serif; }
+  .l-05 .mark { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #047857 0%, #0f766e 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 18px; box-shadow: 0 4px 12px rgba(4,120,87,0.25); position: relative; }
+  .l-05 .mark::after { content: ""; position: absolute; right: -3px; bottom: -3px; width: 11px; height: 11px; border-radius: 50%; background: #fbbf24; border: 2px solid white; }
+  .l-05 .words { display: flex; flex-direction: column; gap: 1px; }
+  .l-05 .word-en { font-size: 20px; font-weight: 700; color: #111827; letter-spacing: -0.02em; }
+  .l-05 .word-en .med { color: #047857; }
+  .l-05 .word-ar { font-size: 11px; font-weight: 500; color: #6b7280; direction: rtl; font-family: "Tajawal", "Noto Sans Arabic", sans-serif; }
+
+  /* ── Logo 06 ── */
+  .l-06 { display: flex; align-items: center; gap: 12px; font-family: "Inter", sans-serif; padding: 18px 26px; border-radius: 12px; background: #0f172a; }
+  .l-06 .mark { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; }
+  .l-06 .mark svg { width: 100%; height: 100%; }
+  .l-06 .word { font-size: 22px; font-weight: 600; color: #f1f5f9; letter-spacing: -0.03em; }
+  .l-06 .word .accent { color: #06b6d4; font-weight: 500; }
+
+  /* ── Logo 07 ── */
+  .l-07 { display: flex; align-items: center; gap: 12px; font-family: "Inter", sans-serif; }
+  .l-07 .mark { width: 44px; height: 44px; border-radius: 50%; background: white; border: 2px solid #16a34a; display: flex; align-items: center; justify-content: center; color: #16a34a; font-weight: 800; font-size: 15px; position: relative; box-shadow: 0 0 0 3px #dcfce7; }
+  .l-07 .mark::before { content: "+"; position: absolute; top: -2px; right: -2px; width: 14px; height: 14px; border-radius: 50%; background: #16a34a; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+  .l-07 .words { display: flex; flex-direction: column; gap: 1px; }
+  .l-07 .word { font-size: 20px; font-weight: 700; color: #111827; letter-spacing: -0.02em; }
+  .l-07 .word .med { color: #16a34a; }
+  .l-07 .tag { font-size: 9px; font-weight: 600; color: #6b7280; letter-spacing: 0.2em; text-transform: uppercase; }
+
+  /* ── Logo 08 ── */
+  .l-08 { display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: "Inter", sans-serif; }
+  .l-08 .icon { width: 64px; height: 64px; border-radius: 22%; background: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(15,118,110,0.3); }
+  .l-08 .icon::after { content: ""; display: block; width: 50%; height: 50%; background: white; -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='40' y='15' width='20' height='70' rx='4'/><rect x='15' y='40' width='70' height='20' rx='4'/></svg>") center/contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='40' y='15' width='20' height='70' rx='4'/><rect x='15' y='40' width='70' height='20' rx='4'/></svg>") center/contain no-repeat; }
+  .l-08 .word { font-size: 20px; font-weight: 700; color: #111827; letter-spacing: -0.03em; }
+  .l-08 .word .med { color: #0f766e; }
+
+  /* ── Logo 09 ── */
+  .l-09 { display: flex; flex-direction: column; align-items: center; gap: 10px; font-family: "Inter", sans-serif; text-align: center; }
+  .l-09 .mark { width: 52px; height: 52px; border-radius: 12px; background: #0f766e; display: flex; align-items: center; justify-content: center; position: relative; color: white; font-size: 26px; font-weight: 700; }
+  .l-09 .mark .dot { position: absolute; right: 6px; bottom: 6px; width: 8px; height: 8px; border-radius: 50%; background: #fbbf24; }
+  .l-09 .word { font-size: 22px; font-weight: 700; color: #111827; letter-spacing: -0.03em; }
+  .l-09 .word .med { color: #0f766e; }
+  .l-09 .tag { font-size: 9px; color: #6b7280; letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600; }
+
+  /* ── Logo 10 ── */
+  .l-10 { display: flex; align-items: center; gap: 10px; font-family: "Inter", sans-serif; }
+  .l-10 .mark { width: 32px; height: 32px; border-radius: 7px; background: #18181b; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 16px; position: relative; overflow: hidden; }
+  .l-10 .mark::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, #5eead4 0%, #14b8a6 100%); opacity: 0.85; width: 50%; height: 100%; }
+  .l-10 .mark span { position: relative; z-index: 1; }
+  .l-10 .word { font-size: 22px; font-weight: 600; color: #18181b; letter-spacing: -0.04em; }
+  .l-10 .word .med { color: #14b8a6; font-weight: 700; }
+  .l-10 .word .io { color: #a1a1aa; font-weight: 400; font-size: 18px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><div class="brand-mark">M</div> MediSlot · Logo exploration</div>
+  <div style="font-size: 13px; color: #6b7280;">10 directions · click any card for full-size preview</div>
+</div>
+
+<div class="page">
+  <div class="intro">
+    <h1>10 logo directions for MediSlot</h1>
+    <p>From clinical-clean to friendly-rounded to dark-mode-native. Each card is a live HTML mockup — click <strong>Open ↗</strong> for full-size preview.</p>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-stage">
+        <div class="l-01"><div class="mark">M</div><div class="word">Medi<span class="accent">Slot</span></div></div>
+      </div>
+      <div class="card-info"><div><span class="num">01</span> · <span class="name">Clinical Minimal</span></div><a href="logo-01-clinical-minimal.html" target="_blank">Open ↗</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-stage" style="background:#fef9f4;">
+        <div class="l-02"><div class="mark">M</div><div class="word">Medi<span class="slot">Slot</span></div></div>
+      </div>
+      <div class="card-info"><div><span class="num">02</span> · <span class="name">Friendly Rounded</span></div><a href="logo-02-friendly-rounded.html" target="_blank">Open ↗</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-stage">
+        <div class="l-03">
+          <div class="mark">
+            <svg viewBox="0 0 52 52" fill="none">
+              <rect x="6" y="10" width="40" height="36" rx="7" stroke="#0f766e" stroke-width="2.4"/>
+              <line x1="6" y1="20" x2="46" y2="20" stroke="#0f766e" stroke-width="2.4"/>
+              <line x1="18" y1="6" x2="18" y2="14" stroke="#0f766e" stroke-width="2.4" stroke-linecap="round"/>
+              <line x1="34" y1="6" x2="34" y2="14" stroke="#0f766e" stroke-width="2.4" stroke-linecap="round"/>
+              <rect x="23" y="26" width="6" height="14" rx="1.5" fill="#0f766e"/>
+              <rect x="19" y="30" width="14" height="6" rx="1.5" fill="#0f766e"/>
+              <circle cx="26" cy="33" r="9" fill="white"/>
+            </svg>
+          </div>
+          <div class="word"><span class="med">Medi</span>Slot</div>
+        </div>
+      </div>
+      <div class="card-info"><div><span class="num">03</span> · <span class="name">Monoline Icon</span></div><a href="logo-03-monoline-icon.html" target="_blank">Open ↗</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-stage" style="background:#0a0f1c;">
+        <div class="l-04"><div class="mark">M</div><div class="word">MediSlot</div></div>
+      </div>
+      <div class="card-info"><div><span class="num">04</span> · <span class="name">Premium Serif</span></div><a href="logo-04-premium-serif.html" target="_blank">Open ↗</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-stage" style="background:#f0fdf4;">
+        <div class="l-05">
+          <div class="mark">M</div>
+          <div class="words">
+            <div class="word-en"><span class="med">Medi</span>Slot</div>
+            <div class="word-ar">ميدي سلوت · احجز بكل سهولة</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info"><div><span class="num">05</span> · <span class="name">Arabic Fusion</span></div><a href="logo-05-arabic-fusion.html" target="_blank">Open ↗</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-stage" style="background:#0f172a;">
+        <div class="l-06">
+          <div class="mark">
+            <svg viewBox="0 0 48 48" fill="none">
+              <rect x="4"  y="6"  width="6" height="36" rx="2" fill="#06b6d4"/>
+              <rect x="14" y="18" width="6" height="24" rx="2" fill="#06b6d4" opacity="0.7"/>
+              <rect x="24" y="18" width="6" height="24" rx="2" fill="#06b6d4" opacity="0.7"/>
+              <rect x="34" y="6"  width="6" height="36" rx="2" fill="#06b6d4"/>
+              <rect x="20" y="6"  width="4" height="10" rx="1.5" fill="#06b6d4"/>
+            </svg>
+          </div>
+          <div class="word">Medi<span class="accent">Slot</span></div>
+        </div>
+      </div>
+      <div class="card-info"><div><span class="num">06</span> · <span class="name">Geometric Slot</span></div><a href="logo-06-geometric-slot.html" target="_blank">Open ↗</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-stage">
+        <div class="l-07">
+          <div class="mark">MS</div>
+          <div class="words">
+            <div class="word"><span class="med">Medi</span>Slot</div>
+            <div class="tag">Verified Care Network</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info"><div><span class="num">07</span> · <span class="name">Emblem Badge</span></div><a href="logo-07-emblem-badge.html" target="_blank">Open ↗</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-stage">
+        <div class="l-08">
+          <div class="icon"></div>
+          <div class="word"><span class="med">Medi</span>Slot</div>
+        </div>
+      </div>
+      <div class="card-info"><div><span class="num">08</span> · <span class="name">App Icon</span></div><a href="logo-08-app-icon.html" target="_blank">Open ↗</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-stage">
+        <div class="l-09">
+          <div class="mark"><span style="position:relative; z-index:1;">M</span><span class="dot"></span></div>
+          <div class="word"><span class="med">Medi</span>Slot</div>
+          <div class="tag">Clinic Booking · Made Simple</div>
+        </div>
+      </div>
+      <div class="card-info"><div><span class="num">09</span> · <span class="name">Stacked Vertical</span></div><a href="logo-09-stacked-vertical.html" target="_blank">Open ↗</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-stage" style="background:#fafafa;">
+        <div class="l-10">
+          <div class="mark"><span>M</span></div>
+          <div class="word"><span class="med">Medi</span>Slot<span class="io">.io</span></div>
+        </div>
+      </div>
+      <div class="card-info"><div><span class="num">10</span> · <span class="name">SaaS Tech</span></div><a href="logo-10-saas-tech.html" target="_blank">Open ↗</a></div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

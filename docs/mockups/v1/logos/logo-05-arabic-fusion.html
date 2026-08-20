@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Logo 05 — Arabic Fusion · MediSlot</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #047857; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(4,120,87,0.3); }
+  .stage { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; }
+  .sticker { background: white; padding: 60px 80px; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.06); }
+
+  .logo-05 { display: flex; align-items: center; gap: 18px; font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; }
+  .logo-05 .mark {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(135deg, #047857 0%, #0f766e 100%);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 22px;
+    box-shadow: 0 4px 12px rgba(4,120,87,0.25);
+    position: relative;
+  }
+  .logo-05 .mark::after {
+    content: ""; position: absolute; right: -4px; bottom: -4px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #fbbf24; border: 2px solid white;
+  }
+  .logo-05 .words {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .logo-05 .word-en {
+    font-size: 26px; font-weight: 700; color: #111827;
+    letter-spacing: -0.02em;
+  }
+  .logo-05 .word-en .med { color: #047857; }
+  .logo-05 .word-ar {
+    font-size: 14px; font-weight: 500; color: #6b7280;
+    direction: rtl; font-family: "Tajawal", "Noto Sans Arabic", sans-serif;
+  }
+
+  .caption { margin-top: 32px; text-align: center; color: #6b7280; font-size: 13px; max-width: 420px; }
+  .caption h3 { font-size: 15px; color: #111827; margin-bottom: 4px; font-weight: 600; }
+  .palette { display: flex; gap: 6px; justify-content: center; margin-top: 12px; }
+  .palette span { width: 22px; height: 22px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="badge">05 · ARABIC FUSION</div>
+<div class="stage">
+  <div class="sticker">
+    <div class="logo-05">
+      <div class="mark">M</div>
+      <div class="words">
+        <div class="word-en"><span class="med">Medi</span>Slot</div>
+        <div class="word-ar">ميدي سلوت · احجز بكل سهولة</div>
+      </div>
+    </div>
+    <div class="caption">
+      <h3>Arabic Fusion</h3>
+      Bilingual English + Arabic in stacked layout. Tagline means<br>"MediSlot — Book with ease."
+      <div class="palette">
+        <span style="background:linear-gradient(135deg,#047857,#0f766e)"></span>
+        <span style="background:#fbbf24"></span>
+        <span style="background:#6b7280"></span>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
