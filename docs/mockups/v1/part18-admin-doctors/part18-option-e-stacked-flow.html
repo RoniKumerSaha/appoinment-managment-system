@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Part 18-E — Admin Doctors: Stacked Vertical Flow</title>
+<title>Part 18-E â€” Admin Doctors: Stacked Vertical Flow</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
@@ -88,19 +88,19 @@
 </style>
 </head>
 <body>
-<div class="badge">PART 18-E · Admin Doctors · Stacked Flow</div>
+<div class="badge">PART 18-E Â· Admin Doctors Â· Stacked Flow</div>
 <div class="frame">
 
   <nav class="nav">
-    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
-    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Salem Al-Mutairi · Admin</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">SM</div></div>
+    <div class="logo"><div class="logo-icon">+</div> MediSlot</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Salem Al-Mutairi Â· Admin</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">SM</div></div>
   </nav>
 
   <div class="page">
     <div class="page-header">
-      <div class="crumb">Admin → Doctors</div>
+      <div class="crumb">Admin â†’ Doctors</div>
       <h1>Manage doctors</h1>
-      <p class="sub">9 active doctors · 1 inactive · assigned across 4 branches</p>
+      <p class="sub">9 active doctors Â· 1 inactive Â· assigned across 4 branches</p>
     </div>
 
     <!-- Step 1: pick a doctor -->
@@ -108,7 +108,7 @@
       <div class="step-head">
         <div class="step-num done">1</div>
         <div class="step-title">Select a doctor to edit</div>
-        <div class="step-hint">10 doctors · 9 active</div>
+        <div class="step-hint">10 doctors Â· 9 active</div>
       </div>
       <div class="doc-list">
         <div class="doc-item selected">
@@ -116,36 +116,36 @@
           <div class="av">AQ</div>
           <div class="body">
             <div class="name">Dr. Ahmed Al-Qahtani</div>
-            <div class="meta">Family Medicine · 2 branches · 58 future appts</div>
+            <div class="meta">Family Medicine Â· 2 branches Â· 58 future appts</div>
           </div>
-          <span class="pill active">● Active</span>
+          <span class="pill active">â— Active</span>
         </div>
         <div class="doc-item">
           <div class="radio"></div>
           <div class="av">AR</div>
           <div class="body">
             <div class="name">Dr. Abdullah Al-Rashid</div>
-            <div class="meta">Cardiology · Riyadh Olaya · 42 future appts</div>
+            <div class="meta">Cardiology Â· Riyadh Olaya Â· 42 future appts</div>
           </div>
-          <span class="pill active">● Active</span>
+          <span class="pill active">â— Active</span>
         </div>
         <div class="doc-item">
           <div class="radio"></div>
           <div class="av">FK</div>
           <div class="body">
             <div class="name">Dr. Fatima Al-Khalil</div>
-            <div class="meta">Pediatrics · 2 branches · 28 future appts</div>
+            <div class="meta">Pediatrics Â· 2 branches Â· 28 future appts</div>
           </div>
-          <span class="pill active">● Active</span>
+          <span class="pill active">â— Active</span>
         </div>
         <div class="doc-item inactive" style="opacity: 0.55;">
           <div class="radio"></div>
           <div class="av inactive" style="background: #f3f4f6; color: #9ca3af;">SI</div>
           <div class="body">
             <div class="name">Dr. Sami Ibrahim</div>
-            <div class="meta">Orthopedics · Riyadh DQ (closed) · 0 appts</div>
+            <div class="meta">Orthopedics Â· Riyadh DQ (closed) Â· 0 appts</div>
           </div>
-          <span class="pill inactive">○ Inactive</span>
+          <span class="pill inactive">â—‹ Inactive</span>
         </div>
       </div>
       <div class="add-row">+ Create new doctor</div>
@@ -155,7 +155,7 @@
     <div class="step">
       <div class="step-head">
         <div class="step-num current">2</div>
-        <div class="step-title">Edit · Dr. Ahmed Al-Qahtani</div>
+        <div class="step-title">Edit Â· Dr. Ahmed Al-Qahtani</div>
         <div class="step-hint">Changes apply on save</div>
       </div>
 
@@ -177,44 +177,44 @@
 
       <div class="form-group">
         <label>Clinic</label>
-        <div class="clinic-locked">🔒 <span>Single clinic per doctor (<code>BR-002</code>). Locked to <strong>ClinicCare Riyadh</strong> in this clinic chain.</span></div>
+        <div class="clinic-locked">ðŸ”’ <span>Single clinic per doctor (<code>BR-002</code>). Locked to <strong>MediSlot Riyadh</strong> in this clinic chain.</span></div>
       </div>
 
       <div class="form-group">
         <label>Branch assignments <span class="req">*</span></label>
         <div class="branch-selector">
           <div class="branch-sel-row selected">
-            <div class="cb">✓</div>
-            <div class="ic">📍</div>
+            <div class="cb">âœ“</div>
+            <div class="ic">ðŸ“</div>
             <div style="flex: 1;">
               <div class="name">Riyadh Olaya</div>
-              <div class="meta">08:00–17:00 · Sun–Thu</div>
+              <div class="meta">08:00â€“17:00 Â· Sunâ€“Thu</div>
             </div>
             <span class="pill active" style="font-size:10px; padding: 2px 8px;">Primary</span>
           </div>
           <div class="branch-sel-row selected">
-            <div class="cb">✓</div>
-            <div class="ic">📍</div>
+            <div class="cb">âœ“</div>
+            <div class="ic">ðŸ“</div>
             <div style="flex: 1;">
               <div class="name">Riyadh Malqa</div>
-              <div class="meta">09:00–18:00 · Sun–Thu</div>
+              <div class="meta">09:00â€“18:00 Â· Sunâ€“Thu</div>
             </div>
             <span class="pill" style="background:#f3f4f6; color:#6b7280; font-size:10px; padding: 2px 8px;">2nd branch</span>
           </div>
           <div class="branch-sel-row">
             <div class="cb"></div>
-            <div class="ic">📍</div>
+            <div class="ic">ðŸ“</div>
             <div style="flex: 1;">
               <div class="name">Jeddah Corniche</div>
-              <div class="meta">10:00–19:00 · Sun–Thu</div>
+              <div class="meta">10:00â€“19:00 Â· Sunâ€“Thu</div>
             </div>
           </div>
           <div class="branch-sel-row disabled">
             <div class="cb"></div>
-            <div class="ic">📍</div>
+            <div class="ic">ðŸ“</div>
             <div style="flex: 1;">
               <div class="name">Riyadh Diplomatic Quarter</div>
-              <div class="meta">○ Inactive branch · cannot assign</div>
+              <div class="meta">â—‹ Inactive branch Â· cannot assign</div>
             </div>
           </div>
         </div>
@@ -224,21 +224,21 @@
       <div class="form-group">
         <label>Status</label>
         <div class="status-toggle">
-          <div class="opt active">● Active</div>
-          <div class="opt">○ Inactive</div>
+          <div class="opt active">â— Active</div>
+          <div class="opt">â—‹ Inactive</div>
         </div>
         <div class="hint">Deactivating with 58 future appts triggers warning (BR-003).</div>
       </div>
 
       <div class="impact">
-        <div class="ic">ℹ</div>
+        <div class="ic">â„¹</div>
         <div>
           <strong>Heads up:</strong> Dr. Al-Qahtani has <strong>58 future appointments</strong>. Deactivating blocks new bookings into his slots; existing appointments remain scheduled.
         </div>
       </div>
 
       <div class="step-foot">
-        <div class="audit">Atomic: <code>Doctor.update</code> + <code>DoctorBranch.replace</code> · audit: <code>doctor.changed</code></div>
+        <div class="audit">Atomic: <code>Doctor.update</code> + <code>DoctorBranch.replace</code> Â· audit: <code>doctor.changed</code></div>
         <div style="display:flex; gap: 8px;">
           <button class="btn-ghost">Cancel</button>
           <button class="btn-primary">Save changes</button>

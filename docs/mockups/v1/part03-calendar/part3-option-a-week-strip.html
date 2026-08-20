@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Part 3-A — Week Strip + Slot List</title>
+<title>Part 3-A â€” Week Strip + Slot List</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
@@ -59,8 +59,8 @@
   .slots-area-header .hint { font-size: 12px; color: #6b7280; }
   .slots-period { margin-bottom: 20px; }
   .slots-period-title { font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-  .slots-period-title::before { content: '☀'; color: #0f766e; }
-  .slots-period-title.pm::before { content: '🌙'; color: #6366f1; }
+  .slots-period-title::before { content: 'â˜€'; color: #0f766e; }
+  .slots-period-title.pm::before { content: 'ðŸŒ™'; color: #6366f1; }
   .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
   .slot { background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 12px; text-align: center; cursor: pointer; font-weight: 600; color: #111827; font-size: 14px; transition: all 0.15s; }
   .slot:hover { border-color: #0f766e; background: #f0fdfa; }
@@ -87,42 +87,42 @@
 </style>
 </head>
 <body>
-<div class="badge">PART 3-A · Week Strip + Slot List</div>
+<div class="badge">PART 3-A Â· Week Strip + Slot List</div>
 <div class="frame">
 
   <nav class="nav">
-    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div class="logo"><div class="logo-icon">+</div> MediSlot</div>
     <div class="nav-links"><a>Find a doctor</a><a>My appointments</a><a>Branches</a><a>Help</a></div>
     <button class="btn-primary">Book appointment</button>
   </nav>
 
   <div class="progress">
-    <span class="step-mini done"><span class="n">✓</span>Doctor</span>
-    <span style="color:#9ca3af;">›</span>
-    <span class="step-mini done"><span class="n">✓</span>Branch & type</span>
-    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini done"><span class="n">âœ“</span>Doctor</span>
+    <span style="color:#9ca3af;">â€º</span>
+    <span class="step-mini done"><span class="n">âœ“</span>Branch & type</span>
+    <span style="color:#9ca3af;">â€º</span>
     <span class="step-mini current"><span class="n">3</span>Date & time</span>
-    <span style="color:#9ca3af;">›</span>
+    <span style="color:#9ca3af;">â€º</span>
     <span class="step-mini"><span class="n">4</span>Your details</span>
-    <span style="color:#9ca3af;">›</span>
+    <span style="color:#9ca3af;">â€º</span>
     <span class="step-mini"><span class="n">5</span>Confirm</span>
   </div>
 
   <div class="layout">
     <div class="main-col">
       <div class="page-header">
-        <span class="back-link">← Back to branch & type</span>
+        <span class="back-link">â† Back to branch & type</span>
         <h1>Pick a date and time</h1>
-        <p class="sub">Available slots for Dr. Ahmed · Branch A · Cardiology consultation (45 min)</p>
+        <p class="sub">Available slots for Dr. Ahmed Â· Branch A Â· Cardiology consultation (45 min)</p>
       </div>
 
-      <div class="window-banner">⏱ You can book within the next 30 days. Earliest: tomorrow.</div>
+      <div class="window-banner">â± You can book within the next 30 days. Earliest: tomorrow.</div>
 
       <div class="week-nav">
-        <h3>This week · Aug 19 – Aug 25</h3>
+        <h3>This week Â· Aug 19 â€“ Aug 25</h3>
         <div class="nav-arrows">
-          <button class="arrow">‹</button>
-          <button class="arrow">›</button>
+          <button class="arrow">â€¹</button>
+          <button class="arrow">â€º</button>
         </div>
       </div>
 
@@ -138,7 +138,7 @@
 
       <div class="slots-area">
         <div class="slots-area-header">
-          <h3>Available times — Thu, Aug 21</h3>
+          <h3>Available times â€” Thu, Aug 21</h3>
           <span class="hint">All times in Branch A local time</span>
         </div>
 
@@ -174,22 +174,22 @@
         <div class="summary-row"><span class="k">Type</span><span class="v">Consultation</span></div>
         <div class="summary-row"><span class="k">Duration</span><span class="v">45 min</span></div>
         <div class="summary-row highlight"><span class="k">Date</span><span class="v">Thu, Aug 21</span></div>
-        <div class="summary-row highlight"><span class="k">Time</span><span class="v">14:45 – 15:30</span></div>
+        <div class="summary-row highlight"><span class="k">Time</span><span class="v">14:45 â€“ 15:30</span></div>
       </div>
 
       <h3>Good to know</h3>
       <div style="font-size: 12px; color: #6b7280; line-height: 1.6;">
-        • Slots refresh in real time.<br>
-        • If a slot disappears after you select it, we'll let you pick another.<br>
-        • You can change branch or type and we'll find new times.
+        â€¢ Slots refresh in real time.<br>
+        â€¢ If a slot disappears after you select it, we'll let you pick another.<br>
+        â€¢ You can change branch or type and we'll find new times.
       </div>
     </div>
   </div>
 
   <div class="footer">
-    <button class="btn-ghost">← Back</button>
-    <span class="summary">Thu, Aug 21 · <strong>14:45 – 15:30</strong> · Branch A</span>
-    <button class="btn-primary">Continue →</button>
+    <button class="btn-ghost">â† Back</button>
+    <span class="summary">Thu, Aug 21 Â· <strong>14:45 â€“ 15:30</strong> Â· Branch A</span>
+    <button class="btn-primary">Continue â†’</button>
   </div>
 
 </div>

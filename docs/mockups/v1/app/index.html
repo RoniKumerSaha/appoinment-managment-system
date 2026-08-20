@@ -1,18 +1,18 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ClinicCare — App Preview</title>
+<title>MediSlot â€” App Preview</title>
 <link rel="stylesheet" href="shell.css">
 </head>
 <body>
 
-  <!-- ─── Topbar ─── -->
+  <!-- â”€â”€â”€ Topbar â”€â”€â”€ -->
   <header class="topbar">
     <a class="brand" href="#/">
       <span class="logo-mark">+</span>
-      <span class="logo-text">ClinicCare</span>
+      <span class="logo-text">MediSlot</span>
       <span class="logo-tag">app preview</span>
     </a>
 
@@ -22,7 +22,7 @@
 
     <div class="topbar-actions">
       <label class="role-select-wrap" title="Switch role">
-        <span class="role-icon" aria-hidden="true">👤</span>
+        <span class="role-icon" aria-hidden="true">ðŸ‘¤</span>
         <select id="roleSelect" class="role-select">
           <option value="landing">Landing</option>
           <option value="patient">Patient</option>
@@ -31,27 +31,27 @@
           <option value="admin">Admin</option>
         </select>
       </label>
-      <a id="openInNew" class="open-new" href="../part01-layout-direction/option-a-clinical-calm.html" target="_blank" title="Open current page in new tab">↗</a>
+      <a id="openInNew" class="open-new" href="../part01-layout-direction/option-a-clinical-calm.html" target="_blank" title="Open current page in new tab">â†—</a>
     </div>
   </header>
 
-  <!-- ─── Loading overlay (hides iframe flicker on first paint) ─── -->
+  <!-- â”€â”€â”€ Loading overlay (hides iframe flicker on first paint) â”€â”€â”€ -->
   <div class="loading" id="loading"><div class="loading-spinner"></div></div>
 
-  <!-- ─── Iframe container ─── -->
+  <!-- â”€â”€â”€ Iframe container â”€â”€â”€ -->
   <main class="frame-host">
     <iframe id="app-frame"
-      title="ClinicCare flow"
+      title="MediSlot flow"
       src="../part01-layout-direction/option-a-clinical-calm.html"
       sandbox="allow-same-origin allow-scripts"
       loading="eager"></iframe>
   </main>
 
-  <!-- ─── 404 overlay (shown when no route matches) ─── -->
+  <!-- â”€â”€â”€ 404 overlay (shown when no route matches) â”€â”€â”€ -->
   <div class="notfound hidden" id="notfound">
-    <h1>404 — route not found</h1>
+    <h1>404 â€” route not found</h1>
     <p>The hash <code id="notfoundHash"></code> doesn't match any flow.</p>
-    <a class="notfound-home" href="#/">← Back to landing</a>
+    <a class="notfound-home" href="#/">â† Back to landing</a>
   </div>
 
   <script src="shell.js"></script>

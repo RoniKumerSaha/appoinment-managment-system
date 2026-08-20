@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Part 3-C — Single-Day Focus</title>
+<title>Part 3-C â€” Single-Day Focus</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
@@ -61,8 +61,8 @@
   .timeline-period:last-child { border-bottom: none; }
   .period-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .period-label .title { font-size: 13px; color: #111827; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-  .period-label .title::before { content: '☀'; color: #0f766e; font-size: 16px; }
-  .period-label.pm .title::before { content: '🌙'; color: #6366f1; }
+  .period-label .title::before { content: 'â˜€'; color: #0f766e; font-size: 16px; }
+  .period-label.pm .title::before { content: 'ðŸŒ™'; color: #6366f1; }
   .period-label .count { font-size: 12px; color: #6b7280; }
   .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
   .slot { background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 12px; text-align: center; cursor: pointer; transition: all 0.15s; }
@@ -91,33 +91,33 @@
 </style>
 </head>
 <body>
-<div class="badge">PART 3-C · Single-Day Focus</div>
+<div class="badge">PART 3-C Â· Single-Day Focus</div>
 <div class="frame">
 
   <nav class="nav">
-    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div class="logo"><div class="logo-icon">+</div> MediSlot</div>
     <div class="nav-links"><a>Find a doctor</a><a>My appointments</a><a>Branches</a><a>Help</a></div>
     <button class="btn-primary">Book appointment</button>
   </nav>
 
   <div class="progress">
-    <span class="step-mini done"><span class="n">✓</span>Doctor</span>
-    <span style="color:#9ca3af;">›</span>
-    <span class="step-mini done"><span class="n">✓</span>Branch & type</span>
-    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini done"><span class="n">âœ“</span>Doctor</span>
+    <span style="color:#9ca3af;">â€º</span>
+    <span class="step-mini done"><span class="n">âœ“</span>Branch & type</span>
+    <span style="color:#9ca3af;">â€º</span>
     <span class="step-mini current"><span class="n">3</span>Date & time</span>
-    <span style="color:#9ca3af;">›</span>
+    <span style="color:#9ca3af;">â€º</span>
     <span class="step-mini"><span class="n">4</span>Your details</span>
-    <span style="color:#9ca3af;">›</span>
+    <span style="color:#9ca3af;">â€º</span>
     <span class="step-mini"><span class="n">5</span>Confirm</span>
   </div>
 
   <div class="layout">
     <div class="main-col">
       <div class="page-header">
-        <span class="back-link">← Back to branch & type</span>
+        <span class="back-link">â† Back to branch & type</span>
         <h1>Pick a date and time</h1>
-        <p class="sub">Dr. Ahmed · Branch A · Cardiology consultation (45 min)</p>
+        <p class="sub">Dr. Ahmed Â· Branch A Â· Cardiology consultation (45 min)</p>
       </div>
 
       <div class="day-focus">
@@ -132,19 +132,19 @@
               </div>
             </div>
             <div class="date-arrows">
-              <button class="arrow">‹</button>
-              <button class="arrow">›</button>
+              <button class="arrow">â€¹</button>
+              <button class="arrow">â€º</button>
             </div>
           </div>
         </div>
 
         <div class="week-carousel">
-          <div class="week-day disabled"><div class="dow">Today</div><div class="num">18</div><div class="avail">—</div></div>
+          <div class="week-day disabled"><div class="dow">Today</div><div class="num">18</div><div class="avail">â€”</div></div>
           <div class="week-day"><div class="dow">Tue</div><div class="num">19</div><div class="avail">6 slots</div></div>
           <div class="week-day"><div class="dow">Wed</div><div class="num">20</div><div class="avail">4 slots</div></div>
           <div class="week-day selected"><div class="dow">Thu</div><div class="num">21</div><div class="avail">8 slots</div></div>
           <div class="week-day"><div class="dow">Fri</div><div class="num">22</div><div class="avail">1 slot</div></div>
-          <div class="week-day disabled"><div class="dow">Sat</div><div class="num">23</div><div class="avail">—</div></div>
+          <div class="week-day disabled"><div class="dow">Sat</div><div class="num">23</div><div class="avail">â€”</div></div>
           <div class="week-day"><div class="dow">Sun</div><div class="num">24</div><div class="avail">5 slots</div></div>
           <div class="week-day"><div class="dow">Mon</div><div class="num">25</div><div class="avail">9 slots</div></div>
           <div class="week-day"><div class="dow">Tue</div><div class="num">26</div><div class="avail">7 slots</div></div>
@@ -157,12 +157,12 @@
               <span class="count">5 slots</span>
             </div>
             <div class="slot-grid">
-              <div class="slot"><div class="time">09:00</div><div class="dur">→ 09:45</div></div>
-              <div class="slot"><div class="time">09:45</div><div class="dur">→ 10:30</div></div>
-              <div class="slot"><div class="time">10:30</div><div class="dur">→ 11:15</div></div>
+              <div class="slot"><div class="time">09:00</div><div class="dur">â†’ 09:45</div></div>
+              <div class="slot"><div class="time">09:45</div><div class="dur">â†’ 10:30</div></div>
+              <div class="slot"><div class="time">10:30</div><div class="dur">â†’ 11:15</div></div>
               <div class="slot slot-empty"><div class="time">11:15</div><div class="dur">taken</div></div>
-              <div class="slot"><div class="time">11:45</div><div class="dur">→ 12:30</div></div>
-              <div class="slot"><div class="time">12:30</div><div class="dur">→ 13:15</div></div>
+              <div class="slot"><div class="time">11:45</div><div class="dur">â†’ 12:30</div></div>
+              <div class="slot"><div class="time">12:30</div><div class="dur">â†’ 13:15</div></div>
             </div>
           </div>
           <div class="timeline-period">
@@ -171,10 +171,10 @@
               <span class="count">3 slots</span>
             </div>
             <div class="slot-grid">
-              <div class="slot"><div class="time">14:00</div><div class="dur">→ 14:45</div></div>
-              <div class="slot selected"><div class="time">14:45</div><div class="dur">→ 15:30</div></div>
-              <div class="slot"><div class="time">15:30</div><div class="dur">→ 16:15</div></div>
-              <div class="slot"><div class="time">16:15</div><div class="dur">→ 17:00</div></div>
+              <div class="slot"><div class="time">14:00</div><div class="dur">â†’ 14:45</div></div>
+              <div class="slot selected"><div class="time">14:45</div><div class="dur">â†’ 15:30</div></div>
+              <div class="slot"><div class="time">15:30</div><div class="dur">â†’ 16:15</div></div>
+              <div class="slot"><div class="time">16:15</div><div class="dur">â†’ 17:00</div></div>
             </div>
           </div>
         </div>
@@ -189,18 +189,18 @@
         <div class="summary-row"><span class="k">Type</span><span class="v">Consultation</span></div>
         <div class="summary-row"><span class="k">Duration</span><span class="v">45 min</span></div>
         <div class="summary-row highlight"><span class="k">Date</span><span class="v">Thu, Aug 21</span></div>
-        <div class="summary-row highlight"><span class="k">Time</span><span class="v">14:45 – 15:30</span></div>
+        <div class="summary-row highlight"><span class="k">Time</span><span class="v">14:45 â€“ 15:30</span></div>
       </div>
 
       <h3>Browse the month</h3>
-      <button class="btn-ghost" style="width:100%; text-align:left; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px; background:white;">📅 Open full month view</button>
+      <button class="btn-ghost" style="width:100%; text-align:left; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px; background:white;">ðŸ“… Open full month view</button>
     </div>
   </div>
 
   <div class="footer">
-    <button class="btn-ghost">← Back</button>
-    <span class="summary">Thu, Aug 21 · <strong>14:45 – 15:30</strong> · Branch A</span>
-    <button class="btn-primary">Continue →</button>
+    <button class="btn-ghost">â† Back</button>
+    <span class="summary">Thu, Aug 21 Â· <strong>14:45 â€“ 15:30</strong> Â· Branch A</span>
+    <button class="btn-primary">Continue â†’</button>
   </div>
 
 </div>

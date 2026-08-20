@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Part 17-E — Admin Branches: Stacked Vertical Flow</title>
+<title>Part 17-E â€” Admin Branches: Stacked Vertical Flow</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
@@ -84,23 +84,23 @@
 </style>
 </head>
 <body>
-<div class="badge">PART 17-E · Admin Branches · Stacked Flow</div>
+<div class="badge">PART 17-E Â· Admin Branches Â· Stacked Flow</div>
 <div class="frame">
 
   <nav class="nav">
-    <div class="logo" data-route="__logo__"><div class="logo-icon">+</div> ClinicCare</div>
-    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Salem Al-Mutairi · Admin</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">SM</div></div>
+    <div class="logo" data-route="__logo__"><div class="logo-icon">+</div> MediSlot</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Salem Al-Mutairi Â· Admin</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">SM</div></div>
   </nav>
 
   <div class="page">
     <div class="page-header">
-      <div class="crumb">Admin → Branches</div>
+      <div class="crumb">Admin â†’ Branches</div>
       <h1>Manage branches</h1>
-      <p class="sub">3 active branches · 1 inactive · 9 doctors across all branches</p>
+      <p class="sub">3 active branches Â· 1 inactive Â· 9 doctors across all branches</p>
     </div>
     <div style="display:flex; gap:8px; margin-bottom: 20px;">
-      <a data-route="/admin/doctors" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">→ Doctors</a>
-      <a data-route="/admin/receptionists" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">→ Receptionists</a>
+      <a data-route="/admin/doctors" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">â†’ Doctors</a>
+      <a data-route="/admin/receptionists" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">â†’ Receptionists</a>
       <a data-route="/admin/branch-hours" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">Branch hours impact</a>
     </div>
 
@@ -109,44 +109,44 @@
       <div class="step-head">
         <div class="step-num done">1</div>
         <div class="step-title">Select a branch to edit</div>
-        <div class="step-hint">4 branches · 3 active</div>
+        <div class="step-hint">4 branches Â· 3 active</div>
       </div>
       <div class="branch-list">
         <div class="branch-item selected">
           <div class="radio"></div>
-          <div class="ic">📍</div>
+          <div class="ic">ðŸ“</div>
           <div class="body">
             <div class="name">Riyadh Olaya</div>
-            <div class="meta">King Fahd Rd · 3 doctors · 98 future appts · 08:00–17:00</div>
+            <div class="meta">King Fahd Rd Â· 3 doctors Â· 98 future appts Â· 08:00â€“17:00</div>
           </div>
-          <span class="pill active">● Active</span>
+          <span class="pill active">â— Active</span>
         </div>
         <div class="branch-item">
           <div class="radio"></div>
-          <div class="ic">📍</div>
+          <div class="ic">ðŸ“</div>
           <div class="body">
             <div class="name">Riyadh Malqa</div>
-            <div class="meta">Prince Mohammed Ibn Salman Rd · 4 doctors · 76 future appts</div>
+            <div class="meta">Prince Mohammed Ibn Salman Rd Â· 4 doctors Â· 76 future appts</div>
           </div>
-          <span class="pill active">● Active</span>
+          <span class="pill active">â— Active</span>
         </div>
         <div class="branch-item">
           <div class="radio"></div>
-          <div class="ic">📍</div>
+          <div class="ic">ðŸ“</div>
           <div class="body">
             <div class="name">Jeddah Corniche</div>
-            <div class="meta">Corniche Rd · 2 doctors · 40 future appts</div>
+            <div class="meta">Corniche Rd Â· 2 doctors Â· 40 future appts</div>
           </div>
-          <span class="pill active">● Active</span>
+          <span class="pill active">â— Active</span>
         </div>
         <div class="branch-item inactive" style="opacity: 0.55;">
           <div class="radio"></div>
-          <div class="ic inactive">📍</div>
+          <div class="ic inactive">ðŸ“</div>
           <div class="body">
             <div class="name">Riyadh Diplomatic Quarter</div>
-            <div class="meta">DQ · 0 doctors · 0 future appts · deactivated 5 months ago</div>
+            <div class="meta">DQ Â· 0 doctors Â· 0 future appts Â· deactivated 5 months ago</div>
           </div>
-          <span class="pill inactive">○ Inactive</span>
+          <span class="pill inactive">â—‹ Inactive</span>
         </div>
       </div>
       <div class="add-row" data-route="/admin/branch-hours" style="cursor:pointer;">+ Create new branch</div>
@@ -156,7 +156,7 @@
     <div class="step">
       <div class="step-head">
         <div class="step-num current">2</div>
-        <div class="step-title">Edit · Riyadh Olaya</div>
+        <div class="step-title">Edit Â· Riyadh Olaya</div>
         <div class="step-hint">Changes apply on save</div>
       </div>
 
@@ -170,11 +170,11 @@
       </div>
 
       <div class="form-group">
-        <label>Operating hours · multi-period per day</label>
+        <label>Operating hours Â· multi-period per day</label>
         <div class="hours-editor">
           <div class="head">
             <div class="label">Weekly schedule</div>
-            <div class="hint">FR-003 · + Add period per day</div>
+            <div class="hint">FR-003 Â· + Add period per day</div>
           </div>
           <div class="day-row"><div class="dow">Sun</div><input type="time" value="08:00"><input type="time" value="17:00"><div></div></div>
           <div class="day-row"><div class="dow">Mon</div><input type="time" value="08:00"><input type="time" value="17:00"><div></div></div>
@@ -190,21 +190,21 @@
       <div class="form-group">
         <label>Status</label>
         <div class="status-toggle">
-          <div class="opt active">● Active</div>
-          <div class="opt">○ Inactive</div>
+          <div class="opt active">â— Active</div>
+          <div class="opt">â—‹ Inactive</div>
         </div>
         <div class="hint">Deactivating with future appointments triggers ConflictModal (BR-059).</div>
       </div>
 
       <div class="impact">
-        <div class="ic">ℹ</div>
+        <div class="ic">â„¹</div>
         <div>
-          <strong>Heads up:</strong> This branch has <strong>98 future appointments</strong>. Changing status to Inactive would block new bookings here. Existing appointments are preserved — only the slot template changes.
+          <strong>Heads up:</strong> This branch has <strong>98 future appointments</strong>. Changing status to Inactive would block new bookings here. Existing appointments are preserved â€” only the slot template changes.
         </div>
       </div>
 
       <div class="step-foot">
-        <div class="audit">Atomic: <code>Branch.update</code> · audit: <code>branch.changed</code></div>
+        <div class="audit">Atomic: <code>Branch.update</code> Â· audit: <code>branch.changed</code></div>
         <div style="display:flex; gap: 8px;">
           <button class="btn-ghost" data-route="">Cancel</button>
           <button class="btn-primary" data-route="">Save changes</button>

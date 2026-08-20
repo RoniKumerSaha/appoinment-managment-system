@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Part 18-D — Admin Doctors: Slide-Over Assignment</title>
+<title>Part 18-D â€” Admin Doctors: Slide-Over Assignment</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
@@ -76,29 +76,29 @@
 </style>
 </head>
 <body>
-<div class="badge">PART 18-D · Admin Doctors · Slide-Over</div>
+<div class="badge">PART 18-D Â· Admin Doctors Â· Slide-Over</div>
 <div class="frame">
 
   <nav class="nav">
-    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
-    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Salem Al-Mutairi · Admin</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">SM</div></div>
+    <div class="logo"><div class="logo-icon">+</div> MediSlot</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Salem Al-Mutairi Â· Admin</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">SM</div></div>
   </nav>
 
   <div class="page">
     <div class="page-header">
       <div>
-        <div class="crumb">Admin → Doctors</div>
+        <div class="crumb">Admin â†’ Doctors</div>
         <h1>Doctors</h1>
-        <p class="sub">9 active · 1 inactive</p>
+        <p class="sub">9 active Â· 1 inactive</p>
       </div>
       <button class="btn-primary">+ New doctor</button>
     </div>
     <table>
       <thead><tr><th>Doctor</th><th>Branches</th><th>Status</th><th></th></tr></thead>
       <tbody>
-        <tr><td>Dr. Ahmed Al-Qahtani</td><td>Riyadh Olaya · Riyadh Malqa</td><td>● Active</td><td><div class="actions-cell"><button style="border-color:#0f766e; color:#0f766e;">Editing…</button></div></td></tr>
-        <tr><td>Dr. Abdullah Al-Rashid</td><td>Riyadh Olaya</td><td>● Active</td><td><div class="actions-cell"><button>Edit</button> <button>Assign</button></div></td></tr>
-        <tr><td>Dr. Mohammed Hassan</td><td>Riyadh Olaya</td><td>● Active</td><td><div class="actions-cell"><button>Edit</button> <button>Assign</button></div></td></tr>
+        <tr><td>Dr. Ahmed Al-Qahtani</td><td>Riyadh Olaya Â· Riyadh Malqa</td><td>â— Active</td><td><div class="actions-cell"><button style="border-color:#0f766e; color:#0f766e;">Editingâ€¦</button></div></td></tr>
+        <tr><td>Dr. Abdullah Al-Rashid</td><td>Riyadh Olaya</td><td>â— Active</td><td><div class="actions-cell"><button>Edit</button> <button>Assign</button></div></td></tr>
+        <tr><td>Dr. Mohammed Hassan</td><td>Riyadh Olaya</td><td>â— Active</td><td><div class="actions-cell"><button>Edit</button> <button>Assign</button></div></td></tr>
       </tbody>
     </table>
   </div>
@@ -107,8 +107,8 @@
   <div class="slide-overlay"></div>
   <div class="slide-panel">
     <div class="slide-head">
-      <h2>Edit · Dr. Ahmed Al-Qahtani</h2>
-      <button class="close">×</button>
+      <h2>Edit Â· Dr. Ahmed Al-Qahtani</h2>
+      <button class="close">Ã—</button>
     </div>
     <div class="slide-body">
 
@@ -116,7 +116,7 @@
         <div class="av">AQ</div>
         <div>
           <div class="name">Dr. Ahmed Al-Qahtani</div>
-          <div class="email">a.alqahtani@clinic.sa · Family Medicine</div>
+          <div class="email">a.alqahtani@clinic.sa Â· Family Medicine</div>
         </div>
       </div>
 
@@ -137,45 +137,45 @@
 
       <div class="form-group">
         <label>Clinic</label>
-        <div class="clinic-locked">🔒 <span>Single clinic per doctor (<code>BR-002</code>). Locked to <strong>ClinicCare Riyadh</strong>.</span></div>
+        <div class="clinic-locked">ðŸ”’ <span>Single clinic per doctor (<code>BR-002</code>). Locked to <strong>MediSlot Riyadh</strong>.</span></div>
       </div>
 
       <div class="form-group">
-        <label>Branch assignments · multi-select (FR-004)</label>
+        <label>Branch assignments Â· multi-select (FR-004)</label>
         <div class="branch-picker">
           <div class="branch-pick-row assigned">
-            <div class="cb">✓</div>
-            <div class="ic">📍</div>
+            <div class="cb">âœ“</div>
+            <div class="ic">ðŸ“</div>
             <div style="flex: 1;">
               <div class="name">Riyadh Olaya</div>
-              <div class="meta">08:00–17:00 · 3 doctors here</div>
+              <div class="meta">08:00â€“17:00 Â· 3 doctors here</div>
             </div>
             <span class="pill" style="background: #d1fae5; color: #065f46;">Primary</span>
           </div>
           <div class="branch-pick-row assigned">
-            <div class="cb">✓</div>
-            <div class="ic">📍</div>
+            <div class="cb">âœ“</div>
+            <div class="ic">ðŸ“</div>
             <div style="flex: 1;">
               <div class="name">Riyadh Malqa</div>
-              <div class="meta">09:00–18:00 · 4 doctors here</div>
+              <div class="meta">09:00â€“18:00 Â· 4 doctors here</div>
             </div>
             <span class="pill dim">2nd branch</span>
           </div>
           <div class="branch-pick-row">
             <div class="cb"></div>
-            <div class="ic">📍</div>
+            <div class="ic">ðŸ“</div>
             <div style="flex: 1;">
               <div class="name">Jeddah Corniche</div>
-              <div class="meta">10:00–19:00 · 2 doctors here</div>
+              <div class="meta">10:00â€“19:00 Â· 2 doctors here</div>
             </div>
             <span class="pill dim">+ add</span>
           </div>
           <div class="branch-pick-row" style="opacity: 0.5;">
             <div class="cb"></div>
-            <div class="ic">📍</div>
+            <div class="ic">ðŸ“</div>
             <div style="flex: 1;">
               <div class="name">Riyadh Diplomatic Quarter</div>
-              <div class="meta">○ Inactive · cannot assign</div>
+              <div class="meta">â—‹ Inactive Â· cannot assign</div>
             </div>
             <span class="pill dim">Disabled</span>
           </div>
@@ -186,8 +186,8 @@
       <div class="form-group">
         <label>Status</label>
         <div class="status-toggle">
-          <div class="opt active">● Active</div>
-          <div class="opt">○ Inactive</div>
+          <div class="opt active">â— Active</div>
+          <div class="opt">â—‹ Inactive</div>
         </div>
         <div class="hint">Deactivating with 58 future appts triggers warning (BR-003).</div>
       </div>
@@ -195,7 +195,7 @@
     </div>
     <div class="slide-actions">
       <span class="danger">Deactivate doctor</span>
-      <div class="audit">Atomic: <code>Doctor.update</code> + <code>DoctorBranch.replace</code> · audit: <code>doctor.changed</code></div>
+      <div class="audit">Atomic: <code>Doctor.update</code> + <code>DoctorBranch.replace</code> Â· audit: <code>doctor.changed</code></div>
       <div class="btns">
         <button class="btn-secondary">Cancel</button>
         <button class="btn-primary">Save changes</button>

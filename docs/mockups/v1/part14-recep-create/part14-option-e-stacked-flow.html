@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Part 14-E — Receptionist Create: Stacked Vertical Flow</title>
+<title>Part 14-E â€” Receptionist Create: Stacked Vertical Flow</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
@@ -78,17 +78,17 @@
 </style>
 </head>
 <body>
-<div class="badge">PART 14-E · Receptionist Create · Stacked Flow</div>
+<div class="badge">PART 14-E Â· Receptionist Create Â· Stacked Flow</div>
 <div class="frame">
 
   <nav class="nav">
-    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
-    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Reem Al-Harbi · Reception</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">RH</div></div>
+    <div class="logo"><div class="logo-icon">+</div> MediSlot</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Reem Al-Harbi Â· Reception</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">RH</div></div>
   </nav>
 
   <div class="page">
     <div class="page-header">
-      <div class="crumb">Today → + New appointment</div>
+      <div class="crumb">Today â†’ + New appointment</div>
       <h1>Book on behalf of patient</h1>
       <p class="sub">Walk-in or phone booking. Same conflict checks as patient flow.</p>
     </div>
@@ -98,15 +98,15 @@
       <div class="step-head">
         <div class="step-num done">1</div>
         <div class="step-title">Branch</div>
-        <div class="step-hint">BR-004 · single-branch</div>
+        <div class="step-hint">BR-004 Â· single-branch</div>
       </div>
       <div class="branch-card">
-        <div class="ic">📍</div>
+        <div class="ic">ðŸ“</div>
         <div class="body">
           <div class="name">Riyadh Olaya Branch</div>
-          <div class="meta">King Fahd Rd · 3 doctors</div>
+          <div class="meta">King Fahd Rd Â· 3 doctors</div>
         </div>
-        <span class="lock">🔒 Locked to you</span>
+        <span class="lock">ðŸ”’ Locked to you</span>
       </div>
     </div>
 
@@ -149,7 +149,7 @@
       <div class="step-head">
         <div class="step-num done">3</div>
         <div class="step-title">Date + slot</div>
-        <div class="step-hint">Wed, Aug 20 · 6 slots</div>
+        <div class="step-hint">Wed, Aug 20 Â· 6 slots</div>
       </div>
       <div class="form-group">
         <label>Date</label>
@@ -187,9 +187,9 @@
         <div class="av">FS</div>
         <div class="body">
           <div class="name">Fatima Al-Sayed</div>
-          <div class="meta">3 prior appointments · last visit 2 months ago</div>
+          <div class="meta">3 prior appointments Â· last visit 2 months ago</div>
         </div>
-        <span class="badge">✓ MATCHED</span>
+        <span class="badge">âœ“ MATCHED</span>
       </div>
       <div class="row-2" style="margin-top: 14px;">
         <div class="form-group">
@@ -203,7 +203,7 @@
       </div>
       <div class="form-group" style="margin-bottom: 0;">
         <label>Notes for doctor (optional)</label>
-        <textarea placeholder="e.g. patient prefers afternoon calls…"></textarea>
+        <textarea placeholder="e.g. patient prefers afternoon callsâ€¦"></textarea>
       </div>
     </div>
 
@@ -217,18 +217,18 @@
       <div class="summary-box">
         <div class="row"><span class="k">Branch</span><span class="v">Riyadh Olaya (locked)</span></div>
         <div class="row"><span class="k">Doctor</span><span class="v">Dr. Al-Rashid</span></div>
-        <div class="row"><span class="k">Type</span><span class="v">Cardiology consultation · 45 min</span></div>
-        <div class="row"><span class="k">When</span><span class="v">Wed, Aug 20 · 10:00 → 10:45</span></div>
-        <div class="row"><span class="k">Patient</span><span class="v">Fatima Al-Sayed · +966 5XX XXX 1234</span></div>
+        <div class="row"><span class="k">Type</span><span class="v">Cardiology consultation Â· 45 min</span></div>
+        <div class="row"><span class="k">When</span><span class="v">Wed, Aug 20 Â· 10:00 â†’ 10:45</span></div>
+        <div class="row"><span class="k">Patient</span><span class="v">Fatima Al-Sayed Â· +966 5XX XXX 1234</span></div>
       </div>
       <div class="impact">
-        <div class="ic">ℹ️</div>
+        <div class="ic">â„¹ï¸</div>
         <div>
           This booking will be created <strong>on behalf of patient</strong>. Patient receives SMS confirmation. audit.creator_role = "receptionist", audit.action = "appointment.created".
         </div>
       </div>
       <div class="step-foot">
-        <div class="audit">Atomic: <code>Appointment.create</code> · audit: <code>appointment.created</code></div>
+        <div class="audit">Atomic: <code>Appointment.create</code> Â· audit: <code>appointment.created</code></div>
         <div style="display:flex; gap: 8px;">
           <button class="btn-ghost">Back</button>
           <button class="btn-primary">Confirm booking</button>

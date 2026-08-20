@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Part 12-E — Doctor: Mark Status · Stacked Vertical Flow</title>
+<title>Part 12-E â€” Doctor: Mark Status Â· Stacked Vertical Flow</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
@@ -74,19 +74,19 @@
 </style>
 </head>
 <body>
-<div class="badge">PART 12-E · Doctor: Mark Status · Stacked Flow</div>
+<div class="badge">PART 12-E Â· Doctor: Mark Status Â· Stacked Flow</div>
 <div class="frame">
 
   <nav class="nav">
-    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div class="logo"><div class="logo-icon">+</div> MediSlot</div>
     <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Dr. Ahmed Al-Rashid</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">AR</div></div>
   </nav>
 
   <div class="page">
     <div class="page-header">
-      <div class="crumb">Today → Update status</div>
+      <div class="crumb">Today â†’ Update status</div>
       <h1>Update appointment status</h1>
-      <p class="sub">Tue, Aug 20 · Riyadh Olaya · 3 of 8 done</p>
+      <p class="sub">Tue, Aug 20 Â· Riyadh Olaya Â· 3 of 8 done</p>
     </div>
 
     <!-- Step 1: Pick appointment -->
@@ -102,7 +102,7 @@
           <div class="time">09:00</div>
           <div class="body">
             <div class="patient">Fatima Al-Sayed</div>
-            <div class="meta">Cardiology consultation · 45 min · +966 5XX XXX 1234</div>
+            <div class="meta">Cardiology consultation Â· 45 min Â· +966 5XX XXX 1234</div>
           </div>
           <span class="pill scheduled">Scheduled</span>
         </div>
@@ -111,7 +111,7 @@
           <div class="time">09:45</div>
           <div class="body">
             <div class="patient">Mohammed Al-Harbi</div>
-            <div class="meta">Follow-up · 20 min · +966 5XX XXX 5678</div>
+            <div class="meta">Follow-up Â· 20 min Â· +966 5XX XXX 5678</div>
           </div>
           <span class="pill scheduled">Scheduled</span>
         </div>
@@ -120,7 +120,7 @@
           <div class="time">10:30</div>
           <div class="body">
             <div class="patient">Layla Ibrahim</div>
-            <div class="meta">ECG review · 15 min · +966 5XX XXX 9012</div>
+            <div class="meta">ECG review Â· 15 min Â· +966 5XX XXX 9012</div>
           </div>
           <span class="pill scheduled">Scheduled</span>
         </div>
@@ -129,7 +129,7 @@
           <div class="time">11:15</div>
           <div class="body">
             <div class="patient">Khalid Al-Otaibi</div>
-            <div class="meta">Pre-op assessment · 30 min · +966 5XX XXX 3456</div>
+            <div class="meta">Pre-op assessment Â· 30 min Â· +966 5XX XXX 3456</div>
           </div>
           <span class="pill scheduled">Scheduled</span>
         </div>
@@ -138,7 +138,7 @@
           <div class="time">12:00</div>
           <div class="body">
             <div class="patient">Yousef Al-Dosari</div>
-            <div class="meta">Cardiology consultation · 45 min</div>
+            <div class="meta">Cardiology consultation Â· 45 min</div>
           </div>
           <span class="pill scheduled">Scheduled</span>
         </div>
@@ -154,17 +154,17 @@
       </div>
       <div class="status-options">
         <div class="status-opt">
-          <span class="ic">✓</span>
+          <span class="ic">âœ“</span>
           <div class="name">Completed</div>
           <div class="desc">Patient was seen. Slot stays booked (BR-040). Goes to history.</div>
         </div>
         <div class="status-opt warn">
-          <span class="ic">⏱</span>
+          <span class="ic">â±</span>
           <div class="name">No-show</div>
           <div class="desc">Patient didn't arrive. Slot stays booked. Recorded for pattern tracking.</div>
         </div>
         <div class="status-opt danger selected" style="grid-column: 1 / -1;">
-          <span class="ic">�</span>
+          <span class="ic">ï¿½</span>
           <div class="name">Cancel this appointment</div>
           <div class="desc">Slot is released back to availability. Patient is notified. Reason required.</div>
         </div>
@@ -183,18 +183,18 @@
 
       <div class="form-group">
         <label>Notes (optional)</label>
-        <textarea placeholder="Anything else worth recording…"></textarea>
+        <textarea placeholder="Anything else worth recordingâ€¦"></textarea>
       </div>
 
       <div class="impact">
-        <div class="ic">ℹ</div>
+        <div class="ic">â„¹</div>
         <div>
           <strong>Slot 09:00 will be released.</strong> It becomes available for new bookings within seconds. Patient receives SMS + email cancellation confirmation.
         </div>
       </div>
 
       <div class="step-foot">
-        <div class="audit">Atomic: <code>Appointment.cancel</code> · audit: <code>status.changed</code></div>
+        <div class="audit">Atomic: <code>Appointment.cancel</code> Â· audit: <code>status.changed</code></div>
         <div style="display:flex; gap: 8px;">
           <button class="btn-ghost">Back</button>
           <button class="btn-primary">Confirm cancellation</button>

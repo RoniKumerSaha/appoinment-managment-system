@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Part 13-C — Receptionist Today: Dense Table</title>
+<title>Part 13-C â€” Receptionist Today: Dense Table</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
@@ -57,20 +57,20 @@
 </style>
 </head>
 <body>
-<div class="badge">PART 13-C · Receptionist Today: Dense Table</div>
+<div class="badge">PART 13-C Â· Receptionist Today: Dense Table</div>
 <div class="frame">
 
   <nav class="nav">
-    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
-    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Reem Al-Harbi · Reception</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">RH</div></div>
+    <div class="logo"><div class="logo-icon">+</div> MediSlot</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Reem Al-Harbi Â· Reception</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">RH</div></div>
   </nav>
 
   <div class="page">
     <div class="page-header">
       <div>
-        <div class="branch-pill">📍 Riyadh Olaya Branch</div>
+        <div class="branch-pill">ðŸ“ Riyadh Olaya Branch</div>
         <h1>Today, Aug 20</h1>
-        <p class="sub">All appointments at this branch — 42 total</p>
+        <p class="sub">All appointments at this branch â€” 42 total</p>
       </div>
       <button class="btn-primary">+ New appointment</button>
     </div>
@@ -86,7 +86,7 @@
     </div>
 
     <div class="filter-bar">
-      <input class="search" placeholder="Search patient name or phone…">
+      <input class="search" placeholder="Search patient name or phoneâ€¦">
       <input type="date" value="2026-08-20">
       <select><option>All doctors</option><option>Dr. Al-Rashid</option><option>Dr. Al-Qahtani</option><option>Dr. Hassan</option></select>
       <select><option>All statuses</option><option>Scheduled</option><option>Checked-in</option><option>Completed</option><option>No-show</option><option>Cancelled</option></select>
@@ -97,16 +97,16 @@
         <tr><th>Time</th><th>Patient</th><th>Doctor</th><th>Type</th><th>Status</th><th></th></tr>
       </thead>
       <tbody>
-        <tr><td><span class="time">08:00</span></td><td><div class="patient-name">Ahmed Youssef</div><div class="patient-phone">+966 5XX XXX 1111</div></td><td>Dr. Al-Rashid</td><td>Follow-up</td><td><span class="pill completed">✓ Completed</span></td><td><div class="actions"><button>View</button></div></td></tr>
-        <tr><td><span class="time">08:30</span></td><td><div class="patient-name">Noura Al-Ghamdi</div><div class="patient-phone">+966 5XX XXX 2222</div></td><td>Dr. Al-Rashid</td><td>Cardiology cons.</td><td><span class="pill cancelled">○ Cancelled</span></td><td><div class="actions"><button>View</button></div></td></tr>
-        <tr><td><span class="time">08:45</span></td><td><div class="patient-name">Salman Al-Qahtani</div><div class="patient-phone">+966 5XX XXX 3333</div></td><td>Dr. Al-Qahtani</td><td>Follow-up</td><td><span class="pill no-show">✕ No-show</span></td><td><div class="actions"><button>View</button><button>Undo</button></div></td></tr>
-        <tr class="now"><td><span class="time"><span class="now-dot">●</span>09:00</span></td><td><div class="patient-name">Fatima Al-Sayed</div><div class="patient-phone">+966 5XX XXX 4444</div></td><td>Dr. Al-Rashid</td><td>Cardiology cons.</td><td><span class="pill checked-in">⌛ Checked-in</span></td><td><div class="actions"><button>View</button><button class="primary">Mark done</button></div></td></tr>
-        <tr><td><span class="time">09:15</span></td><td><div class="patient-name">Yousef Al-Dosari</div><div class="patient-phone">+966 5XX XXX 5555</div></td><td>Dr. Hassan</td><td>ECG review</td><td><span class="pill scheduled">● Scheduled</span></td><td><div class="actions"><button>View</button><button class="primary">Check in</button></div></td></tr>
-        <tr><td><span class="time">09:30</span></td><td><div class="patient-name">Hala Al-Sharif</div><div class="patient-phone">+966 5XX XXX 8888</div></td><td>Dr. Al-Qahtani</td><td>Cardiology cons.</td><td><span class="pill scheduled">● Scheduled</span></td><td><div class="actions"><button>View</button><button class="primary">Check in</button></div></td></tr>
-        <tr><td><span class="time">09:45</span></td><td><div class="patient-name">Mohammed Al-Harbi</div><div class="patient-phone">+966 5XX XXX 6666</div></td><td>Dr. Al-Rashid</td><td>Follow-up</td><td><span class="pill scheduled">● Scheduled</span></td><td><div class="actions"><button>View</button><button class="primary">Check in</button><button class="danger">Cancel</button></div></td></tr>
-        <tr><td><span class="time">10:00</span></td><td><div class="patient-name">Nada Al-Otaibi</div><div class="patient-phone">+966 5XX XXX 9999</div></td><td>Dr. Hassan</td><td>Cardiology cons.</td><td><span class="pill scheduled">● Scheduled</span></td><td><div class="actions"><button>View</button><button class="primary">Check in</button></div></td></tr>
-        <tr><td><span class="time">10:30</span></td><td><div class="patient-name">Layla Ibrahim</div><div class="patient-phone">+966 5XX XXX 7777</div></td><td>Dr. Al-Qahtani</td><td>ECG review</td><td><span class="pill scheduled">● Scheduled</span></td><td><div class="actions"><button>View</button><button class="primary">Check in</button></div></td></tr>
-        <tr><td><span class="time">10:30</span></td><td><div class="patient-name">Khalid Al-Otaibi</div><div class="patient-phone">+966 5XX XXX 3456</div></td><td>Dr. Al-Rashid</td><td>Pre-op assessment</td><td><span class="pill scheduled">● Scheduled</span></td><td><div class="actions"><button>View</button><button class="primary">Check in</button></div></td></tr>
+        <tr><td><span class="time">08:00</span></td><td><div class="patient-name">Ahmed Youssef</div><div class="patient-phone">+966 5XX XXX 1111</div></td><td>Dr. Al-Rashid</td><td>Follow-up</td><td><span class="pill completed">âœ“ Completed</span></td><td><div class="actions"><button>View</button></div></td></tr>
+        <tr><td><span class="time">08:30</span></td><td><div class="patient-name">Noura Al-Ghamdi</div><div class="patient-phone">+966 5XX XXX 2222</div></td><td>Dr. Al-Rashid</td><td>Cardiology cons.</td><td><span class="pill cancelled">â—‹ Cancelled</span></td><td><div class="actions"><button>View</button></div></td></tr>
+        <tr><td><span class="time">08:45</span></td><td><div class="patient-name">Salman Al-Qahtani</div><div class="patient-phone">+966 5XX XXX 3333</div></td><td>Dr. Al-Qahtani</td><td>Follow-up</td><td><span class="pill no-show">âœ• No-show</span></td><td><div class="actions"><button>View</button><button>Undo</button></div></td></tr>
+        <tr class="now"><td><span class="time"><span class="now-dot">â—</span>09:00</span></td><td><div class="patient-name">Fatima Al-Sayed</div><div class="patient-phone">+966 5XX XXX 4444</div></td><td>Dr. Al-Rashid</td><td>Cardiology cons.</td><td><span class="pill checked-in">âŒ› Checked-in</span></td><td><div class="actions"><button>View</button><button class="primary">Mark done</button></div></td></tr>
+        <tr><td><span class="time">09:15</span></td><td><div class="patient-name">Yousef Al-Dosari</div><div class="patient-phone">+966 5XX XXX 5555</div></td><td>Dr. Hassan</td><td>ECG review</td><td><span class="pill scheduled">â— Scheduled</span></td><td><div class="actions"><button>View</button><button class="primary">Check in</button></div></td></tr>
+        <tr><td><span class="time">09:30</span></td><td><div class="patient-name">Hala Al-Sharif</div><div class="patient-phone">+966 5XX XXX 8888</div></td><td>Dr. Al-Qahtani</td><td>Cardiology cons.</td><td><span class="pill scheduled">â— Scheduled</span></td><td><div class="actions"><button>View</button><button class="primary">Check in</button></div></td></tr>
+        <tr><td><span class="time">09:45</span></td><td><div class="patient-name">Mohammed Al-Harbi</div><div class="patient-phone">+966 5XX XXX 6666</div></td><td>Dr. Al-Rashid</td><td>Follow-up</td><td><span class="pill scheduled">â— Scheduled</span></td><td><div class="actions"><button>View</button><button class="primary">Check in</button><button class="danger">Cancel</button></div></td></tr>
+        <tr><td><span class="time">10:00</span></td><td><div class="patient-name">Nada Al-Otaibi</div><div class="patient-phone">+966 5XX XXX 9999</div></td><td>Dr. Hassan</td><td>Cardiology cons.</td><td><span class="pill scheduled">â— Scheduled</span></td><td><div class="actions"><button>View</button><button class="primary">Check in</button></div></td></tr>
+        <tr><td><span class="time">10:30</span></td><td><div class="patient-name">Layla Ibrahim</div><div class="patient-phone">+966 5XX XXX 7777</div></td><td>Dr. Al-Qahtani</td><td>ECG review</td><td><span class="pill scheduled">â— Scheduled</span></td><td><div class="actions"><button>View</button><button class="primary">Check in</button></div></td></tr>
+        <tr><td><span class="time">10:30</span></td><td><div class="patient-name">Khalid Al-Otaibi</div><div class="patient-phone">+966 5XX XXX 3456</div></td><td>Dr. Al-Rashid</td><td>Pre-op assessment</td><td><span class="pill scheduled">â— Scheduled</span></td><td><div class="actions"><button>View</button><button class="primary">Check in</button></div></td></tr>
       </tbody>
     </table>
   </div>

@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Part 4-B — Form + Modal Confirmation</title>
+<title>Part 4-B â€” Form + Modal Confirmation</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
@@ -77,38 +77,38 @@
 </style>
 </head>
 <body>
-<div class="badge">PART 4-B · Modal Confirmation</div>
+<div class="badge">PART 4-B Â· Modal Confirmation</div>
 <div class="frame">
 
   <nav class="nav">
-    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div class="logo"><div class="logo-icon">+</div> MediSlot</div>
     <div class="nav-links"><a>Find a doctor</a><a>My appointments</a><a>Branches</a><a>Help</a></div>
     <button class="btn-primary">Book appointment</button>
   </nav>
 
   <div class="progress">
-    <span class="step-mini done"><span class="n">✓</span>Doctor</span>
-    <span style="color:#9ca3af;">›</span>
-    <span class="step-mini done"><span class="n">✓</span>Branch & type</span>
-    <span style="color:#9ca3af;">›</span>
-    <span class="step-mini done"><span class="n">✓</span>Date & time</span>
-    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini done"><span class="n">âœ“</span>Doctor</span>
+    <span style="color:#9ca3af;">â€º</span>
+    <span class="step-mini done"><span class="n">âœ“</span>Branch & type</span>
+    <span style="color:#9ca3af;">â€º</span>
+    <span class="step-mini done"><span class="n">âœ“</span>Date & time</span>
+    <span style="color:#9ca3af;">â€º</span>
     <span class="step-mini current"><span class="n">4</span>Your details</span>
-    <span style="color:#9ca3af;">›</span>
+    <span style="color:#9ca3af;">â€º</span>
     <span class="step-mini"><span class="n">5</span>Confirm</span>
   </div>
 
   <div class="layout" style="filter: blur(2px);">
     <div class="main-col">
       <div class="page-header">
-        <span class="back-link">← Back to date & time</span>
+        <span class="back-link">â† Back to date & time</span>
         <h1>Your details</h1>
         <p class="sub">Two fields. No account needed.</p>
       </div>
 
       <div class="form-card">
         <div class="returning-banner">
-          <span>👋</span>
+          <span>ðŸ‘‹</span>
           <div><strong>Welcome back, Ahmed M.</strong> We found your record.</div>
         </div>
         <div class="field-row">
@@ -119,7 +119,7 @@
           <div class="field">
             <label>Phone number <span class="req">*</span></label>
             <input type="tel" value="+971 50 123 4567">
-            <div class="field-help success">✓ On file</div>
+            <div class="field-help success">âœ“ On file</div>
           </div>
         </div>
       </div>
@@ -131,16 +131,16 @@
         <div class="summary-row"><span class="k">Doctor</span><span class="v">Dr. Ahmed</span></div>
         <div class="summary-row"><span class="k">Branch</span><span class="v">Downtown</span></div>
         <div class="summary-row highlight"><span class="k">Date</span><span class="v">Thu, Aug 21</span></div>
-        <div class="summary-row highlight"><span class="k">Time</span><span class="v">14:45 – 15:30</span></div>
+        <div class="summary-row highlight"><span class="k">Time</span><span class="v">14:45 â€“ 15:30</span></div>
       </div>
     </div>
   </div>
 
   <div class="modal-overlay">
     <div class="modal">
-      <div class="modal-icon">✓</div>
+      <div class="modal-icon">âœ“</div>
       <h2>You're booked!</h2>
-      <p class="sub">Your appointment is confirmed. No email or SMS needed — keep this reference.</p>
+      <p class="sub">Your appointment is confirmed. No email or SMS needed â€” keep this reference.</p>
 
       <div class="ref-num">
         <div class="label">Reference number</div>
@@ -149,13 +149,13 @@
 
       <div class="modal-summary">
         <div class="modal-row"><span class="k">Doctor</span><span class="v">Dr. Ahmed Al-Rashid</span></div>
-        <div class="modal-row"><span class="k">Branch</span><span class="v">Downtown · Sheikh Zayed Rd</span></div>
-        <div class="modal-row"><span class="k">When</span><span class="v">Thu, Aug 21 · 14:45 – 15:30</span></div>
-        <div class="modal-row"><span class="k">Type</span><span class="v">Cardiology consultation · 45 min</span></div>
+        <div class="modal-row"><span class="k">Branch</span><span class="v">Downtown Â· Sheikh Zayed Rd</span></div>
+        <div class="modal-row"><span class="k">When</span><span class="v">Thu, Aug 21 Â· 14:45 â€“ 15:30</span></div>
+        <div class="modal-row"><span class="k">Type</span><span class="v">Cardiology consultation Â· 45 min</span></div>
       </div>
 
       <div class="modal-actions">
-        <button class="btn-primary">📅 Add to calendar (.ics)</button>
+        <button class="btn-primary">ðŸ“… Add to calendar (.ics)</button>
         <button class="btn-secondary">Book another appointment</button>
         <button class="modal-link">Done</button>
       </div>

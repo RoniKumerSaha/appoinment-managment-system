@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Part 18-C — Admin Doctors: By-Branch Matrix</title>
+<title>Part 18-C â€” Admin Doctors: By-Branch Matrix</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
@@ -60,27 +60,27 @@
 </style>
 </head>
 <body>
-<div class="badge">PART 18-C · Admin Doctors · By-Branch Matrix</div>
+<div class="badge">PART 18-C Â· Admin Doctors Â· By-Branch Matrix</div>
 <div class="frame">
 
   <nav class="nav">
-    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
-    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Salem Al-Mutairi · Admin</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">SM</div></div>
+    <div class="logo"><div class="logo-icon">+</div> MediSlot</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Salem Al-Mutairi Â· Admin</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">SM</div></div>
   </nav>
 
   <div class="page">
     <div class="page-header">
       <div>
-        <div class="crumb">Admin → Doctors</div>
+        <div class="crumb">Admin â†’ Doctors</div>
         <h1>Doctors</h1>
-        <p class="sub">Assignment matrix · click any cell to assign/unassign</p>
+        <p class="sub">Assignment matrix Â· click any cell to assign/unassign</p>
       </div>
       <button class="btn-primary">+ New doctor</button>
     </div>
 
     <div class="toolbar">
       <div class="toolbar-left">
-        <input class="search" placeholder="Search doctors…">
+        <input class="search" placeholder="Search doctorsâ€¦">
         <div class="seg">
           <button class="active">All</button>
           <button>Active</button>
@@ -127,8 +127,8 @@
         <tr>
           <td><div class="doc-cell"><div class="av">AR</div><div class="name">Dr. Abdullah Al-Rashid</div></div></td>
           <td><div class="doc-cell"><span class="spec">Cardiology</span></div></td>
-          <td><span class="pill active">● Active</span></td>
-          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">✓</div></div></td>
+          <td><span class="pill active">â— Active</span></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">âœ“</div></div></td>
           <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
           <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
           <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
@@ -137,9 +137,9 @@
         <tr>
           <td><div class="doc-cell"><div class="av">AQ</div><div class="name">Dr. Ahmed Al-Qahtani</div></div></td>
           <td><div class="doc-cell"><span class="spec">Family Med</span></div></td>
-          <td><span class="pill active">● Active</span></td>
-          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">✓</div></div></td>
-          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">✓</div></div></td>
+          <td><span class="pill active">â— Active</span></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">âœ“</div></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">âœ“</div></div></td>
           <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
           <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
           <td><button style="padding: 5px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 11px; color: #374151; cursor: pointer;">Edit</button></td>
@@ -147,17 +147,17 @@
         <tr>
           <td><div class="doc-cell"><div class="av">FK</div><div class="name">Dr. Fatima Al-Khalil</div></div></td>
           <td><div class="doc-cell"><span class="spec">Pediatrics</span></div></td>
-          <td><span class="pill active">● Active</span></td>
+          <td><span class="pill active">â— Active</span></td>
           <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
-          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">✓</div></div></td>
-          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">✓</div></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">âœ“</div></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">âœ“</div></div></td>
           <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
           <td><button style="padding: 5px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 11px; color: #374151; cursor: pointer;">Edit</button></td>
         </tr>
         <tr>
           <td><div class="doc-cell"><div class="av">SI</div><div class="name">Dr. Sami Ibrahim</div></div></td>
           <td><div class="doc-cell"><span class="spec">Orthopedics</span></div></td>
-          <td><span class="pill inactive">○ Inactive</span></td>
+          <td><span class="pill inactive">â—‹ Inactive</span></td>
           <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
           <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
           <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
@@ -168,7 +168,7 @@
     </table>
 
     <div class="summary">
-      💡 <span><strong>Multi-branch allowed</strong> per <code>FR-004</code>. Click a "+" cell to assign · click "✓" to unassign. <code>Atomic: Doctor.update + DoctorBranch.replace</code> · audit: <code>doctor.branch.changed</code></span>
+      ðŸ’¡ <span><strong>Multi-branch allowed</strong> per <code>FR-004</code>. Click a "+" cell to assign Â· click "âœ“" to unassign. <code>Atomic: Doctor.update + DoctorBranch.replace</code> Â· audit: <code>doctor.branch.changed</code></span>
     </div>
   </div>
 

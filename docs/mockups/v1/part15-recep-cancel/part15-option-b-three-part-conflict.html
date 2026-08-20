@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Part 15-B — Receptionist Cancel: 3-Part ConflictModal</title>
+<title>Part 15-B â€” Receptionist Cancel: 3-Part ConflictModal</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
@@ -55,12 +55,12 @@
 </style>
 </head>
 <body>
-<div class="badge">PART 15-B · Receptionist Cancel · 3-Part Modal</div>
+<div class="badge">PART 15-B Â· Receptionist Cancel Â· 3-Part Modal</div>
 <div class="frame">
 
   <nav class="nav">
-    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
-    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Reem Al-Harbi · Reception</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">RH</div></div>
+    <div class="logo"><div class="logo-icon">+</div> MediSlot</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Reem Al-Harbi Â· Reception</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">RH</div></div>
   </nav>
 
   <div class="page"></div>
@@ -70,14 +70,14 @@
     <div class="modal">
       <!-- 1. WHAT -->
       <div class="what">
-        <div class="ic">✕</div>
-        <h2>Cancel appointment · Fatima Al-Sayed</h2>
-        <div class="sub">Today 09:00 with Dr. Al-Rashid · Riyadh Olaya</div>
+        <div class="ic">âœ•</div>
+        <h2>Cancel appointment Â· Fatima Al-Sayed</h2>
+        <div class="sub">Today 09:00 with Dr. Al-Rashid Â· Riyadh Olaya</div>
       </div>
 
       <!-- 2. WHY (context) -->
       <div class="why">
-        <div class="head">⚠ Why this matters</div>
+        <div class="head">âš  Why this matters</div>
         <div class="body">
           Cancelling releases the 09:00 slot back to availability. Patient receives SMS + email cancellation with a rebooking link. This action is atomic and audited (FR-034).
         </div>
@@ -88,24 +88,24 @@
         <div class="head">Choose an action</div>
         <div class="options-list">
           <div class="option">
-            <div class="ic">📞</div>
+            <div class="ic">ðŸ“ž</div>
             <div class="body">
               <div class="label">Call patient to confirm</div>
-              <div class="sub">Tap-to-call: +966 5XX XXX 1234 · Don't cancel until they confirm.</div>
+              <div class="sub">Tap-to-call: +966 5XX XXX 1234 Â· Don't cancel until they confirm.</div>
             </div>
           </div>
           <div class="option selected">
-            <div class="ic">✕</div>
+            <div class="ic">âœ•</div>
             <div class="body">
               <div class="label">Cancel with reason</div>
               <div class="sub">Atomic status change. Slot released. Patient notified.</div>
             </div>
           </div>
           <div class="option">
-            <div class="ic">⏰</div>
+            <div class="ic">â°</div>
             <div class="body">
               <div class="label">Reschedule instead</div>
-              <div class="sub">Find another slot for this patient · F-13 on-behalf flow.</div>
+              <div class="sub">Find another slot for this patient Â· F-13 on-behalf flow.</div>
             </div>
           </div>
         </div>
@@ -124,12 +124,12 @@
         </div>
         <div class="form-group" style="margin-bottom: 0;">
           <label>Notes (optional)</label>
-          <textarea placeholder="Any context worth saving…"></textarea>
+          <textarea placeholder="Any context worth savingâ€¦"></textarea>
         </div>
       </div>
 
       <div class="modal-foot">
-        <div class="audit">Atomic: <code>Appointment.cancel</code> · actor_role: <code>receptionist</code></div>
+        <div class="audit">Atomic: <code>Appointment.cancel</code> Â· actor_role: <code>receptionist</code></div>
         <div class="actions">
           <button class="btn-secondary">Close</button>
           <button class="btn-danger">Confirm cancel</button>
