@@ -67,6 +67,12 @@
         <h1>Schedule</h1>
         <p class="sub">Set when you work at this branch.</p>
       </div>
+      <div style="display:flex; gap:8px; margin-bottom: 16px;">
+        <a data-route="/doctor/today" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">Today</a>
+        <a data-route="/doctor/block" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">Block time</a>
+        <a data-route="/doctor/types" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">Appointment types</a>
+        <a data-route="/doctor/recurring-preview" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">Recurring preview</a>
+      </div>
 
       <div class="form-group"><label>Branch</label><select><option>Branch A — Downtown</option><option>Branch B — Marina</option></select></div>
       <div class="form-group"><label>Effective from</label><input value="Aug 18, 2026 (immediate)"></div>
@@ -104,7 +110,7 @@
           <div class="meta">Morning block · 4 hours</div>
         </div>
         <div class="actions">
-          <button data-route="">Edit</button>
+          <button data-route="/doctor/block">Edit</button>
           <button data-route="">Split</button>
           <button class="del" data-route="">Delete</button>
         </div>

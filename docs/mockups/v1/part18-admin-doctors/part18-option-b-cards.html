@@ -79,6 +79,11 @@
         <p class="sub">9 active · 1 inactive · assigned across 4 branches</p>
       </div>
     </div>
+    <div style="display:flex; gap:8px; margin-bottom: 20px;">
+      <a data-route="/admin/branches" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">→ Branches</a>
+      <a data-route="/admin/receptionists" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">→ Receptionists</a>
+      <a data-route="/admin/branch-hours" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">Branch hours impact</a>
+    </div>
 
     <div class="filter-bar">
       <input class="search" placeholder="Search doctors…">
@@ -110,7 +115,7 @@
           <div class="stat"><div class="label">Specialty</div><div class="value" style="font-size: 13px; padding-top: 6px;">Cardiology</div></div>
         </div>
         <div class="actions">
-          <button data-route="">Edit</button>
+          <button data-route="/doctor/schedule">Edit</button>
           <button data-route="">Assign</button>
           <button class="danger" data-route="">Deactivate</button>
         </div>
@@ -214,7 +219,7 @@
         </div>
       </div>
 
-      <div class="doc-card add">
+      <div class="doc-card add" data-route="/doctor/schedule">
         <div class="add-icon">+</div>
         <div class="add-label">New doctor</div>
       </div>

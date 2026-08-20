@@ -81,6 +81,11 @@
         <p class="sub">5 active · 1 inactive · single branch per receptionist (BR-004)</p>
       </div>
     </div>
+    <div style="display:flex; gap:8px; margin-bottom: 20px;">
+      <a data-route="/admin/branches" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">→ Branches</a>
+      <a data-route="/admin/doctors" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">→ Doctors</a>
+      <a data-route="/recep/today" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">Today's view</a>
+    </div>
 
     <div class="filter-bar">
       <input class="search" placeholder="Search receptionists…">
@@ -117,7 +122,7 @@
         </div>
         <div class="actions">
           <button data-route="">Edit</button>
-          <button data-route="">Reassign</button>
+          <button data-route="/recep/today">Reassign</button>
           <button class="danger" data-route="">Deactivate</button>
         </div>
       </div>
@@ -261,7 +266,7 @@
         </div>
       </div>
 
-      <div class="rec-card add">
+      <div class="rec-card add" data-route="/recep/today">
         <div class="add-icon">+</div>
         <div class="add-label">New receptionist</div>
       </div>

@@ -89,6 +89,11 @@
       <h1>Manage appointment types</h1>
       <p class="sub">Edit existing types or create new ones. Changes apply to all your branches.</p>
     </div>
+    <div style="display:flex; gap:8px; margin-bottom: 20px;">
+      <a data-route="/doctor/schedule" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">Schedule editor</a>
+      <a data-route="/doctor/today" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">Today</a>
+      <a data-route="/doctor/block" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">Block time</a>
+    </div>
 
     <!-- Step 1: Select a type to edit, or add new -->
     <div class="step">
@@ -193,7 +198,7 @@
         <div class="audit">Atomic: <code>AppointmentType.update</code> · audit: <code>type.changed</code></div>
         <div style="display:flex; gap: 8px;">
           <button class="btn-ghost" data-route="">Cancel</button>
-          <button class="btn-primary" data-route="">Save changes</button>
+          <button class="btn-primary" data-route="/doctor/schedule">Save changes</button>
         </div>
       </div>
     </div>

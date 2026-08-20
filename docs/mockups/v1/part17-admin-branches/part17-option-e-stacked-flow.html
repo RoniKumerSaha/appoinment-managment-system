@@ -98,6 +98,11 @@
       <h1>Manage branches</h1>
       <p class="sub">3 active branches · 1 inactive · 9 doctors across all branches</p>
     </div>
+    <div style="display:flex; gap:8px; margin-bottom: 20px;">
+      <a data-route="/admin/doctors" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">→ Doctors</a>
+      <a data-route="/admin/receptionists" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">→ Receptionists</a>
+      <a data-route="/admin/branch-hours" style="font-size:12px; color:#0f766e; text-decoration:none; padding:6px 10px; border:1px solid #99f6e4; border-radius:6px; background:#f0fdfa;">Branch hours impact</a>
+    </div>
 
     <!-- Step 1: pick a branch -->
     <div class="step">
@@ -144,7 +149,7 @@
           <span class="pill inactive">○ Inactive</span>
         </div>
       </div>
-      <div class="add-row">+ Create new branch</div>
+      <div class="add-row" data-route="/admin/branch-hours" style="cursor:pointer;">+ Create new branch</div>
     </div>
 
     <!-- Step 2: edit form -->
