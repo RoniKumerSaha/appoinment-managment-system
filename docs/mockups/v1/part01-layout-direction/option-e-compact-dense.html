@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Option E — Compact Dense (Staff-optimized)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f3f4f6; color: #111827; padding: 0; line-height: 1.4; font-size: 13px; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #1f2937; color: white; padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: 600; z-index: 100; font-family: ui-monospace, monospace; }
+  .frame { max-width: 1200px; margin: 0 auto; background: #f9fafb; min-height: 100vh; }
+  .nav { background: #1f2937; color: white; padding: 8px 18px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; font-family: ui-monospace, monospace; }
+  .logo-icon { width: 22px; height: 22px; background: #3b82f6; border-radius: 3px; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; }
+  .nav-links { display: flex; gap: 18px; font-size: 12px; color: #d1d5db; }
+  .nav-links a { cursor: pointer; }
+  .nav-links a:hover { color: white; }
+  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 12px; color: #d1d5db; }
+  .btn-primary { background: #3b82f6; color: white; border: none; padding: 5px 12px; border-radius: 3px; font-size: 12px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: transparent; color: #d1d5db; border: 1px solid #4b5563; padding: 4px 11px; border-radius: 3px; font-size: 12px; cursor: pointer; }
+
+  .topbar { background: white; border-bottom: 1px solid #e5e7eb; padding: 10px 18px; display: flex; align-items: center; gap: 14px; font-size: 13px; }
+  .topbar .crumb { color: #6b7280; }
+  .topbar .crumb-current { color: #111827; font-weight: 600; }
+  .topbar .spacer { flex: 1; }
+  .topbar .stat { padding: 3px 9px; background: #f3f4f6; border-radius: 3px; font-size: 11px; color: #4b5563; }
+
+  .body { display: grid; grid-template-columns: 220px 1fr; gap: 0; }
+  .sidebar { background: white; border-right: 1px solid #e5e7eb; padding: 14px 0; }
+  .side-section { padding: 6px 14px; font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; letter-spacing: 0.05em; margin-top: 12px; }
+  .side-link { padding: 6px 14px; font-size: 13px; color: #374151; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .side-link.active { background: #eff6ff; color: #1d4ed8; border-left: 3px solid #3b82f6; padding-left: 11px; font-weight: 500; }
+  .side-link .badge-count { margin-left: auto; background: #fee2e2; color: #991b1b; padding: 1px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; }
+
+  .main { padding: 16px 18px; }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar select, .toolbar input { padding: 5px 9px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 12px; background: white; }
+  .toolbar input { flex: 1; min-width: 200px; }
+
+  table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #e5e7eb; border-radius: 4px; overflow: hidden; font-size: 12px; }
+  thead { background: #f9fafb; }
+  th { padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 600; color: #4b5563; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; color: #1f2937; }
+  tr:hover td { background: #f9fafb; }
+  .status { padding: 2px 7px; border-radius: 3px; font-size: 11px; font-weight: 500; }
+  .status.scheduled { background: #dbeafe; color: #1e40af; }
+  .status.completed { background: #d1fae5; color: #065f46; }
+  .status.cancelled { background: #fee2e2; color: #991b1b; }
+  .status.noshow { background: #fef3c7; color: #92400e; }
+  .row-action { color: #2563eb; font-size: 11px; cursor: pointer; margin-right: 10px; }
+
+  .peek { background: #1f2937; color: #d1d5db; padding: 12px 18px; font-family: ui-monospace, monospace; font-size: 11px; }
+  .peek-title { color: #9ca3af; margin-bottom: 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .peek-step { padding: 2px 8px; border-radius: 2px; background: #374151; color: #d1d5db; margin-right: 4px; }
+  .peek-step.current { background: #3b82f6; color: white; }
+</style>
+</head>
+<body>
+<div class="badge">OPTION E · Compact Dense (Staff)</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">⌘</div> ClinicSys v1</div>
+    <div class="nav-links">
+      <a>Today</a>
+      <a>Schedule</a>
+      <a>Appointments</a>
+      <a>Doctors</a>
+      <a>Branches</a>
+      <a>Reports</a>
+    </div>
+    <div class="nav-right">
+      <span>Dr. Ahmed · Branch A</span>
+      <button class="btn-secondary">Sign out</button>
+    </div>
+  </nav>
+
+  <div class="topbar">
+    <span class="crumb">Appointments</span>
+    <span>›</span>
+    <span class="crumb-current">Today — Aug 18</span>
+    <span class="spacer"></span>
+    <span class="stat">Branch A</span>
+    <span class="stat">24 appts</span>
+    <span class="stat">7 days · 30d window</span>
+  </div>
+
+  <div class="body">
+    <aside class="sidebar">
+      <div class="side-section">Today</div>
+      <div class="side-link active">📅 All appointments <span class="badge-count">24</span></div>
+      <div class="side-link">⏰ By time</div>
+      <div class="side-link">👤 By doctor</div>
+      <div class="side-section">Status</div>
+      <div class="side-link">Scheduled <span class="badge-count">18</span></div>
+      <div class="side-link">Completed</div>
+      <div class="side-link">Cancelled <span class="badge-count">2</span></div>
+      <div class="side-link">No-show</div>
+      <div class="side-section">Quick</div>
+      <div class="side-link">+ New appointment</div>
+      <div class="side-link">📊 Doctor availability</div>
+      <div class="side-link">⚠️ Affected (F-09)</div>
+    </aside>
+
+    <main class="main">
+      <div class="toolbar">
+        <input type="text" placeholder="Search patient, phone, or doctor…">
+        <select><option>All doctors</option><option>Dr. Ahmed</option><option>Dr. Sara</option></select>
+        <select><option>All types</option><option>Consultation 30m</option><option>Follow-up 15m</option></select>
+        <select><option>Today</option><option>Tomorrow</option><option>This week</option><option>Custom…</option></select>
+        <button class="btn-primary">+ New appt</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 70px">Time</th>
+            <th>Patient</th>
+            <th>Phone</th>
+            <th>Doctor</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Created by</th>
+            <th style="width: 100px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>09:00</strong></td>
+            <td>Ahmed M.</td>
+            <td>+9715…3421</td>
+            <td>Dr. Sara</td>
+            <td>Consult 30m</td>
+            <td><span class="status scheduled">Scheduled</span></td>
+            <td>Patient</td>
+            <td><span class="row-action">Edit</span><span class="row-action">Audit</span></td>
+          </tr>
+          <tr>
+            <td><strong>09:30</strong></td>
+            <td>Sara K.</td>
+            <td>+9715…8901</td>
+            <td>Dr. Sara</td>
+            <td>Follow-up 15m</td>
+            <td><span class="status scheduled">Scheduled</span></td>
+            <td>Reception</td>
+            <td><span class="row-action">Edit</span><span class="row-action">Audit</span></td>
+          </tr>
+          <tr>
+            <td><strong>10:00</strong></td>
+            <td>Ali R.</td>
+            <td>+9715…1123</td>
+            <td>Dr. Ahmed</td>
+            <td>Consult 30m</td>
+            <td><span class="status completed">Completed</span></td>
+            <td>Patient</td>
+            <td><span class="row-action">View</span><span class="row-action">Audit</span></td>
+          </tr>
+          <tr>
+            <td><strong>10:30</strong></td>
+            <td>—</td>
+            <td>—</td>
+            <td>Dr. Ahmed</td>
+            <td>Open slot</td>
+            <td><span class="status scheduled">Available</span></td>
+            <td>—</td>
+            <td><span class="row-action">Book</span></td>
+          </tr>
+          <tr>
+            <td><strong>11:00</strong></td>
+            <td>Layla H.</td>
+            <td>+9715…5566</td>
+            <td>Dr. Ahmed</td>
+            <td>Consult 30m</td>
+            <td><span class="status cancelled">Cancelled</span></td>
+            <td>Reception · reason: patient request</td>
+            <td><span class="row-action">View</span><span class="row-action">Audit</span></td>
+          </tr>
+          <tr>
+            <td><strong>11:30</strong></td>
+            <td>Omar F.</td>
+            <td>+9715…7788</td>
+            <td>Dr. Sara</td>
+            <td>Consult 30m</td>
+            <td><span class="status noshow">No-show</span></td>
+            <td>Patient</td>
+            <td><span class="row-action">View</span><span class="row-action">Audit</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
+  </div>
+
+  <div class="peek">
+    <div class="peek-title">Booking flow · receptionist view</div>
+    <span class="peek-step current">01_patient_phone</span>
+    <span class="peek-step">02_doctor</span>
+    <span class="peek-step">03_branch_locked</span>
+    <span class="peek-step">04_type</span>
+    <span class="peek-step">05_slot</span>
+    <span class="peek-step">06_confirm</span>
+  </div>
+
+</div>
+</body>
+</html>

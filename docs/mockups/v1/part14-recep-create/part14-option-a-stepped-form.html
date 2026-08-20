@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 14-A — Receptionist Create: Stepped Form</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 760px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 9px 17px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 10px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+
+  .page { padding: 32px; }
+  .page-header { margin-bottom: 24px; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header h1 { font-size: 24px; color: #111827; font-weight: 600; margin-bottom: 6px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  /* Stepper */
+  .stepper { display: flex; gap: 8px; margin-bottom: 24px; }
+  .stepper .seg { flex: 1; padding: 8px 12px; background: #f3f4f6; color: #6b7280; border-radius: 8px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .stepper .seg.done { background: #d1fae5; color: #065f46; }
+  .stepper .seg.current { background: #f0fdfa; color: #0f766e; }
+  .stepper .seg .n { width: 20px; height: 20px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+  .stepper .seg.done .n { background: #065f46; color: white; }
+  .stepper .seg.current .n { background: #0f766e; color: white; }
+
+  .step { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px 24px; margin-bottom: 14px; }
+  .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .step-num { width: 28px; height: 28px; background: #f0fdfa; color: #0f766e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .step-num.done { background: #0f766e; color: white; }
+  .step-num.current { background: #0f766e; color: white; box-shadow: 0 0 0 4px #99f6e4; }
+  .step-title { font-size: 15px; font-weight: 600; color: #111827; }
+  .step-hint { font-size: 12px; color: #6b7280; margin-left: auto; }
+
+  /* Type picker (compact) */
+  .types { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .type-opt { padding: 12px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; cursor: pointer; }
+  .type-opt:hover { border-color: #99f6e4; }
+  .type-opt.selected { background: #f0fdfa; border-color: #0f766e; box-shadow: 0 0 0 2px #99f6e4; }
+  .type-opt .name { font-weight: 600; color: #111827; font-size: 13px; }
+  .type-opt .dur { font-size: 11px; color: #0f766e; font-weight: 600; margin-top: 3px; }
+  .type-opt .desc { font-size: 11px; color: #6b7280; margin-top: 3px; line-height: 1.4; }
+
+  /* Calendar */
+  .cal { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; }
+  .cal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: 600; font-size: 13px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-grid .day-h { font-size: 10px; color: #6b7280; text-align: center; padding: 4px 0; font-weight: 700; }
+  .cal-grid .day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .cal-grid .day:hover { background: #f0fdfa; }
+  .cal-grid .day.disabled { color: #d1d5db; cursor: not-allowed; }
+  .cal-grid .day.today { border: 1.5px solid #f59e0b; font-weight: 700; color: #92400e; }
+  .cal-grid .day.selected { background: #0f766e; color: white; font-weight: 700; }
+  .cal-grid .day .avail { font-size: 9px; color: #6b7280; margin-top: 2px; }
+  .cal-grid .day.selected .avail { color: #99f6e4; }
+  .cal-grid .day.has-slots { font-weight: 600; color: #111827; }
+
+  /* Slots */
+  .slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .slot { padding: 9px 8px; background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 600; color: #374151; }
+  .slot:hover { border-color: #99f6e4; background: #f0fdfa; color: #0f766e; }
+  .slot.selected { background: #0f766e; color: white; border-color: #0f766e; }
+  .slot.disabled { background: #f9fafb; color: #d1d5db; cursor: not-allowed; text-decoration: line-through; }
+
+  /* Patient details */
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 12px; color: #374151; font-weight: 600; margin-bottom: 5px; }
+  .form-group label .req { color: #dc2626; }
+  .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white; font-family: inherit; }
+  .form-group .hint { font-size: 11px; color: #6b7280; margin-top: 4px; }
+
+  .patient-match { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 10px 12px; margin-top: 8px; display: flex; align-items: center; gap: 10px; }
+  .patient-match .av { width: 32px; height: 32px; background: #0f766e; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; }
+  .patient-match .body { flex: 1; }
+  .patient-match .name { font-weight: 600; color: #111827; font-size: 13px; }
+  .patient-match .meta { font-size: 11px; color: #6b7280; }
+  .patient-match .badge { font-size: 10px; background: #0f766e; color: white; padding: 3px 8px; border-radius: 999px; font-weight: 700; }
+
+  /* Branch locked */
+  .branch-card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+  .branch-card .ic { width: 36px; height: 36px; background: #f0fdfa; color: #0f766e; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .branch-card .body { flex: 1; }
+  .branch-card .name { font-weight: 600; color: #111827; font-size: 14px; }
+  .branch-card .meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .branch-card .lock { font-size: 11px; color: #92400e; background: #fef3c7; padding: 4px 10px; border-radius: 6px; font-weight: 600; }
+
+  .step-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; padding-top: 16px; border-top: 1px solid #f3f4f6; }
+  .step-foot .audit { font-size: 11px; color: #6b7280; }
+  .step-foot .audit code { background: #f3f4f6; padding: 1px 6px; border-radius: 4px; color: #374151; font-family: "SF Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+<div class="badge">PART 14-A · Receptionist Create · Stepped Form</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo" data-route="__logo__"><div class="logo-icon">+</div> ClinicCare</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Reem Al-Harbi · Reception</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">RH</div></div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div class="crumb">Today → + New appointment</div>
+      <h1>Book on behalf of patient</h1>
+      <p class="sub">For walk-ins or phone bookings. Same conflict checks as patient flow (FR-027/029).</p>
+    </div>
+
+    <div class="stepper">
+      <div class="seg done"><span class="n">✓</span>Branch</div>
+      <div class="seg done"><span class="n">✓</span>Doctor + Type</div>
+      <div class="seg done"><span class="n">✓</span>Date + Slot</div>
+      <div class="seg current"><span class="n">4</span>Patient</div>
+      <div class="seg"><span class="n">5</span>Confirm</div>
+    </div>
+
+    <!-- Step 1: Branch (locked) -->
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num done">1</div>
+        <div class="step-title">Branch (locked to you)</div>
+        <div class="step-hint">BR-004</div>
+      </div>
+      <div class="branch-card">
+        <div class="ic">📍</div>
+        <div class="body">
+          <div class="name">Riyadh Olaya Branch</div>
+          <div class="meta">King Fahd Rd · 3 doctors available</div>
+        </div>
+        <span class="lock">🔒 Single-branch</span>
+      </div>
+    </div>
+
+    <!-- Step 2: Doctor + Type -->
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num done">2</div>
+        <div class="step-title">Doctor + appointment type</div>
+        <div class="step-hint">3 active types at this branch</div>
+      </div>
+      <div class="form-group">
+        <label>Doctor</label>
+        <select><option>Dr. Ahmed Al-Rashid (Cardiology)</option><option>Dr. Khalid Al-Qahtani</option><option>Dr. Mohammed Hassan</option></select>
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>Type</label>
+        <div class="types">
+          <div class="type-opt selected">
+            <div class="name">Cardiology consultation</div>
+            <div class="dur">45 min</div>
+            <div class="desc">Initial assessment for new patients.</div>
+          </div>
+          <div class="type-opt">
+            <div class="name">Follow-up</div>
+            <div class="dur">20 min</div>
+            <div class="desc">Returning patient brief check.</div>
+          </div>
+          <div class="type-opt">
+            <div class="name">ECG review</div>
+            <div class="dur">15 min</div>
+            <div class="desc">Reading + interpretation.</div>
+          </div>
+          <div class="type-opt">
+            <div class="name">Pre-op assessment</div>
+            <div class="dur">30 min</div>
+            <div class="desc">Pre-surgical clearance.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Date + slot -->
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num done">3</div>
+        <div class="step-title">Date + slot</div>
+        <div class="step-hint">Wed, Aug 21 · 6 slots</div>
+      </div>
+      <div class="cal" style="margin-bottom: 14px;">
+        <div class="cal-head"><span>‹</span><span>August 2026</span><span>›</span></div>
+        <div class="cal-grid">
+          <div class="day-h">M</div><div class="day-h">T</div><div class="day-h">W</div><div class="day-h">T</div><div class="day-h">F</div><div class="day-h">S</div><div class="day-h">S</div>
+          <div class="day disabled">28</div><div class="day disabled">29</div><div class="day disabled">30</div><div class="day disabled">31</div><div class="day disabled">1</div><div class="day disabled">2</div><div class="day disabled">3</div>
+          <div class="day disabled">4</div><div class="day disabled">5</div><div class="day disabled">6</div><div class="day disabled">7</div><div class="day disabled">8</div><div class="day disabled">9</div><div class="day disabled">10</div>
+          <div class="day disabled">11</div><div class="day disabled">12</div><div class="day disabled">13</div><div class="day disabled">14</div><div class="day disabled">15</div><div class="day disabled">16</div><div class="day disabled">17</div>
+          <div class="day disabled">18</div><div class="day today">19<div class="avail">today</div></div><div class="day selected">20<div class="avail">6 slots</div></div><div class="day has-slots">21<div class="avail">7 slots</div></div><div class="day has-slots">22<div class="avail">4 slots</div></div><div class="day has-slots">23<div class="avail">8 slots</div></div><div class="day disabled">24</div>
+          <div class="day has-slots">25<div class="avail">5 slots</div></div><div class="day has-slots">26<div class="avail">6 slots</div></div><div class="day has-slots">27<div class="avail">3 slots</div></div><div class="day has-slots">28<div class="avail">7 slots</div></div><div class="day has-slots">29<div class="avail">5 slots</div></div><div class="day has-slots">30<div class="avail">8 slots</div></div><div class="day disabled">31</div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>Available slots · Wed, Aug 20</label>
+        <div class="slots">
+          <div class="slot">09:00</div>
+          <div class="slot selected">10:00</div>
+          <div class="slot">11:30</div>
+          <div class="slot disabled">13:00</div>
+          <div class="slot">14:00</div>
+          <div class="slot">15:30</div>
+          <div class="slot">16:00</div>
+          <div class="slot">16:30</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Patient details -->
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num current">4</div>
+        <div class="step-title">Patient details</div>
+        <div class="step-hint">Existing or new patient</div>
+      </div>
+      <div class="form-group">
+        <label>Patient phone <span class="req">*</span></label>
+        <input value="+966 5XX XXX 1234">
+        <div class="hint">Existing patients prefill from F-02 (BR-016). New patients: enter phone + name.</div>
+      </div>
+      <div class="patient-match">
+        <div class="av">FS</div>
+        <div class="body">
+          <div class="name">Fatima Al-Sayed <span style="font-weight:400; color:#6b7280;">(known patient)</span></div>
+          <div class="meta">3 prior appointments · last visit 2 months ago</div>
+        </div>
+        <span class="badge">✓ MATCHED</span>
+      </div>
+      <div class="form-group" style="margin-top: 14px;">
+        <label>Patient name <span class="req">*</span></label>
+        <input value="Fatima Al-Sayed">
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>Notes for the doctor (optional)</label>
+        <textarea placeholder="e.g. patient prefers afternoon calls, has mobility issues…"></textarea>
+      </div>
+    </div>
+
+    <!-- Step 5: Confirm -->
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num">5</div>
+        <div class="step-title">Confirm booking</div>
+        <div class="step-hint">Review + create</div>
+      </div>
+
+      <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+          <div><span style="color:#6b7280;">Branch:</span> <strong>Riyadh Olaya</strong></div>
+          <div><span style="color:#6b7280;">Doctor:</span> <strong>Dr. Al-Rashid</strong></div>
+          <div><span style="color:#6b7280;">Type:</span> <strong>Cardiology consultation</strong> · 45 min</div>
+          <div><span style="color:#6b7280;">When:</span> <strong>Wed, Aug 20 · 10:00</strong></div>
+          <div style="grid-column: 1 / -1;"><span style="color:#6b7280;">Patient:</span> <strong>Fatima Al-Sayed</strong> · +966 5XX XXX 1234</div>
+        </div>
+      </div>
+
+      <div style="background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #065f46;">
+        ℹ️ This booking will be marked as <strong>created on behalf of patient</strong>. audit.creator_role = "receptionist".
+      </div>
+
+      <div class="step-foot">
+        <div class="audit">Atomic: <code>Appointment.create</code> · audit: <code>appointment.created</code></div>
+        <div style="display:flex; gap: 8px;">
+          <button class="btn-ghost" data-route="/recep/today">Back</button>
+          <button class="btn-primary" data-route="/recep/today">Confirm booking</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 16-A — Receptionist Availability: Read-Only Calendar</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1300px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 8px 15px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+  .page { padding: 28px 32px; }
+  .page-header { margin-bottom: 18px; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header h1 { font-size: 22px; color: #111827; font-weight: 600; margin-bottom: 4px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  /* Filter row */
+  .filter-bar { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; display: flex; gap: 12px; align-items: flex-end; }
+  .filter-bar .field { display: flex; flex-direction: column; gap: 4px; }
+  .filter-bar .field label { font-size: 11px; color: #374151; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .filter-bar select, .filter-bar input { padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 13px; background: white; min-width: 180px; }
+  .filter-bar .branch-tag { background: #fef3c7; color: #92400e; padding: 9px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+
+  /* Week grid */
+  .week-grid { background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+  .grid-head { display: grid; grid-template-columns: 70px repeat(7, 1fr); background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+  .grid-head .corner { border-right: 1px solid #e5e7eb; }
+  .grid-head .day-h { padding: 12px; text-align: center; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; border-right: 1px solid #f3f4f6; }
+  .grid-head .day-h:last-child { border-right: none; }
+  .grid-head .day-h .num { font-size: 16px; color: #111827; font-weight: 700; margin-top: 2px; display: block; }
+  .grid-head .day-h.today .num { color: #f59e0b; }
+
+  .grid-body { display: grid; grid-template-columns: 70px repeat(7, 1fr); }
+  .time-col { border-right: 1px solid #e5e7eb; }
+  .time-slot { height: 48px; display: flex; align-items: flex-start; justify-content: flex-end; padding: 4px 8px; font-size: 10px; color: #9ca3af; border-bottom: 1px solid #f9fafb; font-weight: 600; }
+
+  .day-col { border-right: 1px solid #f3f4f6; position: relative; min-height: 480px; }
+  .day-col:last-child { border-right: none; }
+  .day-col .hour-line { height: 48px; border-bottom: 1px solid #f9fafb; }
+
+  /* Slot blocks */
+  .slot-block { position: absolute; left: 4px; right: 4px; background: #f0fdfa; border: 1.5px solid #99f6e4; border-radius: 6px; padding: 4px 6px; cursor: pointer; font-size: 10px; color: #065f46; }
+  .slot-block:hover { border-color: #0f766e; background: #ccfbf1; }
+  .slot-block .t { font-weight: 700; font-size: 11px; }
+  .slot-block .a { color: #0f766e; margin-top: 2px; font-weight: 600; }
+  .slot-block.booked { background: #f9fafb; border-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
+  .slot-block.booked .a { color: #9ca3af; font-style: italic; }
+  .slot-block.selected { background: #0f766e; border-color: #0f766e; color: white; }
+  .slot-block.selected .a { color: #ccfbf1; }
+
+  /* PII note */
+  .privacy-note { font-size: 11px; color: #6b7280; background: #f9fafb; padding: 6px 12px; border-radius: 6px; margin-top: 12px; display: flex; align-items: center; gap: 6px; }
+
+  /* Summary below */
+  .summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 18px; }
+  .summary-card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; }
+  .summary-card .label { font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em; }
+  .summary-card .value { font-size: 22px; font-weight: 700; color: #111827; margin-top: 4px; }
+  .summary-card .meta { font-size: 12px; color: #6b7280; margin-top: 4px; }
+  .summary-card.cta { background: #f0fdfa; border-color: #99f6e4; display: flex; flex-direction: column; gap: 10px; }
+  .summary-card.cta .label { color: #0f766e; }
+  .summary-card.cta .value { color: #0f766e; font-size: 16px; }
+</style>
+</head>
+<body>
+<div class="badge">PART 16-A · Receptionist Availability · Calendar Grid</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Reem Al-Harbi · Reception</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">RH</div></div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div class="crumb">Today → Doctor availability</div>
+      <h1>Doctor availability · read-only</h1>
+      <p class="sub">View open slots before booking on behalf of patient. Booked slots shown as initials only.</p>
+    </div>
+
+    <div class="filter-bar">
+      <div class="field">
+        <label>Doctor</label>
+        <select><option>Dr. Ahmed Al-Rashid (Cardiology)</option><option>Dr. Khalid Al-Qahtani</option><option>Dr. Mohammed Hassan</option></select>
+      </div>
+      <div class="field">
+        <label>Type</label>
+        <select><option>Cardiology cons. · 45 min</option><option>Follow-up · 20 min</option><option>ECG review · 15 min</option><option>Pre-op · 30 min</option></select>
+      </div>
+      <div class="field">
+        <label>Week</label>
+        <input type="date" value="2026-08-20">
+      </div>
+      <div style="margin-left: auto;">
+        <div class="branch-tag">📍 Riyadh Olaya · 3 doctors</div>
+      </div>
+    </div>
+
+    <div class="week-grid">
+      <div class="grid-head">
+        <div class="corner"></div>
+        <div class="day-h">Thu<div class="num">20</div></div>
+        <div class="day-h">Fri<div class="num">21</div></div>
+        <div class="day-h">Sat<div class="num">22</div></div>
+        <div class="day-h">Sun<div class="num">23</div></div>
+        <div class="day-h today">Mon<div class="num">24</div></div>
+        <div class="day-h">Tue<div class="num">25</div></div>
+        <div class="day-h">Wed<div class="num">26</div></div>
+      </div>
+
+      <div class="grid-body">
+        <div class="time-col">
+          <div class="time-slot">09:00</div>
+          <div class="time-slot">10:00</div>
+          <div class="time-slot">11:00</div>
+          <div class="time-slot">12:00</div>
+          <div class="time-slot">13:00</div>
+          <div class="time-slot">14:00</div>
+          <div class="time-slot">15:00</div>
+          <div class="time-slot">16:00</div>
+        </div>
+
+        <!-- Thu 20 -->
+        <div class="day-col">
+          <div class="hour-line"></div>
+          <div class="hour-line"></div>
+          <div class="hour-line"></div>
+          <div class="hour-line"></div>
+          <div class="hour-line"></div>
+          <div class="hour-line"></div>
+          <div class="hour-line"></div>
+          <div class="hour-line"></div>
+          <div class="slot-block booked" style="top: 0px; height: 90px;"><div class="t">09:00</div><div class="a">F.A.</div></div>
+          <div class="slot-block selected" style="top: 96px; height: 90px;"><div class="t">10:00</div><div class="a">● Available</div></div>
+          <div class="slot-block booked" style="top: 192px; height: 42px;"><div class="t">11:00</div><div class="a">M.H.</div></div>
+          <div class="slot-block" style="top: 240px; height: 90px;"><div class="t">13:00</div><div class="a">● Available</div></div>
+        </div>
+
+        <!-- Fri 21 -->
+        <div class="day-col">
+          <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+          <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+          <div class="slot-block" style="top: 0px; height: 42px;"><div class="t">09:00</div><div class="a">● Available</div></div>
+          <div class="slot-block booked" style="top: 48px; height: 90px;"><div class="t">10:00</div><div class="a">K.O.</div></div>
+          <div class="slot-block" style="top: 144px; height: 90px;"><div class="t">11:00</div><div class="a">● Available</div></div>
+        </div>
+
+        <!-- Sat 22 -->
+        <div class="day-col">
+          <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+          <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+          <div class="slot-block booked" style="top: 0px; height: 90px;"><div class="t">09:00</div><div class="a">A.Y.</div></div>
+          <div class="slot-block booked" style="top: 96px; height: 90px;"><div class="t">10:00</div><div class="a">N.G.</div></div>
+          <div class="slot-block" style="top: 192px; height: 90px;"><div class="t">11:00</div><div class="a">● Available</div></div>
+          <div class="slot-block" style="top: 288px; height: 90px;"><div class="t">13:30</div><div class="a">● Available</div></div>
+        </div>
+
+        <!-- Sun 23 — closed (weekend) -->
+        <div class="day-col" style="background: #f9fafb;">
+          <div style="text-align: center; padding-top: 80px; color: #9ca3af; font-size: 11px; font-weight: 600;">Closed</div>
+        </div>
+
+        <!-- Mon 24 -->
+        <div class="day-col">
+          <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+          <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+          <div class="slot-block" style="top: 0px; height: 90px;"><div class="t">09:00</div><div class="a">● Available</div></div>
+          <div class="slot-block" style="top: 96px; height: 90px;"><div class="t">10:00</div><div class="a">● Available</div></div>
+          <div class="slot-block booked" style="top: 192px; height: 42px;"><div class="t">11:00</div><div class="a">S.A.</div></div>
+          <div class="slot-block" style="top: 240px; height: 90px;"><div class="t">13:00</div><div class="a">● Available</div></div>
+        </div>
+
+        <!-- Tue 25 -->
+        <div class="day-col">
+          <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+          <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+          <div class="slot-block booked" style="top: 0px; height: 90px;"><div class="t">09:00</div><div class="a">L.I.</div></div>
+          <div class="slot-block" style="top: 96px; height: 90px;"><div class="t">10:00</div><div class="a">● Available</div></div>
+          <div class="slot-block" style="top: 192px; height: 90px;"><div class="t">11:00</div><div class="a">● Available</div></div>
+          <div class="slot-block" style="top: 288px; height: 42px;"><div class="t">13:30</div><div class="a">● Available</div></div>
+        </div>
+
+        <!-- Wed 26 -->
+        <div class="day-col">
+          <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+          <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+          <div class="slot-block" style="top: 0px; height: 90px;"><div class="t">09:00</div><div class="a">● Available</div></div>
+          <div class="slot-block" style="top: 96px; height: 90px;"><div class="t">10:00</div><div class="a">● Available</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="privacy-note">🔒 Read-only — booked slots show first-name initial only (no PII beyond that)</div>
+
+    <div class="summary">
+      <div class="summary-card">
+        <div class="label">Open slots this week</div>
+        <div class="value">14</div>
+        <div class="meta">For Dr. Al-Rashid · Cardiology cons.</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Booked slots</div>
+        <div class="value">11</div>
+        <div class="meta">Initials only — no PII shown</div>
+      </div>
+      <div class="summary-card cta">
+        <div class="label">Selected slot</div>
+        <div class="value">Thu, Aug 20 · 10:00</div>
+        <button class="btn-primary">+ Book this slot (F-13)</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

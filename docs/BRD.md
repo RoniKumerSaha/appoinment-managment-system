@@ -422,6 +422,8 @@ Affected appointments are marked for manual resolution rather than automatically
 
 The doctor associated with an affected appointment resolves it.
 
+> **Clarification — distinct conflict flows.** A doctor-initiated availability change that would invalidate existing appointments is **rejected** (BR-009, BR-011, BR-055) and must be resolved before saving. An administrator-initiated change to branch operating hours, by contrast, is **saved** even if it affects appointments (BR-060), and affected appointments are merely flagged for manual resolution by the assigned doctor (BR-061, BR-062). The system never silently invalidates an appointment.
+
 ### BR-063 — Receptionist Visibility
 
 A receptionist sees appointments for their assigned branch only.

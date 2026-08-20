@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 5-B — Full-Screen Stacked</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1200px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .nav-links { display: flex; gap: 24px; font-size: 14px; color: #4b5563; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 8px 15px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 9px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .btn-danger { background: white; color: #991b1b; border: 1px solid #fca5a5; padding: 8px 15px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+  /* Inline OTP section */
+  .otp-section { background: #f0fdfa; border-bottom: 1px solid #99f6e4; padding: 20px 32px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .otp-icon { width: 40px; height: 40px; background: white; border: 1px solid #99f6e4; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #0f766e; flex-shrink: 0; }
+  .otp-text { flex: 1; }
+  .otp-text .label { font-size: 11px; color: #0f766e; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .otp-text .value { font-size: 14px; color: #111827; font-weight: 500; }
+  .otp-text .sub { font-size: 12px; color: #4b5563; }
+  .otp-inputs { display: flex; gap: 6px; }
+  .otp-input { width: 38px; height: 44px; border: 1.5px solid #99f6e4; border-radius: 6px; font-size: 18px; font-weight: 700; text-align: center; color: #111827; background: white; font-family: ui-monospace, monospace; }
+  .otp-input.filled { background: #f0fdfa; }
+  .otp-actions { display: flex; gap: 8px; align-items: center; }
+  .otp-resend { font-size: 12px; color: #6b7280; }
+  .otp-resend a { color: #0f766e; cursor: pointer; font-weight: 500; }
+
+  /* Page content */
+  .page-header { padding: 32px 32px 16px; }
+  .back-link { color: #0f766e; font-size: 13px; cursor: pointer; margin-bottom: 8px; display: inline-block; }
+  .page-header h1 { font-size: 26px; color: #111827; margin-bottom: 4px; font-weight: 600; }
+  .page-header .sub { color: #6b7280; font-size: 14px; }
+
+  .appt-list { padding: 0 32px 32px; display: flex; flex-direction: column; gap: 14px; }
+  .appt-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; transition: border-color 0.15s; }
+  .appt-card.expanded { border-color: #0f766e; }
+  .appt-summary { padding: 18px; display: flex; align-items: center; gap: 16px; cursor: pointer; }
+  .date-block { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 10px; padding: 10px 14px; text-align: center; min-width: 78px; }
+  .date-block .month { font-size: 10px; color: #0f766e; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .date-block .day { font-size: 28px; color: #111827; font-weight: 700; line-height: 1; }
+  .date-block .dow { font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600; }
+  .appt-body { flex: 1; }
+  .appt-doctor { font-weight: 600; color: #111827; font-size: 15px; }
+  .appt-meta { font-size: 13px; color: #6b7280; margin-top: 2px; }
+  .appt-actions { display: flex; gap: 8px; }
+  .appt-action { padding: 8px 14px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; color: #374151; cursor: pointer; font-weight: 500; }
+  .appt-action:hover { border-color: #0f766e; color: #0f766e; }
+
+  /* Expanded card detail */
+  .appt-detail { background: #f9fafb; border-top: 1px solid #e5e7eb; padding: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .detail-section { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; }
+  .detail-section h4 { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; font-weight: 600; }
+  .slot-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .slot-pick .slot { padding: 8px 4px; border: 1.5px solid #e5e7eb; border-radius: 6px; text-align: center; font-size: 12px; font-weight: 600; color: #111827; cursor: pointer; }
+  .slot-pick .slot:hover { border-color: #0f766e; }
+  .slot-pick .slot.selected { background: #0f766e; color: white; border-color: #0f766e; }
+  .confirm-move { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .confirm-move .new-summary { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 6px; padding: 10px; font-size: 13px; }
+  .confirm-move .new-summary .label { font-size: 11px; color: #0f766e; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 4px; }
+
+  /* Cancel modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 24px; }
+  .modal { background: white; border-radius: 16px; padding: 28px; max-width: 420px; width: 100%; }
+  .modal h2 { font-size: 20px; color: #111827; margin-bottom: 8px; font-weight: 600; }
+  .modal .sub { color: #6b7280; font-size: 14px; margin-bottom: 18px; }
+  .modal .sub strong { color: #111827; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .modal-actions button { flex: 1; padding: 10px; }
+</style>
+</head>
+<body>
+<div class="badge">PART 5-B · Full-Screen Stacked</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div class="nav-links"><a>Find a doctor</a><a style="color:#0f766e; font-weight:600;">My appointments</a><a>Branches</a><a>Help</a></div>
+    <button class="btn-primary">Book appointment</button>
+  </nav>
+
+  <!-- Inline OTP banner -->
+  <div class="otp-section">
+    <div class="otp-icon">🔒</div>
+    <div class="otp-text">
+      <div class="label">Verifying you</div>
+      <div class="value">+971 50 123 4567</div>
+      <div class="sub">Enter the 6-digit code we just sent to your phone.</div>
+    </div>
+    <div class="otp-inputs">
+      <input class="otp-input filled" value="4" disabled>
+      <input class="otp-input filled" value="8" disabled>
+      <input class="otp-input filled" value="2" disabled>
+      <input class="otp-input filled" value="9" disabled>
+      <input class="otp-input filled" value="1" disabled>
+      <input class="otp-input" placeholder="·" disabled>
+    </div>
+    <div class="otp-actions">
+      <button class="btn-primary">Verify</button>
+      <span class="otp-resend">Didn't get it? <a>Resend in 0:24</a></span>
+    </div>
+  </div>
+
+  <div class="page-header">
+    <h1>Your upcoming appointments</h1>
+    <p class="sub">2 upcoming · 0 past visible</p>
+  </div>
+
+  <div class="appt-list">
+
+    <!-- Card 1: expanded (reschedule in progress) -->
+    <div class="appt-card expanded">
+      <div class="appt-summary">
+        <div class="date-block">
+          <div class="month">Aug</div>
+          <div class="day">21</div>
+          <div class="dow">Thu</div>
+        </div>
+        <div class="appt-body">
+          <div class="appt-doctor">Dr. Ahmed Al-Rashid · Cardiology consultation</div>
+          <div class="appt-meta">Branch A — Downtown · 14:45 – 15:30 · 45 min</div>
+        </div>
+        <div class="appt-actions">
+          <button class="appt-action" style="border-color:#0f766e; color:#0f766e;">Reschedule</button>
+          <button class="appt-action" style="color:#991b1b; border-color:#fca5a5;">Cancel</button>
+        </div>
+      </div>
+
+      <div class="appt-detail">
+        <div class="detail-section">
+          <h4>Pick a new date & time</h4>
+          <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">Same doctor · same or different branch</div>
+          <div class="slot-pick" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 8px;">
+            <div class="slot">Aug 22</div>
+            <div class="slot selected">Aug 23</div>
+            <div class="slot">Aug 24</div>
+            <div class="slot">Aug 25</div>
+          </div>
+          <div class="slot-pick">
+            <div class="slot">09:00</div>
+            <div class="slot">10:00</div>
+            <div class="slot selected">11:15</div>
+            <div class="slot">12:00</div>
+            <div class="slot">14:00</div>
+            <div class="slot">15:30</div>
+          </div>
+          <select style="margin-top: 10px; width:100%; padding:8px 10px; border:1.5px solid #e5e7eb; border-radius:6px; font-size:13px; background:white;">
+            <option>Branch A — Downtown (current)</option>
+            <option>Branch B — Marina</option>
+            <option>Branch C — Northside</option>
+          </select>
+        </div>
+        <div class="confirm-move">
+          <h4 style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; font-weight: 600;">You're moving to</h4>
+          <div class="new-summary">
+            <div class="label">New appointment</div>
+            <div><strong>Dr. Ahmed</strong> · Branch A<br>Sat, Aug 23 · 11:15 – 12:00</div>
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button class="btn-secondary" style="flex:1; padding: 9px;">Keep original</button>
+            <button class="btn-primary" style="flex:1; padding: 9px;">Confirm move</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: collapsed -->
+    <div class="appt-card">
+      <div class="appt-summary">
+        <div class="date-block">
+          <div class="month">Sep</div>
+          <div class="day">5</div>
+          <div class="dow">Fri</div>
+        </div>
+        <div class="appt-body">
+          <div class="appt-doctor">Dr. Sara Khalil · Dermatology consultation</div>
+          <div class="appt-meta">Branch B — Marina · 10:00 – 10:20 · 20 min</div>
+        </div>
+        <div class="appt-actions">
+          <button class="appt-action">Reschedule</button>
+          <button class="appt-action" style="color:#991b1b; border-color:#fca5a5;">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Cancel confirmation modal -->
+  <div class="modal-overlay">
+    <div class="modal">
+      <h2>Cancel this appointment?</h2>
+      <p class="sub"><strong>Dr. Ahmed Al-Rashid</strong> on <strong>Thu, Aug 21 at 14:45</strong><br><br>No reason needed. The slot will be released immediately.</p>
+      <div class="modal-actions">
+        <button class="btn-secondary">Keep appointment</button>
+        <button class="btn-danger">Cancel appointment</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

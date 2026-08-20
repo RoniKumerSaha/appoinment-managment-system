@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Option C — Modern Minimal (Dark)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #0a0a0a; color: #fafafa; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: white; color: black; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; }
+  .frame { max-width: 1100px; margin: 0 auto; background: #0a0a0a; min-height: 100vh; }
+  .nav { background: #0a0a0a; padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #262626; }
+  .logo { font-weight: 700; color: white; font-size: 18px; letter-spacing: -0.04em; display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 24px; height: 24px; background: white; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: black; font-size: 14px; font-weight: 800; }
+  .nav-links { display: flex; gap: 28px; font-size: 14px; color: #a3a3a3; }
+  .nav-links a { cursor: pointer; }
+  .nav-links a:hover { color: white; }
+  .btn-primary { background: white; color: black; border: none; padding: 9px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: transparent; color: white; border: 1px solid #404040; padding: 8px 17px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+  .hero { padding: 64px 32px 32px; }
+  .hero h1 { font-size: 44px; color: white; margin-bottom: 14px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+  .hero h1 span { color: #737373; }
+  .hero .lead { color: #a3a3a3; font-size: 17px; max-width: 580px; }
+  .search-bar { margin-top: 36px; display: flex; gap: 8px; }
+  .search-bar input { flex: 1; padding: 14px 18px; background: #171717; border: 1px solid #262626; border-radius: 8px; font-size: 15px; color: white; }
+  .search-bar input:focus { outline: none; border-color: #525252; }
+
+  .section { padding: 32px; }
+  .section-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .section-title h2 { font-size: 16px; color: white; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .section-title .filter-link { color: #a3a3a3; font-size: 13px; cursor: pointer; }
+  .branch-tabs { display: flex; gap: 6px; margin-bottom: 24px; flex-wrap: wrap; }
+  .branch-tab { padding: 7px 14px; background: #171717; border: 1px solid #262626; border-radius: 6px; font-size: 13px; color: #a3a3a3; cursor: pointer; }
+  .branch-tab.active { background: white; color: black; border-color: white; }
+  .doctor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .doctor-card { background: #171717; border: 1px solid #262626; border-radius: 10px; padding: 20px; cursor: pointer; transition: border-color 0.15s; }
+  .doctor-card:hover { border-color: #525252; }
+  .doctor-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .avatar { width: 44px; height: 44px; border-radius: 8px; background: #262626; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; font-family: ui-monospace, monospace; }
+  .doctor-name { font-weight: 600; color: white; font-size: 15px; }
+  .doctor-spec { color: #737373; font-size: 13px; }
+  .doctor-meta { font-size: 12px; color: #737373; padding-top: 14px; border-top: 1px solid #262626; display: flex; justify-content: space-between; align-items: center; }
+  .pill { background: #262626; color: white; padding: 3px 9px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+
+  .peek { background: #0f0f0f; padding: 24px 32px; border-top: 1px solid #262626; }
+  .peek-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #737373; margin-bottom: 12px; font-weight: 600; }
+  .peek-flow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 12px; font-family: ui-monospace, monospace; }
+  .peek-step { background: #171717; border: 1px solid #262626; padding: 6px 12px; border-radius: 4px; color: #a3a3a3; }
+  .peek-step.current { background: white; color: black; border-color: white; }
+  .peek-arrow { color: #525252; }
+</style>
+</head>
+<body>
+<div class="badge">OPTION C · Modern Minimal (Dark)</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">A</div>appoint</div>
+    <div class="nav-links">
+      <a>Doctors</a>
+      <a>Appointments</a>
+      <a>Branches</a>
+      <a>Help</a>
+    </div>
+    <button class="btn-primary">Book →</button>
+  </nav>
+
+  <section class="hero">
+    <h1>Book a doctor.<br><span>Without the friction.</span></h1>
+    <p class="lead">Find a specialist, pick a slot, confirm. No account, no paperwork.</p>
+    <div class="search-bar">
+      <input type="text" placeholder="Search by doctor or specialty">
+      <button class="btn-primary">Search</button>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <h2>Available doctors</h2>
+      <span class="filter-link">Filter ▾</span>
+    </div>
+    <div class="branch-tabs">
+      <div class="branch-tab active">All branches</div>
+      <div class="branch-tab">Branch A</div>
+      <div class="branch-tab">Branch B</div>
+      <div class="branch-tab">Branch C</div>
+    </div>
+    <div class="doctor-grid">
+      <div class="doctor-card">
+        <div class="doctor-head">
+          <div class="avatar">DA</div>
+          <div>
+            <div class="doctor-name">Dr. Ahmed Al-Rashid</div>
+            <div class="doctor-spec">Cardiology</div>
+          </div>
+        </div>
+        <div class="doctor-meta">
+          <span>3 branches</span>
+          <span class="pill">+1 day</span>
+        </div>
+      </div>
+      <div class="doctor-card">
+        <div class="doctor-head">
+          <div class="avatar">SK</div>
+          <div>
+            <div class="doctor-name">Dr. Sara Khalil</div>
+            <div class="doctor-spec">Dermatology</div>
+          </div>
+        </div>
+        <div class="doctor-meta">
+          <span>2 branches</span>
+          <span class="pill">+2 days</span>
+        </div>
+      </div>
+      <div class="doctor-card">
+        <div class="doctor-head">
+          <div class="avatar">MH</div>
+          <div>
+            <div class="doctor-name">Dr. Mohammed Hassan</div>
+            <div class="doctor-spec">General Practice</div>
+          </div>
+        </div>
+        <div class="doctor-meta">
+          <span>1 branch</span>
+          <span class="pill">+1 day</span>
+        </div>
+      </div>
+      <div class="doctor-card">
+        <div class="doctor-head">
+          <div class="avatar">FN</div>
+          <div>
+            <div class="doctor-name">Dr. Fatima Nazir</div>
+            <div class="doctor-spec">Pediatrics</div>
+          </div>
+        </div>
+        <div class="doctor-meta">
+          <span>2 branches</span>
+          <span class="pill">+3 days</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="peek">
+    <div class="peek-title">Booking flow</div>
+    <div class="peek-flow">
+      <span class="peek-step current">01_doctor</span>
+      <span class="peek-arrow">→</span>
+      <span class="peek-step">02_branch</span>
+      <span class="peek-arrow">→</span>
+      <span class="peek-step">03_type</span>
+      <span class="peek-arrow">→</span>
+      <span class="peek-step">04_slot</span>
+      <span class="peek-arrow">→</span>
+      <span class="peek-step">05_details</span>
+      <span class="peek-arrow">→</span>
+      <span class="peek-step">06_confirm</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

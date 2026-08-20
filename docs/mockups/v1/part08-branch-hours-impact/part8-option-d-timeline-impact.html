@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 8-D — Branch Hours: Calendar Impact View</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1300px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 8px 15px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 9px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .btn-danger { background: #b45309; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+  .page { padding: 28px 32px; }
+  .page-header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .page-header h1 { font-size: 22px; color: #111827; font-weight: 600; margin-bottom: 4px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .alert { background: #fef3c7; border: 1px solid #fde68a; border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; display: flex; gap: 12px; align-items: flex-start; font-size: 13px; color: #422006; }
+  .alert .ic { font-size: 22px; color: #b45309; }
+  .alert strong { color: #422006; }
+
+  .context-bar { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; display: flex; gap: 16px; align-items: center; font-size: 13px; flex-wrap: wrap; }
+  .context-bar .item .k { font-size: 10px; color: #b45309; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 2px; }
+  .context-bar .item .v { color: #111827; font-weight: 500; }
+
+  .calendar-wrap { background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; margin-bottom: 18px; }
+  .cal-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid #e5e7eb; }
+  .cal-month { font-size: 16px; font-weight: 600; color: #111827; }
+  .cal-nav { display: flex; gap: 6px; }
+  .cal-nav button { padding: 5px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 12px; color: #374151; }
+  .cal-nav button:hover { border-color: #0f766e; color: #0f766e; }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .dow { padding: 10px; background: #f9fafb; text-align: center; font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em; border-bottom: 1px solid #e5e7eb; }
+  .day { min-height: 100px; padding: 8px; border-right: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6; position: relative; }
+  .day:nth-child(7n) { border-right: none; }
+  .day.outside { background: #f9fafb; }
+  .day.outside .d { color: #9ca3af; }
+  .day.changed-hours { background: #fffbeb; }
+  .day .d { font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .day .hours-tag { font-size: 9px; background: #fde68a; color: #422006; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+  .day .appt { font-size: 10px; padding: 3px 6px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; font-weight: 500; line-height: 1.3; }
+  .day .appt.normal { background: #f0fdfa; color: #065f46; border-left: 2px solid #10b981; }
+  .day .appt.affected { background: #fef2f2; color: #991b1b; border-left: 2px solid #dc2626; }
+
+  .legend { display: flex; gap: 18px; padding: 12px 18px; background: #f9fafb; border-top: 1px solid #e5e7eb; font-size: 12px; color: #4b5563; flex-wrap: wrap; }
+  .legend .sw { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sq { width: 12px; height: 12px; border-radius: 3px; }
+
+  .actions { position: sticky; bottom: 0; background: white; border-top: 1px solid #e5e7eb; padding: 14px 32px; display: flex; justify-content: space-between; align-items: center; margin: 0 -32px -28px; }
+  .actions .meta { font-size: 13px; color: #6b7280; }
+  .actions .meta strong { color: #422006; }
+  .actions .right { display: flex; gap: 10px; }
+</style>
+</head>
+<body>
+<div class="badge">PART 8-D · Branch Hours: Calendar Impact</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Admin · Nadia K.</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">NK</div></div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <h1>Branch A — Impact preview</h1>
+        <p class="sub">See which Saturdays will be affected by the new hours. Red bars = flagged appointments.</p>
+      </div>
+      <button class="btn-ghost">← Back to editor</button>
+    </div>
+
+    <div class="alert">
+      <div class="ic">⚠️</div>
+      <div><strong>5 appointments</strong> fall outside the new Saturday hours (09:00–13:00). They will be flagged, not auto-cancelled. Doctors must resolve each one.</div>
+    </div>
+
+    <div class="context-bar">
+      <div class="item"><div class="k">Branch</div><div class="v">Branch A — Downtown</div></div>
+      <div class="item"><div class="k">Saturday (old)</div><div class="v">09:00 – 17:00</div></div>
+      <div class="item"><div class="k">Saturday (new)</div><div class="v">09:00 – 13:00</div></div>
+      <div class="item"><div class="k">Effective</div><div class="v">Immediately on save</div></div>
+    </div>
+
+    <div class="calendar-wrap">
+      <div class="cal-head">
+        <div class="cal-month">August – September 2026</div>
+        <div class="cal-nav">
+          <button>� Jul</button>
+          <button>Today</button>
+          <button>Oct ›</button>
+        </div>
+      </div>
+
+      <div class="cal-grid">
+        <div class="dow">Mon</div><div class="dow">Tue</div><div class="dow">Wed</div><div class="dow">Thu</div><div class="dow">Fri</div><div class="dow">Sat</div><div class="dow">Sun</div>
+
+        <div class="day outside"><div class="d">27</div></div>
+        <div class="day outside"><div class="d">28</div></div>
+        <div class="day outside"><div class="d">29</div></div>
+        <div class="day outside"><div class="d">30</div></div>
+        <div class="day outside"><div class="d">31</div></div>
+        <div class="day changed-hours"><div class="d">1 <span class="hours-tag">09–13</span></div><div class="appt normal">09:00 Ahmed</div></div>
+        <div class="day"><div class="d">2</div></div>
+
+        <div class="day"><div class="d">3</div></div>
+        <div class="day"><div class="d">4</div></div>
+        <div class="day"><div class="d">5</div></div>
+        <div class="day"><div class="d">6</div></div>
+        <div class="day"><div class="d">7</div></div>
+        <div class="day changed-hours"><div class="d">8 <span class="hours-tag">09–13</span></div><div class="appt normal">10:00 Ahmed</div></div>
+        <div class="day"><div class="d">9</div></div>
+
+        <div class="day"><div class="d">10</div></div>
+        <div class="day"><div class="d">11</div></div>
+        <div class="day"><div class="d">12</div></div>
+        <div class="day"><div class="d">13</div></div>
+        <div class="day"><div class="d">14</div></div>
+        <div class="day changed-hours"><div class="d">15 <span class="hours-tag">09–13</span></div><div class="appt normal">09:30 Sara</div></div>
+        <div class="day"><div class="d">16</div></div>
+
+        <div class="day"><div class="d">17</div></div>
+        <div class="day"><div class="d">18</div></div>
+        <div class="day"><div class="d">19</div></div>
+        <div class="day"><div class="d">20</div></div>
+        <div class="day"><div class="d">21</div></div>
+        <div class="day changed-hours"><div class="d">22 <span class="hours-tag">09–13</span></div><div class="appt normal">10:00 Sara</div></div>
+        <div class="day"><div class="d">23</div></div>
+
+        <div class="day"><div class="d">24</div></div>
+        <div class="day"><div class="d">25</div></div>
+        <div class="day"><div class="d">26</div></div>
+        <div class="day"><div class="d">27</div></div>
+        <div class="day"><div class="d">28</div></div>
+        <div class="day changed-hours"><div class="d">29 <span class="hours-tag">09–13</span></div><div class="appt affected">14:00 Ahmed ⚑</div></div>
+        <div class="day"><div class="d">30</div></div>
+
+        <div class="day"><div class="d">31</div></div>
+        <div class="day"><div class="d">1</div></div>
+        <div class="day"><div class="d">2</div></div>
+        <div class="day"><div class="d">3</div></div>
+        <div class="day"><div class="d">4</div></div>
+        <div class="day changed-hours"><div class="d">5 <span class="hours-tag">09–13</span></div><div class="appt normal">11:00 Sara</div></div>
+        <div class="day"><div class="d">6</div></div>
+
+        <div class="day"><div class="d">7</div></div>
+        <div class="day"><div class="d">8</div></div>
+        <div class="day"><div class="d">9</div></div>
+        <div class="day"><div class="d">10</div></div>
+        <div class="day"><div class="d">11</div></div>
+        <div class="day changed-hours"><div class="d">12 <span class="hours-tag">09–13</span></div><div class="appt affected">14:00 Sara ⚑</div></div>
+        <div class="day"><div class="d">13</div></div>
+      </div>
+
+      <div class="legend">
+        <span class="sw"><span class="sq" style="background:#fde68a;"></span> New Saturday hours (09–13)</span>
+        <span class="sw"><span class="sq" style="background:#10b981;"></span> Appointment stays valid</span>
+        <span class="sw"><span class="sq" style="background:#dc2626;"></span> Will be flagged for resolution</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div class="meta"><strong>5 flagged</strong> · doctors see "Resolve" badges on next login.</div>
+      <div class="right">
+        <button class="btn-ghost">Cancel</button>
+        <button class="btn-secondary">Back to editor</button>
+        <button class="btn-danger">Save anyway & flag 5 →</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

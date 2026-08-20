@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 6-E — Stacked Vertical Flow (Resolve Affected)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 760px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 26px; height: 26px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 8px 15px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 9px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+  .btn-danger { background: white; color: #991b1b; border: 1px solid #fca5a5; padding: 8px 15px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+
+  .alert-bar { background: #fef3c7; border-bottom: 1px solid #fde68a; padding: 12px 24px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #78350f; }
+  .alert-bar strong { color: #422006; }
+
+  .page { padding: 28px 24px 60px; }
+  .page-header { margin-bottom: 20px; }
+  .page-header h1 { font-size: 22px; color: #111827; margin-bottom: 4px; font-weight: 600; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .section { background: white; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+  .section.alert { border-color: #fde68a; }
+  .section.done { background: #f9fafb; opacity: 0.7; }
+  .section-head { padding: 16px 20px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 12px; }
+  .section.alert .section-head { background: #fffbeb; border-bottom-color: #fde68a; }
+  .section.done .section-head { background: #f9fafb; }
+  .section-num { width: 26px; height: 26px; background: #0f766e; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .section.alert .section-num { background: #f59e0b; }
+  .section.done .section-num { background: #10b981; }
+  .section-title { font-size: 15px; color: #111827; font-weight: 600; flex: 1; }
+  .section-sub { font-size: 12px; color: #6b7280; }
+  .section-body { padding: 18px 20px; }
+  .section-actions { padding: 14px 20px; border-top: 1px solid #f3f4f6; display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
+
+  .meta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .meta-cell { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; }
+  .meta-cell .k { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 3px; }
+  .meta-cell .v { font-size: 13px; color: #111827; font-weight: 500; }
+  .meta-cell.lock { background: #fef3c7; border-color: #fde68a; }
+  .meta-cell.lock .v { color: #422006; }
+
+  .date-strip { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
+  .date-pill { padding: 8px 12px; background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; text-align: center; cursor: pointer; min-width: 56px; flex-shrink: 0; }
+  .date-pill:hover { border-color: #0f766e; }
+  .date-pill.active { background: #0f766e; color: white; border-color: #0f766e; }
+  .date-pill.full { opacity: 0.4; cursor: not-allowed; }
+  .date-pill .dow { font-size: 9px; text-transform: uppercase; font-weight: 600; }
+  .date-pill .day { font-size: 16px; font-weight: 700; margin: 2px 0; }
+  .date-pill .n { font-size: 10px; opacity: 0.7; }
+
+  .slot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+  .slot { padding: 10px 4px; background: white; border: 1.5px solid #e5e7eb; border-radius: 6px; text-align: center; font-size: 12px; font-weight: 600; color: #111827; cursor: pointer; }
+  .slot:hover { border-color: #0f766e; background: #f0fdfa; }
+  .slot.selected { background: #0f766e; color: white; border-color: #0f766e; }
+  .slot.disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .new-summary { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 12px; margin-bottom: 4px; }
+  .new-summary .label { font-size: 11px; color: #0f766e; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 4px; }
+  .new-summary .val { font-size: 14px; color: #111827; font-weight: 500; }
+
+  .progress-pill { background: #f0fdfa; border: 1px solid #99f6e4; color: #0f766e; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+
+  .queue-strip { display: flex; gap: 6px; padding: 12px 24px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 12px; align-items: center; overflow-x: auto; }
+  .queue-strip .label { color: #6b7280; font-weight: 600; margin-right: 4px; }
+  .queue-strip .q { padding: 4px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 999px; color: #374151; }
+  .queue-strip .q.now { background: #f59e0b; color: white; border-color: #f59e0b; font-weight: 600; }
+  .queue-strip .q.done { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+</style>
+</head>
+<body>
+<div class="badge">PART 6-E · Stacked Vertical Flow</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <span class="progress-pill">1 of 4 remaining</span>
+    <button class="btn-ghost">← Back</button>
+  </nav>
+
+  <div class="alert-bar">
+    <strong>Step 2 of 4:</strong> Resolve Fatima's appointment before you can save your schedule.
+  </div>
+
+  <div class="queue-strip">
+    <span class="label">Queue:</span>
+    <span class="q done">1. Omar R.</span>
+    <span class="q now">2. Fatima A.</span>
+    <span class="q">3. Mohammed K.</span>
+    <span class="q">4. Layla S.</span>
+  </div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Resolve affected appointment</h1>
+      <p class="sub">Your schedule change affected this appointment. Pick a new slot or cancel.</p>
+    </div>
+
+    <!-- Step 1: Why this needs resolution -->
+    <div class="section alert">
+      <div class="section-head">
+        <div class="section-num">1</div>
+        <div style="flex:1;">
+          <div class="section-title">Why this needs resolution</div>
+          <div class="section-sub">Patient was booked before your schedule change.</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="meta-row">
+          <div class="meta-cell"><div class="k">Patient</div><div class="v">Fatima A. · +971 5·· ···</div></div>
+          <div class="meta-cell"><div class="k">Type</div><div class="v">Cardiology consultation · 45 min</div></div>
+          <div class="meta-cell"><div class="k">Original slot</div><div class="v">Tue, Aug 19 · 10:00 – 10:45</div></div>
+          <div class="meta-cell"><div class="k">Original branch</div><div class="v">Branch A — Downtown</div></div>
+        </div>
+        <div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #78350f;">
+          <strong>Reason:</strong> Tue, Aug 19 at 10:00 falls outside your new working period.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Choose branch -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-num">2</div>
+        <div style="flex:1;">
+          <div class="section-title">Pick a new branch</div>
+          <div class="section-sub">Same doctor (you). You can keep Branch A or move to Branch B.</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <select style="width:100%; padding:11px 12px; border:1.5px solid #e5e7eb; border-radius:8px; font-size:14px; background:white;">
+          <option>Branch A — Downtown (current)</option>
+          <option>Branch B — Marina</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Step 3: Pick date -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-num">3</div>
+        <div style="flex:1;">
+          <div class="section-title">Pick a new date</div>
+          <div class="section-sub">Next 30 days, no same-day. Greyed = no slots or outside window.</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="date-strip">
+          <div class="date-pill full"><div class="dow">Tue</div><div class="day">19</div><div class="n">conflict</div></div>
+          <div class="date-pill"><div class="dow">Wed</div><div class="day">20</div><div class="n">5</div></div>
+          <div class="date-pill full"><div class="dow">Thu</div><div class="day">21</div><div class="n">0</div></div>
+          <div class="date-pill active"><div class="dow">Fri</div><div class="day">22</div><div class="n">4</div></div>
+          <div class="date-pill"><div class="dow">Sat</div><div class="day">23</div><div class="n">6</div></div>
+          <div class="date-pill"><div class="dow">Sun</div><div class="day">24</div><div class="n">3</div></div>
+          <div class="date-pill"><div class="dow">Mon</div><div class="day">25</div><div class="n">9</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Pick time -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-num">4</div>
+        <div style="flex:1;">
+          <div class="section-title">Pick a time on Fri, Aug 22</div>
+          <div class="section-sub">Branch A · Cardiology (45 min) · 4 open slots</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="slot-grid">
+          <div class="slot">09:00<div style="font-size:10px; font-weight:400; opacity:0.7;">→ 09:45</div></div>
+          <div class="slot">10:30<div style="font-size:10px; font-weight:400; opacity:0.7;">→ 11:15</div></div>
+          <div class="slot selected">11:30<div style="font-size:10px; font-weight:400; opacity:0.7;">→ 12:15</div></div>
+          <div class="slot">14:00<div style="font-size:10px; font-weight:400; opacity:0.7;">→ 14:45</div></div>
+        </div>
+
+        <div class="new-summary">
+          <div class="label">You're moving this appointment to</div>
+          <div class="val">Fri, Aug 22 · 11:30 – 12:15 · Branch A — Downtown · Cardiology (45 min)</div>
+        </div>
+      </div>
+      <div class="section-actions">
+        <button class="btn-danger">Cancel appointment</button>
+        <button class="btn-ghost">Skip this one</button>
+        <button class="btn-secondary">Save & next →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Already done (preview) -->
+    <div class="section done">
+      <div class="section-head">
+        <div class="section-num">✓</div>
+        <div style="flex:1;">
+          <div class="section-title">Already resolved</div>
+          <div class="section-sub">Omar R. — moved from Aug 25 to Aug 26 · 10:00.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6: After all done -->
+    <div class="section done" style="opacity: 0.5;">
+      <div class="section-head">
+        <div class="section-num">🔒</div>
+        <div style="flex:1;">
+          <div class="section-title">Save schedule (locked)</div>
+          <div class="section-sub">Unlocks once all 4 affected appointments are resolved.</div>
+        </div>
+      </div>
+      <div class="section-actions">
+        <button class="btn-ghost">Cancel</button>
+        <button class="btn-primary" disabled style="opacity:0.5;">Save schedule →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

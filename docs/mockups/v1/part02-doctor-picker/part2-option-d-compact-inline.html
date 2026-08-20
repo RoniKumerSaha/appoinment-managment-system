@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 2-D — Compact Inline Selector</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 900px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .nav-links { display: flex; gap: 24px; font-size: 14px; color: #4b5563; }
+  .nav-links a { cursor: pointer; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 9px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+
+  .progress { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; }
+  .step-pill { padding: 4px 12px; border-radius: 999px; background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
+  .step-pill.done { background: #f9fafb; color: #6b7280; border-color: #e5e7eb; }
+  .step-pill .num { background: #0f766e; color: white; width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; margin-right: 4px; }
+  .step-pill.done .num { background: #d1d5db; }
+
+  .page-header { padding: 28px 32px 20px; }
+  .back-link { color: #0f766e; font-size: 13px; cursor: pointer; margin-bottom: 12px; display: inline-block; }
+  .page-header h1 { font-size: 24px; color: #111827; margin-bottom: 4px; font-weight: 600; }
+  .page-header .sub { color: #6b7280; font-size: 14px; }
+
+  .summary-bar { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 10px; padding: 12px 16px; margin: 0 32px 20px; display: flex; align-items: center; gap: 14px; font-size: 13px; }
+  .summary-bar .avatar { width: 32px; height: 32px; border-radius: 50%; background: #ccfbf1; color: #0f766e; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+  .summary-bar strong { color: #111827; }
+  .summary-bar .change { margin-left: auto; color: #0f766e; cursor: pointer; font-size: 12px; }
+
+  .selector-row { margin: 0 32px 18px; }
+  .selector-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .selector-label .label { font-size: 13px; font-weight: 600; color: #111827; text-transform: uppercase; letter-spacing: 0.04em; }
+  .selector-label .selected { color: #0f766e; font-size: 12px; font-weight: 500; }
+  .selector-label .selected .change { color: #6b7280; margin-left: 8px; cursor: pointer; font-weight: 400; }
+
+  .dropdown { background: white; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: border-color 0.15s; }
+  .dropdown:hover { border-color: #99f6e4; }
+  .dropdown-icon { width: 40px; height: 40px; background: #ccfbf1; color: #0f766e; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .dropdown-body { flex: 1; }
+  .dropdown-name { font-weight: 600; color: #111827; font-size: 14px; }
+  .dropdown-meta { color: #6b7280; font-size: 12px; margin-top: 2px; }
+  .dropdown-caret { color: #6b7280; font-size: 18px; }
+
+  .pill-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill-btn { padding: 8px 16px; background: white; border: 1.5px solid #e5e7eb; border-radius: 999px; font-size: 13px; color: #4b5563; cursor: pointer; transition: all 0.15s; font-weight: 500; }
+  .pill-btn:hover { border-color: #99f6e4; }
+  .pill-btn.selected { background: #0f766e; color: white; border-color: #0f766e; }
+  .pill-btn .dur { color: #6b7280; font-size: 11px; margin-left: 6px; }
+  .pill-btn.selected .dur { color: rgba(255,255,255,0.7); }
+
+  .footer { border-top: 1px solid #e5e7eb; padding: 16px 32px; display: flex; justify-content: space-between; background: white; position: sticky; bottom: 0; margin-top: 24px; }
+  .footer .summary { color: #6b7280; font-size: 13px; }
+  .footer .summary strong { color: #111827; }
+</style>
+</head>
+<body>
+<div class="badge">PART 2-D · Compact Inline Selector</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div class="nav-links"><a>Find a doctor</a><a>My appointments</a><a>Branches</a><a>Help</a></div>
+    <button class="btn-primary">Book appointment</button>
+  </nav>
+
+  <div class="progress">
+    <span class="step-pill done"><span class="num">✓</span>Doctor</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-pill"><span class="num">2</span>Branch & type</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-pill done"><span class="num">3</span>Date & time</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-pill done"><span class="num">4</span>Your details</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-pill done"><span class="num">5</span>Confirm</span>
+  </div>
+
+  <div class="page-header">
+    <span class="back-link">← Back to doctors</span>
+    <h1>Where and what?</h1>
+    <p class="sub">Pick a branch and the type of visit you need.</p>
+  </div>
+
+  <div class="summary-bar">
+    <div class="avatar">DA</div>
+    <div><strong>Dr. Ahmed Al-Rashid</strong> · Cardiology</div>
+    <span class="change">Change doctor</span>
+  </div>
+
+  <div class="selector-row">
+    <div class="selector-label">
+      <span class="label">1 · Branch</span>
+      <span class="selected">Branch A — Downtown <span class="change">change</span></span>
+    </div>
+    <div class="dropdown">
+      <div class="dropdown-icon">📍</div>
+      <div class="dropdown-body">
+        <div class="dropdown-name">Branch A — Downtown</div>
+        <div class="dropdown-meta">Sheikh Zayed Rd, Tower 2 · Sun–Thu 08:00–20:00</div>
+      </div>
+      <div class="dropdown-caret">▾</div>
+    </div>
+  </div>
+
+  <div class="selector-row">
+    <div class="selector-label">
+      <span class="label">2 · Appointment type</span>
+      <span class="selected">Cardiology consultation <span class="change">change</span></span>
+    </div>
+    <div class="pill-row">
+      <div class="pill-btn selected">Cardiology consultation<span class="dur">45m</span></div>
+      <div class="pill-btn">Follow-up visit<span class="dur">20m</span></div>
+      <div class="pill-btn">ECG reading<span class="dur">30m</span></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button class="btn-ghost">← Back</button>
+    <span class="summary"><strong>Branch A</strong> · <strong>Cardiology consultation</strong> · 45 min</span>
+    <button class="btn-primary">Find available times →</button>
+  </div>
+
+</div>
+</body>
+</html>

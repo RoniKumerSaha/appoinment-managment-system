@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 6-A — List + Detail Pane (Resolve Affected)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1200px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .nav-links { display: flex; gap: 24px; font-size: 14px; color: #4b5563; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 8px 15px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 9px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .btn-danger { background: white; color: #991b1b; border: 1px solid #fca5a5; padding: 8px 15px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+  .alert-bar { background: #fef3c7; border-bottom: 1px solid #fde68a; padding: 12px 32px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: #78350f; }
+  .alert-bar .ic { font-size: 16px; }
+  .alert-bar strong { color: #422006; }
+
+  .layout { display: grid; grid-template-columns: 380px 1fr; }
+  .list-col { background: #f9fafb; border-right: 1px solid #e5e7eb; padding: 24px; }
+  .detail-col { padding: 32px; }
+
+  .page-header h1 { font-size: 22px; color: #111827; font-weight: 600; margin-bottom: 4px; }
+  .page-header .sub { color: #6b7280; font-size: 14px; margin-bottom: 4px; }
+
+  .progress-line { display: flex; align-items: center; gap: 8px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #374151; }
+  .progress-line .dot { width: 8px; height: 8px; background: #0f766e; border-radius: 50%; }
+  .progress-line strong { color: #0f766e; }
+
+  .appt-row { background: white; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 14px; margin-bottom: 8px; cursor: pointer; }
+  .appt-row:hover { border-color: #99f6e4; }
+  .appt-row.active { border-color: #0f766e; background: #f0fdfa; }
+  .appt-row.resolved { opacity: 0.55; background: #f9fafb; }
+  .appt-row-top { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .date-block { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 6px 10px; text-align: center; min-width: 56px; }
+  .date-block .month { font-size: 9px; color: #0f766e; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .date-block .day { font-size: 20px; color: #111827; font-weight: 700; line-height: 1; }
+  .date-block .dow { font-size: 9px; color: #6b7280; text-transform: uppercase; font-weight: 600; }
+  .appt-row-info { flex: 1; }
+  .appt-row-doctor { font-weight: 600; color: #111827; font-size: 13px; }
+  .appt-row-time { font-size: 12px; color: #6b7280; }
+  .appt-row-meta { font-size: 12px; color: #6b7280; }
+  .appt-row .badge { position: static; display: inline-block; padding: 2px 8px; font-size: 10px; font-weight: 600; border-radius: 999px; margin-left: 6px; }
+  .appt-row .badge.pending { background: #fef3c7; color: #78350f; }
+  .appt-row .badge.done { background: #d1fae5; color: #065f46; }
+
+  .detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #f3f4f6; }
+  .detail-title { font-size: 20px; color: #111827; font-weight: 600; }
+  .detail-sub { color: #6b7280; font-size: 13px; margin-top: 2px; }
+  .detail-status { background: #fef3c7; color: #78350f; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+
+  .current-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 22px; }
+  .info-cell { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
+  .info-cell .label { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 4px; }
+  .info-cell .value { font-size: 13px; color: #111827; font-weight: 500; }
+
+  .resolve-section { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  .resolve-section h3 { font-size: 14px; color: #422006; font-weight: 600; margin-bottom: 4px; }
+  .resolve-section .sub { font-size: 12px; color: #78350f; margin-bottom: 14px; }
+
+  .day-tabs { display: flex; gap: 4px; margin-bottom: 12px; overflow-x: auto; }
+  .day-tab { padding: 7px 10px; background: white; border: 1px solid #fde68a; border-radius: 6px; font-size: 12px; color: #422006; cursor: pointer; font-weight: 500; white-space: nowrap; }
+  .day-tab.active { background: #422006; color: white; border-color: #422006; }
+  .day-tab .n { font-size: 10px; font-weight: 400; opacity: 0.7; margin-left: 4px; }
+
+  .slot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
+  .slot { padding: 9px 4px; background: white; border: 1.5px solid #e5e7eb; border-radius: 6px; text-align: center; font-size: 12px; font-weight: 600; color: #111827; cursor: pointer; }
+  .slot:hover { border-color: #0f766e; background: #f0fdfa; }
+  .slot.selected { background: #0f766e; color: white; border-color: #0f766e; }
+
+  .resolve-actions { display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
+  .resolve-actions .left { flex: 1; font-size: 12px; color: #6b7280; }
+
+  .cancel-zone { border-top: 1px solid #f3f4f6; padding-top: 20px; }
+  .cancel-zone h4 { font-size: 13px; color: #111827; font-weight: 600; margin-bottom: 4px; }
+  .cancel-zone .sub { font-size: 12px; color: #6b7280; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div class="badge">PART 6-A · List + Detail Pane</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div class="nav-links"><a style="color:#0f766e; font-weight:600;">Dashboard</a><a>Schedule</a><a>Patients</a></div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Dr. Ahmed Al-Rashid</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">AR</div></div>
+  </nav>
+
+  <div class="alert-bar">
+    <span class="ic">⚠️</span>
+    <div><strong>4 appointments need your attention.</strong> Your schedule change on Aug 18 affected these patients. Resolve each one to finish saving.</div>
+  </div>
+
+  <div class="layout">
+    <div class="list-col">
+      <div class="page-header">
+        <h1>Affected appointments</h1>
+        <p class="sub">Resolve each one before saving your schedule.</p>
+      </div>
+
+      <div class="progress-line"><div class="dot"></div><strong>1 of 4 remaining</strong></div>
+
+      <div class="appt-row active">
+        <div class="appt-row-top">
+          <div class="date-block"><div class="month">Aug</div><div class="day">19</div><div class="dow">Tue</div></div>
+          <div class="appt-row-info">
+            <div class="appt-row-doctor">Fatima A.<span class="badge pending">Pending</span></div>
+            <div class="appt-row-time">10:00 – 10:45</div>
+            <div class="appt-row-meta">Branch A · Cardiology</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="appt-row">
+        <div class="appt-row-top">
+          <div class="date-block"><div class="month">Aug</div><div class="day">20</div><div class="dow">Wed</div></div>
+          <div class="appt-row-info">
+            <div class="appt-row-doctor">Mohammed K.<span class="badge pending">Pending</span></div>
+            <div class="appt-row-time">14:30 – 15:15</div>
+            <div class="appt-row-meta">Branch A · Cardiology</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="appt-row">
+        <div class="appt-row-top">
+          <div class="date-block"><div class="month">Aug</div><div class="day">22</div><div class="dow">Fri</div></div>
+          <div class="appt-row-info">
+            <div class="appt-row-doctor">Layla S.<span class="badge pending">Pending</span></div>
+            <div class="appt-row-time">11:00 – 11:45</div>
+            <div class="appt-row-meta">Branch B · Cardiology</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="appt-row resolved">
+        <div class="appt-row-top">
+          <div class="date-block" style="background:#d1fae5; border-color:#6ee7b7;"><div class="month">Aug</div><div class="day">25</div><div class="dow">Mon</div></div>
+          <div class="appt-row-info">
+            <div class="appt-row-doctor">Omar R.<span class="badge done">Resolved</span></div>
+            <div class="appt-row-time">09:30 – 10:15</div>
+            <div class="appt-row-meta">Moved to Aug 26 · 10:00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-col">
+      <div class="detail-header">
+        <div>
+          <div class="detail-title">Fatima A. · Cardiology consultation</div>
+          <div class="detail-sub">Tue, Aug 19 · 10:00 – 10:45 · Branch A — Downtown</div>
+        </div>
+        <span class="detail-status">⚠ Pending resolution</span>
+      </div>
+
+      <div class="current-grid">
+        <div class="info-cell"><div class="label">Current slot</div><div class="value">Aug 19 · 10:00</div></div>
+        <div class="info-cell"><div class="label">Patient</div><div class="value">Fatima A. · +971 5·· ···</div></div>
+        <div class="info-cell"><div class="label">Type</div><div class="value">Cardiology · 45 min</div></div>
+      </div>
+
+      <div class="resolve-section">
+        <h3>Move to a new slot</h3>
+        <p class="sub">Same doctor (you). You may change branch. Appointment type stays "Cardiology consultation" — locked during conflict resolution.</p>
+
+        <div style="display:flex; gap:10px; margin-bottom: 14px;">
+          <select style="flex:1; padding:9px 10px; border:1.5px solid #fde68a; border-radius:6px; font-size:13px; background:white;">
+            <option>Branch A — Downtown (current)</option>
+            <option>Branch B — Marina</option>
+          </select>
+          <select style="flex:1; padding:9px 10px; border:1.5px solid #fde68a; border-radius:6px; font-size:13px; background:white;" disabled>
+            <option>Cardiology consultation (locked)</option>
+          </select>
+        </div>
+
+        <div class="day-tabs">
+          <div class="day-tab">Aug 19<span class="n">2</span></div>
+          <div class="day-tab">Aug 20<span class="n">5</span></div>
+          <div class="day-tab">Aug 21<span class="n">0</span></div>
+          <div class="day-tab active">Aug 22<span class="n">4</span></div>
+          <div class="day-tab">Aug 23<span class="n">6</span></div>
+          <div class="day-tab">Aug 24<span class="n">3</span></div>
+        </div>
+
+        <div class="slot-grid">
+          <div class="slot">09:00</div>
+          <div class="slot">10:30</div>
+          <div class="slot selected">11:30</div>
+          <div class="slot">14:00</div>
+        </div>
+
+        <div class="resolve-actions">
+          <div class="left">Moving to <strong>Branch A · Aug 22 · 11:30 – 12:15</strong></div>
+          <button class="btn-danger">Cancel instead</button>
+          <button class="btn-secondary">Skip for now</button>
+          <button class="btn-primary">Move to Aug 22 · 11:30 →</button>
+        </div>
+      </div>
+
+      <div class="cancel-zone">
+        <h4>No slots work?</h4>
+        <p class="sub">You can cancel this appointment instead. The slot is released and the patient is notified.</p>
+        <button class="btn-danger">Cancel appointment</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

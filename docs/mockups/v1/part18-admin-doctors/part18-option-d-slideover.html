@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 18-D — Admin Doctors: Slide-Over Assignment</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1300px; margin: 0 auto; background: white; min-height: 100vh; position: relative; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+  .page { padding: 28px 32px; filter: blur(3px); }
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header h1 { font-size: 22px; color: #111827; font-weight: 600; margin-bottom: 4px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
+  th { background: #f9fafb; padding: 12px 16px; text-align: left; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 14px 16px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  .actions-cell button { padding: 6px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 12px; color: #374151; cursor: pointer; font-weight: 500; }
+
+  /* Slide-over */
+  .slide-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 50; }
+  .slide-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 540px; background: white; box-shadow: -8px 0 24px rgba(0,0,0,0.08); z-index: 51; overflow-y: auto; display: flex; flex-direction: column; }
+  .slide-head { padding: 18px 22px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+  .slide-head h2 { font-size: 17px; color: #111827; font-weight: 600; }
+  .slide-head .close { background: transparent; border: none; font-size: 20px; color: #6b7280; cursor: pointer; }
+  .slide-body { padding: 22px; flex: 1; }
+
+  .doc-summary { display: flex; align-items: center; gap: 14px; padding: 14px; background: #f9fafb; border-radius: 10px; margin-bottom: 18px; }
+  .doc-summary .av { width: 48px; height: 48px; background: #ccfbf1; color: #0f766e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
+  .doc-summary .name { font-weight: 600; font-size: 16px; }
+  .doc-summary .email { font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; color: #374151; font-weight: 600; margin-bottom: 5px; }
+  .form-group label .req { color: #dc2626; }
+  .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 13px; background: white; font-family: inherit; }
+  .form-group .hint { font-size: 11px; color: #6b7280; margin-top: 4px; }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .status-toggle { display: flex; gap: 6px; }
+  .status-toggle .opt { flex: 1; padding: 10px; background: white; border: 1.5px solid #e5e7eb; border-radius: 6px; cursor: pointer; text-align: center; font-weight: 600; font-size: 13px; color: #6b7280; }
+  .status-toggle .opt.active { background: #f0fdfa; border-color: #0f766e; color: #0f766e; }
+
+  /* Branch picker list */
+  .branch-picker { border: 1.5px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+  .branch-pick-row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
+  .branch-pick-row:last-child { border-bottom: none; }
+  .branch-pick-row:hover { background: #f9fafb; }
+  .branch-pick-row.assigned { background: #f0fdfa; }
+  .branch-pick-row .cb { width: 18px; height: 18px; border: 2px solid #d1d5db; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .branch-pick-row.assigned .cb { background: #0f766e; border-color: #0f766e; color: white; font-size: 12px; font-weight: 700; }
+  .branch-pick-row .ic { width: 32px; height: 32px; background: #f0fdfa; color: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .branch-pick-row .name { font-weight: 600; font-size: 13px; }
+  .branch-pick-row .meta { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .branch-pick-row .pill { font-size: 10px; padding: 2px 7px; border-radius: 999px; font-weight: 700; }
+  .pill.dim { background: #f3f4f6; color: #6b7280; }
+
+  .clinic-locked { padding: 10px 12px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 6px; font-size: 11px; color: #92400e; display: flex; gap: 8px; align-items: center; }
+  .clinic-locked code { background: white; padding: 1px 5px; border-radius: 3px; font-family: "SF Mono", Consolas, monospace; color: #78350f; }
+
+  .slide-actions { padding: 16px 22px; border-top: 1px solid #e5e7eb; display: flex; gap: 10px; justify-content: space-between; align-items: center; background: #f9fafb; }
+  .slide-actions .audit { font-size: 11px; color: #6b7280; }
+  .slide-actions .audit code { background: #e5e7eb; padding: 1px 6px; border-radius: 4px; color: #374151; font-family: "SF Mono", Consolas, monospace; }
+  .slide-actions .danger { color: #991b1b; cursor: pointer; font-size: 13px; font-weight: 500; }
+  .slide-actions .btns { display: flex; gap: 8px; }
+  .btn-secondary { background: white; color: #4b5563; border: 1px solid #e5e7eb; padding: 9px 17px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="badge">PART 18-D · Admin Doctors · Slide-Over</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Salem Al-Mutairi · Admin</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">SM</div></div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <div class="crumb">Admin → Doctors</div>
+        <h1>Doctors</h1>
+        <p class="sub">9 active · 1 inactive</p>
+      </div>
+      <button class="btn-primary">+ New doctor</button>
+    </div>
+    <table>
+      <thead><tr><th>Doctor</th><th>Branches</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>Dr. Ahmed Al-Qahtani</td><td>Riyadh Olaya · Riyadh Malqa</td><td>● Active</td><td><div class="actions-cell"><button style="border-color:#0f766e; color:#0f766e;">Editing…</button></div></td></tr>
+        <tr><td>Dr. Abdullah Al-Rashid</td><td>Riyadh Olaya</td><td>● Active</td><td><div class="actions-cell"><button>Edit</button> <button>Assign</button></div></td></tr>
+        <tr><td>Dr. Mohammed Hassan</td><td>Riyadh Olaya</td><td>● Active</td><td><div class="actions-cell"><button>Edit</button> <button>Assign</button></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Slide-over -->
+  <div class="slide-overlay"></div>
+  <div class="slide-panel">
+    <div class="slide-head">
+      <h2>Edit · Dr. Ahmed Al-Qahtani</h2>
+      <button class="close">×</button>
+    </div>
+    <div class="slide-body">
+
+      <div class="doc-summary">
+        <div class="av">AQ</div>
+        <div>
+          <div class="name">Dr. Ahmed Al-Qahtani</div>
+          <div class="email">a.alqahtani@clinic.sa · Family Medicine</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Display name <span class="req">*</span></label>
+        <input value="Dr. Ahmed Al-Qahtani">
+      </div>
+      <div class="row-2">
+        <div class="form-group">
+          <label>Email</label>
+          <input value="a.alqahtani@clinic.sa" disabled>
+        </div>
+        <div class="form-group">
+          <label>Specialty</label>
+          <select><option>Family Medicine</option><option>Cardiology</option><option>Dermatology</option></select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Clinic</label>
+        <div class="clinic-locked">🔒 <span>Single clinic per doctor (<code>BR-002</code>). Locked to <strong>ClinicCare Riyadh</strong>.</span></div>
+      </div>
+
+      <div class="form-group">
+        <label>Branch assignments · multi-select (FR-004)</label>
+        <div class="branch-picker">
+          <div class="branch-pick-row assigned">
+            <div class="cb">✓</div>
+            <div class="ic">📍</div>
+            <div style="flex: 1;">
+              <div class="name">Riyadh Olaya</div>
+              <div class="meta">08:00–17:00 · 3 doctors here</div>
+            </div>
+            <span class="pill" style="background: #d1fae5; color: #065f46;">Primary</span>
+          </div>
+          <div class="branch-pick-row assigned">
+            <div class="cb">✓</div>
+            <div class="ic">📍</div>
+            <div style="flex: 1;">
+              <div class="name">Riyadh Malqa</div>
+              <div class="meta">09:00–18:00 · 4 doctors here</div>
+            </div>
+            <span class="pill dim">2nd branch</span>
+          </div>
+          <div class="branch-pick-row">
+            <div class="cb"></div>
+            <div class="ic">📍</div>
+            <div style="flex: 1;">
+              <div class="name">Jeddah Corniche</div>
+              <div class="meta">10:00–19:00 · 2 doctors here</div>
+            </div>
+            <span class="pill dim">+ add</span>
+          </div>
+          <div class="branch-pick-row" style="opacity: 0.5;">
+            <div class="cb"></div>
+            <div class="ic">📍</div>
+            <div style="flex: 1;">
+              <div class="name">Riyadh Diplomatic Quarter</div>
+              <div class="meta">○ Inactive · cannot assign</div>
+            </div>
+            <span class="pill dim">Disabled</span>
+          </div>
+        </div>
+        <div class="hint">Toggle branches to assign. Inactive branches unavailable.</div>
+      </div>
+
+      <div class="form-group">
+        <label>Status</label>
+        <div class="status-toggle">
+          <div class="opt active">● Active</div>
+          <div class="opt">○ Inactive</div>
+        </div>
+        <div class="hint">Deactivating with 58 future appts triggers warning (BR-003).</div>
+      </div>
+
+    </div>
+    <div class="slide-actions">
+      <span class="danger">Deactivate doctor</span>
+      <div class="audit">Atomic: <code>Doctor.update</code> + <code>DoctorBranch.replace</code> · audit: <code>doctor.changed</code></div>
+      <div class="btns">
+        <button class="btn-secondary">Cancel</button>
+        <button class="btn-primary">Save changes</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

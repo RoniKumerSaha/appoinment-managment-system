@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 15 — F-14 Receptionist Cancel · Option Picker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 24px; line-height: 1.5; }
+  .wrap { max-width: 1400px; margin: 0 auto; }
+  header { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+  header h1 { font-size: 22px; color: #111827; font-weight: 700; margin-bottom: 4px; }
+  header .meta { color: #6b7280; font-size: 13px; margin-bottom: 12px; }
+  header .desc { color: #374151; font-size: 13px; }
+
+  .picker { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .picker .label { font-size: 13px; font-weight: 600; color: #374151; margin-right: 8px; }
+  .picker a { display: inline-block; padding: 8px 14px; background: #f3f4f6; color: #1f2937; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600; }
+  .picker a:hover { background: #0f766e; color: white; }
+
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  @media (max-width: 1300px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; transition: border-color 0.15s, transform 0.1s; }
+  .card:hover { border-color: #0f766e; transform: translateY(-2px); box-shadow: 0 8px 16px rgba(15,118,110,0.1); }
+  .card-head { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f9fafb; }
+  .card-code { font-weight: 800; color: #0f766e; font-size: 14px; }
+  .card-desc { padding: 10px 16px; font-size: 12px; color: #4b5563; line-height: 1.45; border-bottom: 1px solid #f3f4f6; }
+  .card iframe { width: 100%; height: 520px; border: 0; display: block; background: white; pointer-events: none; }
+  .card-actions { padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; background: #f9fafb; }
+  .card-actions a { font-size: 12px; color: #0f766e; text-decoration: none; font-weight: 600; padding: 4px 10px; border-radius: 4px; }
+  .card-actions a:hover { background: #f0fdfa; }
+  .card-actions .pattern { font-size: 11px; color: #6b7280; font-style: italic; }
+
+  .pattern-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .pattern-tag.modal { background: #ede9fe; color: #5b21b6; }
+  .pattern-tag.conflict { background: #fef3c7; color: #92400e; }
+  .pattern-tag.slideover { background: #dbeafe; color: #1e40af; }
+  .pattern-tag.inline { background: #fce7f3; color: #9d174d; }
+  .pattern-tag.stack { background: #d1fae5; color: #065f46; }
+
+  footer { margin-top: 16px; padding: 16px; text-align: center; color: #6b7280; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Part 15 · F-14 — Receptionist Cancel Appointment</h1>
+    <div class="meta">Receptionist actor · 5 options below · Reply with a letter (A–E)</div>
+    <div class="desc">Trigger: AppointmentCard → [Cancel] → reason required (BR-036, FR-034) → atomic status change to Cancelled, slot released, audit row with actor_role = "receptionist". This is a small but consequential interaction — choose carefully.</div>
+  </header>
+
+  <div class="picker">
+    <span class="label">Jump to:</span>
+    <a href="#A">A — Modal + Reason</a>
+    <a href="#B">B — 3-Part Conflict</a>
+    <a href="#C">C — Slide-Over</a>
+    <a href="#D">D — Inline Row</a>
+    <a href="#E">E — Stacked Flow</a>
+  </div>
+
+  <div class="grid">
+
+    <div class="card" id="A">
+      <div class="card-head"><span class="card-code">A</span><span class="pattern-tag modal">Modal</span></div>
+      <div class="card-desc"><strong>Modal with Required Reason.</strong> Standard modal: appointment summary at top, reason select (required) + notes textarea, consequence list ("this will release the slot, notify patient…"), atomicity cue in footer. Direct, conventional.</div>
+      <iframe src="part15-option-a-modal-required-reason.html"></iframe>
+      <div class="card-actions"><span class="pattern">Familiar · direct</span><a href="part15-option-a-modal-required-reason.html" target="_blank">Open full ↗</a></div>
+    </div>
+
+    <div class="card" id="B">
+      <div class="card-head"><span class="card-code">B</span><span class="pattern-tag conflict">3-Part</span></div>
+      <div class="card-desc"><strong>3-Part ConflictModal.</strong> What happened / Why it matters / What you can do (call / cancel / reschedule). Best when the receptionist should be reminded of the consequences before they click. Mirrors Part 6 ConflictModal pattern.</div>
+      <iframe src="part15-option-b-three-part-conflict.html"></iframe>
+      <div class="card-actions"><span class="pattern">Educational · cautious</span><a href="part15-option-b-three-part-conflict.html" target="_blank">Open full ↗</a></div>
+    </div>
+
+    <div class="card" id="C">
+      <div class="card-head"><span class="card-code">C</span><span class="pattern-tag slideover">Slide-Over</span></div>
+      <div class="card-desc"><strong>Slide-Over Panel.</strong> Right-side panel (420px) — same reason + notes form, but the list stays visible on the left with the active row highlighted. Best when receptionist might cancel multiple in a row.</div>
+      <iframe src="part15-option-c-slideover.html"></iframe>
+      <div class="card-actions"><span class="pattern">List stays · multi-cancel</span><a href="part15-option-c-slideover.html" target="_blank">Open full ↗</a></div>
+    </div>
+
+    <div class="card" id="D">
+      <div class="card-head"><span class="card-code">D</span><span class="pattern-tag inline">Inline</span></div>
+      <div class="card-desc"><strong>Inline Row Expansion.</strong> Click Cancel on a row → the row expands in place to show reason + notes form. No modal, no overlay. Lightest-weight option. Best when receptionist is doing many cancels in a session.</div>
+      <iframe src="part15-option-d-inline-row.html"></iframe>
+      <div class="card-actions"><span class="pattern">Lightweight · fast</span><a href="part15-option-d-inline-row.html" target="_blank">Open full ↗</a></div>
+    </div>
+
+    <div class="card" id="E">
+      <div class="card-head"><span class="card-code">E</span><span class="pattern-tag stack">Stacked</span></div>
+      <div class="card-desc"><strong>Stacked Vertical Flow.</strong> Step 1: pick the appointment (radio list). Step 2: summary + reason + notes + consequence list + confirm. Consistency with F-06/07/08/10/12/13/14 chain.</div>
+      <iframe src="part15-option-e-stacked-flow.html"></iframe>
+      <div class="card-actions"><span class="pattern">Consistent · explicit</span><a href="part15-option-e-stacked-flow.html" target="_blank">Open full ↗</a></div>
+    </div>
+
+  </div>
+
+  <footer>Reply with <strong>A</strong>, <strong>B</strong>, <strong>C</strong>, <strong>D</strong>, or <strong>E</strong> to pick the direction for Part 15.</footer>
+</div>
+</body>
+</html>

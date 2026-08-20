@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 18-C — Admin Doctors: By-Branch Matrix</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1300px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+  .page { padding: 28px 32px; }
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header h1 { font-size: 22px; color: #111827; font-weight: 600; margin-bottom: 4px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .toolbar-left { display: flex; gap: 8px; align-items: center; }
+  .toolbar .search { padding: 7px 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 13px; min-width: 240px; }
+  .toolbar .seg { display: flex; gap: 4px; background: #f3f4f6; padding: 3px; border-radius: 6px; }
+  .toolbar .seg button { padding: 5px 12px; background: transparent; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; color: #6b7280; font-weight: 500; }
+  .toolbar .seg button.active { background: white; color: #0f766e; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+  /* Matrix table */
+  .matrix { width: 100%; border-collapse: collapse; background: white; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
+  .matrix th, .matrix td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+  .matrix th { background: #f9fafb; font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em; }
+  .matrix th.branch-col { background: #f0fdfa; color: #0f766e; text-align: center; width: 130px; }
+  .matrix td.branch-col { text-align: center; }
+  .matrix tr:last-child td { border-bottom: none; }
+  .matrix tr:hover { background: #f9fafb; }
+
+  .doc-cell { display: flex; align-items: center; gap: 10px; }
+  .doc-cell .av { width: 32px; height: 32px; background: #ccfbf1; color: #0f766e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .doc-cell .name { font-weight: 600; }
+  .doc-cell .spec { font-size: 11px; color: #6b7280; }
+
+  .assign-cell { display: inline-flex; flex-direction: column; gap: 4px; align-items: center; }
+  .check-circle { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+  .check-circle.yes { background: #d1fae5; color: #065f46; }
+  .check-circle.no { background: #f3f4f6; color: #9ca3af; cursor: pointer; }
+  .check-circle.no:hover { background: #f0fdfa; color: #0f766e; }
+  .check-circle .hint { font-size: 10px; color: #6b7280; margin-top: 2px; display: block; }
+
+  .pill { display: inline-block; font-size: 10px; padding: 3px 9px; border-radius: 999px; font-weight: 700; text-transform: uppercase; }
+  .pill.active { background: #d1fae5; color: #065f46; }
+  .pill.inactive { background: #f3f4f6; color: #6b7280; }
+
+  .branch-header { display: flex; flex-direction: column; align-items: center; }
+  .branch-header .name { font-weight: 600; }
+  .branch-header .sub { font-size: 10px; color: #6b7280; margin-top: 2px; }
+
+  .summary { margin-top: 16px; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 10px; padding: 14px 18px; font-size: 12px; color: #065f46; display: flex; gap: 12px; align-items: center; }
+  .summary code { background: white; padding: 1px 6px; border-radius: 4px; color: #0f766e; font-family: "SF Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+<div class="badge">PART 18-C · Admin Doctors · By-Branch Matrix</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Salem Al-Mutairi · Admin</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">SM</div></div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <div class="crumb">Admin → Doctors</div>
+        <h1>Doctors</h1>
+        <p class="sub">Assignment matrix · click any cell to assign/unassign</p>
+      </div>
+      <button class="btn-primary">+ New doctor</button>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input class="search" placeholder="Search doctors…">
+        <div class="seg">
+          <button class="active">All</button>
+          <button>Active</button>
+          <button>Inactive</button>
+          <button>Unassigned</button>
+        </div>
+      </div>
+    </div>
+
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>Doctor</th>
+          <th>Specialty</th>
+          <th>Status</th>
+          <th class="branch-col">
+            <div class="branch-header">
+              <div class="name">Riyadh Olaya</div>
+              <div class="sub">3 doctors</div>
+            </div>
+          </th>
+          <th class="branch-col">
+            <div class="branch-header">
+              <div class="name">Riyadh Malqa</div>
+              <div class="sub">4 doctors</div>
+            </div>
+          </th>
+          <th class="branch-col">
+            <div class="branch-header">
+              <div class="name">Jeddah Corniche</div>
+              <div class="sub">2 doctors</div>
+            </div>
+          </th>
+          <th class="branch-col">
+            <div class="branch-header">
+              <div class="name">Riyadh DQ</div>
+              <div class="sub">0 doctors</div>
+            </div>
+          </th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="doc-cell"><div class="av">AR</div><div class="name">Dr. Abdullah Al-Rashid</div></div></td>
+          <td><div class="doc-cell"><span class="spec">Cardiology</span></div></td>
+          <td><span class="pill active">● Active</span></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">✓</div></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
+          <td><button style="padding: 5px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 11px; color: #374151; cursor: pointer;">Edit</button></td>
+        </tr>
+        <tr>
+          <td><div class="doc-cell"><div class="av">AQ</div><div class="name">Dr. Ahmed Al-Qahtani</div></div></td>
+          <td><div class="doc-cell"><span class="spec">Family Med</span></div></td>
+          <td><span class="pill active">● Active</span></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">✓</div></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">✓</div></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
+          <td><button style="padding: 5px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 11px; color: #374151; cursor: pointer;">Edit</button></td>
+        </tr>
+        <tr>
+          <td><div class="doc-cell"><div class="av">FK</div><div class="name">Dr. Fatima Al-Khalil</div></div></td>
+          <td><div class="doc-cell"><span class="spec">Pediatrics</span></div></td>
+          <td><span class="pill active">● Active</span></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">✓</div></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle yes">✓</div></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
+          <td><button style="padding: 5px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 11px; color: #374151; cursor: pointer;">Edit</button></td>
+        </tr>
+        <tr>
+          <td><div class="doc-cell"><div class="av">SI</div><div class="name">Dr. Sami Ibrahim</div></div></td>
+          <td><div class="doc-cell"><span class="spec">Orthopedics</span></div></td>
+          <td><span class="pill inactive">○ Inactive</span></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle no">+</div><span class="hint">add</span></div></td>
+          <td class="branch-col"><div class="assign-cell"><div class="check-circle no" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;">!</div></div></td>
+          <td><button style="padding: 5px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 11px; color: #374151; cursor: pointer;">Edit</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="summary">
+      💡 <span><strong>Multi-branch allowed</strong> per <code>FR-004</code>. Click a "+" cell to assign · click "✓" to unassign. <code>Atomic: Doctor.update + DoctorBranch.replace</code> · audit: <code>doctor.branch.changed</code></span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

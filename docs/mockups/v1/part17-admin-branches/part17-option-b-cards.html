@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 17-B — Admin Branches: Card Grid</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1300px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+  .page { padding: 28px 32px; }
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header h1 { font-size: 22px; color: #111827; font-weight: 600; margin-bottom: 4px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .filter-bar { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 16px; margin-bottom: 18px; display: flex; gap: 10px; align-items: center; }
+  .filter-bar .search { flex: 1; padding: 7px 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 13px; }
+  .filter-bar .seg { display: flex; gap: 4px; background: #f3f4f6; padding: 3px; border-radius: 6px; }
+  .filter-bar .seg button { padding: 5px 12px; background: transparent; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; color: #6b7280; font-weight: 500; }
+  .filter-bar .seg button.active { background: white; color: #0f766e; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 14px; }
+
+  .branch-card { background: white; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 18px; transition: border-color 0.15s, transform 0.1s; }
+  .branch-card:hover { border-color: #99f6e4; transform: translateY(-1px); }
+  .branch-card.inactive { background: #f9fafb; opacity: 0.7; }
+
+  .branch-card .head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .branch-card .ic { width: 38px; height: 38px; background: #f0fdfa; color: #0f766e; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .branch-card .ic.inactive { background: #f3f4f6; color: #9ca3af; }
+  .branch-card .pill { font-size: 10px; padding: 3px 9px; border-radius: 999px; font-weight: 700; text-transform: uppercase; }
+  .pill.active { background: #d1fae5; color: #065f46; }
+  .pill.inactive { background: #f3f4f6; color: #6b7280; }
+
+  .branch-card .name { font-weight: 600; color: #111827; font-size: 16px; margin-bottom: 4px; }
+  .branch-card .address { font-size: 12px; color: #6b7280; line-height: 1.4; margin-bottom: 14px; }
+
+  .branch-card .hours { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #4b5563; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6; }
+  .branch-card .hours .ic { width: 24px; height: 24px; background: #f0fdfa; color: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+
+  .branch-card .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .branch-card .stat { padding: 8px 10px; background: #f9fafb; border-radius: 8px; }
+  .branch-card .stat .label { font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600; }
+  .branch-card .stat .value { font-size: 18px; font-weight: 700; color: #111827; margin-top: 2px; }
+
+  .branch-card .actions { display: flex; gap: 6px; padding-top: 12px; border-top: 1px solid #f3f4f6; }
+  .branch-card .actions button { flex: 1; padding: 7px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 11px; color: #374151; cursor: pointer; font-weight: 600; }
+  .branch-card .actions button:hover { border-color: #0f766e; color: #0f766e; }
+  .branch-card .actions button.primary { background: #f0fdfa; color: #0f766e; border-color: #99f6e4; }
+  .branch-card .actions button.danger { color: #991b1b; border-color: #fca5a5; }
+
+  .branch-card.add { border-style: dashed; border-color: #cbd5e1; background: #f9fafb; text-align: center; color: #6b7280; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 220px; }
+  .branch-card.add:hover { border-color: #0f766e; color: #0f766e; background: white; }
+  .branch-card.add .add-icon { font-size: 32px; margin-bottom: 8px; }
+  .branch-card.add .add-label { font-weight: 600; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="badge">PART 17-B · Admin Branches · Card Grid</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Salem Al-Mutairi · Admin</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">SM</div></div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <div class="crumb">Admin → Branches</div>
+        <h1>Branches</h1>
+        <p class="sub">3 active · 1 inactive · click any card to edit.</p>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <input class="search" placeholder="Search branches…">
+      <div class="seg">
+        <button class="active">All (4)</button>
+        <button>Active (3)</button>
+        <button>Inactive (1)</button>
+      </div>
+      <select><option>All cities</option><option>Riyadh</option><option>Jeddah</option></select>
+    </div>
+
+    <div class="grid">
+
+      <div class="branch-card">
+        <div class="head">
+          <div class="ic">📍</div>
+          <span class="pill active">● Active</span>
+        </div>
+        <div class="name">Riyadh Olaya</div>
+        <div class="address">King Fahd Rd, Olaya District<br>Riyadh 12211</div>
+        <div class="hours"><div class="ic">🕐</div><div><strong>08:00 — 17:00</strong> · Sun–Thu</div></div>
+        <div class="stats">
+          <div class="stat"><div class="label">Doctors</div><div class="value">3</div></div>
+          <div class="stat"><div class="label">Future appts</div><div class="value">98</div></div>
+        </div>
+        <div class="actions">
+          <button>Edit</button>
+          <button>Hours</button>
+          <button class="danger">Deactivate</button>
+        </div>
+      </div>
+
+      <div class="branch-card">
+        <div class="head">
+          <div class="ic">📍</div>
+          <span class="pill active">● Active</span>
+        </div>
+        <div class="name">Riyadh Malqa</div>
+        <div class="address">Prince Mohammed Ibn Salman Rd<br>Riyadh 11564</div>
+        <div class="hours"><div class="ic">🕐</div><div><strong>09:00 — 18:00</strong> · Sun–Thu</div></div>
+        <div class="stats">
+          <div class="stat"><div class="label">Doctors</div><div class="value">4</div></div>
+          <div class="stat"><div class="label">Future appts</div><div class="value">76</div></div>
+        </div>
+        <div class="actions">
+          <button>Edit</button>
+          <button>Hours</button>
+          <button class="danger">Deactivate</button>
+        </div>
+      </div>
+
+      <div class="branch-card">
+        <div class="head">
+          <div class="ic">📍</div>
+          <span class="pill active">● Active</span>
+        </div>
+        <div class="name">Jeddah Corniche</div>
+        <div class="address">Corniche Rd, Al Shati<br>Jeddah 21577</div>
+        <div class="hours"><div class="ic">🕐</div><div><strong>10:00 — 19:00</strong> · Sun–Thu</div></div>
+        <div class="stats">
+          <div class="stat"><div class="label">Doctors</div><div class="value">2</div></div>
+          <div class="stat"><div class="label">Future appts</div><div class="value">40</div></div>
+        </div>
+        <div class="actions">
+          <button>Edit</button>
+          <button>Hours</button>
+          <button class="danger">Deactivate</button>
+        </div>
+      </div>
+
+      <div class="branch-card inactive">
+        <div class="head">
+          <div class="ic inactive">📍</div>
+          <span class="pill inactive">○ Inactive</span>
+        </div>
+        <div class="name">Riyadh Diplomatic Quarter</div>
+        <div class="address">Diplomatic Quarter<br>Riyadh 12512</div>
+        <div class="hours" style="opacity: 0.5;"><div class="ic">🕐</div><div>Closed</div></div>
+        <div class="stats">
+          <div class="stat"><div class="label">Doctors</div><div class="value" style="color: #9ca3af;">0</div></div>
+          <div class="stat"><div class="label">Future appts</div><div class="value" style="color: #9ca3af;">0</div></div>
+        </div>
+        <div class="actions">
+          <button>Edit</button>
+          <button class="primary">Activate</button>
+          <button class="danger">Delete</button>
+        </div>
+      </div>
+
+      <div class="branch-card add">
+        <div class="add-icon">+</div>
+        <div class="add-label">New branch</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

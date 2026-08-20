@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 3-C — Single-Day Focus</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1200px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .nav-links { display: flex; gap: 24px; font-size: 14px; color: #4b5563; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 9px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+
+  .progress { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 6px; }
+  .step-mini { padding: 4px 10px; border-radius: 4px; background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
+  .step-mini.done { background: #f0fdfa; color: #0f766e; border-color: #99f6e4; font-weight: 500; }
+  .step-mini.done .n { background: #0f766e; color: white; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; margin-right: 4px; }
+  .step-mini.current { background: #0f766e; color: white; border-color: #0f766e; font-weight: 500; }
+  .step-mini.current .n { background: rgba(255,255,255,0.25); color: white; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; margin-right: 4px; }
+
+  .layout { display: grid; grid-template-columns: 1fr 320px; }
+  .main-col { padding: 24px 32px 32px; }
+  .side-col { background: #f9fafb; border-left: 1px solid #e5e7eb; padding: 24px 24px; }
+
+  .back-link { color: #0f766e; font-size: 13px; cursor: pointer; margin-bottom: 8px; display: inline-block; }
+  .page-header h1 { font-size: 24px; color: #111827; margin-bottom: 4px; font-weight: 600; }
+  .page-header .sub { color: #6b7280; font-size: 14px; }
+
+  .day-focus { margin-top: 20px; background: white; }
+  .date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .date-display { display: flex; align-items: center; gap: 14px; }
+  .date-pill { background: #f0fdfa; border: 1px solid #99f6e4; padding: 8px 16px; border-radius: 10px; display: flex; align-items: center; gap: 10px; }
+  .date-pill .num { font-size: 28px; font-weight: 700; color: #0f766e; }
+  .date-pill .info { text-align: left; }
+  .date-pill .dow { font-size: 11px; color: #0f766e; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .date-pill .month { font-size: 13px; color: #111827; font-weight: 600; }
+  .date-pill .slot-count { font-size: 11px; color: #6b7280; }
+  .date-arrows { display: flex; gap: 4px; }
+  .date-arrows .arrow { width: 36px; height: 36px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer; font-size: 16px; color: #4b5563; }
+
+  .week-carousel { display: flex; gap: 6px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 4px; }
+  .week-day { flex: 0 0 auto; min-width: 56px; background: white; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 10px 8px; text-align: center; cursor: pointer; transition: all 0.15s; }
+  .week-day:hover { border-color: #99f6e4; }
+  .week-day.disabled { opacity: 0.4; cursor: not-allowed; }
+  .week-day.disabled .num { color: #d1d5db; }
+  .week-day .dow { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .week-day .num { font-size: 18px; color: #111827; font-weight: 700; margin-top: 2px; }
+  .week-day.selected { background: #0f766e; border-color: #0f766e; }
+  .week-day.selected .dow { color: rgba(255,255,255,0.7); }
+  .week-day.selected .num { color: white; }
+  .week-day .avail { font-size: 9px; color: #6b7280; margin-top: 2px; }
+  .week-day.selected .avail { color: rgba(255,255,255,0.7); }
+  .week-day.disabled .avail { color: #e5e7eb; }
+
+  .timeline { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; }
+  .timeline-period { padding: 14px 0; border-bottom: 1px solid #f3f4f6; }
+  .timeline-period:last-child { border-bottom: none; }
+  .period-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .period-label .title { font-size: 13px; color: #111827; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .period-label .title::before { content: '☀'; color: #0f766e; font-size: 16px; }
+  .period-label.pm .title::before { content: '🌙'; color: #6366f1; }
+  .period-label .count { font-size: 12px; color: #6b7280; }
+  .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+  .slot { background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 12px; text-align: center; cursor: pointer; transition: all 0.15s; }
+  .slot:hover { border-color: #0f766e; background: #f0fdfa; }
+  .slot.selected { background: #0f766e; border-color: #0f766e; color: white; }
+  .slot .time { font-weight: 700; color: #111827; font-size: 15px; }
+  .slot.selected .time { color: white; }
+  .slot .dur { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .slot.selected .dur { color: rgba(255,255,255,0.7); }
+  .slot-empty { background: #f9fafb; border-color: #f3f4f6; color: #d1d5db; cursor: not-allowed; }
+  .slot-empty .time { color: #d1d5db; text-decoration: line-through; }
+
+  .side-col h3 { font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 12px; }
+  .summary-card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .summary-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .k { color: #6b7280; }
+  .summary-row .v { color: #111827; font-weight: 500; text-align: right; }
+  .summary-row.highlight { background: #f0fdfa; padding: 8px 10px; border-radius: 6px; margin: 6px -10px; border: none; }
+  .summary-row.highlight .k { color: #0f766e; font-weight: 600; }
+  .summary-row.highlight .v { color: #0f766e; }
+
+  .footer { border-top: 1px solid #e5e7eb; padding: 16px 32px; display: flex; justify-content: space-between; background: white; position: sticky; bottom: 0; }
+  .footer .summary { color: #6b7280; font-size: 13px; }
+  .footer .summary strong { color: #111827; }
+</style>
+</head>
+<body>
+<div class="badge">PART 3-C · Single-Day Focus</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div class="nav-links"><a>Find a doctor</a><a>My appointments</a><a>Branches</a><a>Help</a></div>
+    <button class="btn-primary">Book appointment</button>
+  </nav>
+
+  <div class="progress">
+    <span class="step-mini done"><span class="n">✓</span>Doctor</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini done"><span class="n">✓</span>Branch & type</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini current"><span class="n">3</span>Date & time</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini"><span class="n">4</span>Your details</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini"><span class="n">5</span>Confirm</span>
+  </div>
+
+  <div class="layout">
+    <div class="main-col">
+      <div class="page-header">
+        <span class="back-link">← Back to branch & type</span>
+        <h1>Pick a date and time</h1>
+        <p class="sub">Dr. Ahmed · Branch A · Cardiology consultation (45 min)</p>
+      </div>
+
+      <div class="day-focus">
+        <div class="date-header">
+          <div class="date-display">
+            <div class="date-pill">
+              <div class="num">21</div>
+              <div class="info">
+                <div class="dow">Thursday</div>
+                <div class="month">August 2026</div>
+                <div class="slot-count">8 slots available</div>
+              </div>
+            </div>
+            <div class="date-arrows">
+              <button class="arrow">‹</button>
+              <button class="arrow">›</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="week-carousel">
+          <div class="week-day disabled"><div class="dow">Today</div><div class="num">18</div><div class="avail">—</div></div>
+          <div class="week-day"><div class="dow">Tue</div><div class="num">19</div><div class="avail">6 slots</div></div>
+          <div class="week-day"><div class="dow">Wed</div><div class="num">20</div><div class="avail">4 slots</div></div>
+          <div class="week-day selected"><div class="dow">Thu</div><div class="num">21</div><div class="avail">8 slots</div></div>
+          <div class="week-day"><div class="dow">Fri</div><div class="num">22</div><div class="avail">1 slot</div></div>
+          <div class="week-day disabled"><div class="dow">Sat</div><div class="num">23</div><div class="avail">—</div></div>
+          <div class="week-day"><div class="dow">Sun</div><div class="num">24</div><div class="avail">5 slots</div></div>
+          <div class="week-day"><div class="dow">Mon</div><div class="num">25</div><div class="avail">9 slots</div></div>
+          <div class="week-day"><div class="dow">Tue</div><div class="num">26</div><div class="avail">7 slots</div></div>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-period">
+            <div class="period-label">
+              <span class="title">Morning</span>
+              <span class="count">5 slots</span>
+            </div>
+            <div class="slot-grid">
+              <div class="slot"><div class="time">09:00</div><div class="dur">→ 09:45</div></div>
+              <div class="slot"><div class="time">09:45</div><div class="dur">→ 10:30</div></div>
+              <div class="slot"><div class="time">10:30</div><div class="dur">→ 11:15</div></div>
+              <div class="slot slot-empty"><div class="time">11:15</div><div class="dur">taken</div></div>
+              <div class="slot"><div class="time">11:45</div><div class="dur">→ 12:30</div></div>
+              <div class="slot"><div class="time">12:30</div><div class="dur">→ 13:15</div></div>
+            </div>
+          </div>
+          <div class="timeline-period">
+            <div class="period-label pm">
+              <span class="title">Afternoon</span>
+              <span class="count">3 slots</span>
+            </div>
+            <div class="slot-grid">
+              <div class="slot"><div class="time">14:00</div><div class="dur">→ 14:45</div></div>
+              <div class="slot selected"><div class="time">14:45</div><div class="dur">→ 15:30</div></div>
+              <div class="slot"><div class="time">15:30</div><div class="dur">→ 16:15</div></div>
+              <div class="slot"><div class="time">16:15</div><div class="dur">→ 17:00</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col">
+      <h3>Your selection</h3>
+      <div class="summary-card">
+        <div class="summary-row"><span class="k">Doctor</span><span class="v">Dr. Ahmed</span></div>
+        <div class="summary-row"><span class="k">Branch</span><span class="v">Downtown</span></div>
+        <div class="summary-row"><span class="k">Type</span><span class="v">Consultation</span></div>
+        <div class="summary-row"><span class="k">Duration</span><span class="v">45 min</span></div>
+        <div class="summary-row highlight"><span class="k">Date</span><span class="v">Thu, Aug 21</span></div>
+        <div class="summary-row highlight"><span class="k">Time</span><span class="v">14:45 – 15:30</span></div>
+      </div>
+
+      <h3>Browse the month</h3>
+      <button class="btn-ghost" style="width:100%; text-align:left; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px; background:white;">📅 Open full month view</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button class="btn-ghost">← Back</button>
+    <span class="summary">Thu, Aug 21 · <strong>14:45 – 15:30</strong> · Branch A</span>
+    <button class="btn-primary">Continue →</button>
+  </div>
+
+</div>
+</body>
+</html>

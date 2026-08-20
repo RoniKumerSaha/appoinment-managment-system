@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 7-C — Recurring Preview: Side-by-Side Will Create vs Skipped</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1300px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 8px 15px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 9px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+
+  .page { padding: 28px 32px; }
+  .page-header { margin-bottom: 20px; }
+  .page-header h1 { font-size: 22px; color: #111827; font-weight: 600; margin-bottom: 4px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .context-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+  .context-card .item .k { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 4px; }
+  .context-card .item .v { font-size: 13px; color: #111827; font-weight: 500; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+
+  .col-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+  .col-card.create { border-color: #99f6e4; }
+  .col-card.skip { border-color: #fecaca; }
+
+  .col-head { padding: 14px 18px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+  .col-card.create .col-head { background: #f0fdfa; border-bottom-color: #99f6e4; }
+  .col-card.skip .col-head { background: #fef2f2; border-bottom-color: #fecaca; }
+  .col-title { font-size: 14px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 8px; }
+  .col-card.create .col-title .ic { color: #10b981; font-size: 16px; }
+  .col-card.skip .col-title .ic { color: #dc2626; font-size: 16px; }
+  .col-count { background: white; border: 1px solid #e5e7eb; padding: 3px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+  .col-card.create .col-count { border-color: #99f6e4; color: #0f766e; }
+  .col-card.skip .col-count { border-color: #fecaca; color: #991b1b; }
+
+  .col-body { padding: 8px; }
+
+  .entry { padding: 12px 14px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px; }
+  .entry:last-child { margin-bottom: 0; }
+  .col-card.create .entry { background: white; border-color: #ccfbf1; }
+  .col-card.skip .entry { background: white; border-color: #fecaca; }
+
+  .entry .date-block { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 10px; text-align: center; min-width: 56px; }
+  .col-card.create .entry .date-block { border-color: #99f6e4; background: #f0fdfa; }
+  .col-card.skip .entry .date-block { border-color: #fecaca; background: #fef2f2; }
+  .date-block .month { font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .date-block .day { font-size: 18px; font-weight: 700; line-height: 1; }
+  .col-card.create .date-block .month { color: #0f766e; }
+  .col-card.skip .date-block .month { color: #991b1b; }
+
+  .entry-body { flex: 1; }
+  .entry-day { font-weight: 600; color: #111827; font-size: 13px; }
+  .entry-time { font-size: 12px; color: #6b7280; margin-top: 1px; }
+  .entry-reason { font-size: 11px; color: #991b1b; margin-top: 4px; background: #fecaca; padding: 3px 8px; border-radius: 4px; display: inline-block; font-weight: 600; }
+
+  .entry-check { color: #10b981; font-size: 20px; }
+  .entry-x { color: #dc2626; font-size: 20px; }
+
+  .actions { display: flex; gap: 10px; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #f3f4f6; }
+  .actions .hint { font-size: 13px; color: #6b7280; }
+  .actions .right { display: flex; gap: 10px; }
+
+  .footnote { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; margin-top: 16px; font-size: 12px; color: #4b5563; }
+  .footnote strong { color: #111827; }
+</style>
+</head>
+<body>
+<div class="badge">PART 7-C · Side-by-Side: Will Create vs Skipped</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Dr. Ahmed Al-Rashid</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">AR</div></div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Recurring preview</h1>
+      <p class="sub">Server validated each occurrence independently. Independent appointments once created.</p>
+    </div>
+
+    <div class="context-card">
+      <div class="item"><div class="k">Patient</div><div class="v">Sara M.</div></div>
+      <div class="item"><div class="k">Doctor</div><div class="v">Dr. Ahmed Al-Rashid</div></div>
+      <div class="item"><div class="k">Branch</div><div class="v">Branch A</div></div>
+      <div class="item"><div class="k">Type</div><div class="v">Cardiology (45m)</div></div>
+      <div class="item"><div class="k">Pattern</div><div class="v">Weekly · Mon 10:00</div></div>
+      <div class="item"><div class="k">Requested</div><div class="v">6 occurrences</div></div>
+    </div>
+
+    <div class="two-col">
+      <div class="col-card create">
+        <div class="col-head">
+          <div class="col-title"><span class="ic">✓</span> Will be created</div>
+          <div class="col-count">4</div>
+        </div>
+        <div class="col-body">
+          <div class="entry">
+            <div class="date-block"><div class="month">Aug</div><div class="day">25</div></div>
+            <div class="entry-body">
+              <div class="entry-day">Mon, Aug 25</div>
+              <div class="entry-time">10:00 – 10:45 · Branch A · Cardiology</div>
+            </div>
+            <div class="entry-check">✓</div>
+          </div>
+          <div class="entry">
+            <div class="date-block"><div class="month">Sep</div><div class="day">1</div></div>
+            <div class="entry-body">
+              <div class="entry-day">Mon, Sep 1</div>
+              <div class="entry-time">10:00 – 10:45 · Branch A · Cardiology</div>
+            </div>
+            <div class="entry-check">✓</div>
+          </div>
+          <div class="entry">
+            <div class="date-block"><div class="month">Sep</div><div class="day">15</div></div>
+            <div class="entry-body">
+              <div class="entry-day">Mon, Sep 15</div>
+              <div class="entry-time">10:00 – 10:45 · Branch A · Cardiology</div>
+            </div>
+            <div class="entry-check">✓</div>
+          </div>
+          <div class="entry">
+            <div class="date-block"><div class="month">Sep</div><div class="day">22</div></div>
+            <div class="entry-body">
+              <div class="entry-day">Mon, Sep 22</div>
+              <div class="entry-time">10:00 – 10:45 · Branch A · Cardiology</div>
+            </div>
+            <div class="entry-check">✓</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-card skip">
+        <div class="col-head">
+          <div class="col-title"><span class="ic">✗</span> Will be skipped</div>
+          <div class="col-count">2</div>
+        </div>
+        <div class="col-body">
+          <div class="entry">
+            <div class="date-block"><div class="month">Sep</div><div class="day">8</div></div>
+            <div class="entry-body">
+              <div class="entry-day">Mon, Sep 8</div>
+              <div class="entry-time">10:00 – 10:45 · Branch A · Cardiology</div>
+              <div class="entry-reason">Doctor blocked: cardiology conference</div>
+            </div>
+            <div class="entry-x">✗</div>
+          </div>
+          <div class="entry">
+            <div class="date-block"><div class="month">Sep</div><div class="day">22</div></div>
+            <div class="entry-body">
+              <div class="entry-day">Mon, Sep 22</div>
+              <div class="entry-time">10:00 – 10:45 · Branch A · Cardiology</div>
+              <div class="entry-reason">Already in 30-day window covered above</div>
+            </div>
+            <div class="entry-x">✗</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footnote">
+      <strong>Note:</strong> Per-occurrence independence (BR-052). Once created, each appointment behaves independently — they can be cancelled or rescheduled individually. Editing the pattern after creation does not retroactively change existing appointments.
+    </div>
+
+    <div class="actions">
+      <div class="hint">4 of 6 will be created.</div>
+      <div class="right">
+        <button class="btn-ghost">Cancel</button>
+        <button class="btn-secondary">Edit pattern</button>
+        <button class="btn-primary">Create 4 appointments →</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

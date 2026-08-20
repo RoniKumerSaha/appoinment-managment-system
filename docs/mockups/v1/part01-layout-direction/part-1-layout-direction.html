@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mockup v1 — Part 1: Overall Layout & Visual Direction</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 24px; line-height: 1.5; }
+  h1 { font-size: 22px; margin-bottom: 8px; }
+  .subtitle { color: #6b7280; margin-bottom: 28px; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1400px; }
+  .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .card h2 { font-size: 16px; margin-bottom: 4px; }
+  .card .desc { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+  .card .tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-bottom: 12px; }
+  .tag.a { background: #e0f2fe; color: #075985; }
+  .tag.b { background: #fef3c7; color: #92400e; }
+  .tag.c { background: #ede9fe; color: #5b21b6; }
+  .tag.d { background: #dcfce7; color: #166534; }
+  .tag.e { background: #fee2e2; color: #991b1b; }
+
+  /* Option A — Clinical Calm */
+  .opt-a .mock { background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; }
+  .opt-a .nav-bar { background: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; margin: -16px -16px 16px; border-radius: 10px 10px 0 0; }
+  .opt-a .nav-bar .logo { font-weight: 600; color: #0f766e; font-size: 14px; }
+  .opt-a .nav-bar .nav-links { display: flex; gap: 18px; font-size: 13px; color: #4b5563; }
+  .opt-a .btn-primary { background: #0f766e; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+  .opt-a .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 7px 13px; border-radius: 6px; font-size: 13px; }
+  .opt-a .content { padding: 12px 0; }
+  .opt-a h3 { font-size: 18px; margin-bottom: 6px; color: #111827; }
+  .opt-a .muted { color: #6b7280; font-size: 13px; }
+  .opt-a .card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .opt-a .mini-card { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
+  .opt-a .mini-card strong { font-size: 13px; display: block; margin-bottom: 4px; }
+
+  /* Option B — Warm Healthcare */
+  .opt-b .mock { background: #fff8f3; border-radius: 10px; padding: 16px; }
+  .opt-b .nav-bar { background: #fef3eb; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; margin: -16px -16px 16px; border-radius: 10px 10px 0 0; }
+  .opt-b .logo { font-weight: 700; color: #c2410c; font-size: 14px; }
+  .opt-b .nav-bar .nav-links { display: flex; gap: 16px; font-size: 13px; color: #7c2d12; }
+  .opt-b .btn-primary { background: #ea580c; color: white; border: none; padding: 8px 14px; border-radius: 999px; font-size: 13px; }
+  .opt-b .btn-secondary { background: white; color: #c2410c; border: 1px solid #fdba74; padding: 7px 13px; border-radius: 999px; font-size: 13px; }
+  .opt-b h3 { font-size: 18px; margin-bottom: 6px; color: #431407; }
+  .opt-b .muted { color: #9a3412; font-size: 13px; }
+  .opt-b .card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .opt-b .mini-card { background: white; border-radius: 12px; padding: 12px; border: 1px solid #fed7aa; }
+  .opt-b .mini-card strong { font-size: 13px; display: block; margin-bottom: 4px; color: #7c2d12; }
+
+  /* Option C — Modern Minimal */
+  .opt-c .mock { background: #0a0a0a; border-radius: 10px; padding: 16px; }
+  .opt-c .nav-bar { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; margin: -16px -16px 16px; border-bottom: 1px solid #262626; }
+  .opt-c .logo { font-weight: 700; color: white; font-size: 14px; letter-spacing: -0.02em; }
+  .opt-c .nav-bar .nav-links { display: flex; gap: 18px; font-size: 13px; color: #a3a3a3; }
+  .opt-c .btn-primary { background: white; color: black; border: none; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; }
+  .opt-c .btn-secondary { background: transparent; color: white; border: 1px solid #404040; padding: 7px 13px; border-radius: 6px; font-size: 13px; }
+  .opt-c h3 { font-size: 20px; margin-bottom: 6px; color: white; letter-spacing: -0.02em; }
+  .opt-c .muted { color: #737373; font-size: 13px; }
+  .opt-c .card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .opt-c .mini-card { background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 12px; }
+  .opt-c .mini-card strong { font-size: 13px; display: block; margin-bottom: 4px; color: white; }
+
+  /* Option D — Friendly Pastel */
+  .opt-d .mock { background: #f0f4f8; border-radius: 10px; padding: 16px; }
+  .opt-d .nav-bar { background: #dbeafe; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; margin: -16px -16px 16px; }
+  .opt-d .logo { font-weight: 600; color: #1e40af; font-size: 14px; }
+  .opt-d .nav-bar .nav-links { display: flex; gap: 16px; font-size: 13px; color: #1e3a8a; }
+  .opt-d .btn-primary { background: #2563eb; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; }
+  .opt-d .btn-secondary { background: white; color: #2563eb; border: 1px solid #93c5fd; padding: 7px 13px; border-radius: 8px; font-size: 13px; }
+  .opt-d h3 { font-size: 18px; margin-bottom: 6px; color: #1e3a8a; }
+  .opt-d .muted { color: #475569; font-size: 13px; }
+  .opt-d .card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .opt-d .mini-card { background: white; border-radius: 10px; padding: 12px; box-shadow: 0 1px 2px rgba(30,64,175,0.08); }
+  .opt-d .mini-card strong { font-size: 13px; display: block; margin-bottom: 4px; color: #1e40af; }
+
+  /* Option E — Compact Dense (pro tool) */
+  .opt-e .mock { background: #f9fafb; border-radius: 6px; padding: 0; font-size: 12px; }
+  .opt-e .nav-bar { background: #1f2937; color: white; padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; }
+  .opt-e .logo { font-weight: 600; font-size: 13px; }
+  .opt-e .nav-bar .nav-links { display: flex; gap: 14px; font-size: 12px; color: #d1d5db; }
+  .opt-e .btn-primary { background: #3b82f6; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 12px; }
+  .opt-e .btn-secondary { background: transparent; color: white; border: 1px solid #4b5563; padding: 4px 9px; border-radius: 4px; font-size: 12px; }
+  .opt-e h3 { font-size: 15px; margin-bottom: 4px; padding: 14px 14px 4px; color: #111827; }
+  .opt-e .muted { color: #6b7280; font-size: 12px; padding: 0 14px; }
+  .opt-e .card-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 14px; }
+  .opt-e .mini-card { background: white; border: 1px solid #e5e7eb; border-radius: 4px; padding: 8px; }
+  .opt-e .mini-card strong { font-size: 12px; display: block; margin-bottom: 2px; color: #111827; }
+  .opt-e .mini-card .meta { font-size: 11px; color: #6b7280; }
+</style>
+</head>
+<body>
+
+<h1>🎨 Mockup v1 — Part 1: Overall Layout & Visual Direction</h1>
+<p class="subtitle">Pick one direction. I'll build all 19 flows using the chosen style. Mix-and-match possible but cleaner to commit.</p>
+
+<div class="grid">
+
+  <!-- OPTION A -->
+  <div class="card opt-a">
+    <span class="tag a">OPTION A</span>
+    <h2>Clinical Calm</h2>
+    <p class="desc">Teal accents, generous whitespace, soft borders. Trust-forward. Reads as "established medical practice."</p>
+    <div class="mock">
+      <div class="nav-bar">
+        <div class="logo">◇ ClinicCare</div>
+        <div class="nav-links"><span>Find a doctor</span><span>My appointments</span></div>
+        <button class="btn-primary">Book now</button>
+      </div>
+      <div class="content">
+        <h3>Find your doctor</h3>
+        <p class="muted">Browse specialists across all branches</p>
+        <div class="card-row">
+          <div class="mini-card"><strong>Dr. Ahmed</strong><span class="muted">Cardiology · 3 branches</span></div>
+          <div class="mini-card"><strong>Dr. Sara</strong><span class="muted">Dermatology · 2 branches</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION B -->
+  <div class="card opt-b">
+    <span class="tag b">OPTION B</span>
+    <h2>Warm Healthcare</h2>
+    <p class="desc">Soft orange palette, rounded pills, warm neutrals. Friendly without being childish. Reads as "caring practice."</p>
+    <div class="mock">
+      <div class="nav-bar">
+        <div class="logo">✿ HealthFirst</div>
+        <div class="nav-links"><span>Find a doctor</span><span>My appointments</span></div>
+        <button class="btn-primary">Book now</button>
+      </div>
+      <div class="content">
+        <h3>Find your doctor</h3>
+        <p class="muted">Browse specialists across all branches</p>
+        <div class="card-row">
+          <div class="mini-card"><strong>Dr. Ahmed</strong><span class="muted">Cardiology · 3 branches</span></div>
+          <div class="mini-card"><strong>Dr. Sara</strong><span class="muted">Dermatology · 2 branches</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION C -->
+  <div class="card opt-c">
+    <span class="tag c">OPTION C</span>
+    <h2>Modern Minimal</h2>
+    <p class="desc">Dark mode by default, sharp edges, monospace-friendly. Premium, technical. Reads as "modern SaaS platform."</p>
+    <div class="mock">
+      <div class="nav-bar">
+        <div class="logo">◼ appoint.</div>
+        <div class="nav-links"><span>Doctors</span><span>Appointments</span></div>
+        <button class="btn-primary">Book now</button>
+      </div>
+      <div class="content">
+        <h3>Find your doctor</h3>
+        <p class="muted">Browse specialists across all branches</p>
+        <div class="card-row">
+          <div class="mini-card"><strong>Dr. Ahmed</strong><span class="muted">Cardiology · 3 branches</span></div>
+          <div class="mini-card"><strong>Dr. Sara</strong><span class="muted">Dermatology · 2 branches</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION D -->
+  <div class="card opt-d">
+    <span class="tag d">OPTION D</span>
+    <h2>Friendly Pastel</h2>
+    <p class="desc">Soft blue, rounded shapes, subtle shadows. Approachable, balanced. Reads as "modern wellness brand."</p>
+    <div class="mock">
+      <div class="nav-bar">
+        <div class="logo">＋ MedBook</div>
+        <div class="nav-links"><span>Find a doctor</span><span>My appointments</span></div>
+        <button class="btn-primary">Book now</button>
+      </div>
+      <div class="content">
+        <h3>Find your doctor</h3>
+        <p class="muted">Browse specialists across all branches</p>
+        <div class="card-row">
+          <div class="mini-card"><strong>Dr. Ahmed</strong><span class="muted">Cardiology · 3 branches</span></div>
+          <div class="mini-card"><strong>Dr. Sara</strong><span class="muted">Dermatology · 2 branches</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION E -->
+  <div class="card opt-e">
+    <span class="tag e">OPTION E</span>
+    <h2>Compact Dense</h2>
+    <p class="desc">High information density, smaller type, table-first. Optimized for staff (doctors, receptionists) over patients.</p>
+    <div class="mock">
+      <div class="nav-bar">
+        <div class="logo">⛁ ClinicSys</div>
+        <div class="nav-links"><span>Doctors</span><span>Schedule</span><span>Appts</span><span>Reports</span></div>
+        <button class="btn-primary">+ New</button>
+      </div>
+      <h3>Today — Branch A</h3>
+      <p class="muted">Tuesday, Aug 18 · 24 appointments</p>
+      <div class="card-row">
+        <div class="mini-card"><strong>09:00 Ahmed M.</strong><span class="meta">Cardiology · Confirmed</span></div>
+        <div class="mini-card"><strong>09:30 Sara K.</strong><span class="meta">Derma · Confirmed</span></div>
+        <div class="mini-card"><strong>10:00 Ali R.</strong><span class="meta">Cardio · Pending</span></div>
+        <div class="mini-card"><strong>10:30 —</strong><span class="meta">Open slot</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

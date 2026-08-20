@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 17 — F-16 Admin Branches · 5 Options</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; line-height: 1.5; }
+  .header { background: white; border-bottom: 1px solid #e5e7eb; padding: 18px 32px; position: sticky; top: 0; z-index: 10; }
+  .header h1 { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+  .header .crumb { font-size: 12px; color: #6b7280; }
+  .header .crumb strong { color: #0f766e; }
+  .picker-bar { background: white; border-bottom: 1px solid #e5e7eb; padding: 10px 32px; display: flex; gap: 10px; align-items: center; font-size: 12px; color: #6b7280; position: sticky; top: 65px; z-index: 9; }
+  .picker-bar .pick { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #f0fdfa; color: #065f46; font-weight: 700; border: 1px solid #99f6e4; }
+  .picker-bar .pick code { background: white; padding: 1px 6px; border-radius: 4px; color: #0f766e; font-family: "SF Mono", Consolas, monospace; }
+
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; padding: 22px 28px; }
+  .card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .card-head { padding: 12px 14px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 10px; background: #fafbfc; }
+  .card-head .code { width: 30px; height: 30px; border-radius: 50%; background: #0f766e; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; }
+  .card-head .label { font-size: 13px; font-weight: 600; color: #111827; }
+  .card-head .tag { margin-left: auto; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #f0fdfa; color: #0f766e; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .card-body { padding: 12px 14px; font-size: 12px; color: #4b5563; flex: 1; }
+  .card-body .pattern { font-size: 11px; color: #6b7280; margin-bottom: 6px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.04em; }
+  .card-body .desc { line-height: 1.5; }
+  .card-body .strengths { margin-top: 10px; padding-top: 10px; border-top: 1px solid #f3f4f6; font-size: 11px; color: #065f46; }
+  .card-body .strengths strong { font-weight: 700; }
+
+  .preview { height: 460px; border-top: 1px solid #e5e7eb; background: #f5f6f8; position: relative; }
+  .preview iframe { width: 100%; height: 100%; border: none; transform: scale(0.55); transform-origin: 0 0; width: 182%; height: 838px; }
+  .preview .pick-btn { position: absolute; top: 8px; right: 8px; background: #0f766e; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 6px rgba(15,118,110,0.3); z-index: 5; }
+
+  .legend { padding: 16px 32px 32px; font-size: 12px; color: #6b7280; }
+  .legend code { background: #f3f4f6; padding: 1px 6px; border-radius: 4px; color: #374151; font-family: "SF Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="crumb"><strong>Part 17</strong> · F-16 Admin · Manage Branches (BR-021, FR-003)</div>
+  <h1>Admin Branches — 5 Options</h1>
+</div>
+
+<div class="picker-bar">
+  <span>Reply with:</span>
+  <span class="pick">A</span><span class="pick">B</span><span class="pick">C</span><span class="pick">D</span><span class="pick">E</span>
+  <span style="margin-left: auto;">Stacked Vertical Flow has 9 picks so far — likely the lead.</span>
+</div>
+
+<div class="grid">
+
+  <!-- A: Table List -->
+  <div class="card">
+    <div class="card-head">
+      <div class="code">A</div>
+      <div class="label">Table List</div>
+      <span class="tag">DENSE</span>
+    </div>
+    <div class="card-body">
+      <div class="pattern">Standard data table</div>
+      <div class="desc">Name · Address · Hours · Doctors · Future appts · Status with per-row Edit/Hours/Deactivate actions. Stats card row up top.</div>
+      <div class="strengths"><strong>Best for:</strong> comparing branches side-by-side, scanning many at once.</div>
+    </div>
+    <div class="preview">
+      <a href="part17-option-a-table-list.html" target="_blank"><button class="pick-btn">Open ⤴</button></a>
+      <iframe src="part17-option-a-table-list.html"></iframe>
+    </div>
+  </div>
+
+  <!-- B: Card Grid -->
+  <div class="card">
+    <div class="card-head">
+      <div class="code">B</div>
+      <div class="label">Card Grid</div>
+      <span class="tag">SCANNABLE</span>
+    </div>
+    <div class="card-body">
+      <div class="pattern">Responsive card grid</div>
+      <div class="desc">One card per branch with stats grid (Doctors / Future appts) and Edit/Hours/Deactivate actions. Includes "New branch" tile.</div>
+      <div class="strengths"><strong>Best for:</strong> visual scanning, "headquarters" style at-a-glance view.</div>
+    </div>
+    <div class="preview">
+      <a href="part17-option-b-cards.html" target="_blank"><button class="pick-btn">Open ⤴</button></a>
+      <iframe src="part17-option-b-cards.html"></iframe>
+    </div>
+  </div>
+
+  <!-- C: Map View -->
+  <div class="card">
+    <div class="card-head">
+      <div class="code">C</div>
+      <div class="label">Map View</div>
+      <span class="tag">GEOGRAPHIC</span>
+    </div>
+    <div class="card-body">
+      <div class="pattern">Stylized map + side panel</div>
+      <div class="desc">Location pins on Riyadh/Jeddah map · click pin → right panel shows details, doctor chips, key/value rows. Pins color-coded active/inactive/selected.</div>
+      <div class="strengths"><strong>Best for:</strong> seeing geographic distribution, multi-city ops. Low information density per branch though.</div>
+    </div>
+    <div class="preview">
+      <a href="part17-option-c-map.html" target="_blank"><button class="pick-btn">Open ⤴</button></a>
+      <iframe src="part17-option-c-map.html"></iframe>
+    </div>
+  </div>
+
+  <!-- D: Slide-Over Form -->
+  <div class="card">
+    <div class="card-head">
+      <div class="code">D</div>
+      <div class="label">Slide-Over Form</div>
+      <span class="tag">CONTEXTUAL</span>
+    </div>
+    <div class="card-body">
+      <div class="pattern">Table behind, 540px slide-over</div>
+      <div class="desc">Table stays visible blurred behind a 540px right slide-over containing all fields: Name, Address, full multi-period hours editor, Status toggle, Delete branch danger link.</div>
+      <div class="strengths"><strong>Best for:</strong> keeping list context while editing, mobile-friendly drawers, power edits.</div>
+    </div>
+    <div class="preview">
+      <a href="part17-option-d-slideover-form.html" target="_blank"><button class="pick-btn">Open ⤴</button></a>
+      <iframe src="part17-option-d-slideover-form.html"></iframe>
+    </div>
+  </div>
+
+  <!-- E: Stacked Vertical Flow -->
+  <div class="card">
+    <div class="card-head">
+      <div class="code">E</div>
+      <div class="label">Stacked Vertical Flow</div>
+      <span class="tag">FLOW-LED</span>
+    </div>
+    <div class="card-body">
+      <div class="pattern">Pick branch → edit form below</div>
+      <div class="desc">Step 1: radio list of branches (with selection-state styling). Step 2: full edit form with multi-period hours editor + Impact preview for deactivating. Bottom action bar.</div>
+      <div class="strengths"><strong>Best for:</strong> deliberate edits, mobile-readable, mirrors F-02 patient flow consistency.</div>
+    </div>
+    <div class="preview">
+      <a href="part17-option-e-stacked-flow.html" target="_blank"><button class="pick-btn">Open ⤴</button></a>
+      <iframe src="part17-option-e-stacked-flow.html"></iframe>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  Tip: pick by code letter. <code>A</code>/<code>B</code>/<code>C</code>/<code>D</code>/<code>E</code>. I'll record the choice and move to <strong>Part 18 — F-18 Admin Manage Doctors</strong>.
+</div>
+
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 13-B — Receptionist Today: Doctor Columns</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1300px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+  .page { padding: 28px 32px; }
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+  .page-header .branch-pill { display: inline-flex; align-items: center; gap: 6px; background: #f0fdfa; color: #0f766e; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+  .page-header h1 { font-size: 22px; color: #111827; font-weight: 600; margin-bottom: 4px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .filter-bar { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center; }
+  .filter-bar input[type="date"] { padding: 7px 10px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 13px; }
+
+  .columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .col { background: #f9fafb; border-radius: 12px; padding: 14px; min-height: 500px; }
+  .col-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #e5e7eb; }
+  .col-title { font-weight: 700; color: #111827; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .col-title .av { width: 28px; height: 28px; border-radius: 50%; background: #ccfbf1; color: #0f766e; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+  .col-count { font-size: 11px; color: #6b7280; background: white; padding: 3px 9px; border-radius: 999px; border: 1px solid #e5e7eb; font-weight: 600; }
+
+  .appt { background: white; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; border-left: 4px solid #0f766e; }
+  .appt:hover { border-color: #99f6e4; border-left-color: #0f766e; }
+  .appt.now { border-left-color: #f59e0b; box-shadow: 0 0 0 2px #fef3c7; }
+  .appt.done { opacity: 0.55; }
+  .appt.cancelled { border-left-color: #9ca3af; opacity: 0.55; text-decoration: line-through; }
+  .appt .time { font-weight: 700; color: #111827; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+  .appt .time .now-tag { font-size: 9px; background: #f59e0b; color: white; padding: 1px 7px; border-radius: 999px; font-weight: 700; }
+  .appt .patient { font-weight: 600; color: #111827; font-size: 13px; margin-top: 4px; }
+  .appt .type { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .appt .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #f3f4f6; font-size: 11px; }
+  .appt .foot .status { color: #6b7280; font-weight: 600; }
+  .appt .foot .checkin { color: #0f766e; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="badge">PART 13-B · Receptionist Today: Doctor Columns</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Reem Al-Harbi · Reception</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">RH</div></div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <div class="branch-pill">📍 Riyadh Olaya Branch</div>
+        <h1>Today, Aug 20</h1>
+        <p class="sub">42 appointments · 3 doctors at this branch</p>
+      </div>
+      <button class="btn-primary">+ New appointment</button>
+    </div>
+
+    <div class="filter-bar">
+      <span style="font-size:12px; color:#6b7280; font-weight:600;">Date</span>
+      <input type="date" value="2026-08-20">
+      <span style="font-size:12px; color:#6b7280; margin-left: auto;">View:</span>
+      <div class="seg" style="display:flex; gap:4px; background:#f3f4f6; padding:3px; border-radius:6px;">
+        <button style="padding:5px 12px; background:white; color:#0f766e; border:none; border-radius:4px; font-size:12px; font-weight:600; cursor:pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.06);">By doctor</button>
+        <button style="padding:5px 12px; background:transparent; color:#6b7280; border:none; border-radius:4px; font-size:12px; font-weight:600; cursor:pointer;">By time</button>
+      </div>
+    </div>
+
+    <div class="columns">
+      <!-- Dr. Al-Rashid -->
+      <div class="col">
+        <div class="col-head">
+          <div class="col-title"><div class="av">AR</div> Dr. Al-Rashid</div>
+          <div class="col-count">18 appts</div>
+        </div>
+        <div class="appt done">
+          <div class="time">08:00 – 08:20</div>
+          <div class="patient">Ahmed Youssef</div>
+          <div class="type">Follow-up</div>
+          <div class="foot"><span class="status">✓ Completed</span></div>
+        </div>
+        <div class="appt cancelled">
+          <div class="time">08:30 – 09:15</div>
+          <div class="patient">Noura Al-Ghamdi</div>
+          <div class="type">Cardiology cons.</div>
+          <div class="foot"><span class="status">○ Cancelled</span></div>
+        </div>
+        <div class="appt now">
+          <div class="time">09:00 – 09:45<span class="now-tag">NOW</span></div>
+          <div class="patient">Fatima Al-Sayed</div>
+          <div class="type">Cardiology cons.</div>
+          <div class="foot"><span class="status">⌛ Checked-in</span><span class="checkin">View</span></div>
+        </div>
+        <div class="appt">
+          <div class="time">09:45 – 10:05</div>
+          <div class="patient">Mohammed Al-Harbi</div>
+          <div class="type">Follow-up</div>
+          <div class="foot"><span class="status">● Scheduled</span><span class="checkin">Check in</span></div>
+        </div>
+        <div class="appt">
+          <div class="time">10:30 – 11:15</div>
+          <div class="patient">Khalid Al-Otaibi</div>
+          <div class="type">Pre-op assessment</div>
+          <div class="foot"><span class="status">● Scheduled</span><span class="checkin">Check in</span></div>
+        </div>
+        <div class="appt">
+          <div class="time">11:30 – 12:00</div>
+          <div class="patient">Aisha Al-Mutairi</div>
+          <div class="type">Follow-up</div>
+          <div class="foot"><span class="status">● Scheduled</span><span class="checkin">Check in</span></div>
+        </div>
+      </div>
+
+      <!-- Dr. Al-Qahtani -->
+      <div class="col">
+        <div class="col-head">
+          <div class="col-title"><div class="av">AQ</div> Dr. Al-Qahtani</div>
+          <div class="col-count">14 appts</div>
+        </div>
+        <div class="appt">
+          <div class="time">08:45 – 09:05</div>
+          <div class="patient">Salman Al-Qahtani</div>
+          <div class="type">Follow-up</div>
+          <div class="foot"><span class="status">✕ No-show</span></div>
+        </div>
+        <div class="appt">
+          <div class="time">09:30 – 10:30</div>
+          <div class="patient">Hala Al-Sharif</div>
+          <div class="type">Cardiology cons.</div>
+          <div class="foot"><span class="status">● Scheduled</span><span class="checkin">Check in</span></div>
+        </div>
+        <div class="appt">
+          <div class="time">10:30 – 10:45</div>
+          <div class="patient">Layla Ibrahim</div>
+          <div class="type">ECG review</div>
+          <div class="foot"><span class="status">● Scheduled</span><span class="checkin">Check in</span></div>
+        </div>
+        <div class="appt">
+          <div class="time">11:00 – 11:45</div>
+          <div class="patient">Omar Bakr</div>
+          <div class="type">Cardiology cons.</div>
+          <div class="foot"><span class="status">● Scheduled</span><span class="checkin">Check in</span></div>
+        </div>
+        <div class="appt">
+          <div class="time">11:45 – 12:00</div>
+          <div class="patient">Sami Al-Ghamdi</div>
+          <div class="type">ECG review</div>
+          <div class="foot"><span class="status">● Scheduled</span><span class="checkin">Check in</span></div>
+        </div>
+      </div>
+
+      <!-- Dr. Hassan -->
+      <div class="col">
+        <div class="col-head">
+          <div class="col-title"><div class="av">MH</div> Dr. Hassan</div>
+          <div class="col-count">10 appts</div>
+        </div>
+        <div class="appt">
+          <div class="time">09:15 – 09:30</div>
+          <div class="patient">Yousef Al-Dosari</div>
+          <div class="type">ECG review</div>
+          <div class="foot"><span class="status">● Scheduled</span><span class="checkin">Check in</span></div>
+        </div>
+        <div class="appt">
+          <div class="time">10:00 – 10:45</div>
+          <div class="patient">Nada Al-Otaibi</div>
+          <div class="type">Cardiology cons.</div>
+          <div class="foot"><span class="status">● Scheduled</span><span class="checkin">Check in</span></div>
+        </div>
+        <div class="appt">
+          <div class="time">11:00 – 11:30</div>
+          <div class="patient">Majed Al-Dosari</div>
+          <div class="type">Follow-up</div>
+          <div class="foot"><span class="status">● Scheduled</span><span class="checkin">Check in</span></div>
+        </div>
+        <div class="appt">
+          <div class="time">12:00 – 12:30</div>
+          <div class="patient">Reem Al-Mutairi</div>
+          <div class="type">Pre-op assessment</div>
+          <div class="foot"><span class="status">● Scheduled</span><span class="checkin">Check in</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

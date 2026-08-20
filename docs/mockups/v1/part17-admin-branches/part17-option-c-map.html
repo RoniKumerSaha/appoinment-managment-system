@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 17-C — Admin Branches: Map View</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1300px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+  .page { padding: 28px 32px; }
+  .page-header { margin-bottom: 18px; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header h1 { font-size: 22px; color: #111827; font-weight: 600; margin-bottom: 4px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .layout { display: grid; grid-template-columns: 1fr 380px; gap: 16px; }
+
+  /* Map area */
+  .map-area { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 12px; min-height: 540px; position: relative; overflow: hidden; }
+  .map-bg { position: absolute; inset: 0; background-image: linear-gradient(rgba(15,118,110,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(15,118,110,0.06) 1px, transparent 1px); background-size: 30px 30px; }
+  .map-label { position: absolute; font-size: 11px; color: #065f46; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.7; }
+  .map-pin { position: absolute; background: #0f766e; color: white; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(15,118,110,0.3); transform: translate(-50%, -100%); transition: transform 0.15s; }
+  .map-pin:hover { transform: translate(-50%, -100%) scale(1.05); }
+  .map-pin::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #0f766e; }
+  .map-pin.selected { background: #f59e0b; }
+  .map-pin.selected::after { border-top-color: #f59e0b; }
+  .map-pin.inactive { background: #9ca3af; }
+  .map-pin.inactive::after { border-top-color: #9ca3af; }
+  .map-pin .num { display: block; font-size: 10px; opacity: 0.85; font-weight: 500; margin-top: 1px; }
+
+  .legend { position: absolute; bottom: 16px; left: 16px; background: white; border-radius: 8px; padding: 8px 12px; font-size: 11px; display: flex; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .legend .item { display: flex; align-items: center; gap: 5px; color: #4b5563; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* Right panel: branch details */
+  .branch-panel { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; height: fit-content; }
+  .branch-panel h3 { font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 4px; }
+  .branch-panel .address { font-size: 12px; color: #6b7280; margin-bottom: 14px; }
+
+  .panel-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+  .panel-row .k { color: #6b7280; }
+  .panel-row .v { color: #111827; font-weight: 600; }
+
+  .doctors-strip { margin-top: 14px; padding: 12px; background: #f9fafb; border-radius: 8px; }
+  .doctors-strip .label { font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; margin-bottom: 8px; }
+  .doc-chip { display: inline-flex; align-items: center; gap: 6px; background: white; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; margin: 3px; border: 1px solid #e5e7eb; }
+  .doc-chip .av { width: 18px; height: 18px; background: #ccfbf1; color: #0f766e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
+
+  .panel-actions { display: flex; gap: 6px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f3f4f6; }
+  .panel-actions button { flex: 1; padding: 8px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 12px; color: #374151; cursor: pointer; font-weight: 600; }
+  .panel-actions button:hover { border-color: #0f766e; color: #0f766e; }
+  .panel-actions button.danger { color: #991b1b; border-color: #fca5a5; }
+
+  .toolbar { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 16px; margin-bottom: 14px; display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+  .toolbar-left { display: flex; gap: 8px; align-items: center; }
+  .toolbar .search { padding: 7px 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 13px; min-width: 240px; }
+  .toolbar select { padding: 7px 10px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 13px; background: white; }
+</style>
+</head>
+<body>
+<div class="badge">PART 17-C · Admin Branches · Map View</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Salem Al-Mutairi · Admin</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">SM</div></div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div class="crumb">Admin → Branches</div>
+      <h1>Branches</h1>
+      <p class="sub">Click a location pin to view branch details · 3 active · 1 inactive</p>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input class="search" placeholder="Search branches…">
+        <select><option>All statuses</option><option>Active only</option></select>
+      </div>
+      <button class="btn-primary">+ New branch</button>
+    </div>
+
+    <div class="layout">
+      <div class="map-area">
+        <div class="map-bg"></div>
+        <div class="map-label" style="top: 18px; left: 18px;">RIYADH</div>
+        <div class="map-label" style="bottom: 80px; right: 24px;">JEDDAH</div>
+
+        <!-- Pins (stylized positions) -->
+        <div class="map-pin selected" style="top: 30%; left: 35%;">Riyadh Olaya<span class="num">98 appts · 3 doctors</span></div>
+        <div class="map-pin" style="top: 50%; left: 28%;">Riyadh Malqa<span class="num">76 appts · 4 doctors</span></div>
+        <div class="map-pin inactive" style="top: 38%; left: 18%; opacity: 0.6;">Riyadh DQ<span class="num">0 appts</span></div>
+        <div class="map-pin" style="top: 75%; right: 22%;">Jeddah Corniche<span class="num">40 appts · 2 doctors</span></div>
+
+        <div class="legend">
+          <div class="item"><div class="dot" style="background: #0f766e;"></div>Active</div>
+          <div class="item"><div class="dot" style="background: #f59e0b;"></div>Selected</div>
+          <div class="item"><div class="dot" style="background: #9ca3af;"></div>Inactive</div>
+        </div>
+      </div>
+
+      <div class="branch-panel">
+        <h3>Riyadh Olaya</h3>
+        <div class="address">King Fahd Rd, Olaya District<br>Riyadh 12211</div>
+
+        <div class="panel-row"><span class="k">Status</span><span class="v" style="color: #065f46;">● Active</span></div>
+        <div class="panel-row"><span class="k">Hours</span><span class="v">08:00 — 17:00 · Sun–Thu</span></div>
+        <div class="panel-row"><span class="k">Doctors</span><span class="v">3</span></div>
+        <div class="panel-row"><span class="k">Future appts (30d)</span><span class="v">98</span></div>
+        <div class="panel-row"><span class="k">Created</span><span class="v">Jan 12, 2025</span></div>
+
+        <div class="doctors-strip">
+          <div class="label">Doctors at this branch</div>
+          <span class="doc-chip"><div class="av">AR</div> Dr. Al-Rashid</span>
+          <span class="doc-chip"><div class="av">AQ</div> Dr. Al-Qahtani</span>
+          <span class="doc-chip"><div class="av">MH</div> Dr. Hassan</span>
+        </div>
+
+        <div class="panel-actions">
+          <button>Edit</button>
+          <button>Hours</button>
+          <button class="danger">Deactivate</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

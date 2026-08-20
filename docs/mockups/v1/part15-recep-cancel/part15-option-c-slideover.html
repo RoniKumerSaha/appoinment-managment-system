@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 15-C — Receptionist Cancel: Slide-Over</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1300px; margin: 0 auto; background: white; min-height: 100vh; position: relative; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+
+  .layout { display: grid; grid-template-columns: 1fr 420px; }
+  .left { padding: 28px 32px; }
+  .left h1 { font-size: 22px; color: #111827; font-weight: 600; margin-bottom: 4px; }
+  .left .sub { color: #6b7280; font-size: 13px; margin-bottom: 18px; }
+
+  table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
+  th { background: #f9fafb; padding: 12px 16px; text-align: left; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 14px 16px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  tr.active td { background: #f0fdfa; }
+  tr.active .time-cell::before { content: '▶'; color: #0f766e; margin-right: 6px; font-size: 10px; }
+  .actions-cell { display: flex; gap: 4px; justify-content: flex-end; }
+  .actions-cell button { padding: 6px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 12px; color: #374151; cursor: pointer; font-weight: 500; }
+  .actions-cell button.danger { color: #991b1b; border-color: #fca5a5; }
+  .actions-cell button.active { background: #dc2626; color: white; border-color: #dc2626; }
+
+  /* Slide-over */
+  .slide-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 50; }
+  .slide-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 420px; background: white; box-shadow: -8px 0 24px rgba(0,0,0,0.08); z-index: 51; overflow-y: auto; display: flex; flex-direction: column; }
+  .slide-head { padding: 18px 22px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 12px; align-items: center; }
+  .slide-head .ic { width: 36px; height: 36px; background: #fee2e2; color: #dc2626; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .slide-head h2 { font-size: 17px; color: #111827; font-weight: 600; flex: 1; }
+  .slide-head .close { background: transparent; border: none; font-size: 20px; color: #6b7280; cursor: pointer; }
+  .slide-body { padding: 22px; flex: 1; }
+
+  .appt-card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; margin-bottom: 18px; }
+  .appt-card .row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 13px; }
+  .appt-card .k { color: #6b7280; }
+  .appt-card .v { color: #111827; font-weight: 500; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; color: #374151; font-weight: 600; margin-bottom: 5px; }
+  .form-group label .req { color: #dc2626; }
+  .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 13px; background: white; font-family: inherit; }
+  .form-group textarea { min-height: 70px; resize: vertical; }
+  .form-group .hint { font-size: 11px; color: #6b7280; margin-top: 4px; }
+
+  .impact { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 12px; margin-top: 14px; font-size: 12px; color: #78350f; }
+  .impact .head { font-weight: 700; margin-bottom: 4px; }
+  .impact ul { padding-left: 18px; margin-top: 4px; }
+
+  .slide-actions { padding: 16px 22px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f9fafb; }
+  .slide-actions .audit { font-size: 11px; color: #6b7280; }
+  .slide-actions .audit code { background: #e5e7eb; padding: 1px 6px; border-radius: 4px; color: #374151; font-family: "SF Mono", Consolas, monospace; }
+  .slide-actions .btns { display: flex; gap: 8px; }
+  .btn-secondary { background: white; color: #4b5563; border: 1px solid #e5e7eb; padding: 9px 17px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .btn-danger { background: #dc2626; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="badge">PART 15-C · Receptionist Cancel · Slide-Over</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Reem Al-Harbi · Reception</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">RH</div></div>
+  </nav>
+
+  <div class="layout">
+    <div class="left">
+      <h1>Today, Aug 20</h1>
+      <p class="sub">Riyadh Olaya · 42 appointments · click Cancel on a row to open the panel</p>
+      <table>
+        <thead><tr><th>Time</th><th>Patient</th><th>Doctor</th><th>Type</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <tr class="active">
+            <td class="time-cell">09:00</td>
+            <td>Fatima Al-Sayed</td>
+            <td>Dr. Al-Rashid</td>
+            <td>Cardiology cons.</td>
+            <td>Scheduled</td>
+            <td><div class="actions-cell"><button>View</button><button class="active">Cancel</button></div></td>
+          </tr>
+          <tr>
+            <td>09:45</td>
+            <td>Mohammed Al-Harbi</td>
+            <td>Dr. Al-Rashid</td>
+            <td>Follow-up</td>
+            <td>Scheduled</td>
+            <td><div class="actions-cell"><button>View</button><button class="danger">Cancel</button></div></td>
+          </tr>
+          <tr>
+            <td>10:30</td>
+            <td>Layla Ibrahim</td>
+            <td>Dr. Al-Qahtani</td>
+            <td>ECG review</td>
+            <td>Scheduled</td>
+            <td><div class="actions-cell"><button>View</button><button class="danger">Cancel</button></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Slide-over -->
+  <div class="slide-overlay"></div>
+  <div class="slide-panel">
+    <div class="slide-head">
+      <div class="ic">✕</div>
+      <h2>Cancel appointment</h2>
+      <button class="close">×</button>
+    </div>
+    <div class="slide-body">
+      <div class="appt-card">
+        <div class="row"><span class="k">Patient</span><span class="v">Fatima Al-Sayed</span></div>
+        <div class="row"><span class="k">Phone</span><span class="v">+966 5XX XXX 1234</span></div>
+        <div class="row"><span class="k">When</span><span class="v">Today, 09:00 — 09:45</span></div>
+        <div class="row"><span class="k">Doctor</span><span class="v">Dr. Al-Rashid</span></div>
+        <div class="row"><span class="k">Branch</span><span class="v">Riyadh Olaya</span></div>
+      </div>
+
+      <div class="form-group">
+        <label>Reason <span class="req">*</span></label>
+        <select>
+          <option>Patient called to cancel</option>
+          <option>Patient no-show</option>
+          <option selected>Doctor unavailable</option>
+          <option>Scheduling conflict</option>
+          <option>Other (write in notes)</option>
+        </select>
+        <div class="hint">Required by BR-036.</div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>Notes (optional)</label>
+        <textarea placeholder="Any context worth saving…"></textarea>
+      </div>
+
+      <div class="impact">
+        <div class="head">This will:</div>
+        <ul>
+          <li>Mark as <strong>Cancelled</strong> (atomic)</li>
+          <li>Release 09:00 slot to availability</li>
+          <li>Notify patient by SMS + email</li>
+        </ul>
+      </div>
+    </div>
+    <div class="slide-actions">
+      <div class="audit">Atomic: <code>Appointment.cancel</code></div>
+      <div class="btns">
+        <button class="btn-secondary">Keep</button>
+        <button class="btn-danger">Confirm cancel</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

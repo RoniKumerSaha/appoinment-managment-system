@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 4-C — Compact Card + Success Hero</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1200px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .nav-links { display: flex; gap: 24px; font-size: 14px; color: #4b5563; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 11px 20px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 9px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+
+  .progress { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 6px; }
+  .step-mini { padding: 4px 10px; border-radius: 4px; background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
+  .step-mini.done { background: #f0fdfa; color: #0f766e; border-color: #99f6e4; font-weight: 500; }
+  .step-mini.done .n { background: #0f766e; color: white; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; margin-right: 4px; }
+  .step-mini.current { background: #0f766e; color: white; border-color: #0f766e; font-weight: 500; }
+  .step-mini.current .n { background: rgba(255,255,255,0.25); color: white; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; margin-right: 4px; }
+
+  .layout { display: grid; grid-template-columns: 1fr 320px; }
+  .main-col { padding: 24px 32px 32px; }
+  .side-col { background: #f9fafb; border-left: 1px solid #e5e7eb; padding: 24px 24px; }
+
+  .back-link { color: #0f766e; font-size: 13px; cursor: pointer; margin-bottom: 8px; display: inline-block; }
+  .page-header h1 { font-size: 24px; color: #111827; margin-bottom: 4px; font-weight: 600; }
+  .page-header .sub { color: #6b7280; font-size: 14px; }
+
+  .compact-form { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+  .field label { display: block; font-size: 12px; color: #374151; font-weight: 600; margin-bottom: 4px; }
+  .field label .req { color: #dc2626; }
+  .field input { width: 100%; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 14px; color: #111827; }
+  .field input:focus { outline: none; border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15,118,110,0.1); }
+  .field-help { font-size: 11px; color: #6b7280; margin-top: 3px; }
+  .field-help.success { color: #0f766e; }
+  .returning-tag { background: #f0fdfa; color: #0f766e; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+
+  .optional-row { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 13px; color: #4b5563; }
+  .optional-row input { margin: 0; }
+
+  /* Success hero */
+  .success-hero { background: linear-gradient(135deg, #0f766e, #115e59); color: white; border-radius: 16px; padding: 40px; margin-top: 24px; text-align: center; position: relative; overflow: hidden; }
+  .success-hero::before { content: ''; position: absolute; top: -50%; right: -10%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,255,255,0.1), transparent); border-radius: 50%; }
+  .success-check { width: 72px; height: 72px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; font-size: 36px; color: #0f766e; font-weight: 700; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+  .success-hero h1 { font-size: 32px; margin-bottom: 8px; font-weight: 600; letter-spacing: -0.01em; }
+  .success-hero .sub { color: rgba(255,255,255,0.85); font-size: 16px; margin-bottom: 24px; }
+  .ref-display { background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 16px 24px; display: inline-block; margin-bottom: 24px; }
+  .ref-display .label { font-size: 11px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; font-weight: 600; }
+  .ref-display .num { font-family: ui-monospace, monospace; font-size: 24px; color: white; font-weight: 700; letter-spacing: 0.05em; }
+  .hero-actions { display: flex; gap: 10px; justify-content: center; }
+  .hero-actions .btn-primary { background: white; color: #0f766e; }
+  .hero-actions .btn-secondary { background: rgba(255,255,255,0.15); color: white; border-color: rgba(255,255,255,0.3); }
+
+  .detail-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; margin-top: 24px; }
+  .detail-card h3 { font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 16px; font-weight: 600; }
+  .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-row .k { color: #6b7280; }
+  .detail-row .v { color: #111827; font-weight: 500; }
+
+  .side-col h3 { font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 12px; }
+  .summary-card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .summary-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .k { color: #6b7280; }
+  .summary-row .v { color: #111827; font-weight: 500; text-align: right; }
+  .summary-row.highlight { background: #f0fdfa; padding: 8px 10px; border-radius: 6px; margin: 6px -10px; border: none; }
+  .summary-row.highlight .k { color: #0f766e; font-weight: 600; }
+  .summary-row.highlight .v { color: #0f766e; }
+</style>
+</head>
+<body>
+<div class="badge">PART 4-C · Compact Card + Success Hero</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div class="nav-links"><a>Find a doctor</a><a>My appointments</a><a>Branches</a><a>Help</a></div>
+    <button class="btn-primary">Book appointment</button>
+  </nav>
+
+  <div class="progress">
+    <span class="step-mini done"><span class="n">✓</span>Doctor</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini done"><span class="n">✓</span>Branch & type</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini done"><span class="n">✓</span>Date & time</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini done"><span class="n">4</span>Your details</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini current"><span class="n">5</span>Confirmed</span>
+  </div>
+
+  <div class="layout">
+    <div class="main-col">
+      <div class="compact-form">
+        <div class="field">
+          <div class="returning-tag">✓ Returning patient</div>
+          <label>Full name <span class="req">*</span></label>
+          <input type="text" value="Ahmed M. Al-Falasi">
+        </div>
+        <div class="field">
+          <label>Phone number <span class="req">*</span></label>
+          <input type="tel" value="+971 50 123 4567">
+          <div class="field-help success">✓ Phone is on file</div>
+        </div>
+        <button class="btn-primary" style="padding: 11px 24px; white-space: nowrap;">Confirm →</button>
+      </div>
+
+      <div class="optional-row">
+        <input type="checkbox" id="addcal">
+        <label for="addcal" style="font-size:13px; cursor:pointer;">📅 Add to calendar (.ics) after confirmation</label>
+      </div>
+
+      <div class="success-hero">
+        <div class="success-check">✓</div>
+        <h1>You're all set, Ahmed</h1>
+        <p class="sub">Your appointment is confirmed. No email or SMS needed — keep this reference.</p>
+
+        <div class="ref-display">
+          <div class="label">Reference</div>
+          <div class="num">APT-2026-08-21-145</div>
+        </div>
+
+        <div class="hero-actions">
+          <button class="btn-primary">📅 Add to calendar</button>
+          <button class="btn-secondary">Book another</button>
+        </div>
+      </div>
+
+      <div class="detail-card">
+        <h3>Appointment details</h3>
+        <div class="detail-row"><span class="k">Doctor</span><span class="v">Dr. Ahmed Al-Rashid · Cardiology</span></div>
+        <div class="detail-row"><span class="k">Branch</span><span class="v">Downtown · Sheikh Zayed Rd, Tower 2</span></div>
+        <div class="detail-row"><span class="k">When</span><span class="v">Thu, Aug 21 · 14:45 – 15:30</span></div>
+        <div class="detail-row"><span class="k">Type</span><span class="v">Cardiology consultation · 45 min</span></div>
+        <div class="detail-row"><span class="k">Patient</span><span class="v">Ahmed M. Al-Falasi · +971 50 123 4567</span></div>
+      </div>
+    </div>
+
+    <div class="side-col">
+      <h3>Quick access</h3>
+      <div style="background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+        <div style="font-size: 13px; color: #111827; font-weight: 600; margin-bottom: 6px;">Want to change or cancel?</div>
+        <div style="font-size: 12px; color: #6b7280; margin-bottom: 10px;">Use your phone number to manage this appointment anytime.</div>
+        <button class="btn-secondary" style="width:100%; padding: 9px; font-size: 13px;">Manage appointment</button>
+      </div>
+
+      <h3>What to bring</h3>
+      <div style="font-size: 12px; color: #6b7280; line-height: 1.6;">
+        • Photo ID<br>
+        • Insurance card (if applicable)<br>
+        • List of current medications<br>
+        • Arrive 10 minutes early
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

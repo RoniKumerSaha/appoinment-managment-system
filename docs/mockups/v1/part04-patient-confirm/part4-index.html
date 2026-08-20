@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 4 — Patient Details + Confirmation Comparison</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 16px; }
+  header { max-width: 1700px; margin: 0 auto 16px; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #94a3b8; font-size: 13px; }
+  .controls { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .controls button { padding: 6px 12px; background: #1e293b; border: 1px solid #334155; color: #e2e8f0; border-radius: 4px; font-size: 12px; cursor: pointer; }
+  .controls button:hover { background: #334155; }
+  .controls a { padding: 6px 12px; background: #0f766e; color: white; border-radius: 4px; font-size: 12px; text-decoration: none; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; max-width: 1700px; margin: 0 auto; }
+  .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid.cols-1 { grid-template-columns: 1fr; }
+  .card { background: #1e293b; border-radius: 8px; overflow: hidden; border: 1px solid #334155; }
+  .card-head { padding: 8px 12px; background: #0f172a; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+  .card-head a { color: #60a5fa; text-decoration: none; font-size: 11px; }
+  .card-head a:hover { text-decoration: underline; }
+  .card-head .title { font-weight: 600; }
+  iframe { width: 100%; height: 950px; border: 0; background: white; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎨 Part 4 — Patient Details + Confirmation (Clinical Calm + Sidebar + Agenda)</h1>
+  <p class="subtitle">5 distinct strategies for the final booking step.</p>
+  <div class="controls">
+    <span style="color:#94a3b8; font-size:12px;">Columns:</span>
+    <button onclick="setCols(5)">5 side-by-side</button>
+    <button onclick="setCols(2)">2 per row (wider)</button>
+    <button onclick="setCols(1)">1 (full width)</button>
+    <span style="color:#64748b; font-size:11px; margin-left:16px;">Reply: A, B, C, D, or E</span>
+    <a href="part3-index.html" style="margin-left:auto;">← Back to Part 3</a>
+  </div>
+</header>
+
+<div class="grid" id="grid">
+
+  <div class="card">
+    <div class="card-head">
+      <span class="title">A · Inline Form + Success</span>
+      <a href="part4-option-a-inline-form.html" target="_blank">open ↗</a>
+    </div>
+    <iframe src="part4-option-a-inline-form.html"></iframe>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="title">B · Form + Modal Confirmation</span>
+      <a href="part4-option-b-modal-confirm.html" target="_blank">open ↗</a>
+    </div>
+    <iframe src="part4-option-b-modal-confirm.html"></iframe>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="title">C · Compact Card + Success Hero</span>
+      <a href="part4-option-c-compact-card.html" target="_blank">open ↗</a>
+    </div>
+    <iframe src="part4-option-c-compact-card.html"></iframe>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="title">D · Two-Column + Ticket</span>
+      <a href="part4-option-d-ticket.html" target="_blank">open ↗</a>
+    </div>
+    <iframe src="part4-option-d-ticket.html"></iframe>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="title">E · Stacked Vertical Flow</span>
+      <a href="part4-option-e-stacked-flow.html" target="_blank">open ↗</a>
+    </div>
+    <iframe src="part4-option-e-stacked-flow.html"></iframe>
+  </div>
+
+</div>
+
+<script>
+function setCols(n) {
+  const g = document.getElementById('grid');
+  g.classList.remove('cols-1','cols-2');
+  if (n !== 5) g.classList.add('cols-' + n);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 19-E — Admin Receptionists: Stacked Vertical Flow</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 760px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 10px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+
+  .page { padding: 32px; }
+  .page-header { margin-bottom: 24px; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header h1 { font-size: 24px; color: #111827; font-weight: 600; margin-bottom: 6px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .step { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px 24px; margin-bottom: 14px; }
+  .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .step-num { width: 28px; height: 28px; background: #f0fdfa; color: #0f766e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .step-num.done { background: #0f766e; color: white; }
+  .step-num.current { background: #0f766e; color: white; box-shadow: 0 0 0 4px #99f6e4; }
+  .step-title { font-size: 15px; font-weight: 600; color: #111827; }
+  .step-hint { font-size: 12px; color: #6b7280; margin-left: auto; }
+
+  /* Step 1: receptionist list */
+  .rec-list { display: flex; flex-direction: column; gap: 8px; }
+  .rec-item { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; cursor: pointer; }
+  .rec-item:hover { border-color: #99f6e4; background: #f0fdfa; }
+  .rec-item.selected { border-color: #0f766e; background: #f0fdfa; box-shadow: 0 0 0 2px #99f6e4; }
+  .rec-item .radio { width: 18px; height: 18px; border: 2px solid #d1d5db; border-radius: 50%; flex-shrink: 0; }
+  .rec-item.selected .radio { border-color: #0f766e; background: #0f766e; box-shadow: inset 0 0 0 3px white; }
+  .rec-item .av { width: 36px; height: 36px; background: #ccfbf1; color: #0f766e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .rec-item.inactive .av { background: #f3f4f6; color: #9ca3af; }
+  .rec-item .body { flex: 1; }
+  .rec-item .name { font-weight: 600; color: #111827; font-size: 14px; }
+  .rec-item .meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .rec-item .pill { font-size: 10px; padding: 3px 9px; border-radius: 999px; font-weight: 700; text-transform: uppercase; flex-shrink: 0; }
+  .pill.active { background: #d1fae5; color: #065f46; }
+  .pill.inactive { background: #f3f4f6; color: #6b7280; }
+
+  .add-row { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px; border: 1.5px dashed #cbd5e1; border-radius: 10px; color: #6b7280; font-size: 13px; font-weight: 500; cursor: pointer; margin-top: 8px; }
+  .add-row:hover { border-color: #0f766e; color: #0f766e; background: #f0fdfa; }
+
+  /* Step 2: edit form */
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 12px; color: #374151; font-weight: 600; margin-bottom: 5px; }
+  .form-group label .req { color: #dc2626; }
+  .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white; font-family: inherit; }
+  .form-group .hint { font-size: 11px; color: #6b7280; margin-top: 4px; }
+
+  /* Branch single-select */
+  .branch-pick { border: 1.5px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+  .branch-pr { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
+  .branch-pr:last-child { border-bottom: none; }
+  .branch-pr:hover { background: #f9fafb; }
+  .branch-pr.selected { background: #f0fdfa; }
+  .branch-pr.disabled { opacity: 0.5; cursor: not-allowed; background: #fafafa; }
+  .branch-pr .radio { width: 18px; height: 18px; border: 2px solid #d1d5db; border-radius: 50%; flex-shrink: 0; }
+  .branch-pr.selected .radio { border-color: #0f766e; background: #0f766e; box-shadow: inset 0 0 0 3px white; }
+  .branch-pr .ic { width: 32px; height: 32px; background: #f0fdfa; color: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .branch-pr.disabled .ic { background: #f3f4f6; color: #9ca3af; }
+  .branch-pr .name { font-weight: 600; font-size: 13px; }
+  .branch-pr .meta { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+  .single-callout { padding: 10px 12px; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 6px; font-size: 12px; color: #065f46; display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .single-callout code { background: white; padding: 1px 5px; border-radius: 3px; font-family: "SF Mono", Consolas, monospace; color: #0f766e; }
+
+  .status-toggle { display: flex; gap: 8px; }
+  .status-toggle .opt { flex: 1; padding: 12px; background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; cursor: pointer; text-align: center; font-weight: 600; font-size: 13px; color: #6b7280; }
+  .status-toggle .opt.active { background: #f0fdfa; border-color: #0f766e; color: #0f766e; }
+
+  .step-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; padding-top: 16px; border-top: 1px solid #f3f4f6; }
+  .step-foot .audit { font-size: 11px; color: #6b7280; }
+  .step-foot .audit code { background: #f3f4f6; padding: 1px 6px; border-radius: 4px; color: #374151; font-family: "SF Mono", Consolas, monospace; }
+
+  .impact { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 12px 14px; margin-top: 14px; font-size: 12px; color: #065f46; display: flex; gap: 10px; }
+  .impact .ic { flex-shrink: 0; font-size: 14px; }
+  .impact strong { font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="badge">PART 19-E · Admin Receptionists · Stacked Flow</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo"><div class="logo-icon">+</div> ClinicCare</div>
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:13px; color:#4b5563;">Salem Al-Mutairi · Admin</span><div style="width:32px; height:32px; border-radius:50%; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">SM</div></div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div class="crumb">Admin → Receptionists</div>
+      <h1>Manage receptionists</h1>
+      <p class="sub">5 active · 1 inactive · single branch per receptionist (BR-004)</p>
+    </div>
+
+    <!-- Step 1: pick a receptionist -->
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num done">1</div>
+        <div class="step-title">Select a receptionist to edit</div>
+        <div class="step-hint">6 receptionists · 5 active</div>
+      </div>
+      <div class="rec-list">
+        <div class="rec-item selected">
+          <div class="radio"></div>
+          <div class="av">NH</div>
+          <div class="body">
+            <div class="name">Noura Al-Harbi</div>
+            <div class="meta">Riyadh Olaya · 8 appts today · Lead receptionist</div>
+          </div>
+          <span class="pill active">● Active</span>
+        </div>
+        <div class="rec-item">
+          <div class="radio"></div>
+          <div class="av">FA</div>
+          <div class="body">
+            <div class="name">Faisal Al-Ahmadi</div>
+            <div class="meta">Riyadh Olaya · 7 appts today</div>
+          </div>
+          <span class="pill active">● Active</span>
+        </div>
+        <div class="rec-item">
+          <div class="radio"></div>
+          <div class="av">LM</div>
+          <div class="body">
+            <div class="name">Layla Al-Mutairi</div>
+            <div class="meta">Riyadh Malqa · 9 appts today · Lead</div>
+          </div>
+          <span class="pill active">● Active</span>
+        </div>
+        <div class="rec-item inactive" style="opacity: 0.55;">
+          <div class="radio"></div>
+          <div class="av inactive" style="background: #f3f4f6; color: #9ca3af;">ZI</div>
+          <div class="body">
+            <div class="name">Ziad Ibrahim</div>
+            <div class="meta">Previously Riyadh DQ · unassigned now</div>
+          </div>
+          <span class="pill inactive">○ Inactive</span>
+        </div>
+      </div>
+      <div class="add-row">+ Create new receptionist</div>
+    </div>
+
+    <!-- Step 2: edit form -->
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num current">2</div>
+        <div class="step-title">Edit · Noura Al-Harbi</div>
+        <div class="step-hint">Changes apply on save</div>
+      </div>
+
+      <div class="form-group">
+        <label>Display name <span class="req">*</span></label>
+        <input value="Noura Al-Harbi">
+      </div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input value="n.alharbi@clinic.sa">
+      </div>
+
+      <div class="form-group">
+        <label>Assigned branch <span class="req">*</span></label>
+        <div class="single-callout">🔒 <span><strong>Single branch per receptionist</strong> per <code>BR-004 / FR-005</code>.</span></div>
+        <div class="branch-pick">
+          <div class="branch-pr selected">
+            <div class="radio"></div>
+            <div class="ic">📍</div>
+            <div style="flex: 1;">
+              <div class="name">Riyadh Olaya</div>
+              <div class="meta">08:00–17:00 · Sun–Thu · 2 receptionists here</div>
+            </div>
+            <span class="pill active" style="font-size:10px; padding: 2px 8px;">Current</span>
+          </div>
+          <div class="branch-pr">
+            <div class="radio"></div>
+            <div class="ic">📍</div>
+            <div style="flex: 1;">
+              <div class="name">Riyadh Malqa</div>
+              <div class="meta">09:00–18:00 · Sun–Thu</div>
+            </div>
+          </div>
+          <div class="branch-pr">
+            <div class="radio"></div>
+            <div class="ic">📍</div>
+            <div style="flex: 1;">
+              <div class="name">Jeddah Corniche</div>
+              <div class="meta">10:00–19:00 · Sun–Thu · 1 receptionist here (gap)</div>
+            </div>
+            <span class="pill" style="background:#fef3c7;color:#92400e;font-size:10px;padding:2px 8px;">Needs</span>
+          </div>
+          <div class="branch-pr disabled">
+            <div class="radio"></div>
+            <div class="ic">📍</div>
+            <div style="flex: 1;">
+              <div class="name">Riyadh Diplomatic Quarter</div>
+              <div class="meta">○ Inactive branch · cannot assign</div>
+            </div>
+          </div>
+        </div>
+        <div class="hint">Reassignment immediately changes branch access (FR-005).</div>
+      </div>
+
+      <div class="form-group">
+        <label>Status</label>
+        <div class="status-toggle">
+          <div class="opt active">● Active</div>
+          <div class="opt">○ Inactive</div>
+        </div>
+        <div class="hint">Deactivating logs the receptionist out and blocks login (BR-002).</div>
+      </div>
+
+      <div class="impact">
+        <div class="ic">ℹ</div>
+        <div>
+          <strong>Assignment context:</strong> Noura handles the most bookings at Riyadh Olaya (8 appts today, 32 across the 30-day window). Reassignment preserves historical records but moves her future access to the new branch.
+        </div>
+      </div>
+
+      <div class="step-foot">
+        <div class="audit">Atomic: <code>Receptionist.update</code> · audit: <code>receptionist.changed</code></div>
+        <div style="display:flex; gap: 8px;">
+          <button class="btn-ghost">Cancel</button>
+          <button class="btn-primary">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

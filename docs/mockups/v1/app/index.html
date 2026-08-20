@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClinicCare — App Preview</title>
+<link rel="stylesheet" href="shell.css">
+</head>
+<body>
+
+  <!-- ─── Topbar ─── -->
+  <header class="topbar">
+    <a class="brand" href="#/">
+      <span class="logo-mark">+</span>
+      <span class="logo-text">ClinicCare</span>
+      <span class="logo-tag">app preview</span>
+    </a>
+
+    <nav class="crumbs" id="crumbs" aria-label="Breadcrumb">
+      <span class="crumb crumb-root">Landing</span>
+    </nav>
+
+    <div class="topbar-actions">
+      <label class="role-select-wrap" title="Switch role">
+        <span class="role-icon" aria-hidden="true">👤</span>
+        <select id="roleSelect" class="role-select">
+          <option value="landing">Landing</option>
+          <option value="patient">Patient</option>
+          <option value="doctor">Doctor</option>
+          <option value="recep">Receptionist</option>
+          <option value="admin">Admin</option>
+        </select>
+      </label>
+      <a id="openInNew" class="open-new" href="../part01-layout-direction/option-a-clinical-calm.html" target="_blank" title="Open current page in new tab">↗</a>
+    </div>
+  </header>
+
+  <!-- ─── Loading overlay (hides iframe flicker on first paint) ─── -->
+  <div class="loading" id="loading"><div class="loading-spinner"></div></div>
+
+  <!-- ─── Iframe container ─── -->
+  <main class="frame-host">
+    <iframe id="app-frame"
+      title="ClinicCare flow"
+      src="../part01-layout-direction/option-a-clinical-calm.html"
+      sandbox="allow-same-origin allow-scripts"
+      loading="eager"></iframe>
+  </main>
+
+  <!-- ─── 404 overlay (shown when no route matches) ─── -->
+  <div class="notfound hidden" id="notfound">
+    <h1>404 — route not found</h1>
+    <p>The hash <code id="notfoundHash"></code> doesn't match any flow.</p>
+    <a class="notfound-home" href="#/">← Back to landing</a>
+  </div>
+
+  <script src="shell.js"></script>
+</body>
+</html>

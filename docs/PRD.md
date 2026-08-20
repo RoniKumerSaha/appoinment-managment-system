@@ -168,6 +168,8 @@ Each appointment type shall contain at minimum:
 
 Appointment types are doctor-specific.
 
+> An inactive appointment type is not bookable at any branch the doctor works at (consistent with FR-007).
+
 ## FR-007 — Appointment Type Branch Availability
 
 If a doctor offers an appointment type, it shall be bookable at every branch where that doctor works.
@@ -260,7 +262,9 @@ If remaining working time cannot fit a complete appointment, it shall remain unu
 
 ## FR-018 — Booking Window
 
-The system shall expose availability only within the configured initial booking window of **30 days**.
+The system shall expose availability only within the **fixed initial booking window of 30 days**.
+
+> The booking window is fixed for the MVP release. Making it configurable is a future consideration (see §14).
 
 ## FR-019 — Same-Day Restriction
 
@@ -268,7 +272,7 @@ No appointment may be created for the current date.
 
 The earliest bookable date is tomorrow.
 
-This rule applies to both patients and receptionists.
+This rule applies to **all actors** — patients, doctors, and receptionists — including individual occurrences generated as part of a recurring series.
 
 ## FR-020 — Patient Booking
 
@@ -524,6 +528,8 @@ Affected appointments shall be flagged for manual resolution.
 
 The doctor associated with each affected appointment shall resolve it.
 
+> **Edge case.** If the assigned doctor no longer works at the affected branch (e.g., reassignment or branch deactivation in progress), the administrator must reassign the appointment or cancel it through a documented staff workflow before the branch-hours change is finalized.
+
 ## 4.7 Doctor Absence Conflict
 
 When a doctor attempts to become unavailable:
@@ -532,7 +538,7 @@ When a doctor attempts to become unavailable:
 2. Doctor resolves each affected appointment.
 3. Doctor may reschedule the appointment.
 4. The new slot may be at another branch where the doctor works.
-5. Appointment type must remain unchanged.
+5. Appointment type must remain unchanged during this doctor-initiated conflict resolution (patient-initiated rescheduling is a separate flow and may change appointment type per FR-041).
 6. Availability change becomes effective only after all affected appointments are resolved.
 
 ---
@@ -550,6 +556,7 @@ When a doctor attempts to become unavailable:
 | Manage doctor schedule         |       — |      Own |            — |     — |
 | Manage appointment types       |       — |      Own |            — |     — |
 | Create recurring appointments  |       — |        ✓ |            ✓ |     — |
+| View doctor availability       |       — |        — |  Branch only |     — |
 | Manage doctors                 |       — |        — |            — |     ✓ |
 | Manage receptionists           |       — |        — |            — |     ✓ |
 | Manage branches                |       — |        — |            — |     ✓ |
@@ -786,7 +793,7 @@ The following entities are recommended.
 * start_datetime
 * end_datetime
 * status
-* created_by
+* created_by — references either a staff user (doctor/receptionist/administrator) **or** the patient's phone number for guest bookings
 * created_at
 * updated_at
 
