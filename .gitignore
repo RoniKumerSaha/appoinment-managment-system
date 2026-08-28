@@ -300,3 +300,4 @@ override.tf.json
 
 # ---------- Swift / iOS ----------
 # Already covered above (DerivedData, *.xcuserstate, build)
+/.claude
