@@ -93,7 +93,7 @@
   <nav class="nav">
     <div class="logo" data-route="__logo__"><img src="../app/logo.svg" alt="MediSlot" style="width:28px;height:28px;display:block;"> MediSlot</div>
     <div class="nav-links"><a data-route="/patient/doctor">Find a doctor</a><a style="color:#0f766e; font-weight:600;" data-route="/patient/manage">My appointments</a><a data-route="">Help</a></div>
-    <button class="btn-primary" data-route="">Book</button>
+    <button class="btn-primary" data-route="/patient/doctor">Book</button>
   </nav>
 
   <div class="page">
@@ -132,8 +132,8 @@
         </div>
       </div>
       <div class="section-actions">
-        <button class="btn-ghost" data-route="">Back</button>
-        <button class="btn-primary" data-route="">Verify and continue</button>
+        <button class="btn-ghost" data-route="/">Back</button>
+        <button class="btn-primary" data-route="/patient/manage">Verify and continue</button>
       </div>
     </div>
 
@@ -180,8 +180,8 @@
             <div class="appt-meta">Branch A — Downtown · 14:45 – 15:30</div>
           </div>
           <div class="appt-actions">
-            <button class="appt-action" data-route="">Reschedule</button>
-            <button class="appt-action" data-route="">Cancel</button>
+            <button class="appt-action" data-route="/patient/slot">Reschedule</button>
+            <button class="appt-action" data-route="/patient/manage">Cancel</button>
           </div>
         </div>
 
@@ -199,7 +199,7 @@
           </div>
           <div style="display:flex; gap:8px; justify-content:flex-end;">
             <button class="btn-ghost" data-route="">Cancel</button>
-            <button class="btn-primary" data-route="">Confirm move →</button>
+            <button class="btn-primary" data-route="/patient/manage">Confirm move →</button>
           </div>
         </div>
 
@@ -214,8 +214,8 @@
             <div class="appt-meta">Branch B — Marina · 10:00 – 10:20</div>
           </div>
           <div class="appt-actions">
-            <button class="appt-action" data-route="">Reschedule</button>
-            <button class="appt-action" data-route="">Cancel</button>
+            <button class="appt-action" data-route="/patient/slot">Reschedule</button>
+            <button class="appt-action" data-route="/patient/manage">Cancel</button>
           </div>
         </div>
 
@@ -252,5 +252,6 @@
 
   </div>
 </div>
+  <script src='../app/standalone-router.js'></script>
 </body>
 </html>

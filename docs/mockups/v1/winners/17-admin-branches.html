@@ -149,7 +149,7 @@
           <span class="pill inactive">â—‹ Inactive</span>
         </div>
       </div>
-      <div class="add-row" data-route="/admin/branch-hours" style="cursor:pointer;">+ Create new branch</div>
+      <div class="add-row" data-route="" style="cursor:pointer;">+ Create new branch</div>
     </div>
 
     <!-- Step 2: edit form -->
@@ -206,13 +206,14 @@
       <div class="step-foot">
         <div class="audit">Atomic: <code>Branch.update</code> Â· audit: <code>branch.changed</code></div>
         <div style="display:flex; gap: 8px;">
-          <button class="btn-ghost" data-route="">Cancel</button>
-          <button class="btn-primary" data-route="">Save changes</button>
+          <button class="btn-ghost" data-route="/admin/doctors">Cancel</button>
+          <button class="btn-primary" data-route="/admin/branch-hours">Save changes</button>
         </div>
       </div>
     </div>
   </div>
 
 </div>
+  <script src='../app/standalone-router.js'></script>
 </body>
 </html>

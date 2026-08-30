@@ -197,13 +197,14 @@
         Creating <strong>4 appointments</strong> as an atomic batch. If any one fails (race condition), all are rolled back and the slot is released.
       </div>
       <div class="section-actions">
-        <button class="btn-ghost" data-route="">Cancel</button>
+        <button class="btn-ghost" data-route="/doctor/schedule">Cancel</button>
         <button class="btn-secondary" data-route="/doctor/schedule">Edit pattern</button>
-        <button class="btn-primary" data-route="">Create 4 appointments â†’</button>
+        <button class="btn-primary" data-route="/doctor/schedule">Create 4 appointments â†’</button>
       </div>
     </div>
 
   </div>
 </div>
+  <script src='../app/standalone-router.js'></script>
 </body>
 </html>

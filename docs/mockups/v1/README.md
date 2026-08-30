@@ -28,6 +28,7 @@ docs/mockups/v1/
 │   ├── index.html                   ← shell entry point
 │   ├── shell.css                    ← topbar + responsive styles
 │   ├── shell.js                     ← hash router + 20 routes + cross-link interception
+│   ├── standalone-router.js         ← drop-in fallback so each winner navigates standalone too
 │   └── logo.svg                     ← Logo 03 · Monoline Icon (selected winner)
 │
 ├── winners/                         ← 19 selected mockups + 1 selected logo
@@ -67,6 +68,8 @@ Open `app/index.html` for a clickable walk-through of every flow:
 - The demo `.badge` corner tag is hidden inside the shell — re-shown when you open a mockup standalone
 
 20 routes total: 1 landing + 5 patient + 6 doctor + 4 receptionist + 4 admin.
+
+**Standalone browsing:** every winner loads `app/standalone-router.js`, which mirrors the shell's `data-route` interception but navigates by changing `window.location` to the sibling file. So opening any file directly (e.g. `winners/02-doctor-picker.html`) still lets you click through the same flow — without the topbar or breadcrumb.
 
 ## Parts
 

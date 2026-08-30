@@ -106,7 +106,7 @@
   <div class="layout">
     <div class="main-col">
       <div class="page-header">
-        <span class="back-link">← Back to date & time</span>
+        <span class="back-link" data-route="/patient/slot">← Back to date & time</span>
         <h1>Confirm your booking</h1>
         <p class="sub">Review everything below, then add your details.</p>
       </div>
@@ -117,7 +117,7 @@
           <div class="stack-card-head">
             <div class="stack-num">✓</div>
             <div class="stack-card-title">Doctor · Branch · Type</div>
-            <div class="stack-card-meta"><a style="color:#0f766e; cursor:pointer;" data-route="">Edit</a></div>
+            <div class="stack-card-meta"><a style="color:#0f766e; cursor:pointer;" data-route="/patient/doctor">Edit</a></div>
           </div>
           <div class="done-summary">
             <span class="k">Dr.</span><span class="v">Ahmed Al-Rashid</span>
@@ -132,7 +132,7 @@
           <div class="stack-card-head">
             <div class="stack-num">✓</div>
             <div class="stack-card-title">Date & time</div>
-            <div class="stack-card-meta"><a style="color:#0f766e; cursor:pointer;" data-route="">Edit</a></div>
+            <div class="stack-card-meta"><a style="color:#0f766e; cursor:pointer;" data-route="/patient/slot">Edit</a></div>
           </div>
           <div class="done-summary">
             <span class="v">Thu, Aug 21</span>
@@ -201,7 +201,7 @@
           <div class="num">APT-2026-08-21-145</div>
         </div>
         <div class="confirm-actions">
-          <button class="btn-primary" data-route="">📅 Add to calendar</button>
+          <button class="btn-primary" data-route="/patient/manage">📅 Add to calendar</button>
           <button class="btn-secondary" data-route="/patient/doctor">Book another</button>
           <button class="btn-ghost" style="margin-left:auto;" data-route="/patient/manage">Done</button>
         </div>
@@ -233,5 +233,6 @@
   </div>
 
 </div>
+  <script src='../app/standalone-router.js'></script>
 </body>
 </html>

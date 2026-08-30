@@ -177,13 +177,14 @@
         On save, your block is created and the 3 affected appointments are flagged for you to resolve. You can also save the block without flagging if the conflict is handled later — but the server will reject that to keep the schedule consistent.
       </div>
       <div class="section-actions">
-        <button class="btn-ghost" data-route="">Cancel</button>
-        <button class="btn-secondary" data-route="">Save as draft</button>
-        <button class="btn-primary" data-route="">Block & resolve 3 →</button>
+        <button class="btn-ghost" data-route="/doctor/today">Cancel</button>
+        <button class="btn-secondary" data-route="/doctor/today">Save as draft</button>
+        <button class="btn-primary" data-route="/doctor/resolve">Block & resolve 3 →</button>
       </div>
     </div>
 
   </div>
 </div>
+  <script src='../app/standalone-router.js'></script>
 </body>
 </html>

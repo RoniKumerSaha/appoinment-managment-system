@@ -66,7 +66,7 @@
   <nav class="nav">
     <div class="logo" data-route="__logo__"><img src="../app/logo.svg" alt="MediSlot" style="width:28px;height:28px;display:block;"> MediSlot</div>
     <button class="btn-ghost" data-route="/doctor/schedule">â† Schedule editor</button>
-    <button class="btn-primary" disabled style="opacity:0.5;" data-route="">Save schedule (need 0 more)</button>
+    <button class="btn-primary" disabled style="opacity:0.5;" data-route="/doctor/schedule">Save schedule (need 0 more)</button>
   </nav>
 
   <div class="alert-bar">
@@ -88,7 +88,7 @@
       <input type="checkbox"> <span>2 selected Â· <a style="color:#0f766e; cursor:pointer;" data-route="">Bulk: pick same new date</a></span>
     </div>
     <div class="actions">
-      <button data-route="">Cancel selected (2)</button>
+      <button data-route="/doctor/schedule">Cancel selected (2)</button>
       <button data-route="">Export as CSV</button>
     </div>
   </div>
@@ -107,8 +107,8 @@
         <div class="where">Branch A Â· Cardiology Â· 45 min</div>
         <div class="issue">âš  Doctor no longer works Wed PM at Branch A</div>
         <div class="actions">
-          <button data-route="">Move â†’</button>
-          <button class="danger" data-route="">Cancel</button>
+          <button data-route="/doctor/today">Move â†’</button>
+          <button class="danger" data-route="/doctor/resolve">Cancel</button>
         </div>
       </div>
 
@@ -118,8 +118,8 @@
         <div class="where">Branch B Â· Cardiology Â· 45 min</div>
         <div class="issue">âš  Outside new branch operating hours</div>
         <div class="actions">
-          <button data-route="">Move â†’</button>
-          <button class="danger" data-route="">Cancel</button>
+          <button data-route="/doctor/today">Move â†’</button>
+          <button class="danger" data-route="/doctor/resolve">Cancel</button>
         </div>
       </div>
     </div>
@@ -136,8 +136,8 @@
         <div class="where">Branch A Â· Cardiology Â· 45 min</div>
         <div class="issue">âš  Outside new working period</div>
         <div class="actions">
-          <button data-route="">Continue â†’</button>
-          <button class="danger" data-route="">Cancel</button>
+          <button data-route="/doctor/today">Continue â†’</button>
+          <button class="danger" data-route="/doctor/resolve">Cancel</button>
         </div>
       </div>
     </div>
@@ -163,7 +163,7 @@
         <div class="issue" style="background:#d1fae5; color:#065f46;">âœ“ Moved by doctor</div>
         <div class="actions">
           <button data-route="">View</button>
-          <button data-route="">Undo</button>
+          <button data-route="/doctor/resolve">Undo</button>
         </div>
       </div>
     </div>
@@ -171,5 +171,6 @@
   </div>
 
 </div>
+  <script src='../app/standalone-router.js'></script>
 </body>
 </html>
