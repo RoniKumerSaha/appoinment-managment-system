@@ -12,7 +12,7 @@
 | **D** | Card List by Hour / Quick-Action | 2 |
 | **E** | Stacked Vertical Flow | 11 |
 
-**Total picks so far: 19 / 19 flows** — all UX flows covered. 🎉
+**Total picks so far: 19 / 19 flows + 1 / 10 logos** — all UX flows and brand covered. 🎉
 
 ---
 
@@ -65,12 +65,21 @@
 
 ---
 
+## 🎨 Logo
+
+| Pick | Name | File |
+|------|------|------|
+| **03 · Monoline Icon** | Calendar frame + medical cross + slot dots | `logos/selected-logo-monoline-icon.html` · SVG mirror at `app/logo.svg` |
+
+---
+
 ## 📁 Files ready
 
 All files live at `docs/mockups/v1/` — see `README.md` for the directory tree.
 
-Each `partNN-{name}/` subdirectory contains:
-- `index.html` — comparison page (5 iframes side-by-side)
-- `option-{letter}-{slug}.html` × 5 — standalone options
+After the v1 cleanup, all rejected options and legacy folders were deleted. Only winners remain:
 
-**Resume protocol**: Open the next part's `index.html`, present 5 options, wait for letter pick, update this file's Completed picks table, continue.
+- `winners/01-…19-*.html` — 19 selected mockup files (one per flow)
+- `logos/selected-logo-monoline-icon.html` — selected logo
+- `app/` — connected app shell
+- `mocks.html` — stakeholder overview page

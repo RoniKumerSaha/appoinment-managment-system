@@ -8,8 +8,6 @@ Static HTML/CSS mockups for the Multi-Branch Clinic Appointment Scheduling Syste
 
 **For stakeholder review:** Open `mocks.html` — a single scrollable page showing all 19 winners as thumbnails, with filter + search + grid-size controls.
 
-**For design review:** Open the part's `index.html` in a browser — it shows all 5 options side-by-side via iframes. Pick a letter (A/B/C/D/E), and the chosen pattern is logged in `CHOICES.md`.
-
 ## Conventions
 
 - **Color**: Clinical Calm teal — `#0f766e` (primary), `#f0fdfa` (light), `#99f6e4` (border)
@@ -24,38 +22,37 @@ Static HTML/CSS mockups for the Multi-Branch Clinic Appointment Scheduling Syste
 docs/mockups/v1/
 ├── README.md                        ← you are here
 ├── mocks.html                       ← stakeholder overview (all 19 winners as thumbnails)
+├── CHOICES.md                       ← selection state (resume from here)
+│
 ├── app/                             ← connected app walkthrough
 │   ├── index.html                   ← shell entry point
 │   ├── shell.css                    ← topbar + responsive styles
-│   └── shell.js                     ← hash router + 20 routes + cross-link interception
-├── CHOICES.md                       ← selection state (resume from here)
+│   ├── shell.js                     ← hash router + 20 routes + cross-link interception
+│   └── logo.svg                     ← Logo 03 · Monoline Icon (selected winner)
 │
-├── index.html                       ← Part 1 — overall layout direction (legacy index)
-├── option-a-clinical-calm.html      ← Part 1 option standalone
-├── option-b-warm-healthcare.html
-├── option-c-modern-minimal.html
-├── option-d-friendly-pastel.html
-├── option-e-compact-dense.html
+├── winners/                         ← 19 selected mockups + 1 selected logo
+│   ├── 01-layout-direction.html     ← A · Clinical Calm + Sidebar
+│   ├── 02-doctor-picker.html        ← E · Card-First + Sidebar
+│   ├── 03-availability-calendar.html ← E · Agenda Timeline
+│   ├── 04-patient-confirm.html      ← E · Stacked Vertical Flow
+│   ├── 05-patient-self-service.html ← E · Stacked Vertical Flow
+│   ├── 06-resolve-affected.html     ← C · Kanban Queue
+│   ├── 07-recurring-preview.html    ← E · Stacked Vertical Flow
+│   ├── 08-branch-hours-impact.html  ← E · Stacked Vertical Flow
+│   ├── 09-doctor-schedule.html      ← B · List by Day + Tabs
+│   ├── 10-doctor-block-time.html    ← E · Stacked Vertical Flow
+│   ├── 11-appointment-types.html    ← E · Stacked Vertical Flow
+│   ├── 12-mark-status.html          ← D · Quick-Action Sidebar
+│   ├── 13-recep-today.html          ← D · Card List by Hour
+│   ├── 14-recep-create.html         ← A · Stepped Form
+│   ├── 15-recep-cancel.html         ← E · Stacked Vertical Flow
+│   ├── 16-recep-availability.html   ← E · Stacked Vertical Flow
+│   ├── 17-admin-branches.html       ← E · Stacked Vertical Flow
+│   ├── 18-admin-doctors.html        ← B · Card Grid
+│   └── 19-admin-receptionists.html  ← B · Card Grid
 │
-├── part01-layout-direction/
-├── part02-doctor-picker/
-├── part03-calendar/
-├── part04-patient-confirm/
-├── part05-patient-self-svc/
-├── part06-resolve-affected/
-├── part07-recurring-preview/
-├── part08-branch-hours-impact/
-├── part09-doctor-schedule/
-├── part10-doctor-block-time/
-├── part11-appointment-types/
-├── part12-mark-status/
-├── part13-recep-today/
-├── part14-recep-create/
-├── part15-recep-cancel/
-├── part16-recep-availability/
-├── part17-admin-branches/
-├── part18-admin-doctors/
-└── part19-admin-receptionists/
+└── logos/
+    └── selected-logo-monoline-icon.html  ← Logo 03 · Monoline Icon
 ```
 
 ## Connected app shell
@@ -70,11 +67,6 @@ Open `app/index.html` for a clickable walk-through of every flow:
 - The demo `.badge` corner tag is hidden inside the shell — re-shown when you open a mockup standalone
 
 20 routes total: 1 landing + 5 patient + 6 doctor + 4 receptionist + 4 admin.
-
-Each `partNN-*/` contains:
-
-- `index.html` — comparison page (5 iframes side-by-side)
-- `option-{a,b,c,d,e}-*.html` — 5 standalone options
 
 ## Parts
 
@@ -100,6 +92,12 @@ Each `partNN-*/` contains:
 | 18 | F-18 | Admin | Manage doctors | B |
 | 19 | F-19 | Admin | Manage receptionists | B |
 
+## Logo
+
+| # | Pick | File |
+|---|------|------|
+| Logo | **03 · Monoline Icon** | `logos/selected-logo-monoline-icon.html` · SVG mirror at `app/logo.svg` |
+
 ## Resume protocol
 
-All 19 parts complete. 🎉 See `CHOICES.md` for the final pattern picks + pattern tally. App shell at `app/index.html` ties everything together for stakeholder demos.
+All 19 parts + logo complete. 🎉 See `CHOICES.md` for the final pattern picks + pattern tally. App shell at `app/index.html` ties everything together for stakeholder demos.

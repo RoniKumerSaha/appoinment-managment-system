@@ -17,7 +17,7 @@
   // file is relative to docs/mockups/v1/app/index.html â†’ use ../ prefix.
   const ROUTES = {
     '/': {
-      file: '../part01-layout-direction/option-a-clinical-calm.html',
+      file: '../winners/01-layout-direction.html',
       actor: 'landing',
       title: 'Landing Â· Find your doctor',
       breadcrumb: ['Landing'],
@@ -26,33 +26,33 @@
 
     // Patient
     '/patient/doctor': {
-      file: '../part02-doctor-picker/part2-option-e-card-first.html',
+      file: '../winners/02-doctor-picker.html',
       actor: 'patient',
       title: 'Choose a branch & appointment type',
       breadcrumb: ['Patient', 'Choose a branch & type'],
       isHome: true,
     },
     '/patient/slot': {
-      file: '../part03-calendar/part3-option-e-agenda-timeline.html',
+      file: '../winners/03-availability-calendar.html',
       actor: 'patient',
       title: 'Pick a date and time',
       breadcrumb: ['Patient', 'Pick a date and time'],
     },
     '/patient/confirm': {
-      file: '../part04-patient-confirm/part4-option-e-stacked-flow.html',
+      file: '../winners/04-patient-confirm.html',
       actor: 'patient',
       title: 'Confirm your booking',
       breadcrumb: ['Patient', 'Confirm your booking'],
     },
     '/patient/manage': {
-      file: '../part05-patient-self-svc/part5-option-e-stacked-flow.html',
+      file: '../winners/05-patient-self-service.html',
       actor: 'patient',
       title: 'Manage your appointments',
       breadcrumb: ['Patient', 'Manage your appointments'],
       isHome: true,
     },
     '/patient/recurring': {
-      file: '../part07-recurring-preview/part7-option-e-stacked-flow.html',
+      file: '../winners/07-recurring-preview.html',
       actor: 'patient',
       title: 'Recurring series preview',
       breadcrumb: ['Patient', 'Recurring series'],
@@ -60,38 +60,38 @@
 
     // Doctor
     '/doctor/schedule': {
-      file: '../part09-doctor-schedule/part9-option-b-list-by-day.html',
+      file: '../winners/09-doctor-schedule.html',
       actor: 'doctor',
       title: 'Manage weekly schedule',
       breadcrumb: ['Doctor', 'Weekly schedule'],
       isHome: true,
     },
     '/doctor/block': {
-      file: '../part10-doctor-block-time/part10-option-e-stacked-flow.html',
+      file: '../winners/10-doctor-block-time.html',
       actor: 'doctor',
       title: 'Block time off',
       breadcrumb: ['Doctor', 'Block time off'],
     },
     '/doctor/types': {
-      file: '../part11-appointment-types/part11-option-e-stacked-flow.html',
+      file: '../winners/11-appointment-types.html',
       actor: 'doctor',
       title: 'Manage appointment types',
       breadcrumb: ['Doctor', 'Appointment types'],
     },
     '/doctor/today': {
-      file: '../part12-mark-status/part12-option-d-quick-buttons.html',
+      file: '../winners/12-mark-status.html',
       actor: 'doctor',
       title: 'Today Â· Mark status',
       breadcrumb: ['Doctor', "Today's list"],
     },
     '/doctor/resolve': {
-      file: '../part06-resolve-affected/part6-option-c-kanban.html',
+      file: '../winners/06-resolve-affected.html',
       actor: 'doctor',
       title: 'Resolve affected appointments',
       breadcrumb: ['Doctor', 'Resolve affected'],
     },
     '/doctor/recurring-preview': {
-      file: '../part07-recurring-preview/part7-option-e-stacked-flow.html',
+      file: '../winners/07-recurring-preview.html',
       actor: 'doctor',
       title: 'Preview recurring series',
       breadcrumb: ['Doctor', 'Recurring preview'],
@@ -99,26 +99,26 @@
 
     // Receptionist
     '/recep/today': {
-      file: '../part13-recep-today/part13-option-d-card-list.html',
+      file: '../winners/13-recep-today.html',
       actor: 'recep',
       title: "Today's branch view",
       breadcrumb: ['Receptionist', "Today's view"],
       isHome: true,
     },
     '/recep/create': {
-      file: '../part14-recep-create/part14-option-a-stepped-form.html',
+      file: '../winners/14-recep-create.html',
       actor: 'recep',
       title: 'Book on behalf of patient',
       breadcrumb: ['Receptionist', 'Book on behalf'],
     },
     '/recep/cancel': {
-      file: '../part15-recep-cancel/part15-option-e-stacked-flow.html',
+      file: '../winners/15-recep-cancel.html',
       actor: 'recep',
       title: 'Cancel an appointment',
       breadcrumb: ['Receptionist', 'Cancel appointment'],
     },
     '/recep/availability': {
-      file: '../part16-recep-availability/part16-option-e-stacked-flow.html',
+      file: '../winners/16-recep-availability.html',
       actor: 'recep',
       title: 'Doctor availability Â· read-only',
       breadcrumb: ['Receptionist', 'Doctor availability'],
@@ -126,26 +126,26 @@
 
     // Admin
     '/admin/branches': {
-      file: '../part17-admin-branches/part17-option-e-stacked-flow.html',
+      file: '../winners/17-admin-branches.html',
       actor: 'admin',
       title: 'Manage branches',
       breadcrumb: ['Admin', 'Branches'],
       isHome: true,
     },
     '/admin/branch-hours': {
-      file: '../part08-branch-hours-impact/part8-option-e-stacked-flow.html',
+      file: '../winners/08-branch-hours-impact.html',
       actor: 'admin',
       title: 'Branch hours change impact',
       breadcrumb: ['Admin', 'Branch hours Â· impact'],
     },
     '/admin/doctors': {
-      file: '../part18-admin-doctors/part18-option-b-cards.html',
+      file: '../winners/18-admin-doctors.html',
       actor: 'admin',
       title: 'Manage doctors',
       breadcrumb: ['Admin', 'Doctors'],
     },
     '/admin/receptionists': {
-      file: '../part19-admin-receptionists/part19-option-b-cards.html',
+      file: '../winners/19-admin-receptionists.html',
       actor: 'admin',
       title: 'Manage receptionists',
       breadcrumb: ['Admin', 'Receptionists'],
