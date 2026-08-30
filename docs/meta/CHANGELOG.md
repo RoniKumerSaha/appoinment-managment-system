@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### 🎨 Design system live reference — 2026-08-30
+- **`docs/design/mockups/v1/app/design-system.html`** introduced — a single-page live rendering of every token (brand / surface / text / semantic colors, type scale, spacing, radius, elevation) and all 13 components from `DESIGN-SYSTEM.md` §7. Sticky left-nav with anchor jumps per section. Every visual on the page is bound to a CSS custom property that maps 1:1 to the .md token. If the .md changes, this file changes with it.
+- **Sidebar split.** Left column = sticky table of contents grouped Tokens / Components / Patterns. Right column = scrolling demo with section anchors (`#brand`, `#buttons`, `#modal`, etc.).
+- **Split companion role clarified** in `DESIGN-SYSTEM.md` §14: `components.html` is the copy/paste template library (6 `<template>` elements); `design-system.html` is the visual reference (13 components rendered live). The .md remains the source of truth.
+- **`docs/meta/PROJECT-TREE.md`** updated with a `design-system.html` entry under `app/`, distinguishing it from `components.html`.
+
 ### 🔧 Docs reorganisation — 2026-08-30
 - **`docs/` split into three topical subfolders.** Single rule per folder, single owner:
   - `docs/specs/` — *what we're building and why.* BRD, PRD, UX-FLOWS. Owner: PM.

@@ -549,6 +549,13 @@ Earlier mockups used "Branch A — Downtown" / "Branch B — Marina" — those a
 
 ---
 
-## 14. Companion file
+## 14. Companion files
 
-`docs/design/mockups/v1/app/components.html` is the live HTML reference for the components in §7. Every component in this document has a rendered template there. If a component here doesn't match `components.html`, the HTML wins (it's the running source).
+Two HTML references live alongside the mockups:
+
+| File | Purpose |
+|---|---|
+| `docs/design/mockups/v1/app/components.html` | **Templates.** Six `<template>` elements (ConflictModal, Toast, StatusPill, AppointmentCard, EmptyState, AuditLogDrawer) — copy/paste these into new mockups. |
+| `docs/design/mockups/v1/app/design-system.html` | **Visual reference.** A single-page live rendering of every token (colors, type, spacing, radius, elevation) and all 13 components from §7. Bound to the same CSS custom properties as this document. Open it to see what "Clinical Calm" looks like. |
+
+The rule: `DESIGN-SYSTEM.md` is the **source of truth**. The two HTML files are the running proof. If they disagree, the .md wins — fix the HTML.

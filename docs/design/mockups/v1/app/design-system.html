@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MediSlot — Design System (Live Reference)</title>
+<style>
+  /* ============================================================
+     TOKEN — CSS custom properties
+     Sourced from docs/design/DESIGN-SYSTEM.md §2–6.
+     Do not edit the values here without updating the .md.
+     ============================================================ */
+  :root {
+    /* Brand */
+    --brand-primary:        #0f766e;
+    --brand-light:          #ccfbf1;
+    --brand-light-50:       #f0fdfa;
+    --brand-border:         #99f6e4;
+
+    /* Surface */
+    --surface-page:         #f5f6f8;
+    --surface-card:         #ffffff;
+    --surface-soft:         #f9fafb;
+    --surface-divider:      #f3f4f6;
+    --border-default:       #e5e7eb;
+    --border-strong:        #d1d5db;
+
+    /* Text */
+    --text-heading:         #111827;
+    --text-body:            #1a1d23;
+    --text-strong:          #374151;
+    --text-default:         #4b5563;
+    --text-muted:           #6b7280;
+    --text-faint:           #9ca3af;
+
+    /* Semantic */
+    --success-bg:           #f0fdfa;
+    --success-border:       #99f6e4;
+    --success-text:         #065f46;
+    --success-badge-bg:     #d1fae5;
+    --warning-bg:           #fffbeb;
+    --warning-border:       #f59e0b;
+    --warning-soft:         #fef3c7;
+    --warning-text:         #422006;
+    --danger-bg:            #fef2f2;
+    --danger-border:        #fca5a5;
+    --danger-strong:        #dc2626;
+    --danger-text:          #7f1d1d;
+    --danger-dark:          #991b1b;
+    --info-bg:              #dbeafe;
+    --info-text:            #1e40af;
+    --neutral-bg:           #f3f4f6;
+
+    /* Spacing */
+    --space-1:  4px;  --space-2:  6px;  --space-3:  8px;
+    --space-4: 10px;  --space-5: 12px;  --space-6: 14px;
+    --space-7: 16px;  --space-8: 18px;  --space-9: 20px;
+    --space-10:24px;  --space-11:28px;  --space-12:32px;
+
+    /* Radius */
+    --radius-xs: 4px;  --radius-sm: 6px;  --radius-md: 8px;
+    --radius-lg: 10px; --radius-xl: 12px; --radius-pill: 999px;
+
+    /* Elevation */
+    --elev-1: 0 1px 2px rgba(0,0,0,0.06);
+    --elev-3: 0 2px 8px rgba(15,118,110,0.08);
+    --elev-4: 0 4px 12px rgba(0,0,0,0.06);
+    --ring-focus:    0 0 0 3px rgba(15,118,110,0.10);
+    --ring-success:  0 0 0 4px #99f6e4;
+    --ring-danger:   0 0 0 4px #fca5a5;
+  }
+
+  /* ============================================================
+     BASE
+     ============================================================ */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--surface-page);
+    color: var(--text-body);
+    line-height: 1.5;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: 12px; background: var(--surface-divider); padding: 1px 6px; border-radius: 4px; color: var(--text-strong); }
+  .num, .mono { font-variant-numeric: tabular-nums; }
+
+  /* ============================================================
+     LAYOUT — top nav + section pages
+     ============================================================ */
+  .ds-shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  .ds-nav {
+    position: sticky; top: 0; align-self: start;
+    background: var(--surface-card);
+    border-right: 1px solid var(--border-default);
+    padding: var(--space-10) var(--space-7);
+    height: 100vh; overflow-y: auto;
+  }
+  .ds-nav h1 { font-size: 16px; color: var(--brand-primary); margin-bottom: 4px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .ds-nav .logo-icon { width: 24px; height: 24px; background: var(--brand-primary); border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 13px; }
+  .ds-nav .ver { font-size: 11px; color: var(--text-muted); margin-bottom: 24px; }
+  .ds-nav ul { list-style: none; padding: 0; }
+  .ds-nav li { margin-bottom: 2px; }
+  .ds-nav a {
+    display: block; padding: 6px 10px; color: var(--text-default); font-size: 13px;
+    text-decoration: none; border-radius: 6px; transition: background 120ms;
+  }
+  .ds-nav a:hover { background: var(--surface-soft); color: var(--text-heading); }
+  .ds-nav .grp { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; padding: 12px 10px 4px; }
+
+  .ds-main { padding: var(--space-12) var(--space-12) 96px; max-width: 1200px; }
+  .ds-main section { margin-bottom: 64px; scroll-margin-top: 16px; }
+  .ds-main h2 { font-size: 22px; color: var(--text-heading); font-weight: 600; margin-bottom: 8px; }
+  .ds-main h3 { font-size: 15px; color: var(--text-heading); font-weight: 600; margin: 24px 0 8px; }
+  .ds-main .lead { color: var(--text-default); font-size: 14px; margin-bottom: 24px; max-width: 720px; }
+  .ds-main .meta { font-size: 12px; color: var(--text-muted); margin-bottom: 24px; }
+
+  /* ============================================================
+     SECTION HEADERS
+     ============================================================ */
+  .anchor { font-size: 11px; color: var(--text-muted); font-weight: 400; margin-left: 8px; }
+
+  /* ============================================================
+     SWATCH GRID — color tokens rendered live
+     ============================================================ */
+  .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-5); }
+  .swatch { background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-lg); overflow: hidden; }
+  .swatch-chip { height: 64px; }
+  .swatch-body { padding: 10px 12px; }
+  .swatch-name { font-size: 12px; font-weight: 600; color: var(--text-heading); font-family: "SF Mono", Consolas, monospace; }
+  .swatch-hex  { font-size: 11px; color: var(--text-muted); font-family: "SF Mono", Consolas, monospace; margin-top: 2px; }
+  .swatch-use  { font-size: 11px; color: var(--text-default); margin-top: 4px; }
+
+  /* ============================================================
+     TYPE SCALE
+     ============================================================ */
+  .type-row { display: grid; grid-template-columns: 120px 1fr; gap: var(--space-7); padding: 12px 0; border-bottom: 1px solid var(--surface-divider); align-items: baseline; }
+  .type-row:last-child { border-bottom: 0; }
+  .type-meta { font-size: 11px; color: var(--text-muted); font-family: "SF Mono", Consolas, monospace; line-height: 1.5; }
+  .type-sample { color: var(--text-heading); }
+
+  /* ============================================================
+     SPACING SCALE
+     ============================================================ */
+  .sp-row { display: flex; align-items: center; gap: var(--space-7); padding: 8px 0; border-bottom: 1px solid var(--surface-divider); }
+  .sp-row:last-child { border-bottom: 0; }
+  .sp-meta { font-size: 11px; color: var(--text-muted); font-family: "SF Mono", Consolas, monospace; min-width: 200px; }
+  .sp-bar { background: var(--brand-primary); height: 14px; border-radius: 3px; }
+  .sp-desc { font-size: 12px; color: var(--text-default); margin-left: auto; }
+
+  /* ============================================================
+     RADIUS + ELEVATION
+     ============================================================ */
+  .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-5); }
+  .tile { background: var(--surface-card); border: 1px solid var(--border-default); padding: 16px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .tile-name { font-size: 11px; color: var(--text-muted); font-family: "SF Mono", Consolas, monospace; }
+  .tile-fill { width: 80px; height: 40px; background: var(--brand-light-50); border: 1px solid var(--brand-border); }
+
+  /* ============================================================
+     §7.1 BUTTONS
+     ============================================================ */
+  .btn-primary {
+    background: var(--brand-primary); color: white; border: none;
+    padding: 9px 16px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-primary:hover { background: #0d6660; }
+  .btn-primary:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+  .btn-secondary {
+    background: white; color: var(--brand-primary); border: 1px solid var(--brand-primary);
+    padding: 8px 15px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;
+  }
+  .btn-secondary:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+  .btn-ghost {
+    background: transparent; color: var(--text-default); border: none;
+    padding: 9px 14px; border-radius: var(--radius-sm);
+    font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .btn-ghost:hover { background: var(--surface-soft); }
+
+  .btn-danger {
+    background: var(--danger-strong); color: white; border: none;
+    padding: 9px 16px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;
+  }
+  .btn-danger:focus-visible { outline: none; box-shadow: var(--ring-danger); }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  /* ============================================================
+     §7.2 STATUS PILL
+     ============================================================ */
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700;
+    padding: 3px 9px; border-radius: var(--radius-pill);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    font-family: inherit;
+  }
+  .pill-scheduled { background: var(--info-bg);    color: var(--info-text); }
+  .pill-checkedin { background: var(--brand-light);color: var(--brand-primary); }
+  .pill-completed { background: var(--success-badge-bg); color: var(--success-text); }
+  .pill-cancelled { background: #fecaca;          color: var(--danger-dark); }
+  .pill-noshow    { background: #fecaca;          color: var(--danger-dark); }
+  .pill-create    { background: var(--success-badge-bg); color: var(--success-text); }
+  .pill-skip      { background: #fecaca;          color: var(--danger-dark); }
+  .pill-neutral   { background: var(--neutral-bg);color: var(--text-default); }
+
+  .pill-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* ============================================================
+     §7.3 CARD
+     ============================================================ */
+  .card {
+    background: var(--surface-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: var(--space-7) var(--space-9);
+    transition: border-color 120ms, box-shadow 120ms;
+  }
+  .card.selected {
+    background: var(--brand-light-50);
+    border-color: var(--brand-primary);
+    box-shadow: var(--ring-success);
+  }
+  .card.hoverable:hover {
+    border-color: var(--brand-border);
+    box-shadow: var(--elev-3);
+  }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--text-heading); margin-bottom: 4px; }
+  .card-meta  { font-size: 13px; color: var(--text-default); }
+  .card-foot  { margin-top: 12px; font-size: 12px; color: var(--text-muted); }
+
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* ============================================================
+     §7.4 SECTION
+     ============================================================ */
+  .section { background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-xl); margin-bottom: 16px; overflow: hidden; }
+  .section-head { padding: 16px 20px; border-bottom: 1px solid var(--surface-divider); display: flex; align-items: center; gap: 12px; }
+  .section-title { font-size: 15px; color: var(--text-heading); font-weight: 600; flex: 1; }
+  .section-sub { font-size: 12px; color: var(--text-muted); }
+  .section-body { padding: 18px 20px; }
+  .section-actions { padding: 14px 20px; border-top: 1px solid var(--surface-divider); display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ============================================================
+     §7.5 FIELD
+     ============================================================ */
+  .field { margin-bottom: 16px; max-width: 420px; }
+  .field label { display: block; font-size: 12px; color: var(--text-strong); font-weight: 600; margin-bottom: 5px; }
+  .field label .req { color: var(--danger-strong); margin-left: 2px; }
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%; padding: 10px 12px;
+    border: 1.5px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    font-size: 14px; font-family: inherit;
+    background: var(--surface-card);
+    color: var(--text-body);
+  }
+  .field input:focus-visible,
+  .field select:focus-visible,
+  .field textarea:focus-visible { outline: none; border-color: var(--brand-primary); box-shadow: var(--ring-focus); }
+  .field .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* ============================================================
+     §7.6 MODAL — ConflictModal
+     ============================================================ */
+  .modal-backdrop {
+    background: rgba(17, 24, 39, 0.45);
+    padding: 32px; border-radius: var(--radius-xl);
+  }
+  .modal {
+    max-width: 480px; background: var(--surface-card);
+    border-radius: var(--radius-xl); padding: var(--space-10);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.18);
+    margin: 0 auto;
+  }
+  .modal-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+  .modal-icon {
+    width: 36px; height: 36px; flex-shrink: 0;
+    background: var(--danger-bg); color: var(--danger-strong);
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .modal-title { font-size: 15px; font-weight: 600; color: var(--text-heading); margin-bottom: 2px; }
+  .modal-sub { font-size: 13px; color: var(--text-default); }
+  .modal-x {
+    margin-left: auto; background: transparent; border: none;
+    color: var(--text-muted); font-size: 20px; cursor: pointer; line-height: 1;
+  }
+  .modal-body { font-size: 13px; color: var(--text-default); margin-bottom: 16px; }
+  .modal-lead { margin-bottom: 10px; }
+  .modal-rule {
+    background: var(--danger-bg); border-left: 3px solid var(--danger-strong);
+    padding: 8px 12px; border-radius: 6px; font-size: 12px; color: var(--danger-text);
+  }
+  .modal-foot { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* ============================================================
+     §7.7 TOAST
+     ============================================================ */
+  .toast {
+    background: var(--brand-primary); color: white;
+    padding: 12px 16px; border-radius: var(--radius-md);
+    box-shadow: 0 8px 24px rgba(15, 118, 110, 0.30);
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; min-width: 280px; max-width: 360px;
+  }
+  .toast-icon { font-size: 14px; }
+  .toast-x {
+    margin-left: auto; background: transparent; border: none;
+    color: white; opacity: 0.7; cursor: pointer; font-size: 16px;
+  }
+  .toast.info    { background: #1e40af; }
+  .toast.warning { background: var(--warning-border); color: #422006; }
+  .toast.error   { background: var(--danger-strong); }
+
+  .toast-stack { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+
+  /* ============================================================
+     §7.8 EMPTY STATE
+     ============================================================ */
+  .empty {
+    padding: 48px 24px; text-align: center; color: var(--text-muted);
+    background: var(--surface-card); border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+  }
+  .empty-icon { font-size: 36px; color: var(--text-faint); margin-bottom: 12px; }
+  .empty-title { font-size: 15px; color: var(--text-heading); font-weight: 600; margin-bottom: 4px; }
+  .empty-desc { font-size: 13px; max-width: 360px; margin: 0 auto 14px; }
+
+  /* ============================================================
+     §7.9 AUDIT LOG DRAWER
+     ============================================================ */
+  .drawer {
+    width: 480px; max-width: 100%; background: var(--surface-card);
+    border: 1px solid var(--border-default); border-radius: var(--radius-xl);
+    overflow: hidden;
+  }
+  .drawer-head {
+    padding: 16px 20px; border-bottom: 1px solid var(--surface-divider);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .drawer-head h3 { font-size: 15px; color: var(--text-heading); font-weight: 600; flex: 1; }
+  .drawer-x { background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; line-height: 1; }
+  .drawer-filters { padding: 10px 20px; border-bottom: 1px solid var(--surface-divider); display: flex; gap: 6px; flex-wrap: wrap; }
+  .drawer-body { padding: 8px 0; max-height: 340px; overflow-y: auto; }
+  .audit-row {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 4px 12px; padding: 10px 20px;
+    border-bottom: 1px solid var(--surface-divider);
+    font-size: 12px;
+  }
+  .audit-row:last-child { border-bottom: 0; }
+  .audit-action { color: var(--text-heading); font-weight: 500; }
+  .audit-meta { color: var(--text-muted); }
+  .audit-time { color: var(--text-muted); font-variant-numeric: tabular-nums; font-size: 11px; }
+  .audit-meta-data { color: var(--text-faint); font-size: 11px; grid-column: 1 / -1; }
+
+  /* ============================================================
+     §7.10 APPOINTMENT CARD
+     ============================================================ */
+  .appt-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px; background: var(--surface-card);
+    border: 1px solid var(--border-default); border-radius: var(--radius-lg);
+  }
+  .date-block {
+    background: var(--brand-light-50); border: 1px solid var(--brand-border);
+    border-radius: var(--radius-md); padding: 6px 10px;
+    text-align: center; min-width: 56px;
+  }
+  .date-block .month { font-size: 10px; color: var(--brand-primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .date-block .day   { font-size: 22px; color: var(--text-heading); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .date-block .dow   { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+  .appt-body { flex: 1; }
+  .appt-doctor { font-size: 14px; font-weight: 600; color: var(--text-heading); }
+  .appt-meta   { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .appt-actions { display: flex; gap: 8px; }
+
+  /* ============================================================
+     §7.11 META CELL
+     ============================================================ */
+  .meta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .meta-cell {
+    background: var(--surface-soft); border: 1px solid var(--border-default);
+    border-radius: var(--radius-md); padding: 10px;
+  }
+  .meta-cell .k {
+    font-size: 10px; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 3px;
+  }
+  .meta-cell .v { font-size: 13px; color: var(--text-heading); font-weight: 500; }
+
+  /* ============================================================
+     §7.12 SEGMENTED CONTROL
+     ============================================================ */
+  .seg {
+    display: inline-flex; gap: 4px;
+    background: var(--neutral-bg); padding: 3px; border-radius: var(--radius-sm);
+  }
+  .seg button {
+    padding: 5px 12px; background: transparent; border: none;
+    border-radius: var(--radius-xs); font-size: 12px;
+    color: var(--text-muted); font-weight: 500; cursor: pointer; font-family: inherit;
+  }
+  .seg button.active {
+    background: var(--surface-card); color: var(--brand-primary);
+    box-shadow: var(--elev-1);
+  }
+
+  /* ============================================================
+     §7.13 STEP NUMBER
+     ============================================================ */
+  .step-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .step-num.future {
+    background: var(--brand-light); color: var(--brand-primary);
+  }
+  .step-num.current {
+    background: var(--brand-primary); color: white;
+    box-shadow: var(--ring-success);
+  }
+  .step-num.done {
+    background: var(--brand-primary); color: white;
+  }
+  .step-num.danger {
+    background: var(--danger-strong); color: white;
+    box-shadow: var(--ring-danger);
+  }
+  .step-num-row { display: flex; gap: 16px; align-items: center; }
+
+  /* ============================================================
+     LAYOUT PATTERNS
+     ============================================================ */
+  .layout-stacked {
+    max-width: 760px; margin: 0 auto; padding: 24px;
+    background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-xl);
+  }
+  .layout-sidebar {
+    display: grid; grid-template-columns: 1fr 320px; gap: 16px;
+  }
+  .layout-sidebar .main,
+  .layout-sidebar .side {
+    background: var(--surface-card); border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg); padding: 16px; min-height: 120px;
+  }
+
+  /* ============================================================
+     MISC
+     ============================================================ */
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .stack > * + * { margin-top: 12px; }
+  hr { border: 0; border-top: 1px solid var(--surface-divider); margin: 32px 0; }
+  .legend { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+  .label-tag {
+    display: inline-block; font-size: 10px; padding: 2px 8px;
+    background: var(--brand-light-50); color: var(--brand-primary);
+    border: 1px solid var(--brand-border); border-radius: var(--radius-pill);
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+<div class="ds-shell">
+
+  <!-- ============================================================
+       LEFT NAV — table of contents
+       ============================================================ -->
+  <nav class="ds-nav">
+    <h1><span class="logo-icon">M</span> MediSlot</h1>
+    <div class="ver">Design System v1 · 2026-08-30</div>
+    <ul>
+      <li class="grp">Tokens</li>
+      <li><a href="#brand">Brand</a></li>
+      <li><a href="#surface">Surface</a></li>
+      <li><a href="#text">Text</a></li>
+      <li><a href="#semantic">Semantic</a></li>
+      <li><a href="#type">Typography</a></li>
+      <li><a href="#spacing">Spacing</a></li>
+      <li><a href="#radius">Radius</a></li>
+      <li><a href="#elevation">Elevation</a></li>
+
+      <li class="grp">Components</li>
+      <li><a href="#buttons">7.1 Buttons</a></li>
+      <li><a href="#pills">7.2 StatusPill</a></li>
+      <li><a href="#cards">7.3 Card</a></li>
+      <li><a href="#sections">7.4 Section</a></li>
+      <li><a href="#fields">7.5 Field</a></li>
+      <li><a href="#modal">7.6 Modal</a></li>
+      <li><a href="#toast">7.7 Toast</a></li>
+      <li><a href="#empty">7.8 EmptyState</a></li>
+      <li><a href="#audit">7.9 AuditLogDrawer</a></li>
+      <li><a href="#appt">7.10 AppointmentCard</a></li>
+      <li><a href="#meta">7.11 MetaCell</a></li>
+      <li><a href="#seg">7.12 SegmentedControl</a></li>
+      <li><a href="#step">7.13 StepNumber</a></li>
+
+      <li class="grp">Patterns</li>
+      <li><a href="#layouts">Layout patterns</a></li>
+    </ul>
+  </nav>
+
+  <!-- ============================================================
+       MAIN
+       ============================================================ -->
+  <main class="ds-main">
+
+    <!-- Header -->
+    <section style="margin-bottom: 32px;">
+      <span class="label-tag">Live reference</span>
+      <h2 style="margin-top: 12px;">MediSlot Design System</h2>
+      <p class="lead">Every value on this page is bound to a CSS custom property sourced from <code>docs/design/DESIGN-SYSTEM.md</code>. If the .md changes, this page changes with it. No hex, no px, no radius here is invented.</p>
+      <p class="meta">Open this file directly: <code>docs/design/mockups/v1/app/design-system.html</code></p>
+    </section>
+
+    <!-- ─────────  TOKENS  ───────── -->
+
+    <!-- §2.1 Brand -->
+    <section id="brand">
+      <h2>Brand colors</h2>
+      <p class="lead">The teal palette. Use primary for actions, brand-light-50 for selected surfaces, brand-border for focus rings.</p>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="swatch-chip" style="background:#0f766e;"></div><div class="swatch-body"><div class="swatch-name">--brand-primary</div><div class="swatch-hex">#0f766e</div><div class="swatch-use">CTAs, logo, active state</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#ccfbf1;"></div><div class="swatch-body"><div class="swatch-name">--brand-light</div><div class="swatch-hex">#ccfbf1</div><div class="swatch-use">Avatars, soft accents</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#f0fdfa;"></div><div class="swatch-body"><div class="swatch-name">--brand-light-50</div><div class="swatch-hex">#f0fdfa</div><div class="swatch-use">Selected surfaces</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#99f6e4;"></div><div class="swatch-body"><div class="swatch-name">--brand-border</div><div class="swatch-hex">#99f6e4</div><div class="swatch-use">Focus ring, success outline</div></div></div>
+      </div>
+    </section>
+
+    <!-- §2.2 Surface -->
+    <section id="surface">
+      <h2>Surface</h2>
+      <p class="lead">Page chrome, cards, dividers, borders.</p>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="swatch-chip" style="background:#f5f6f8;"></div><div class="swatch-body"><div class="swatch-name">--surface-page</div><div class="swatch-hex">#f5f6f8</div><div class="swatch-use">App background</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#ffffff; border:1px solid #e5e7eb;"></div><div class="swatch-body"><div class="swatch-name">--surface-card</div><div class="swatch-hex">#ffffff</div><div class="swatch-use">Cards, panels, nav</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#f9fafb;"></div><div class="swatch-body"><div class="swatch-name">--surface-soft</div><div class="swatch-hex">#f9fafb</div><div class="swatch-use">Inset meta cells</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#e5e7eb;"></div><div class="swatch-body"><div class="swatch-name">--border-default</div><div class="swatch-hex">#e5e7eb</div><div class="swatch-use">Default 1px borders</div></div></div>
+      </div>
+    </section>
+
+    <!-- §2.3 Text -->
+    <section id="text">
+      <h2>Text</h2>
+      <p class="lead">Six-step scale. <code>--text-faint</code> is for placeholder/disabled only — never for body.</p>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="swatch-chip" style="background:#111827;"></div><div class="swatch-body"><div class="swatch-name">--text-heading</div><div class="swatch-hex">#111827</div><div class="swatch-use">H1, titles</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#1a1d23;"></div><div class="swatch-body"><div class="swatch-name">--text-body</div><div class="swatch-hex">#1a1d23</div><div class="swatch-use">Default body</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#4b5563;"></div><div class="swatch-body"><div class="swatch-name">--text-default</div><div class="swatch-hex">#4b5563</div><div class="swatch-use">Secondary</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#6b7280;"></div><div class="swatch-body"><div class="swatch-name">--text-muted</div><div class="swatch-hex">#6b7280</div><div class="swatch-use">Hints, captions</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#9ca3af;"></div><div class="swatch-body"><div class="swatch-name">--text-faint</div><div class="swatch-hex">#9ca3af</div><div class="swatch-use">Disabled only</div></div></div>
+      </div>
+    </section>
+
+    <!-- §2.4 Semantic -->
+    <section id="semantic">
+      <h2>Semantic</h2>
+      <p class="lead">Status colors. <strong>Never use brand teal for state</strong> — only for actions.</p>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="swatch-chip" style="background:#d1fae5;"></div><div class="swatch-body"><div class="swatch-name">success-badge</div><div class="swatch-hex">#d1fae5 / #065f46</div><div class="swatch-use">Completed</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#fffbeb; border:1px solid #fde68a;"></div><div class="swatch-body"><div class="swatch-name">warning-bg</div><div class="swatch-hex">#fffbeb</div><div class="swatch-use">Now / soft warn</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#fef2f2; border:1px solid #fca5a5;"></div><div class="swatch-body"><div class="swatch-name">danger-bg</div><div class="swatch-hex">#fef2f2 / #dc2626</div><div class="swatch-use">Destructive surface</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#dbeafe;"></div><div class="swatch-body"><div class="swatch-name">info-bg</div><div class="swatch-hex">#dbeafe / #1e40af</div><div class="swatch-use">Scheduled</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#f3f4f6;"></div><div class="swatch-body"><div class="swatch-name">neutral-bg</div><div class="swatch-hex">#f3f4f6</div><div class="swatch-use">Segmented track</div></div></div>
+      </div>
+    </section>
+
+    <!-- §3 Typography -->
+    <section id="type">
+      <h2>Typography</h2>
+      <p class="lead">System stack only. Tabular nums on times and counts.</p>
+
+      <div class="type-row">
+        <div class="type-meta">3xs · 10/600</div>
+        <div class="type-sample" style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">SCHEDULED</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">2xs · 11/500</div>
+        <div class="type-sample" style="font-size:11px; font-weight:500;">Field hint copy</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">xs · 12/500</div>
+        <div class="type-sample" style="font-size:12px; font-weight:500;">Subtitle · captions</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">sm · 13/500</div>
+        <div class="type-sample" style="font-size:13px; font-weight:500;">Default body · table data</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">md · 14/500</div>
+        <div class="type-sample" style="font-size:14px; font-weight:500;">Button label · prominent value</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">lg · 15/600</div>
+        <div class="type-sample" style="font-size:15px; font-weight:600; color:var(--text-heading);">Card title · section title</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">2xl · 17/700</div>
+        <div class="type-sample" style="font-size:17px; font-weight:700; color:var(--brand-primary);">Logo wordmark</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">4xl · 22/600</div>
+        <div class="type-sample" style="font-size:22px; font-weight:600; color:var(--text-heading);">Page H1</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">5xl · 32/600</div>
+        <div class="type-sample mono" style="font-size:32px; font-weight:600; color:var(--text-heading);">4</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">display · 36/700</div>
+        <div class="type-sample mono" style="font-size:36px; font-weight:700; color:var(--brand-primary); line-height:1.1;">4</div>
+      </div>
+    </section>
+
+    <!-- §4 Spacing -->
+    <section id="spacing">
+      <h2>Spacing</h2>
+      <p class="lead">4px base. The values actually shipping across the 19 winners.</p>
+      <div class="sp-row"><div class="sp-meta">--space-1 · 4px</div><div class="sp-bar" style="width:4px;"></div><div class="sp-desc">tight stack</div></div>
+      <div class="sp-row"><div class="sp-meta">--space-3 · 8px</div><div class="sp-bar" style="width:8px;"></div><div class="sp-desc">field gap</div></div>
+      <div class="sp-row"><div class="sp-meta">--space-5 · 12px</div><div class="sp-bar" style="width:12px;"></div><div class="sp-desc">field horizontal pad</div></div>
+      <div class="sp-row"><div class="sp-meta">--space-7 · 16px</div><div class="sp-bar" style="width:16px;"></div><div class="sp-desc">section padding</div></div>
+      <div class="sp-row"><div class="sp-meta">--space-9 · 20px</div><div class="sp-bar" style="width:20px;"></div><div class="sp-desc">page section pad</div></div>
+      <div class="sp-row"><div class="sp-meta">--space-10 · 24px</div><div class="sp-bar" style="width:24px;"></div><div class="sp-desc">page horizontal pad</div></div>
+      <div class="sp-row"><div class="sp-meta">--space-12 · 32px</div><div class="sp-bar" style="width:32px;"></div><div class="sp-desc">page outer padding</div></div>
+    </section>
+
+    <!-- §5 Radius -->
+    <section id="radius">
+      <h2>Radius</h2>
+      <p class="lead">Pick one radius per screen. Buttons always use <code>--radius-sm</code>.</p>
+      <div class="tile-grid">
+        <div class="tile"><div class="tile-name">--radius-xs · 4</div><div class="tile-fill" style="border-radius:4px;"></div></div>
+        <div class="tile"><div class="tile-name">--radius-sm · 6</div><div class="tile-fill" style="border-radius:6px;"></div></div>
+        <div class="tile"><div class="tile-name">--radius-md · 8</div><div class="tile-fill" style="border-radius:8px;"></div></div>
+        <div class="tile"><div class="tile-name">--radius-lg · 10</div><div class="tile-fill" style="border-radius:10px;"></div></div>
+        <div class="tile"><div class="tile-name">--radius-xl · 12</div><div class="tile-fill" style="border-radius:12px;"></div></div>
+        <div class="tile"><div class="tile-name">--radius-pill · 999</div><div class="tile-fill" style="border-radius:999px;"></div></div>
+      </div>
+    </section>
+
+    <!-- §6 Elevation -->
+    <section id="elevation">
+      <h2>Elevation</h2>
+      <p class="lead">Five levels plus the focus / selection halos. Flat by default.</p>
+      <div class="tile-grid">
+        <div class="tile"><div class="tile-name">elev-1</div><div class="tile-fill" style="box-shadow: 0 1px 2px rgba(0,0,0,0.06);"></div></div>
+        <div class="tile"><div class="tile-name">elev-3</div><div class="tile-fill" style="box-shadow: 0 2px 8px rgba(15,118,110,0.10);"></div></div>
+        <div class="tile"><div class="tile-name">elev-4</div><div class="tile-fill" style="box-shadow: 0 4px 12px rgba(0,0,0,0.06);"></div></div>
+        <div class="tile"><div class="tile-name">ring-focus</div><div class="tile-fill" style="box-shadow: 0 0 0 3px rgba(15,118,110,0.10);"></div></div>
+        <div class="tile"><div class="tile-name">ring-success</div><div class="tile-fill" style="box-shadow: 0 0 0 4px #99f6e4;"></div></div>
+        <div class="tile"><div class="tile-name">ring-danger</div><div class="tile-fill" style="box-shadow: 0 0 0 4px #fca5a5;"></div></div>
+      </div>
+    </section>
+
+    <hr>
+
+    <!-- ─────────  COMPONENTS  ───────── -->
+
+    <!-- §7.1 Buttons -->
+    <section id="buttons">
+      <h2>7.1 Buttons</h2>
+      <p class="lead">Four variants, one shape. One primary per visible region. Destructive is always <code>.btn-danger</code>.</p>
+
+      <h3>Default</h3>
+      <div class="btn-row">
+        <button class="btn-primary">Book appointment</button>
+        <button class="btn-secondary">Edit pattern</button>
+        <button class="btn-ghost">Cancel</button>
+        <button class="btn-danger">Confirm cancellation</button>
+      </div>
+      <p class="legend">padding 9px 16px · font-size 13px · radius 6px</p>
+
+      <h3>Promoted (form footers)</h3>
+      <div class="btn-row">
+        <button class="btn-primary" style="padding:10px 18px; font-size:14px;">Save changes</button>
+        <button class="btn-secondary" style="padding:10px 18px; font-size:14px;">Keep editing</button>
+        <button class="btn-ghost" style="padding:10px 18px; font-size:14px;">← Back</button>
+        <button class="btn-danger" style="padding:10px 18px; font-size:14px;">Delete doctor</button>
+      </div>
+      <p class="legend">padding 10px 18px · font-size 14px</p>
+
+      <h3>With icons</h3>
+      <div class="btn-row">
+        <button class="btn-primary">➜ Create 4 appointments</button>
+        <button class="btn-secondary">✓ Save & notify</button>
+        <button class="btn-ghost">← Back</button>
+      </div>
+    </section>
+
+    <!-- §7.2 StatusPill -->
+    <section id="pills">
+      <h2>7.2 StatusPill</h2>
+      <p class="lead">Round, icon-prefixed, uppercase, weight 700. Status pills never use brand teal — that's for actions.</p>
+
+      <h3>Appointment status</h3>
+      <div class="pill-row">
+        <span class="pill pill-scheduled">● Scheduled</span>
+        <span class="pill pill-checkedin">◐ Checked-in</span>
+        <span class="pill pill-completed">✓ Completed</span>
+        <span class="pill pill-cancelled">✕ Cancelled</span>
+        <span class="pill pill-noshow">⚠ No-show</span>
+        <span class="pill pill-neutral">○ Draft</span>
+      </div>
+
+      <h3>Validation outcome (recurring preview)</h3>
+      <div class="pill-row">
+        <span class="pill pill-create">✓ Will create</span>
+        <span class="pill pill-skip">✕ Will skip</span>
+      </div>
+    </section>
+
+    <!-- §7.3 Card -->
+    <section id="cards">
+      <h2>7.3 Card</h2>
+      <p class="lead">Default, selected, hoverable. Selection uses halo + brand-light-50 background, never a border swap.</p>
+
+      <div class="card-grid">
+        <div class="card hoverable">
+          <div class="card-title">Dr. Ahmed Al-Rashid</div>
+          <div class="card-meta">Cardiology · 18 yrs · Riyadh Olaya</div>
+          <div class="card-foot">Hoverable · hover to see elev-3</div>
+        </div>
+        <div class="card selected">
+          <div class="card-title">Dr. Ahmed Al-Rashid</div>
+          <div class="card-meta">Cardiology · 18 yrs · Riyadh Olaya</div>
+          <div class="card-foot">Selected · brand-light-50 + ring-success</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Dr. Sami Al-Qahtani</div>
+          <div class="card-meta">Cardiology · 12 yrs · Jeddah Corniche</div>
+          <div class="card-foot">Default · border-default only</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- §7.4 Section -->
+    <section id="sections">
+      <h2>7.4 Section</h2>
+      <p class="lead">Stacked-vertical primitive. Numbered head, body, actions. The pattern of F-07, F-14, F-16, F-17.</p>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="step-num current">2</div>
+          <div style="flex:1;">
+            <div class="section-title">Validation summary</div>
+            <div class="section-sub">Server pre-validated each occurrence (FR-046).</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div style="display:flex; align-items:center; gap:18px;">
+            <div style="font-size:36px; font-weight:700; color:var(--brand-primary); font-variant-numeric:tabular-nums;">4</div>
+            <div style="flex:1; font-size:13px;">
+              <strong style="color:var(--text-heading); display:block;">will be created</strong>
+              of 6 requested
+            </div>
+            <div style="font-size:36px; font-weight:700; color:var(--danger-strong); font-variant-numeric:tabular-nums;">2</div>
+            <div style="flex:1; font-size:13px;">
+              <strong style="color:var(--text-heading); display:block;">will be skipped</strong>
+              with reasons below
+            </div>
+          </div>
+        </div>
+        <div class="section-actions">
+          <button class="btn-ghost">Cancel</button>
+          <button class="btn-secondary">Edit pattern</button>
+          <button class="btn-primary">Create 4 →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- §7.5 Field -->
+    <section id="fields">
+      <h2>7.5 Field</h2>
+      <p class="lead">Inputs, selects, textareas. Required marker is the red asterisk, never "(required)".</p>
+
+      <div class="field">
+        <label>Full name <span class="req">*</span></label>
+        <input type="text" value="Fatima A. Al-Sayed">
+      </div>
+
+      <div class="field">
+        <label>Phone <span class="req">*</span></label>
+        <input type="tel" value="+966 5XX XXX 5555">
+        <div class="hint">We send a 6-digit code here to verify.</div>
+      </div>
+
+      <div class="field">
+        <label>Appointment type <span class="req">*</span></label>
+        <select>
+          <option>Cardiology consultation · 45 min</option>
+          <option>Follow-up · 20 min</option>
+          <option>ECG review · 15 min</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Notes (optional)</label>
+        <textarea placeholder="Anything we should know before the visit?"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Disabled</label>
+        <input type="text" value="Locked" disabled style="background:var(--surface-soft); color:var(--text-faint); cursor:not-allowed;">
+      </div>
+    </section>
+
+    <!-- §7.6 Modal -->
+    <section id="modal">
+      <h2>7.6 Modal — ConflictModal</h2>
+      <p class="lead">Three slots: what happened · why · what you can do. Never block with a dead-end OK.</p>
+
+      <div class="modal-backdrop">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cm-title">
+          <div class="modal-head">
+            <div class="modal-icon">⚠</div>
+            <div>
+              <h3 id="cm-title" class="modal-title">That slot was just booked.</h3>
+              <p class="modal-sub">Dr. Al-Rashid's Saturday 10:00 was claimed 12 seconds ago.</p>
+            </div>
+            <button class="modal-x" aria-label="Close">×</button>
+          </div>
+          <div class="modal-body">
+            <p class="modal-lead">Pick another time with Dr. Al-Rashid on Saturday, or try the same slot tomorrow.</p>
+            <div class="modal-rule">Rule BR-005: each slot is held by exactly one appointment. No double-booking.</div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn-ghost">Back to calendar</button>
+            <button class="btn-primary">Pick another time →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- §7.7 Toast -->
+    <section id="toast">
+      <h2>7.7 Toast</h2>
+      <p class="lead">Top-right, auto-dismiss 3s. Tone variants: success, info, warning, error.</p>
+
+      <div class="toast-stack">
+        <div class="toast"><span class="toast-icon">✓</span><span class="toast-text">Appointment booked. Reference APT-2026-08-21-145.</span><button class="toast-x" aria-label="Dismiss">×</button></div>
+        <div class="toast info"><span class="toast-icon">ⓘ</span><span class="toast-text">Schedule saved.</span><button class="toast-x" aria-label="Dismiss">×</button></div>
+        <div class="toast warning"><span class="toast-icon">⚠</span><span class="toast-text">2 appointments are outside branch hours.</span><button class="toast-x" aria-label="Dismiss">×</button></div>
+        <div class="toast error"><span class="toast-icon">✕</span><span class="toast-text">Slot was just booked. Pick another.</span><button class="toast-x" aria-label="Dismiss">×</button></div>
+      </div>
+    </section>
+
+    <!-- §7.8 EmptyState -->
+    <section id="empty">
+      <h2>7.8 EmptyState</h2>
+      <p class="lead">Three patterns: truly empty, filtered to nothing, permission blocked.</p>
+
+      <div class="empty">
+        <div class="empty-icon">📅</div>
+        <div class="empty-title">No appointments today</div>
+        <p class="empty-desc">Nothing scheduled for Riyadh Olaya on Tue, Sep 2. Patients can still book via self-service.</p>
+        <button class="btn-primary">+ Book on behalf</button>
+      </div>
+
+      <div style="height:12px;"></div>
+
+      <div class="empty">
+        <div class="empty-icon">⚠</div>
+        <div class="empty-title">No matches for "Cardiology"</div>
+        <p class="empty-desc">Dr. Al-Rashid has no Cardiology slots this week. Try Next week or clear the filter.</p>
+        <button class="btn-secondary">Clear filter</button>
+      </div>
+    </section>
+
+    <!-- §7.9 AuditLogDrawer -->
+    <section id="audit">
+      <h2>7.9 AuditLogDrawer</h2>
+      <p class="lead">Slides in from the right. Width 480px. Filter chips + one-line rows.</p>
+
+      <div class="drawer">
+        <div class="drawer-head">
+          <h3>Audit log</h3>
+          <button class="drawer-x" aria-label="Close">×</button>
+        </div>
+        <div class="drawer-filters">
+          <div class="seg"><button>All</button><button class="active">Bookings</button><button>Cancellations</button><button>Schedule</button></div>
+        </div>
+        <div class="drawer-body">
+          <div class="audit-row">
+            <div class="audit-action">Appointment created</div>
+            <div class="audit-time">10:42:15</div>
+            <div class="audit-meta">Reem Al-Harbi · Receptionist</div>
+            <div class="audit-meta-data">APT-2026-08-21-145 · Fatima Al-Sayed · Dr. Al-Rashid</div>
+          </div>
+          <div class="audit-row">
+            <div class="audit-action">Branch hours narrowed</div>
+            <div class="audit-time">09:18:02</div>
+            <div class="audit-meta">Salem Al-Mutairi · Admin</div>
+            <div class="audit-meta-data">Riyadh Olaya · Sat 13:00–17:00 → closed</div>
+          </div>
+          <div class="audit-row">
+            <div class="audit-action">Slot blocked</div>
+            <div class="audit-time">08:55:48</div>
+            <div class="audit-meta">Dr. Ahmed Al-Rashid · Doctor</div>
+            <div class="audit-meta-data">Mon Aug 25 · 10:00–11:00 · Cardiology conference</div>
+          </div>
+          <div class="audit-row">
+            <div class="audit-action">Appointment cancelled</div>
+            <div class="audit-time">08:32:11</div>
+            <div class="audit-meta">Reem Al-Harbi · Receptionist</div>
+            <div class="audit-meta-data">APT-2026-08-20-098 · Patient no-show · slot released</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- §7.10 AppointmentCard -->
+    <section id="appt">
+      <h2>7.10 AppointmentCard</h2>
+      <p class="lead">Same primitive, four role-flavored variants.</p>
+
+      <div class="stack">
+        <div class="appt-card">
+          <div class="date-block"><div class="month">Aug</div><div class="day">23</div><div class="dow">Sat</div></div>
+          <div class="appt-body">
+            <div class="appt-doctor">Dr. Ahmed Al-Rashid</div>
+            <div class="appt-meta">Cardiology cons. · 45 min · Riyadh Olaya · 11:15–12:00</div>
+          </div>
+          <div class="appt-actions">
+            <span class="pill pill-scheduled">● Scheduled</span>
+            <button class="btn-ghost">Reschedule</button>
+            <button class="btn-secondary">Cancel</button>
+          </div>
+        </div>
+
+        <div class="appt-card">
+          <div class="date-block"><div class="month">Aug</div><div class="day">25</div><div class="dow">Mon</div></div>
+          <div class="appt-body">
+            <div class="appt-doctor">Sara M. · +966 5XX XXX 7777</div>
+            <div class="appt-meta">Cardiology cons. · 45 min · Branch A · 10:00–10:45</div>
+          </div>
+          <div class="appt-actions">
+            <span class="pill pill-create">✓ Will create</span>
+          </div>
+        </div>
+
+        <div class="appt-card" style="border-color:#fca5a5; background:#fef2f2;">
+          <div class="date-block" style="background:#fef2f2; border-color:#fca5a5;"><div class="month" style="color:var(--danger-strong);">Sep</div><div class="day" style="color:var(--danger-dark);">8</div><div class="dow">Mon</div></div>
+          <div class="appt-body">
+            <div class="appt-doctor">Sara M.</div>
+            <div class="appt-meta">Cardiology · 45 min · Branch A · 10:00–10:45</div>
+          </div>
+          <div class="appt-actions">
+            <span class="pill pill-skip">✕ Will skip</span>
+            <span style="font-size:11px; color:var(--danger-text); padding:3px 8px; background:#fecaca; border-radius:999px; font-weight:600;">Doctor blocked</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- §7.11 MetaCell -->
+    <section id="meta">
+      <h2>7.11 MetaCell</h2>
+      <p class="lead">Two-column key→value grid. Uppercase 10px key, 13px value.</p>
+
+      <div class="meta-row">
+        <div class="meta-cell"><div class="k">Patient</div><div class="v">Fatima A. Al-Sayed</div></div>
+        <div class="meta-cell"><div class="k">Phone</div><div class="v mono">+966 5XX XXX 5555</div></div>
+        <div class="meta-cell"><div class="k">Doctor</div><div class="v">Dr. Ahmed Al-Rashid</div></div>
+        <div class="meta-cell"><div class="k">Branch</div><div class="v">Riyadh Olaya</div></div>
+        <div class="meta-cell"><div class="k">Type</div><div class="v">Cardiology · 45 min</div></div>
+        <div class="meta-cell"><div class="k">When</div><div class="v">Sat, Aug 23 · 11:15</div></div>
+      </div>
+    </section>
+
+    <!-- §7.12 SegmentedControl -->
+    <section id="seg">
+      <h2>7.12 SegmentedControl</h2>
+      <p class="lead">Used in admin filter bars and role switchers. Active item gets elev-1 + brand-primary text.</p>
+
+      <div class="row">
+        <div class="seg">
+          <button>All</button>
+          <button class="active">Active</button>
+          <button>Inactive</button>
+        </div>
+        <div class="seg">
+          <button class="active">Today</button>
+          <button>Tomorrow</button>
+          <button>This week</button>
+          <button>Next week</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- §7.13 StepNumber -->
+    <section id="step">
+      <h2>7.13 StepNumber</h2>
+      <p class="lead">26×26 circle. Four states. Use <code>.danger</code> only for cancel flows.</p>
+
+      <div class="step-num-row">
+        <div><div class="step-num future">1</div><div style="font-size:11px; color:var(--text-muted); margin-top:4px; text-align:center;">future</div></div>
+        <div><div class="step-num current">2</div><div style="font-size:11px; color:var(--text-muted); margin-top:4px; text-align:center;">current</div></div>
+        <div><div class="step-num done">3</div><div style="font-size:11px; color:var(--text-muted); margin-top:4px; text-align:center;">done</div></div>
+        <div><div class="step-num danger">4</div><div style="font-size:11px; color:var(--text-muted); margin-top:4px; text-align:center;">danger (cancel)</div></div>
+      </div>
+
+      <h3>In context</h3>
+      <div class="section" style="max-width:600px;">
+        <div class="section-head">
+          <div class="step-num done">1</div>
+          <div style="flex:1;">
+            <div class="section-title">Pick the appointment</div>
+            <div class="section-sub">5 scheduled today</div>
+          </div>
+        </div>
+        <div class="section-head" style="border-top:1px solid var(--surface-divider);">
+          <div class="step-num danger">2</div>
+          <div style="flex:1;">
+            <div class="section-title">Reason + confirm · Fatima Al-Sayed</div>
+            <div class="section-sub">Slot will be released</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr>
+
+    <!-- ─────────  PATTERNS  ───────── -->
+
+    <section id="layouts">
+      <h2>Layout patterns</h2>
+      <p class="lead">Five patterns. One per screen.</p>
+
+      <h3>Stacked vertical <span class="anchor">760px</span></h3>
+      <div class="layout-stacked">
+        <div style="font-size:15px; font-weight:600; color:var(--text-heading); margin-bottom:4px;">Page header</div>
+        <div style="font-size:12px; color:var(--text-muted);">Stepped confirmations, forms, transactional flows.</div>
+        <div style="height:16px;"></div>
+        <div class="section">
+          <div class="section-body">Section body — 18px 20px padding.</div>
+        </div>
+      </div>
+
+      <h3>Sidebar <span class="anchor">1fr 320px</span></h3>
+      <div class="layout-sidebar">
+        <div class="main">
+          <div style="font-size:13px; color:var(--text-default);">Main column — form, list, calendar.</div>
+        </div>
+        <div class="side">
+          <div style="font-size:13px; color:var(--text-default);">Sticky summary on the right.</div>
+        </div>
+      </div>
+
+      <h3>Card grid <span class="anchor">3-col on ≥1024</span></h3>
+      <div class="card-grid">
+        <div class="card"><div class="card-title">Doctor 1</div><div class="card-meta">Cardiology</div></div>
+        <div class="card"><div class="card-title">Doctor 2</div><div class="card-meta">Cardiology</div></div>
+        <div class="card"><div class="card-title">Doctor 3</div><div class="card-meta">Cardiology</div></div>
+      </div>
+    </section>
+
+    <!-- footer -->
+    <section style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border-default);">
+      <p class="meta">
+        Source of truth: <code>docs/design/DESIGN-SYSTEM.md</code> ·
+        Companion template library: <code>docs/design/mockups/v1/app/components.html</code> ·
+        Open this file: <code>docs/design/mockups/v1/app/design-system.html</code>
+      </p>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>

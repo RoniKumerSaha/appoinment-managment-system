@@ -108,10 +108,20 @@ docs/
             │   │                     # winners directly. Mirrors
             │   │                     # data-route → window navigation.
             │   │                     # Injects into every winner.
-            │   ├── components.html   # Shared UI primitives —
-            │   │                     # ConflictModal, Toast, StatusPill,
-            │   │                     # AppointmentCard, EmptyState,
-            │   │                     # AuditLogDrawer templates.
+            │   ├── components.html   # Shared UI primitives — 6 HTML
+            │   │                     # templates (ConflictModal, Toast,
+            │   │                     # StatusPill, AppointmentCard,
+            │   │                     # EmptyState, AuditLogDrawer).
+            │   │                     # Use as copy/paste reference when
+            │   │                     # wiring mockups.
+            │   ├── design-system.html # Live reference for the full
+            │   │                     # design system. Renders every
+            │   │                     # token (colors, type, spacing,
+            │   │                     # radius, elevation) and all 13
+            │   │                     # components from DESIGN-SYSTEM.md.
+            │   │                     # Bound to CSS vars — the .md is
+            │   │                     # the source of truth, this is the
+            │   │                     # visual proof.
             │   │                     # Source-of-truth for upcoming
             │   │                     # wire-ins.
             │   └── logo.svg          # Logo 03 · Monoline Icon. Mirror
