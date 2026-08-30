@@ -1,0 +1,108 @@
+<!-- MediSlot shared UI components
+     Used as a reference (HTML fragments) when building mockups. Each
+     component has a documented contract — slots, copy, dismiss behavior.
+     Live demo at: docs/mockups/v1/components-preview.html
+-->
+
+<!-- ============================================================
+     ConflictModal — what happened / why / what you can do
+     Used by: F-01, F-02, F-05, F-06, F-07, F-13, F-16
+     UX-FLOWS §6.1
+     ============================================================ -->
+<template id="tpl-conflict-modal">
+  <div class="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cm-title">
+      <div class="modal-head">
+        <div class="modal-icon">⚠</div>
+        <div>
+          <h3 id="cm-title" class="modal-title">{title}</h3>
+          <p class="modal-sub">{why}</p>
+        </div>
+        <button class="modal-x" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-lead">{what}</p>
+        <div class="modal-rule">{rule}</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-ghost">{secondaryAction}</button>
+        <button class="btn-primary">{primaryAction}</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- ============================================================
+     Toast — top-right, auto-dismiss, 1 action
+     Used after every successful action (F-04, F-05, F-06, F-07,
+     F-10, F-13, F-14)
+     ============================================================ -->
+<template id="tpl-toast">
+  <div class="toast" role="status" aria-live="polite">
+    <span class="toast-icon">✓</span>
+    <span class="toast-text">{message}</span>
+    <button class="toast-x" aria-label="Dismiss">×</button>
+  </div>
+</template>
+
+<!-- ============================================================
+     StatusPill — icon-prefixed, single style across the app
+     ============================================================ -->
+<template id="tpl-status-pill">
+  <span class="pill {variant}">{icon} {label}</span>
+</template>
+
+<!-- ============================================================
+     AppointmentCard — used by patient + receptionist views
+     ============================================================ -->
+<template id="tpl-appointment-card">
+  <div class="appt-card">
+    <div class="date-block">
+      <div class="month">{month}</div>
+      <div class="day">{day}</div>
+      <div class="dow">{dow}</div>
+    </div>
+    <div class="appt-body">
+      <div class="appt-doctor">{doctor}</div>
+      <div class="appt-meta">{branch} · {time}</div>
+    </div>
+    <div class="appt-actions">
+      <button data-route="{primaryRoute}">{primaryLabel}</button>
+      <button data-route="{secondaryRoute}">{secondaryLabel}</button>
+    </div>
+  </div>
+</template>
+
+<!-- ============================================================
+     EmptyState — for any list (appointments, doctors, branches)
+     ============================================================ -->
+<template id="tpl-empty-state">
+  <div class="empty-state">
+    <div class="empty-icon">{icon}</div>
+    <h3>{title}</h3>
+    <p>{description}</p>
+    <button class="btn-primary" data-route="{ctaRoute}">{ctaLabel}</button>
+  </div>
+</template>
+
+<!-- ============================================================
+     AuditLogDrawer — slides in from the right
+     ============================================================ -->
+<template id="tpl-audit-drawer">
+  <div class="drawer-backdrop">
+    <div class="drawer" role="dialog" aria-label="Audit log">
+      <div class="drawer-head">
+        <h3>Audit log</h3>
+        <button class="drawer-x" aria-label="Close">×</button>
+      </div>
+      <div class="drawer-body">
+        <div class="audit-row">
+          <div class="audit-action">{action}</div>
+          <div class="audit-meta">{actor} · {role}</div>
+          <div class="audit-time">{timestamp}</div>
+          <div class="audit-metadata">{metadata}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
