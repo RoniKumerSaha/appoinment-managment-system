@@ -1,14 +1,14 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MediSlot â€” App Preview</title>
+<title>MediSlot — App Preview</title>
 <link rel="stylesheet" href="shell.css">
 </head>
 <body>
 
-  <!-- â”€â”€â”€ Topbar â”€â”€â”€ -->
+  <!-- ─── Topbar ─── -->
   <header class="topbar">
     <a class="brand" href="#/">
       <img class="logo-mark" src="logo.svg" alt="MediSlot">
@@ -22,7 +22,7 @@
 
     <div class="topbar-actions">
       <label class="role-select-wrap" title="Switch role">
-        <span class="role-icon" aria-hidden="true">ðŸ‘¤</span>
+        <span class="role-icon" aria-hidden="true">👤</span>
         <select id="roleSelect" class="role-select">
           <option value="landing">Landing</option>
           <option value="patient">Patient</option>
@@ -31,14 +31,14 @@
           <option value="admin">Admin</option>
         </select>
       </label>
-      <a id="openInNew" class="open-new" href="../winners/01-layout-direction.html" target="_blank" title="Open current page in new tab">â†—</a>
+      <a id="openInNew" class="open-new" href="../winners/01-layout-direction.html" target="_blank" title="Open current page in new tab">↗</a>
     </div>
   </header>
 
-  <!-- â”€â”€â”€ Loading overlay (hides iframe flicker on first paint) â”€â”€â”€ -->
+  <!-- ─── Loading overlay (hides iframe flicker on first paint) ─── -->
   <div class="loading" id="loading"><div class="loading-spinner"></div></div>
 
-  <!-- â”€â”€â”€ Iframe container â”€â”€â”€ -->
+  <!-- ─── Iframe container ─── -->
   <main class="frame-host">
     <iframe id="app-frame"
       title="MediSlot flow"
@@ -47,11 +47,11 @@
       loading="eager"></iframe>
   </main>
 
-  <!-- â”€â”€â”€ 404 overlay (shown when no route matches) â”€â”€â”€ -->
+  <!-- ─── 404 overlay (shown when no route matches) ─── -->
   <div class="notfound hidden" id="notfound">
-    <h1>404 â€” route not found</h1>
+    <h1>404 — route not found</h1>
     <p>The hash <code id="notfoundHash"></code> doesn't match any flow.</p>
-    <a class="notfound-home" href="#/">â† Back to landing</a>
+    <a class="notfound-home" href="#/">← Back to landing</a>
   </div>
 
   <script src="shell.js"></script>

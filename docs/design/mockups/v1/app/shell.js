@@ -1,25 +1,25 @@
-﻿/* MediSlot app shell â€” hash router + role switcher + click-to-route wiring
+/* MediSlot app shell — hash router + role switcher + click-to-route wiring
  *
  * All 19 winner mockups are loaded into a single iframe.
  * Each mockup has data-route attributes on its clickable elements
  * (button / a / .logo). The injection script below reads those
  * attributes and routes accordingly.
  *
- * Path resolution: this file lives at docs/design/mockups/v1/app/, so `../partNN-â€¦`
- * resolves to docs/design/mockups/v1/partNN-â€¦ which is where each winner sits.
+ * Path resolution: this file lives at docs/design/mockups/v1/app/, so `../partNN-…`
+ * resolves to docs/design/mockups/v1/partNN-… which is where each winner sits.
  */
 
 (function () {
   'use strict';
 
-  // â”€â”€â”€ Route table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Route table ────────────────────────────────────────────────────────
   // Each entry maps a hash to { file, actor, title, breadcrumb, isHome }
-  // file is relative to docs/design/mockups/v1/app/index.html â†’ use ../ prefix.
+  // file is relative to docs/design/mockups/v1/app/index.html → use ../ prefix.
   const ROUTES = {
     '/': {
       file: '../winners/01-layout-direction.html',
       actor: 'landing',
-      title: 'Landing Â· Find your doctor',
+      title: 'Landing · Find your doctor',
       breadcrumb: ['Landing'],
       isHome: true,
     },
@@ -81,7 +81,7 @@
     '/doctor/today': {
       file: '../winners/12-mark-status.html',
       actor: 'doctor',
-      title: 'Today Â· Mark status',
+      title: 'Today · Mark status',
       breadcrumb: ['Doctor', "Today's list"],
     },
     '/doctor/resolve': {
@@ -120,7 +120,7 @@
     '/recep/availability': {
       file: '../winners/16-recep-availability.html',
       actor: 'recep',
-      title: 'Doctor availability Â· read-only',
+      title: 'Doctor availability · read-only',
       breadcrumb: ['Receptionist', 'Doctor availability'],
     },
 
@@ -136,7 +136,7 @@
       file: '../winners/08-branch-hours-impact.html',
       actor: 'admin',
       title: 'Branch hours change impact',
-      breadcrumb: ['Admin', 'Branch hours Â· impact'],
+      breadcrumb: ['Admin', 'Branch hours · impact'],
     },
     '/admin/doctors': {
       file: '../winners/18-admin-doctors.html',
@@ -152,7 +152,7 @@
     },
   };
 
-  // â”€â”€â”€ Role â†’ home route mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Role → home route mapping ─────────────────────────────────────────
   const ROLE_HOMES = {
     landing: '/',
     patient: '/patient/doctor',
@@ -161,7 +161,7 @@
     admin: '/admin/branches',
   };
 
-  // â”€â”€â”€ DOM refs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── DOM refs ──────────────────────────────────────────────────────────
   const iframe = document.getElementById('app-frame');
   const crumbsEl = document.getElementById('crumbs');
   const roleSelect = document.getElementById('roleSelect');
@@ -170,10 +170,10 @@
   const notFoundEl = document.getElementById('notfound');
   const notFoundHashEl = document.getElementById('notfoundHash');
 
-  // â”€â”€â”€ Current actor (updated in render()) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Current actor (updated in render()) ──────────────────────────────
   let currentActor = 'landing';
 
-  // â”€â”€â”€ Renderer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Renderer ──────────────────────────────────────────────────────────
   function parseHash() {
     const raw = (location.hash || '#/').replace(/^#/, '');
     return raw || '/';
@@ -231,7 +231,7 @@
     }[c]));
   }
 
-  // â”€â”€â”€ Iframe onload: inject click-to-route wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Iframe onload: inject click-to-route wiring ──────────────────────
   // Strategy: each clickable element in the mockup has a data-route attribute
   // pointing to the target hash. We listen on capture so we intercept clicks
   // before any default behavior, read the attribute, and post a message.
@@ -301,11 +301,11 @@
     }
   });
 
-  // â”€â”€â”€ Listen for navigation messages from iframe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Listen for navigation messages from iframe ────────────────────────
   window.addEventListener('message', (e) => {
     if (!e.data || !e.data.type) return;
 
-    // Logo click â†’ route to current actor's home
+    // Logo click → route to current actor's home
     if (e.data.type === 'cc-navigate-logo') {
       const home = ROLE_HOMES[currentActor] || '/';
       navigate(home);
@@ -321,19 +321,19 @@
     }
   });
 
-  // â”€â”€â”€ Role select â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Role select ───────────────────────────────────────────────────────
   roleSelect.addEventListener('change', () => {
     const role = roleSelect.value;
     const home = ROLE_HOMES[role];
     if (home) navigate(home);
   });
 
-  // â”€â”€â”€ Router: react to hashchange â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Router: react to hashchange ───────────────────────────────────────
   window.addEventListener('hashchange', () => {
     render(parseHash());
   });
 
-  // â”€â”€â”€ Initial render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Initial render ────────────────────────────────────────────────────
   const initial = parseHash();
   if (!location.hash) {
     history.replaceState(null, '', '#/');

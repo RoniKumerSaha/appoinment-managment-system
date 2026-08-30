@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Part 6-C â€” Kanban-Board Affected Queue</title>
+<title>Part 6-C — Kanban-Board Affected Queue</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
@@ -29,10 +29,10 @@
   .col-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px; }
   .col-title { font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: 700; letter-spacing: 0.04em; }
   .col-count { background: white; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; color: #4b5563; border: 1px solid #e5e7eb; }
-  .col.todo .col-title::before { content: "â—"; color: #dc2626; margin-right: 6px; }
-  .col.doing .col-title::before { content: "â—"; color: #f59e0b; margin-right: 6px; }
-  .col.scheduling .col-title::before { content: "â—"; color: #0f766e; margin-right: 6px; }
-  .col.done .col-title::before { content: "â—"; color: #10b981; margin-right: 6px; }
+  .col.todo .col-title::before { content: "●"; color: #dc2626; margin-right: 6px; }
+  .col.doing .col-title::before { content: "●"; color: #f59e0b; margin-right: 6px; }
+  .col.scheduling .col-title::before { content: "●"; color: #0f766e; margin-right: 6px; }
+  .col.done .col-title::before { content: "●"; color: #10b981; margin-right: 6px; }
 
   .card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; cursor: pointer; }
   .card:hover { border-color: #99f6e4; box-shadow: 0 2px 8px rgba(15,118,110,0.08); }
@@ -60,21 +60,21 @@
 </style>
 </head>
 <body>
-<div class="badge">PART 6-C Â· Kanban-Board Affected Queue</div>
+<div class="badge">PART 6-C · Kanban-Board Affected Queue</div>
 <div class="frame">
 
   <nav class="nav">
     <div class="logo" data-route="__logo__"><img src="../app/logo.svg" alt="MediSlot" style="width:28px;height:28px;display:block;"> MediSlot</div>
-    <button class="btn-ghost" data-route="/doctor/schedule">â† Schedule editor</button>
+    <button class="btn-ghost" data-route="/doctor/schedule">← Schedule editor</button>
     <button class="btn-primary" disabled style="opacity:0.5;" data-route="/doctor/schedule">Save schedule (need 0 more)</button>
   </nav>
 
   <div class="alert-bar">
     <div><strong>4 appointments affected.</strong> Your schedule change on Aug 18 needs your attention.</div>
     <div class="stats">
-      <span>ðŸ”´ 2 to do</span>
-      <span>ðŸŸ¡ 1 in progress</span>
-      <span>ðŸŸ¢ 1 resolved</span>
+      <span>🔴 2 to do</span>
+      <span>🟡 1 in progress</span>
+      <span>🟢 1 resolved</span>
     </div>
   </div>
 
@@ -85,7 +85,7 @@
 
   <div class="bulk-bar">
     <div class="check">
-      <input type="checkbox"> <span>2 selected Â· <a style="color:#0f766e; cursor:pointer;" data-route="">Bulk: pick same new date</a></span>
+      <input type="checkbox"> <span>2 selected · <a style="color:#0f766e; cursor:pointer;" data-route="">Bulk: pick same new date</a></span>
     </div>
     <div class="actions">
       <button data-route="/doctor/schedule">Cancel selected (2)</button>
@@ -103,22 +103,22 @@
 
       <div class="card">
         <div class="patient">Mohammed K.</div>
-        <div class="time">Wed, Aug 20 Â· 14:30 â€“ 15:15</div>
-        <div class="where">Branch A Â· Cardiology Â· 45 min</div>
-        <div class="issue">âš  Doctor no longer works Wed PM at Branch A</div>
+        <div class="time">Wed, Aug 20 · 14:30 – 15:15</div>
+        <div class="where">Branch A · Cardiology · 45 min</div>
+        <div class="issue">⚠  Doctor no longer works Wed PM at Branch A</div>
         <div class="actions">
-          <button data-route="/doctor/today">Move â†’</button>
+          <button data-route="/doctor/today">Move →</button>
           <button class="danger" data-route="/doctor/resolve">Cancel</button>
         </div>
       </div>
 
       <div class="card">
         <div class="patient">Layla S.</div>
-        <div class="time">Fri, Aug 22 Â· 11:00 â€“ 11:45</div>
-        <div class="where">Branch B Â· Cardiology Â· 45 min</div>
-        <div class="issue">âš  Outside new branch operating hours</div>
+        <div class="time">Fri, Aug 22 · 11:00 – 11:45</div>
+        <div class="where">Branch B · Cardiology · 45 min</div>
+        <div class="issue">⚠  Outside new branch operating hours</div>
         <div class="actions">
-          <button data-route="/doctor/today">Move â†’</button>
+          <button data-route="/doctor/today">Move →</button>
           <button class="danger" data-route="/doctor/resolve">Cancel</button>
         </div>
       </div>
@@ -132,11 +132,11 @@
 
       <div class="card active">
         <div class="patient">Fatima A.</div>
-        <div class="time">Tue, Aug 19 Â· 10:00 â€“ 10:45</div>
-        <div class="where">Branch A Â· Cardiology Â· 45 min</div>
-        <div class="issue">âš  Outside new working period</div>
+        <div class="time">Tue, Aug 19 · 10:00 – 10:45</div>
+        <div class="where">Branch A · Cardiology · 45 min</div>
+        <div class="issue">⚠  Outside new working period</div>
         <div class="actions">
-          <button data-route="/doctor/today">Continue â†’</button>
+          <button data-route="/doctor/today">Continue →</button>
           <button class="danger" data-route="/doctor/resolve">Cancel</button>
         </div>
       </div>
@@ -157,10 +157,10 @@
       </div>
 
       <div class="card resolved">
-        <div class="patient">âœ“ Omar R.</div>
-        <div class="time">Moved from Aug 25 â†’ Aug 26 Â· 10:00</div>
-        <div class="where">Branch A Â· Cardiology Â· 45 min</div>
-        <div class="issue" style="background:#d1fae5; color:#065f46;">âœ“ Moved by doctor</div>
+        <div class="patient">➜“ Omar R.</div>
+        <div class="time">Moved from Aug 25 → Aug 26 · 10:00</div>
+        <div class="where">Branch A · Cardiology · 45 min</div>
+        <div class="issue" style="background:#d1fae5; color:#065f46;">➜“ Moved by doctor</div>
         <div class="actions">
           <button data-route="">View</button>
           <button data-route="/doctor/resolve">Undo</button>
