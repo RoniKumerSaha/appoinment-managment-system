@@ -1,6 +1,6 @@
 # Real User Flows
 
-Persona-driven journey flows for each role. Where `docs/UX-FLOWS.md` is the **system's** view (validations, atomicity, audit), this folder is the **person's** view (what they see, decide, and feel across a real working day).
+Persona-driven journey flows for each role. Where `docs/specs/UX-FLOWS.md` is the **system's** view (validations, atomicity, audit), this folder is the **person's** view (what they see, decide, and feel across a real working day).
 
 | Role | Persona | File |
 |---|---|---|
@@ -28,9 +28,9 @@ Each persona file follows the same structure:
 
 These flow from the existing artifacts:
 
-- `docs/PRD.md` — functional & non-functional requirements
-- `docs/BRD.md` — business rules
-- `docs/UX-FLOWS.md` — system flows (F-01 through F-19)
-- `docs/mockups/v1/winners/` — 19 selected screen designs
+- `docs/specs/PRD.md` — functional & non-functional requirements
+- `docs/specs/BRD.md` — business rules
+- `docs/specs/UX-FLOWS.md` — system flows (F-01 through F-19)
+- `docs/design/mockups/v1/winners/` — 19 selected screen designs
 
 The real user flow tells you **what it feels like** to live inside those rules. The system flow tells you **what the rules actually are**. Both are needed.

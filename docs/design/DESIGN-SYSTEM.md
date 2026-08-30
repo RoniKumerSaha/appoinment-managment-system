@@ -1,6 +1,6 @@
 # Design System
 
-The visual language, components, and interaction patterns for the **Multi-Branch Clinic Appointment Scheduling System**. Every value in this document is sourced from the 19 winners under `docs/mockups/v1/winners/` — this is **not** aspirational, it documents what we actually ship.
+The visual language, components, and interaction patterns for the **Multi-Branch Clinic Appointment Scheduling System**. Every value in this document is sourced from the 19 winners under `docs/design/mockups/v1/winners/` — this is **not** aspirational, it documents what we actually ship.
 
 > **How to use this**
 > - **Designer** — copy tokens into Figma variables, build screens with the components.
@@ -16,7 +16,7 @@ The visual language, components, and interaction patterns for the **Multi-Branch
 | **Name** | MediSlot (working title) |
 | **Tone** | Clinical calm · confident · quietly precise · never cold |
 | **Visual archetype** | Modern clinical SaaS. Inspired by Linear, Calendly, and hospital systems that don't feel like hospital systems. |
-| **Logo** | Logo 03 · Monoline Icon (see `docs/mockups/v1/logos/selected-logo-monoline-icon.html`). |
+| **Logo** | Logo 03 · Monoline Icon (see `docs/design/mockups/v1/logos/selected-logo-monoline-icon.html`). |
 | **Anti-patterns** | Skeuomorphic medical clipboards, red-alert over-use, stock-photo doctors, generic blue "tech" gradients. |
 
 **One-sentence brand:** "Boring software that gets appointments right."
@@ -214,7 +214,7 @@ Five levels. Use sparingly — clinical calm means flat by default.
 
 ## 7. Components
 
-All components are implemented (or templated) under `docs/mockups/v1/app/components.html`. The visual rules below are what every mockup must follow.
+All components are implemented (or templated) under `docs/design/mockups/v1/app/components.html`. The visual rules below are what every mockup must follow.
 
 ### 7.1 Buttons
 
@@ -551,4 +551,4 @@ Earlier mockups used "Branch A — Downtown" / "Branch B — Marina" — those a
 
 ## 14. Companion file
 
-`docs/mockups/v1/app/components.html` is the live HTML reference for the components in §7. Every component in this document has a rendered template there. If a component here doesn't match `components.html`, the HTML wins (it's the running source).
+`docs/design/mockups/v1/app/components.html` is the live HTML reference for the components in §7. Every component in this document has a rendered template there. If a component here doesn't match `components.html`, the HTML wins (it's the running source).

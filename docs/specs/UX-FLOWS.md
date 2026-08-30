@@ -1,7 +1,7 @@
 # UI/UX User Flows
 
 **Project:** Multi-Branch Clinic Appointment Scheduling System
-**Sources:** `docs/BRD.md`, `docs/PRD.md`
+**Sources:** `docs/specs/BRD.md`, `docs/specs/PRD.md`
 **Status:** Draft v2 — polished for clarity and traceability
 
 > Every flow traces to BRD rules (`BR-NNN`) and PRD requirements (`FR-NNN`). Flow IDs (`F-NN`) are stable references for design and engineering.

@@ -8,8 +8,8 @@
  * value starts with "/" will navigate the current window to the matching
  * sibling file in ../winners/. Empty routes and __logo__ remain inert.
  *
- * Path resolution: this file lives at docs/mockups/v1/app/, and each
- * winner sits at docs/mockups/v1/winners/<name>.html. So when loaded
+ * Path resolution: this file lives at docs/design/mockups/v1/app/, and each
+ * winner sits at docs/design/mockups/v1/winners/<name>.html. So when loaded
  * directly (e.g. file:// or webroot/winners/02-doctor-picker.html),
  * `../app/standalone-router.js` resolves correctly relative to the
  * winner file.

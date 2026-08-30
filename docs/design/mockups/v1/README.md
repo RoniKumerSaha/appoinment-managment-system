@@ -19,7 +19,7 @@ Static HTML/CSS mockups for the Multi-Branch Clinic Appointment Scheduling Syste
 ## Directory layout
 
 ```
-docs/mockups/v1/
+docs/design/mockups/v1/
 ├── README.md                        ← you are here
 ├── mocks.html                       ← stakeholder overview (all 19 winners as thumbnails)
 ├── CHOICES.md                       ← selection state (resume from here)

@@ -5,8 +5,8 @@
  * (button / a / .logo). The injection script below reads those
  * attributes and routes accordingly.
  *
- * Path resolution: this file lives at docs/mockups/v1/app/, so `../partNN-â€¦`
- * resolves to docs/mockups/v1/partNN-â€¦ which is where each winner sits.
+ * Path resolution: this file lives at docs/design/mockups/v1/app/, so `../partNN-â€¦`
+ * resolves to docs/design/mockups/v1/partNN-â€¦ which is where each winner sits.
  */
 
 (function () {
@@ -14,7 +14,7 @@
 
   // â”€â”€â”€ Route table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Each entry maps a hash to { file, actor, title, breadcrumb, isHome }
-  // file is relative to docs/mockups/v1/app/index.html â†’ use ../ prefix.
+  // file is relative to docs/design/mockups/v1/app/index.html â†’ use ../ prefix.
   const ROUTES = {
     '/': {
       file: '../winners/01-layout-direction.html',

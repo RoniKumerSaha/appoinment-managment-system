@@ -10,11 +10,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### 🔧 Docs reorganisation — 2026-08-30
+- **`docs/` split into three topical subfolders.** Single rule per folder, single owner:
+  - `docs/specs/` — *what we're building and why.* BRD, PRD, UX-FLOWS. Owner: PM.
+  - `docs/design/` — *how it looks and how it feels.* DESIGN-SYSTEM, user-flows, mockups. Owner: UX.
+  - `docs/meta/` — *repo hygiene.* CHANGELOG, PROJECT-TREE. Owner: anyone (low stakes).
+- **Path migration.** All markdown cross-refs, the `app/` shell and standalone router comments, the `app/components.html` demo link, and `PROJECT-TREE.md`'s contributor reading order updated to the new paths.
+- **Git rename detection used** (`git mv`) so file history is preserved across the move — no orphan commits.
+- **Project tree updated** to render the new hierarchy and label each folder with its owner.
+
 ### 🎨 Design system document — 2026-08-30
-- **DESIGN-SYSTEM.md** introduced under `docs/`. Single source of truth for visual language: brand & personality, color tokens (brand / surface / text / semantic), typography scale (10–36px), spacing scale (4–32px), border radii, elevation, 13 components (Button × 4 variants, StatusPill, Card, Section, Field, Modal/ConflictModal, Toast, EmptyState, AppointmentCard, AuditLogDrawer, MetaCell, SegmentedControl, StepNumber), 5 layout patterns, iconography, voice & tone rules per role, accessibility (WCAG 2.1 AA contrast pairs), and canonical demo-data table.
+- **DESIGN-SYSTEM.md** introduced under `docs/design/`. Single source of truth for visual language: brand & personality, color tokens (brand / surface / text / semantic), typography scale (10–36px), spacing scale (4–32px), border radii, elevation, 13 components (Button × 4 variants, StatusPill, Card, Section, Field, Modal/ConflictModal, Toast, EmptyState, AppointmentCard, AuditLogDrawer, MetaCell, SegmentedControl, StepNumber), 5 layout patterns, iconography, voice & tone rules per role, accessibility (WCAG 2.1 AA contrast pairs), and canonical demo-data table.
 - Every token sourced from existing 19 winners — not aspirational. Values are exact hex / px, not ranges.
-- `docs/PROJECT-TREE.md` updated to reference `DESIGN-SYSTEM.md` in the `docs/` map and in the contributor reading order.
-- Companion live HTML remains `docs/mockups/v1/app/components.html` — this document is the *why*, the HTML is the *what*.
+- `docs/meta/PROJECT-TREE.md` updated to reference `DESIGN-SYSTEM.md` in the `docs/` map and in the contributor reading order.
+- Companion live HTML remains `docs/design/mockups/v1/app/components.html` — this document is the *why*, the HTML is the *what*.
 
 ### 🚀 UX consistency pass — 2026-08-30
 - **Persona drift fixes** across patient-facing mockups: replaced `Ahmed M. Al-Falasi` / `+971 50 123 4567` (UAE) with `Fatima A. Al-Sayed` / `+966 5XX XXX 5555` (Saudi) in `04-patient-confirm.html`, `05-patient-self-service.html`, and `07-recurring-preview.html`.
@@ -22,8 +31,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Doctor name** on `18-admin-doctors.html` corrected from `Dr. Abdullah Al-Rashid` to `Dr. Ahmed Al-Rashid` to match all other screens.
 - **Removed fabricated feature** in `15-recep-cancel.html` — bullet "Send SMS + email cancellation to patient" was not in BRD/PRD/UX-FLOWS.
 - **Reschedule success state** added to `05-patient-self-service.html` — inline banner "Your appointment has been moved to Sat, Aug 23, 11:15."
-- **Shared component library** introduced at `docs/mockups/v1/app/components.html` with templates for `ConflictModal`, `Toast`, `StatusPill`, `AppointmentCard`, `EmptyState`, `AuditLogDrawer`.
-- **Persona flows** added under `docs/user-flows/` — one scenario per role (Fatima / Dr. Ahmed / Reem / Salem) plus a `ux-consistency-report.md` ranking all gaps by severity.
+- **Shared component library** introduced at `docs/design/mockups/v1/app/components.html` with templates for `ConflictModal`, `Toast`, `StatusPill`, `AppointmentCard`, `EmptyState`, `AuditLogDrawer`.
+- **Persona flows** added under `docs/design/user-flows/` — one scenario per role (Fatima / Dr. Ahmed / Reem / Salem) plus a `ux-consistency-report.md` ranking all gaps by severity.
 
 ### 🎨 Interactive mockup wiring — 2026-08-30
 - **Cross-screen navigation** wired across all 19 winners via `data-route` attributes (106 routes total). Every clickable cue — Book, ← Back, Save, Cancel, Edit — now navigates between mockups.
@@ -32,25 +41,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Misroute fixed** in `12-mark-status.html`: doctor's "Confirm cancel + release slot" was pointing at `/recep/today` — now correctly points at `/doctor/today`.
 
 ### 📝 Mockup cleanup — 2026-08-30
-- Reduced `docs/mockups/v1/` from a flat dump of every design option to a curated set of 19 winners + 1 logo. See `docs/mockups/v1/CHOICES.md` for the rationale.
+- Reduced `docs/design/mockups/v1/` from a flat dump of every design option to a curated set of 19 winners + 1 logo. See `docs/design/mockups/v1/CHOICES.md` for the rationale.
 - Folder structure reorganized: `app/` (shell), `winners/` (19 selected screens), `logos/` (1 selected logo), `mocks.html` (overview grid), `README.md` (entry point), `CHOICES.md` (decision trail).
 
 ### 📝 Logo selection — 2026-08-30
-- Logo 03 · Monoline Icon selected. Saved at `docs/mockups/v1/logos/selected-logo-monoline-icon.html` and mirrored to `docs/mockups/v1/app/logo.svg` for shell use.
+- Logo 03 · Monoline Icon selected. Saved at `docs/design/mockups/v1/logos/selected-logo-monoline-icon.html` and mirrored to `docs/design/mockups/v1/app/logo.svg` for shell use.
 
 ---
 
 ## [0.1.0] — 2026-08-18
 
-### � Initial scaffolding
-- **BRD** (`docs/BRD.md`) — business requirements, role capability matrix, business rules (BR-001…063).
-- **PRD** (`docs/PRD.md`) — product requirements, 51 functional requirements (FR-001…051), 10 non-functional requirements, recommended data model, availability algorithm, booking/rescheduling/recurring transactions, 15 critical-scenario acceptance criteria, MVP scope.
-- **UX-FLOWS** (`docs/UX-FLOWS.md`) — 19 system flows (F-01 through F-19) traced to BRD and PRD. Shared UI primitives inventory. Cross-cutting concerns (ConflictModal pattern, atomicity discipline, audit visibility, time-zone handling, no-buffer / fixed-window / no-same-day rules). Open questions for design.
-- **Mockup v1** (`docs/mockups/`) — initial dump of layout options, logo options, and per-flow screen explorations.
+### 📝 Initial scaffolding
+- **BRD** (`docs/specs/BRD.md`) — business requirements, role capability matrix, business rules (BR-001…063).
+- **PRD** (`docs/specs/PRD.md`) — product requirements, 51 functional requirements (FR-001…051), 10 non-functional requirements, recommended data model, availability algorithm, booking/rescheduling/recurring transactions, 15 critical-scenario acceptance criteria, MVP scope.
+- **UX-FLOWS** (`docs/specs/UX-FLOWS.md`) — 19 system flows (F-01 through F-19) traced to BRD and PRD. Shared UI primitives inventory. Cross-cutting concerns (ConflictModal pattern, atomicity discipline, audit visibility, time-zone handling, no-buffer / fixed-window / no-same-day rules). Open questions for design.
+- **Mockup v1** (`docs/design/mockups/`) — initial dump of layout options, logo options, and per-flow screen explorations.
 
 ### 🔧 Tooling
 - **Git ignore** configured (`.env`, `node_modules`, `.next`, `.puku` cache).
-- **BMAD Method installed** (`.bmad/`) — agent definitions, scripts, custom configuration.
+- **BMAD Method installed** (`_bmad/`) — agent definitions, scripts, custom configuration.
 
 ---
 
@@ -68,6 +77,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 | `d5f1ebf` | 2026-08-30 | update mockup |
 | `ccfc2bb` | 2026-08-30 | Wire data-route across 19 mockups + standalone fallback |
 | `55b2743` | 2026-08-30 | UX consistency pass: persona fixes + shared component library |
+| `590493a` | 2026-08-30 | Add CHANGELOG and PROJECT-TREE docs |
+| `6ea559d` | 2026-08-30 | Design system: tokens, components, voice & tone |
 
 ---
 
@@ -82,5 +93,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## Conventions
 
 - One entry per commit is fine for this stage of the project. When the release cadence is set, group multiple commits into a dated release section.
-- Each bullet states the **what** and the **why** tersely. Long discussion lives in the linked documents (`PRD`, `UX-FLOWS`, `CHOICES`, `user-flows/ux-consistency-report`).
+- Each bullet states the **what** and the **why** tersely. Long discussion lives in the linked documents (`docs/specs/PRD`, `docs/specs/UX-FLOWS`, `docs/design/mockups/v1/CHOICES`, `docs/design/user-flows/ux-consistency-report`).
 - File paths are relative to the project root so the document is portable across branches and forks.

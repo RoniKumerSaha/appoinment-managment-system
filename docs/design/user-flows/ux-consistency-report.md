@@ -9,7 +9,7 @@
 
 ## Why this audit
 
-`docs/UX-FLOWS.md` is the **system's** view — what rules fire, what atomic transactions commit, what audit rows write. `docs/user-flows/` is the **person's** view — what they see, decide, feel. The 19 mockups in `docs/mockups/v1/winners/` are the **visual design**.
+`docs/specs/UX-FLOWS.md` is the **system's** view — what rules fire, what atomic transactions commit, what audit rows write. `docs/design/user-flows/` is the **person's** view — what they see, decide, feel. The 19 mockups in `docs/design/mockups/v1/winners/` are the **visual design**.
 
 These three views must agree. When they don't, the system either:
 - **Surprises the user** (a copy mismatch, a missing screen, a wrong route)
@@ -33,7 +33,7 @@ This report catalogues every divergence and ranks the fixes.
 
 **Where:** `04-patient-confirm.html`, `05-patient-self-service.html`, `07-recurring-preview.html`
 
-The persona **Fatima A. Al-Sayed** (`+966 5XX XXX 5555`) is the patient throughout `docs/user-flows/patient.md`. The mockups instead show **Ahmed M. Al-Falasi** (`+971 50 123 4567`) — a UAE number for a Riyadh persona.
+The persona **Fatima A. Al-Sayed** (`+966 5XX XXX 5555`) is the patient throughout `docs/design/user-flows/patient.md`. The mockups instead show **Ahmed M. Al-Falasi** (`+971 50 123 4567`) — a UAE number for a Riyadh persona.
 
 | File | Before | After |
 |---|---|---|
@@ -55,7 +55,7 @@ The three patient-side conflict messages that must appear as a modal:
 - "You already have an appointment with Dr. X."
 - "You have another appointment at this time."
 
-**Fix in `docs/mockups/v1/app/components.html`** — added a `ConflictModal` template with three slots: `{what}`, `{why}`, `{rule}`. The pattern is "what happened → why → what you can do" — never a dead end.
+**Fix in `docs/design/mockups/v1/app/components.html`** — added a `ConflictModal` template with three slots: `{what}`, `{why}`, `{rule}`. The pattern is "what happened → why → what you can do" — never a dead end.
 
 **Next step:** wire the modal into mockups `03`, `05`, `09`, `10`, `14`, `17` (one per affected flow).
 
@@ -251,7 +251,7 @@ UX-FLOWS F-06 calls for `[Adjust]` `[Continue anyway]`. `09` shows the warning t
 
 ## What's been done in this session
 
-1. Created `docs/mockups/v1/app/components.html` — shared component library (ConflictModal, Toast, AppointmentCard, StatusPill, EmptyState, AuditLogDrawer templates).
+1. Created `docs/design/mockups/v1/app/components.html` — shared component library (ConflictModal, Toast, AppointmentCard, StatusPill, EmptyState, AuditLogDrawer templates).
 2. Fixed patient persona drift in `04-patient-confirm.html`, `05-patient-self-service.html`, `07-recurring-preview.html`.
 3. Added a reschedule success banner to `05-patient-self-service.html`.
 4. Fixed admin name on `08-branch-hours-impact.html`.

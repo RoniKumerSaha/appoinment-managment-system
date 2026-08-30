@@ -75,7 +75,7 @@
 
 ## 📁 Files ready
 
-All files live at `docs/mockups/v1/` — see `README.md` for the directory tree.
+All files live at `docs/design/mockups/v1/` — see `README.md` for the directory tree.
 
 After the v1 cleanup, all rejected options and legacy folders were deleted. Only winners remain:
 
