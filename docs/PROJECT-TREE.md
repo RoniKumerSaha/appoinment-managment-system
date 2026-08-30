@@ -49,6 +49,12 @@ docs/
 ├── CHANGELOG.md          # Running log of every change since initial commit.
 │                         # Grouped by date, ordered newest first.
 │
+├── DESIGN-SYSTEM.md      # Visual language, components, voice & tone.
+│                         # Color tokens, typography scale, spacing scale,
+│                         # 13 components (Button, Pill, Card, Modal, Toast,
+│                         # AuditLogDrawer, etc.), 5 layout patterns, WCAG AA
+│                         # contrast notes. Source-of-truth for new mockups.
+│
 ├── PROJECT-TREE.md       # This document.
 │
 ├── user-flows/           # Persona-driven journey flows (NEW)
@@ -165,7 +171,8 @@ _bmad/
 4. `docs/mockups/v1/README.md` — what it looks like.
 5. `docs/mockups/v1/winners/` — each screen.
 6. `docs/mockups/v1/app/index.html` — open this to walk through it.
-7. `docs/CHANGELOG.md` — what's new.
+7. `docs/DESIGN-SYSTEM.md` — visual tokens & components (reference when building).
+8. `docs/CHANGELOG.md` — what's new.
 
 ---
 

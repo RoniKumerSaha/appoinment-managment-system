@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### 🎨 Design system document — 2026-08-30
+- **DESIGN-SYSTEM.md** introduced under `docs/`. Single source of truth for visual language: brand & personality, color tokens (brand / surface / text / semantic), typography scale (10–36px), spacing scale (4–32px), border radii, elevation, 13 components (Button × 4 variants, StatusPill, Card, Section, Field, Modal/ConflictModal, Toast, EmptyState, AppointmentCard, AuditLogDrawer, MetaCell, SegmentedControl, StepNumber), 5 layout patterns, iconography, voice & tone rules per role, accessibility (WCAG 2.1 AA contrast pairs), and canonical demo-data table.
+- Every token sourced from existing 19 winners — not aspirational. Values are exact hex / px, not ranges.
+- `docs/PROJECT-TREE.md` updated to reference `DESIGN-SYSTEM.md` in the `docs/` map and in the contributor reading order.
+- Companion live HTML remains `docs/mockups/v1/app/components.html` — this document is the *why*, the HTML is the *what*.
+
 ### 🚀 UX consistency pass — 2026-08-30
 - **Persona drift fixes** across patient-facing mockups: replaced `Ahmed M. Al-Falasi` / `+971 50 123 4567` (UAE) with `Fatima A. Al-Sayed` / `+966 5XX XXX 5555` (Saudi) in `04-patient-confirm.html`, `05-patient-self-service.html`, and `07-recurring-preview.html`.
 - **Admin name** on `08-branch-hours-impact.html` corrected from `Nadia K.` to `Salem Al-Mutairi` to match the admin persona.
