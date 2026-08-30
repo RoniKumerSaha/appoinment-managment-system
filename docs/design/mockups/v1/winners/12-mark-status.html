@@ -31,8 +31,8 @@
   .appt-row .pill { font-size: 10px; padding: 3px 9px; border-radius: 999px; font-weight: 700; text-transform: uppercase; }
   .pill.scheduled { background: #dbeafe; color: #1e40af; }
   .pill.completed { background: #d1fae5; color: #065f46; }
-  .pill.cancelled { background: #f3f4f6; color: #6b7280; }
-  .pill.no-show { background: #fee2e2; color: #991b1b; }
+  .pill.cancelled { background: #fecaca; color: #991b1b; }
+  .pill.no-show { background: #fecaca; color: #991b1b; }
   .now-tag { background: #f59e0b; color: white; font-size: 10px; padding: 2px 7px; border-radius: 999px; margin-left: 6px; font-weight: 700; }
 
   /* Right detail panel */
@@ -65,10 +65,22 @@
   .confirm-bar .head { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; font-size: 13px; font-weight: 600; color: #991b1b; }
   .confirm-bar select { width: 100%; padding: 9px 11px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 13px; background: white; margin-bottom: 10px; }
   .confirm-bar .confirm-btn { width: 100%; padding: 10px; background: #dc2626; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; }
+
+  /* Toast (top-right, auto-dismiss) */
+  .toast-stack { position: fixed; top: 70px; right: 16px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+  .toast { background: white; border: 1px solid #99f6e4; border-left: 4px solid #0f766e; border-radius: 8px; padding: 10px 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 10px; min-width: 280px; max-width: 380px; font-size: 13px; color: #1a1d23; }
+  .toast .toast-icon { color: #0f766e; font-weight: 700; font-size: 14px; }
+  .toast .toast-text { flex: 1; }
+  .toast .toast-x { background: none; border: none; color: #6b7280; cursor: pointer; padding: 2px 6px; font-size: 16px; }
 </style>
 </head>
 <body>
 <div class="badge">PART 12-D · Doctor: Mark Status · Quick Action Panel</div>
+
+<!-- Toast feedback (UX-FLOWS F-10: "Updated.") -->
+<div class="toast-stack">
+  <div class="toast"><span class="toast-icon">✓</span><span class="toast-text">Marked as Completed.</span><button class="toast-x">×</button></div>
+</div>
 <div class="frame">
 
   <nav class="nav">
@@ -93,7 +105,7 @@
           <div class="patient">Fatima Al-Sayed</div>
           <div class="type">Cardiology consultation · 45 min</div>
         </div>
-        <span class="pill scheduled">Scheduled</span>
+        <span class="pill scheduled">● Scheduled</span>
       </div>
 
       <div class="appt-row">
@@ -102,7 +114,7 @@
           <div class="patient">Mohammed Al-Harbi</div>
           <div class="type">Follow-up · 20 min</div>
         </div>
-        <span class="pill scheduled">Scheduled</span>
+        <span class="pill scheduled">● Scheduled</span>
       </div>
 
       <div class="appt-row">
@@ -111,7 +123,7 @@
           <div class="patient">Layla Ibrahim</div>
           <div class="type">ECG review · 15 min</div>
         </div>
-        <span class="pill scheduled">Scheduled</span>
+        <span class="pill scheduled">● Scheduled</span>
       </div>
 
       <div class="appt-row">
@@ -120,7 +132,7 @@
           <div class="patient">Khalid Al-Otaibi</div>
           <div class="type">Pre-op assessment · 30 min</div>
         </div>
-        <span class="pill scheduled">Scheduled</span>
+        <span class="pill scheduled">● Scheduled</span>
       </div>
 
       <div class="appt-row done">
@@ -129,7 +141,7 @@
           <div class="patient">Ahmed Youssef</div>
           <div class="type">Follow-up · 20 min</div>
         </div>
-        <span class="pill completed">Completed</span>
+        <span class="pill completed">✓ Completed</span>
       </div>
 
       <div class="appt-row done">
@@ -138,7 +150,7 @@
           <div class="patient">Noura Al-Ghamdi</div>
           <div class="type">Cardiology consultation</div>
         </div>
-        <span class="pill cancelled">Cancelled</span>
+        <span class="pill cancelled">✕ Cancelled</span>
       </div>
     </div>
 
@@ -163,7 +175,7 @@
               Completed
             </button>
             <button class="qa-btn warn" data-route="">
-              <span class="ic">⏺</span>
+              <span class="ic">⚠</span>
               No-show
             </button>
             <button class="qa-btn danger full" data-route="">

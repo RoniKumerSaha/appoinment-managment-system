@@ -52,8 +52,8 @@
   .pill { display: inline-block; font-size: 10px; padding: 3px 9px; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
   .pill.scheduled { background: #dbeafe; color: #1e40af; }
   .pill.completed { background: #d1fae5; color: #065f46; }
-  .pill.cancelled { background: #f3f4f6; color: #6b7280; }
-  .pill.no-show { background: #fee2e2; color: #991b1b; }
+  .pill.cancelled { background: #fecaca; color: #991b1b; }
+  .pill.no-show { background: #fecaca; color: #991b1b; }
   .pill.checked-in { background: #fef3c7; color: #92400e; }
 
   .qa { display: flex; gap: 4px; justify-content: flex-end; }
@@ -110,7 +110,7 @@
         <div class="patient-cell"><div class="name">Noura Al-Ghamdi</div><div class="phone">+966 5XX XXX 2222</div></div>
         <div class="doctor-cell"><span class="av">AR</span>Al-Rashid</div>
         <div class="type-cell">Cardiology <span class="dur">· 45m</span></div>
-        <div><span class="pill cancelled">○ Cancelled</span></div>
+        <div><span class="pill cancelled">✕ Cancelled</span></div>
         <div class="qa"><button data-route="">View</button></div>
       </div>
       <div class="appt-row">
@@ -126,7 +126,7 @@
         <div class="patient-cell"><div class="name">Salman Al-Qahtani</div><div class="phone">+966 5XX XXX 4444</div></div>
         <div class="doctor-cell"><span class="av">AQ</span>Al-Qahtani</div>
         <div class="type-cell">Follow-up <span class="dur">· 20m</span></div>
-        <div><span class="pill no-show">✕ No-show</span></div>
+        <div><span class="pill no-show">⚠ No-show</span></div>
         <div class="qa"><button data-route="">View</button></div>
       </div>
     </div>
@@ -136,7 +136,7 @@
 
       <div class="appt-row now">
         <div class="time-cell">09:00<span class="end">→ 09:45</span></div>
-        <div class="patient-cell"><div class="name">Fatima Al-Sayed</div><div class="phone">+966 5XX XXX 5555</div></div>
+        <div class="patient-cell"><div class="name">Fatima Al-Sayed</div><div class="phone">+966 5XX XXX 1234</div></div>
         <div class="doctor-cell"><span class="av">AR</span>Al-Rashid</div>
         <div class="type-cell">Cardiology <span class="dur">· 45m</span></div>
         <div><span class="pill checked-in">⌛ In waiting</span></div>

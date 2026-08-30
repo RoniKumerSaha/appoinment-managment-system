@@ -50,10 +50,22 @@
   .summary-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
   .summary-row .k { color: #6b7280; }
   .summary-row .v { color: #111827; font-weight: 500; }
+
+  /* Toast (top-right, auto-dismiss) */
+  .toast-stack { position: fixed; top: 70px; right: 16px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+  .toast { background: white; border: 1px solid #99f6e4; border-left: 4px solid #0f766e; border-radius: 8px; padding: 10px 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 10px; min-width: 280px; max-width: 380px; font-size: 13px; color: #1a1d23; }
+  .toast .toast-icon { color: #0f766e; font-weight: 700; font-size: 14px; }
+  .toast .toast-text { flex: 1; }
+  .toast .toast-x { background: none; border: none; color: #6b7280; cursor: pointer; padding: 2px 6px; font-size: 16px; }
 </style>
 </head>
 <body>
 <div class="badge">PART 9-B · Schedule: List by Day with Tabs</div>
+
+<!-- Toast feedback (UX-FLOWS F-06: "Schedule saved.") -->
+<div class="toast-stack">
+  <div class="toast"><span class="toast-icon">✓</span><span class="toast-text">Schedule saved.</span><button class="toast-x">×</button></div>
+</div>
 <div class="frame">
 
   <nav class="nav">
@@ -84,7 +96,7 @@
         <div class="summary-row"><span class="k">Hours / week</span><span class="v">28h</span></div>
       </div>
 
-      <button class="btn-primary" style="width:100%; margin-top: 16px;" data-route="/doctor/resolve">Save changes →</button>
+      <button class="btn-primary" style="width:100%; margin-top: 16px;" data-route="/doctor/schedule">Save changes →</button>
     </div>
 
     <div class="edit-col">

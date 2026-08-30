@@ -62,6 +62,19 @@
   .status-toggle .opt { flex: 1; padding: 12px; background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; cursor: pointer; text-align: center; font-weight: 600; font-size: 13px; color: #6b7280; }
   .status-toggle .opt.active { background: #f0fdfa; border-color: #0f766e; color: #0f766e; }
 
+  /* ConflictModal (BR-059: branch deactivation with future appts) */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 29, 35, 0.45); display: flex; align-items: center; justify-content: center; z-index: 300; padding: 24px; }
+  .modal { background: white; border-radius: 12px; max-width: 480px; width: 100%; box-shadow: 0 12px 36px rgba(0,0,0,0.18); overflow: hidden; }
+  .modal-head { display: flex; gap: 14px; padding: 20px 24px; border-bottom: 1px solid #f3f4f6; align-items: flex-start; }
+  .modal-icon { width: 36px; height: 36px; background: #fef3c7; color: #92400e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .modal-title { font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 4px; }
+  .modal-sub { font-size: 13px; color: #6b7280; }
+  .modal-x { background: none; border: none; color: #6b7280; cursor: pointer; font-size: 20px; margin-left: auto; padding: 0 4px; }
+  .modal-body { padding: 18px 24px; }
+  .modal-lead { font-size: 13px; color: #374151; margin-bottom: 12px; line-height: 1.5; }
+  .modal-rule { background: #f9fafb; border-left: 3px solid #d1d5db; padding: 10px 14px; border-radius: 0 6px 6px 0; font-size: 12px; color: #4b5563; }
+  .modal-foot { padding: 14px 24px; border-top: 1px solid #f3f4f6; display: flex; gap: 8px; justify-content: flex-end; }
+
   /* Hours editor */
   .hours-editor { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; }
   .hours-editor .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -149,7 +162,7 @@
           <span class="pill inactive">○ Inactive</span>
         </div>
       </div>
-      <div class="add-row" data-route="" style="cursor:pointer;">+ Create new branch</div>
+      <div class="add-row" data-route="/admin/branch-new" style="cursor:pointer;">+ Create new branch</div>
     </div>
 
     <!-- Step 2: edit form -->
@@ -214,6 +227,28 @@
   </div>
 
 </div>
+  <!-- BR-059 ConflictModal: branch deactivation with future appointments -->
+  <div class="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div class="modal-icon">⚠</div>
+        <div>
+          <div class="modal-title">Branch has 98 future appointments.</div>
+          <p class="modal-sub">Riyadh Olaya cannot be deactivated while bookings exist.</p>
+        </div>
+        <button class="modal-x" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-lead">Deactivation would silently cancel 98 appointments. To protect existing patients, move or cancel those appointments first, then deactivate.</p>
+        <div class="modal-rule">Rule BR-059: a branch with future appointments cannot be deactivated.</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-ghost">Review appointments</button>
+        <button class="btn-primary">Got it</button>
+      </div>
+    </div>
+  </div>
+
   <script src='../app/standalone-router.js'></script>
 </body>
 </html>

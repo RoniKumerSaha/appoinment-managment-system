@@ -150,6 +150,42 @@
       title: 'Manage receptionists',
       breadcrumb: ['Admin', 'Receptionists'],
     },
+    '/admin/branch-new': {
+      file: '../winners/17-admin-branches.html',
+      actor: 'admin',
+      title: 'Create new branch',
+      breadcrumb: ['Admin', 'Branches', 'New'],
+    },
+    '/admin/doctor-edit': {
+      file: '../winners/18-admin-doctors.html',
+      actor: 'admin',
+      title: 'Edit doctor',
+      breadcrumb: ['Admin', 'Doctors', 'Edit'],
+    },
+    '/admin/doctor-new': {
+      file: '../winners/18-admin-doctors.html',
+      actor: 'admin',
+      title: 'Create new doctor',
+      breadcrumb: ['Admin', 'Doctors', 'New'],
+    },
+    '/admin/recep-edit': {
+      file: '../winners/19-admin-receptionists.html',
+      actor: 'admin',
+      title: 'Edit receptionist',
+      breadcrumb: ['Admin', 'Receptionists', 'Edit'],
+    },
+    '/admin/recep-assign': {
+      file: '../winners/19-admin-receptionists.html',
+      actor: 'admin',
+      title: 'Reassign receptionist',
+      breadcrumb: ['Admin', 'Receptionists', 'Reassign'],
+    },
+    '/admin/recep-new': {
+      file: '../winners/19-admin-receptionists.html',
+      actor: 'admin',
+      title: 'Create new receptionist',
+      breadcrumb: ['Admin', 'Receptionists', 'New'],
+    },
   };
 
   // ─── Role → home route mapping ─────────────────────────────────────────
