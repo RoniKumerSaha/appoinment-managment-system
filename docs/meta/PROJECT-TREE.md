@@ -195,6 +195,38 @@ _bmad/
 
 ---
 
+## `_bmad-output/` — BMad planning & implementation artifacts
+
+Where the BMad Method Module (BMM) writes the artifacts produced by its planning skills (`bmad-prd`, `bmad-ux`, `bmad-architecture`, `bmad-create-epics-and-stories`, `bmad-sprint-planning`). Created 2025-09-06 when adopting the BMad canonical layout.
+
+The authored design source of truth still lives under `docs/`. The files in `_bmad-output/` mirror that content in BMad-canonical structure so the BMad workflow skills can find and consume them. **Do not edit `docs/` files from this layout decision** — both trees have owners and the design lives in `docs/`.
+
+```
+_bmad-output/
+├── planning-artifacts/
+│   ├── prd.md                  # BMad-format PRD (mirrors docs/specs/PRD.md + BRD.md)
+│   ├── ux.md                   # BMad-format UX spec (mirrors docs/design/)
+│   ├── architecture.md         # Architectural spine (greenfield from a code POV;
+│   │                           #   ratifies the design as the contract)
+│   └── epics-and-stories.md    # 7 epics, 27 stories, full BR/FR/scenario traceability
+│
+└── implementation-artifacts/
+    └── sprint-status.yaml      # Sprint tracking skeleton; populated by /bmad-sprint-planning
+```
+
+**Ownership:**
+
+| Tree | Owner | Edit policy |
+|---|---|---|
+| `docs/specs/` | PM | Authored source. PR-review required. |
+| `docs/design/` | UX | Authored source. PR-review required. |
+| `_bmad-output/planning-artifacts/` | BMad workflow | Updated by `bmad-*` skills; mirrors docs/ content. |
+| `_bmad-output/implementation-artifacts/` | Build / Dev | Updated during implementation. |
+
+**When the docs and the BMad files disagree, the docs win** — the BMad files are derived, not authoritative. This matches the same rule DESIGN-SYSTEM.md has with `docs/design/mockups/v1/app/design-system.html`.
+
+---
+
 ## Reading order for new contributors
 
 1. `docs/specs/PRD.md` — what we're building.
@@ -211,6 +243,7 @@ _bmad/
 ## What is **not** in this repo (yet)
 
 - **Source code.** No backend, no frontend framework, no DB schema migrations. The repo is design-only at this stage.
+- **`_bmad-output/` planning artifacts in BMad canonical form.** The files are populated (`prd.md`, `ux.md`, `architecture.md`, `epics-and-stories.md`, `sprint-status.yaml`) but downstream BMad skills have not yet been run against them.
 - **Tests.** Test plans exist as acceptance scenarios in `specs/PRD.md` §15 and `specs/UX-FLOWS.md`, but no test runner or test files.
 - **CI / deployment configs.** Once code lands, expect `package.json`, Dockerfile, CI workflow, and infra manifests to appear at the project root.
 - **`.env` contents.** The file exists for local development but is git-ignored. Sample values can go in `.env.example` once needed.

@@ -1,0 +1,49 @@
+# Sprint Status — Multi-Branch Clinic Appointment Scheduling System
+#
+# Skeleton tracking file produced by /bmad-help path-A layout adoption.
+# Source of truth for epics & stories: _bmad-output/planning-artifacts/epics-and-stories.md
+# Architecture spine:               _bmad-output/planning-artifacts/architecture.md
+#
+# Run /bmad-sprint-planning to populate this file with concrete sprints,
+# story assignments, and status transitions. This skeleton is the starting state.
+
+project: appoinment managment system
+generated_by: bmad-help
+status: not-started
+current_sprint: null
+
+epics:
+  E1:
+    name: Clinic structure & admin
+    status: backlog
+    stories: [E1-S1, E1-S2, E1-S3, E1-S4]
+  E2:
+    name: Doctor schedule & types
+    status: backlog
+    stories: [E2-S1, E2-S2, E2-S3]
+  E3:
+    name: Booking core
+    status: backlog
+    stories: [E3-S1, E3-S2, E3-S3, E3-S4]
+  E4:
+    name: Patient self-service
+    status: backlog
+    stories: [E4-S1, E4-S2, E4-S3]
+  E5:
+    name: Staff appointment management
+    status: backlog
+    stories: [E5-S1, E5-S2, E5-S3, E5-S4]
+  E6:
+    name: Recurring & conflict resolution
+    status: backlog
+    stories: [E6-S1, E6-S2, E6-S3]
+  E7:
+    name: Cross-cutting (OTP, audit, design system)
+    status: backlog
+    stories: [E7-S1, E7-S2, E7-S3, E7-S4, E7-S5, E7-S6]
+
+stories: {}
+
+risks: []
+open_action_items: []
+recommended_next_action: "Run /bmad-sprint-planning to validate readiness and create the first sprint plan."

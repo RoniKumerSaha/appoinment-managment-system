@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MediSlot — Design System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    /* ===== Color tokens (exact hex from DESIGN-SYSTEM.md §2) ===== */
+    --brand-primary: #0f766e;
+    --brand-primary-hover: #0d6660;
+    --brand-light: #ccfbf1;
+    --brand-light-50: #f0fdfa;
+    --brand-border: #99f6e4;
+    --surface-page: #f5f6f8;
+    --surface-card: #ffffff;
+    --surface-soft: #f9fafb;
+    --surface-divider: #f3f4f6;
+    --border-default: #e5e7eb;
+    --border-strong: #d1d5db;
+    --text-heading: #111827;
+    --text-body: #1a1d23;
+    --text-strong: #374151;
+    --text-default: #4b5563;
+    --text-muted: #6b7280;
+    --text-faint: #9ca3af;
+    --success-bg: #f0fdfa;
+    --success-border: #99f6e4;
+    --success-text: #065f46;
+    --success-badge-bg: #d1fae5;
+    --warning-bg: #fffbeb;
+    --warning-border: #f59e0b;
+    --warning-soft: #fef3c7;
+    --warning-text: #422006;
+    --danger-bg: #fef2f2;
+    --danger-border: #fca5a5;
+    --danger-strong: #dc2626;
+    --danger-text: #7f1d1d;
+    --danger-dark: #991b1b;
+    --info-bg: #dbeafe;
+    --info-text: #1e40af;
+    --neutral-bg: #f3f4f6;
+
+    /* ===== Radius (DESIGN-SYSTEM.md §5) ===== */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 12px;
+    --radius-pill: 999px;
+
+    /* ===== Elevation (DESIGN-SYSTEM.md §6) ===== */
+    --elev-1: 0 1px 2px rgba(0,0,0,0.06);
+    --elev-2: 0 2px 6px rgba(15,118,110,0.3);
+    --elev-3: 0 2px 8px rgba(15,118,110,0.1);
+    --elev-4: 0 4px 12px rgba(0,0,0,0.06);
+    --ring-focus: 0 0 0 3px rgba(15,118,110,0.1);
+    --ring-success: 0 0 0 4px #99f6e4;
+    --ring-danger: 0 0 0 4px #fca5a5;
+
+    /* ===== Container (DESIGN-SYSTEM.md §4.1) ===== */
+    --container-stacked: 760px;
+    --sidebar-width: 320px;
+  }
+
+  /* ===== Base typography (DESIGN-SYSTEM.md §3) — system stack only ===== */
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    color: var(--text-body);
+    line-height: 1.5;
+    background: var(--surface-page);
+    font-variant-numeric: tabular-nums;
+  }
+  h1, h2, h3, h4 { color: var(--text-heading); font-weight: 600; line-height: 1.5; }
+  .text-xs-2 { font-size: 10px; font-weight: 600; line-height: 1.5; }
+  .text-2xs  { font-size: 11px; font-weight: 500; line-height: 1.5; }
+  .text-xs   { font-size: 12px; font-weight: 500; line-height: 1.5; }
+  .text-sm   { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-md   { font-size: 14px; font-weight: 500; line-height: 1.5; }
+  .text-lg   { font-size: 15px; font-weight: 600; line-height: 1.5; }
+  .text-xl   { font-size: 16px; font-weight: 700; line-height: 1.5; }
+  .text-2xl  { font-size: 17px; font-weight: 700; line-height: 1.5; }
+  .text-4xl  { font-size: 22px; font-weight: 600; line-height: 1.4; }
+  .text-5xl  { font-size: 32px; font-weight: 600; line-height: 1.3; }
+  .text-display { font-size: 36px; font-weight: 700; line-height: 1.1; }
+
+  /* ===== Buttons (DESIGN-SYSTEM.md §7.1) ===== */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 40px;
+    padding: 9px 16px;
+    font-size: 13px; font-weight: 500;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: filter 150ms ease-out, box-shadow 150ms ease-out;
+    border: 1px solid transparent;
+  }
+  .btn:hover { filter: brightness(0.95); }
+  .btn:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+  .btn-primary { background: var(--brand-primary); color: #fff; border-color: var(--brand-primary); }
+  .btn-secondary { background: #fff; color: var(--brand-primary); border-color: var(--brand-primary); }
+  .btn-ghost { background: transparent; color: var(--text-default); border-color: transparent; }
+  .btn-danger { background: var(--danger-strong); color: #fff; border-color: var(--danger-strong); }
+
+  /* ===== Status pill (DESIGN-SYSTEM.md §7.2) ===== */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 9px;
+    border-radius: var(--radius-pill);
+    font-size: 10px; line-height: 1.5; font-weight: 700;
+    text-transform: uppercase;
+  }
+  .badge-scheduled { background: var(--info-bg); color: var(--info-text); }
+  .badge-checked   { background: var(--brand-light); color: var(--brand-primary); }
+  .badge-completed { background: var(--success-badge-bg); color: var(--success-text); }
+  .badge-cancelled { background: #fecaca; color: var(--danger-dark); }
+  .badge-neutral   { background: var(--neutral-bg); color: var(--text-default); }
+
+  /* ===== Card (DESIGN-SYSTEM.md §7.3) ===== */
+  .card {
+    background: var(--surface-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+  }
+  .card.selected {
+    background: var(--brand-light-50);
+    border-color: var(--brand-primary);
+    box-shadow: var(--ring-success);
+  }
+  .card.hoverable:hover {
+    border-color: var(--brand-border);
+    box-shadow: var(--elev-3);
+  }
+
+  /* ===== Field (DESIGN-SYSTEM.md §7.5) ===== */
+  .field label { display: block; font-size: 12px; color: var(--text-strong); font-weight: 600; margin-bottom: 5px; }
+  .field label .req { color: var(--danger-strong); margin-left: 2px; }
+  .field input, .field select {
+    width: 100%; padding: 10px 12px;
+    border: 1.5px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    font-size: 14px; font-family: inherit;
+    background: var(--surface-card); color: var(--text-body);
+  }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--brand-primary); box-shadow: var(--ring-focus); }
+  .field .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* ===== Meta cell (DESIGN-SYSTEM.md §7.11) ===== */
+  .meta-cell { background: var(--surface-soft); border: 1px solid var(--border-default); border-radius: 8px; padding: 10px; }
+  .meta-cell .k { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; margin-bottom: 3px; }
+  .meta-cell .v { font-size: 13px; color: var(--text-heading); font-weight: 500; }
+
+  /* ===== Section (DESIGN-SYSTEM.md §7.4) ===== */
+  .section { background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-xl); overflow: hidden; }
+  .section-head { padding: 16px 20px; border-bottom: 1px solid var(--surface-divider); display: flex; gap: 12px; align-items: center; }
+  .section-body { padding: 18px 20px; }
+  .section-actions { padding: 14px 20px; border-top: 1px solid var(--surface-divider); display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ===== Step number (DESIGN-SYSTEM.md §7.13) ===== */
+  .step-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+  }
+  .step-future { background: var(--brand-light); color: var(--brand-primary); }
+  .step-current { background: var(--brand-primary); color: #fff; box-shadow: var(--ring-success); }
+  .step-completed { background: var(--brand-primary); color: #fff; }
+  .step-current-danger { background: var(--danger-strong); color: #fff; box-shadow: var(--ring-danger); }
+
+  /* ===== Modal (DESIGN-SYSTEM.md §7.6) ===== */
+  .modal { max-width: 480px; background: #fff; border-radius: var(--radius-xl); padding: 24px; box-shadow: 0 24px 48px rgba(0,0,0,0.18); margin: 0 auto; }
+  .modal .head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+  .modal .icon { width: 36px; height: 36px; background: var(--danger-bg); color: var(--danger-strong); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .modal .why { font-size: 13px; color: var(--text-default); margin: 4px 0 8px; }
+  .modal .rule { background: var(--danger-bg); border-left: 3px solid var(--danger-strong); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12px; color: var(--danger-text); margin-bottom: 16px; }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* ===== Toast (DESIGN-SYSTEM.md §7.7) ===== */
+  .toast {
+    position: relative;
+    min-width: 280px; max-width: 360px;
+    background: var(--brand-primary); color: white;
+    padding: 12px 16px; border-radius: var(--radius-md);
+    box-shadow: 0 8px 24px rgba(15,118,110,0.3);
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px;
+  }
+  .toast-error { background: var(--danger-strong); box-shadow: 0 8px 24px rgba(220,38,38,0.3); }
+
+  /* ===== Swatches (live color tokens) ===== */
+  .swatch { width: 100%; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #fff; text-align: center; padding: 4px; }
+
+  /* ===== Layout ===== */
+  .grid-gallery {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 20px;
+  }
+  @media (min-width: 768px) { .grid-gallery { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1280px) { .grid-gallery { grid-template-columns: repeat(3, 1fr); } }
+
+  .variant-frame {
+    background: var(--surface-page);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+  }
+  .toggle-btn {
+    cursor: pointer; user-select: none;
+    background: var(--neutral-bg); color: var(--text-default);
+    border: 1px solid var(--border-default);
+    padding: 6px 12px; border-radius: var(--radius-pill);
+    font-size: 11px; font-weight: 600;
+  }
+  .toggle-btn:hover { background: var(--border-default); }
+  .toggle-btn:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+  /* ===== Dark mode (DESIGN-SYSTEM.md §2.5) ===== */
+  .gallery-shell.dark .variant-frame {
+    background: #0f1419;
+    border-color: #1f2937;
+    --surface-card: #1a1d23;
+    --surface-soft: #222831;
+    --surface-divider: #2a2f3a;
+    --border-default: #374151;
+    --border-strong: #4b5563;
+    --text-heading: #f9fafb;
+    --text-body: #e5e7eb;
+    --text-strong: #d1d5db;
+    --text-default: #9ca3af;
+    --text-muted: #6b7280;
+    --text-faint: #4b5563;
+    --brand-primary: #2dd4bf;
+    --brand-light: #134e4a;
+    --brand-light-50: #042f2e;
+    --brand-border: #14b8a6;
+    --neutral-bg: #1f2937;
+  }
+  .gallery-shell.dark .btn-secondary { background: #1a1d23; }
+  .gallery-shell.dark .modal, .gallery-shell.dark .toast-error { color: #fff; }
+  .gallery-shell.dark h1, .gallery-shell.dark h2, .gallery-shell.dark .page-title { color: #f9fafb; }
+  .gallery-shell.dark .page-chrome { background: #0f1419; border-color: #1f2937; }
+
+  /* ===== Page chrome ===== */
+  .page-chrome {
+    background: var(--surface-page);
+    border-bottom: 1px solid var(--border-default);
+  }
+
+  /* ===== Misc ===== */
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .divider { height: 1px; background: var(--surface-divider); }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; } }
+</style>
+</head>
+<body class="gallery-shell">
+  <!-- ===== Page chrome ===== -->
+  <header class="page-chrome max-w-7xl mx-auto px-6 pt-10 pb-6">
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+      <div>
+        <div class="text-xs uppercase tracking-widest" style="color: var(--text-muted)">MediSlot · Design System</div>
+        <h1 class="text-4xl mt-1">Clinical calm, on purpose.</h1>
+        <p class="text-sm mt-2" style="color: var(--text-muted); max-width: 640px">
+          Live reference of the tokens, type, and components defined in
+          <code style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px">docs/design/DESIGN-SYSTEM.md</code>.
+          Every value here is sourced from the shipped mockups — no aspirational tokens.
+        </p>
+      </div>
+      <button class="toggle-btn" onclick="document.body.classList.toggle('dark')">Toggle page dark mode</button>
+    </div>
+  </header>
+
+  <div class="grid-gallery max-w-7xl mx-auto">
+
+    <!-- =============================================================
+         VARIANT 01 — Color tokens (Brand / Surface / Text / Semantic)
+         DESIGN-SYSTEM.md §2
+    ============================================================= -->
+    <div class="variant-frame">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-xs uppercase tracking-widest" style="color: var(--text-muted)">§2 · Color tokens</span>
+        </div>
+        <h2 class="text-2xl">Color palette</h2>
+        <p class="text-sm mt-1 mb-5" style="color: var(--text-muted)">Exact hex, no aliases. Brand teal for actions; status pills never use brand.</p>
+
+        <div class="card mb-4">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Brand</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+            <div class="swatch" style="background:#0f766e">primary<br>#0f766e</div>
+            <div class="swatch" style="background:#0d6660">hover<br>#0d6660</div>
+            <div class="swatch" style="background:#ccfbf1;color:#0f766e">light<br>#ccfbf1</div>
+            <div class="swatch" style="background:#f0fdfa;color:#0f766e">light-50<br>#f0fdfa</div>
+            <div class="swatch" style="background:#99f6e4;color:#0f766e">border<br>#99f6e4</div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Surface</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+            <div class="swatch" style="background:#f5f6f8;color:#1a1d23">page<br>#f5f6f8</div>
+            <div class="swatch" style="background:#ffffff;color:#1a1d23;border:1px solid #e5e7eb">card<br>#fff</div>
+            <div class="swatch" style="background:#f9fafb;color:#1a1d23;border:1px solid #e5e7eb">soft<br>#f9fafb</div>
+            <div class="swatch" style="background:#f3f4f6;color:#1a1d23">divider<br>#f3f4f6</div>
+            <div class="swatch" style="background:#e5e7eb;color:#1a1d23">border<br>#e5e7eb</div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Text</div>
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px">
+            <div class="swatch" style="background:#111827">heading</div>
+            <div class="swatch" style="background:#1a1d23">body</div>
+            <div class="swatch" style="background:#374151">strong</div>
+            <div class="swatch" style="background:#4b5563">default</div>
+            <div class="swatch" style="background:#6b7280">muted</div>
+            <div class="swatch" style="background:#9ca3af">faint</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Semantic (status)</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div class="swatch" style="background:#d1fae5;color:#065f46">success</div>
+            <div class="swatch" style="background:#dbeafe;color:#1e40af">info</div>
+            <div class="swatch" style="background:#fef3c7;color:#422006">warning</div>
+            <div class="swatch" style="background:#fecaca;color:#991b1b">danger</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================================
+         VARIANT 02 — Typography
+         DESIGN-SYSTEM.md §3
+    ============================================================= -->
+    <div class="variant-frame">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-xs uppercase tracking-widest" style="color: var(--text-muted)">§3 · Typography</span>
+        </div>
+        <h2 class="text-2xl">System stack + scale</h2>
+        <p class="text-sm mt-1 mb-5" style="color: var(--text-muted)">No web fonts. Zero layout shift. Tabular figures on every time/duration.</p>
+
+        <div class="card mb-4">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Font stack</div>
+          <code style="font-size: 11px; background: var(--surface-soft); padding: 8px 10px; border-radius: 6px; display: block; word-break: break-all">
+            -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif
+          </code>
+          <p class="text-xs mt-2" style="color: var(--text-muted)">Line-height always 1.5 for body. Headings inherit.</p>
+        </div>
+
+        <div class="card mb-4">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Type scale</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--surface-divider);padding-bottom:4px"><span class="text-display">Aa</span><span class="text-xs" style="color: var(--text-muted)">display · 36/700/1.1</span></div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--surface-divider);padding-bottom:4px"><span class="text-5xl">Aa</span><span class="text-xs" style="color: var(--text-muted)">5xl · 32/600/1.3</span></div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--surface-divider);padding-bottom:4px"><span class="text-4xl">Aa</span><span class="text-xs" style="color: var(--text-muted)">4xl · 22/600/1.4 · page H1</span></div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--surface-divider);padding-bottom:4px"><span class="text-xl">Aa</span><span class="text-xs" style="color: var(--text-muted)">xl · 16/700/1.5</span></div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--surface-divider);padding-bottom:4px"><span class="text-lg">Aa</span><span class="text-xs" style="color: var(--text-muted)">lg · 15/600/1.5 · card title</span></div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--surface-divider);padding-bottom:4px"><span class="text-sm">Aa</span><span class="text-xs" style="color: var(--text-muted)">sm · 13/500/1.5 · body default</span></div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><span class="text-xs-2">AA</span><span class="text-xs" style="color: var(--text-muted)">3xs · 10/600/1.5 · pill label</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Numerics · tabular</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            <div class="meta-cell"><div class="k">Time</div><div class="v">09:00 · 09:45 · 10:30</div></div>
+            <div class="meta-cell"><div class="k">Phone</div><div class="v">+966 5XX XXX 5555</div></div>
+            <div class="meta-cell"><div class="k">Count</div><div class="v">04 created</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================================
+         VARIANT 03 — Spacing, Radius, Elevation
+         DESIGN-SYSTEM.md §4, §5, §6
+    ============================================================= -->
+    <div class="variant-frame">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-xs uppercase tracking-widest" style="color: var(--text-muted)">§4–6 · Spacing, Radius, Elevation</span>
+        </div>
+        <h2 class="text-2xl">Geometry</h2>
+        <p class="text-sm mt-1 mb-5" style="color: var(--text-muted)">4px base. Don't mix more than two radii on one screen.</p>
+
+        <div class="card mb-4">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Spacing scale (4px base)</div>
+          <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap">
+            <div style="text-align:center"><div style="width:4px;height:4px;background:var(--brand-primary);border-radius:2px;margin:0 auto"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">4</div></div>
+            <div style="text-align:center"><div style="width:6px;height:24px;background:var(--brand-primary);border-radius:2px;margin:0 auto"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">6</div></div>
+            <div style="text-align:center"><div style="width:8px;height:24px;background:var(--brand-primary);border-radius:2px;margin:0 auto"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">8</div></div>
+            <div style="text-align:center"><div style="width:10px;height:24px;background:var(--brand-primary);border-radius:2px;margin:0 auto"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">10</div></div>
+            <div style="text-align:center"><div style="width:12px;height:24px;background:var(--brand-primary);border-radius:2px;margin:0 auto"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">12</div></div>
+            <div style="text-align:center"><div style="width:16px;height:24px;background:var(--brand-primary);border-radius:2px;margin:0 auto"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">16</div></div>
+            <div style="text-align:center"><div style="width:20px;height:24px;background:var(--brand-primary);border-radius:2px;margin:0 auto"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">20</div></div>
+            <div style="text-align:center"><div style="width:24px;height:24px;background:var(--brand-primary);border-radius:2px;margin:0 auto"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">24</div></div>
+            <div style="text-align:center"><div style="width:32px;height:24px;background:var(--brand-primary);border-radius:2px;margin:0 auto"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">32</div></div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Radius</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+            <div><div style="height:48px;background:var(--brand-light);border:1px solid var(--brand-border);border-radius:4px"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">xs · 4 · segmented</div></div>
+            <div><div style="height:48px;background:var(--brand-light);border:1px solid var(--brand-border);border-radius:6px"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">sm · 6 · buttons</div></div>
+            <div><div style="height:48px;background:var(--brand-light);border:1px solid var(--brand-border);border-radius:8px"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">md · 8 · meta</div></div>
+            <div><div style="height:48px;background:var(--brand-light);border:1px solid var(--brand-border);border-radius:10px"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">lg · 10 · cards</div></div>
+            <div><div style="height:48px;background:var(--brand-light);border:1px solid var(--brand-border);border-radius:12px"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">xl · 12 · sections</div></div>
+            <div><div style="height:48px;background:var(--brand-light);border:1px solid var(--brand-border);border-radius:999px"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">pill · 999</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Elevation</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+            <div><div style="height:48px;background:#fff;border:1px solid var(--border-default);border-radius:10px"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">elev-0 · none</div></div>
+            <div><div style="height:48px;background:#fff;border-radius:10px;box-shadow: var(--elev-1)"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">elev-1 · 0 1 2 / 6%</div></div>
+            <div><div style="height:48px;background:#fff;border-radius:10px;box-shadow: var(--elev-3)"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">elev-3 · hover card</div></div>
+            <div><div style="height:48px;background:var(--brand-light-50);border:1px solid var(--brand-primary);border-radius:10px;box-shadow: var(--ring-success)"></div><div class="text-xs-2 mt-1" style="color:var(--text-muted)">ring-success · selected</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================================
+         VARIANT 04 — Buttons + Status pills
+         DESIGN-SYSTEM.md §7.1, §7.2
+    ============================================================= -->
+    <div class="variant-frame">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-xs uppercase tracking-widest" style="color: var(--text-muted)">§7.1–7.2 · Buttons &amp; Pills</span>
+        </div>
+        <h2 class="text-2xl">Actions &amp; status</h2>
+        <p class="text-sm mt-1 mb-5" style="color: var(--text-muted)">Four button variants. Status pills never use brand teal — that color is for actions.</p>
+
+        <div class="card mb-4">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Buttons — default (9 · 16)</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <button class="btn btn-primary">Book appointment</button>
+            <button class="btn btn-secondary">Reschedule</button>
+            <button class="btn btn-ghost">Cancel</button>
+            <button class="btn btn-danger">Confirm cancellation</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" disabled style="opacity:.5;cursor:not-allowed">Book (disabled)</button>
+            <button class="btn btn-primary">Create 4 →</button>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Status pills</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <span class="badge badge-scheduled"><span class="status-dot" style="background:#1e40af"></span>Scheduled</span>
+            <span class="badge badge-checked"><span class="status-dot" style="background:#0f766e"></span>Checked-in</span>
+            <span class="badge badge-completed">✓ Completed</span>
+            <span class="badge badge-cancelled">✕ Cancelled</span>
+            <span class="badge badge-cancelled">⚠ No-show</span>
+            <span class="badge badge-completed">✓ Will create</span>
+            <span class="badge badge-cancelled">✕ Will skip</span>
+            <span class="badge badge-neutral">○ Draft</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Rules</div>
+          <ul class="text-sm" style="color: var(--text-default); list-style: disc; padding-left: 18px; line-height: 1.7">
+            <li>One primary CTA per visible region — never two.</li>
+            <li>Destructive actions are always <code style="background:var(--surface-soft);padding:1px 4px;border-radius:3px">.btn-danger</code>. Never primary-red, never ghost-danger.</li>
+            <li>Disabled = <code style="background:var(--surface-soft);padding:1px 4px;border-radius:3px">opacity:0.5</code>. Never remove the label.</li>
+            <li>Pill text is always uppercase, 10–11px, weight 600–700.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================================
+         VARIANT 05 — Field + Meta cell
+         DESIGN-SYSTEM.md §7.5, §7.11
+    ============================================================= -->
+    <div class="variant-frame">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-xs uppercase tracking-widest" style="color: var(--text-muted)">§7.5 · Fields</span>
+        </div>
+        <h2 class="text-2xl">Inputs &amp; metadata</h2>
+        <p class="text-sm mt-1 mb-5" style="color: var(--text-muted)">Required-field marker is a red asterisk, never a "(required)" caption.</p>
+
+        <div class="card mb-4">
+          <div class="field mb-3">
+            <label>Patient phone <span class="req">*</span></label>
+            <input value="+966 5XX XXX 5555" />
+            <div class="hint">We'll send a 6-digit code to verify.</div>
+          </div>
+          <div class="field mb-3">
+            <label>Branch</label>
+            <select>
+              <option>Riyadh Olaya</option>
+              <option>Riyadh Malqa</option>
+              <option>Jeddah Corniche</option>
+              <option>Riyadh Diplomatic Quarter</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Reason for visit <span class="req">*</span></label>
+            <input placeholder="e.g. follow-up on blood pressure" />
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="text-xs uppercase tracking-wider mb-3" style="color: var(--text-muted)">Meta cells (in sections)</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+            <div class="meta-cell"><div class="k">Date</div><div class="v">Sat, Aug 23 · 2025</div></div>
+            <div class="meta-cell"><div class="k">Time</div><div class="v">11:15 – 11:45</div></div>
+            <div class="meta-cell"><div class="k">Doctor</div><div class="v">Dr. Ahmed Al-Rashid</div></div>
+            <div class="meta-cell"><div class="k">Branch</div><div class="v">Riyadh Olaya</div></div>
+            <div class="meta-cell"><div class="k">Patient</div><div class="v">Fatima A. Al-Sayed</div></div>
+            <div class="meta-cell"><div class="k">Phone</div><div class="v">+966 5XX XXX 5555</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================================
+         VARIANT 06 — Appointment card (canonical across roles)
+         DESIGN-SYSTEM.md §7.10
+    ============================================================= -->
+    <div class="variant-frame">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-xs uppercase tracking-widest" style="color: var(--text-muted)">§7.10 · Appointment card</span>
+        </div>
+        <h2 class="text-2xl">The shared unit</h2>
+        <p class="text-sm mt-1 mb-5" style="color: var(--text-muted)">Date-block + body + status pill. Selected = halo, not border swap.</p>
+
+        <div class="card selected mb-3">
+          <div style="display:flex;gap:16px">
+            <div style="text-align:center;min-width:56px">
+              <div class="text-xs-2" style="color: var(--brand-primary)">AUG</div>
+              <div class="text-2xl" style="color: var(--text-heading)">23</div>
+              <div class="text-xs" style="color: var(--text-muted)">Sat</div>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div class="text-xs" style="color: var(--text-muted)">11:15 – 11:45 · 30 min</div>
+              <div class="text-lg mt-0.5">Fatima A. Al-Sayed</div>
+              <div class="text-sm" style="color: var(--text-default)">Cardiology · Dr. Ahmed Al-Rashid</div>
+              <div class="text-xs mt-1" style="color: var(--text-muted)">📅 Riyadh Olaya</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+              <span class="badge badge-scheduled"><span class="status-dot" style="background:#1e40af"></span>Scheduled</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card hoverable mb-3">
+          <div style="display:flex;gap:16px">
+            <div style="text-align:center;min-width:56px">
+              <div class="text-xs-2" style="color: var(--text-muted)">AUG</div>
+              <div class="text-2xl" style="color: var(--text-heading)">23</div>
+              <div class="text-xs" style="color: var(--text-muted)">Sat</div>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div class="text-xs" style="color: var(--text-muted)">12:00 – 12:30 · 30 min</div>
+              <div class="text-lg mt-0.5">Khalid M. Al-Otaibi</div>
+              <div class="text-sm" style="color: var(--text-default)">Dermatology · Dr. Sara Al-Qahtani</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+              <span class="badge badge-checked"><span class="status-dot" style="background:#0f766e"></span>Checked-in</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;gap:16px">
+            <div style="text-align:center;min-width:56px">
+              <div class="text-xs-2" style="color: var(--text-muted)">AUG</div>
+              <div class="text-2xl" style="color: var(--text-heading)">22</div>
+              <div class="text-xs" style="color: var(--text-muted)">Fri</div>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div class="text-xs" style="color: var(--text-muted)">09:00 – 09:30 · 30 min</div>
+              <div class="text-lg mt-0.5">Noura H. Al-Ghamdi</div>
+              <div class="text-sm" style="color: var(--text-default)">Follow-up · Dr. Ahmed Al-Rashid</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+              <span class="badge badge-completed">✓ Completed</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================================
+         VARIANT 07 — Section + Step number
+         DESIGN-SYSTEM.md §7.4, §7.13
+    ============================================================= -->
+    <div class="variant-frame">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-xs uppercase tracking-widest" style="color: var(--text-muted)">§7.4 · Section &amp; step number</span>
+        </div>
+        <h2 class="text-2xl">Stacked-vertical flow</h2>
+        <p class="text-sm mt-1 mb-5" style="color: var(--text-muted)">760px container. Step circle: filled for current, outlined for future, light for completed.</p>
+
+        <div class="section">
+          <div class="section-head">
+            <span class="step-num step-completed">1</span>
+            <div style="flex:1">
+              <div class="text-lg">Pick a slot</div>
+              <div class="text-xs" style="color: var(--text-muted)">Sat, Aug 23 · 11:15 with Dr. Al-Rashid</div>
+            </div>
+            <button class="btn btn-ghost">Edit</button>
+          </div>
+        </div>
+
+        <div style="height: 8px"></div>
+
+        <div class="section">
+          <div class="section-head">
+            <span class="step-num step-current">2</span>
+            <div style="flex:1">
+              <div class="text-lg">Patient details</div>
+              <div class="text-xs" style="color: var(--text-muted)">Verify phone with OTP</div>
+            </div>
+          </div>
+          <div class="section-body">
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+              <div class="meta-cell"><div class="k">Patient</div><div class="v">Fatima A. Al-Sayed</div></div>
+              <div class="meta-cell"><div class="k">Phone</div><div class="v">+966 5XX XXX 5555</div></div>
+            </div>
+            <div class="field" style="margin-top:16px">
+              <label>6-digit code <span class="req">*</span></label>
+              <input placeholder="🔒 sent to your phone" />
+              <div class="hint">Code expires in 4:32.</div>
+            </div>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-ghost">Back</button>
+            <button class="btn btn-primary">Verify &amp; continue</button>
+          </div>
+        </div>
+
+        <div style="height: 8px"></div>
+
+        <div class="section">
+          <div class="section-head">
+            <span class="step-num step-future">3</span>
+            <div style="flex:1">
+              <div class="text-lg">Confirm</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================================
+         VARIANT 08 — Conflict modal + Toast
+         DESIGN-SYSTEM.md §7.6, §7.7
+    ============================================================= -->
+    <div class="variant-frame">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-xs uppercase tracking-widest" style="color: var(--text-muted)">§7.6–7.7 · Modal &amp; toast</span>
+        </div>
+        <h2 class="text-2xl">Conflicts &amp; feedback</h2>
+        <p class="text-sm mt-1 mb-5" style="color: var(--text-muted)">Always: what happened · why · what you can do. Never an "OK"-only conflict.</p>
+
+        <div class="modal mb-4">
+          <div class="head">
+            <div class="icon">⚠</div>
+            <div>
+              <div class="text-lg">That slot was just booked.</div>
+            </div>
+          </div>
+          <div class="why">Dr. Al-Rashid's Saturday 10:00 was claimed by another patient 12 seconds ago.</div>
+          <div class="rule">Rule: each slot can only be held by one patient until the booking window passes.</div>
+          <div class="actions">
+            <button class="btn btn-ghost">Pick another time</button>
+            <button class="btn btn-primary">Join waitlist →</button>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="toast">✓ 4 appointments created · auto-dismiss in 3s</div>
+          <div class="toast toast-error">✕ Conflict — slot claimed by another patient</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================================
+         VARIANT 09 — Empty state + Audit drawer (mini)
+         DESIGN-SYSTEM.md §7.8, §7.9
+    ============================================================= -->
+    <div class="variant-frame">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-xs uppercase tracking-widest" style="color: var(--text-muted)">§7.8–7.9 · Empty &amp; audit</span>
+        </div>
+        <h2 class="text-2xl">Empty &amp; activity</h2>
+        <p class="text-sm mt-1 mb-5" style="color: var(--text-muted)">Empty states name the rule. Audit never exposes patient PII across roles.</p>
+
+        <div class="card" style="padding: 48px 24px; text-align: center">
+          <div style="width:48px;height:48px;margin:0 auto 12px;color:var(--text-faint);font-size:36px;line-height:48px;text-align:center">📅</div>
+          <div class="text-lg">No appointments match <em>Cardiology</em> this week.</div>
+          <div class="text-sm mt-1" style="color: var(--text-muted); max-width: 360px; margin: 0 auto">Try widening the date range or clearing the filter.</div>
+          <button class="btn btn-secondary" style="margin-top:16px">Clear filter</button>
+        </div>
+
+        <div style="height: 16px"></div>
+
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div class="text-lg">Activity · today</div>
+            <button class="btn btn-ghost">Open drawer →</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px" class="text-sm">
+            <div style="display:flex;justify-content:space-between"><span>Reem Al-Harbi <span style="color:var(--text-muted)">checked in</span> Fatima A. Al-Sayed</span><span style="color:var(--text-muted)">10:31</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Dr. Ahmed Al-Rashid <span style="color:var(--text-muted)">completed</span> Noura H. Al-Ghamdi</span><span style="color:var(--text-muted)">09:42</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Salem Al-Mutairi <span style="color:var(--text-muted)">narrowed</span> Riyadh Olaya hours</span><span style="color:var(--text-muted)">08:15</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="max-w-7xl mx-auto px-6 py-10 text-center" style="color: var(--text-muted)">
+    Source of truth: <code style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px">docs/design/DESIGN-SYSTEM.md</code>.
+    Open <code style="background: var(--surface-soft); padding: 2px 6px; border-radius: 4px">mockup.html</code> directly. Toggle page dark mode in the header.
+  </footer>
+</body>
+</html>
