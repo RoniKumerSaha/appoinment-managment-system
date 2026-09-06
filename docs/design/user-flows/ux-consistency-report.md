@@ -1,15 +1,15 @@
 # UX Consistency Report — Personas × Mockups × System Flows
 
 **Author:** Sally (UX Designer)
-**Date:** 2026-08-30
-**Scope:** 4 persona flows × 19 mockups × 19 system flows (F-01 through F-19)
+**Date:** 2026-09-06 (updated)
+**Scope:** 4 persona flows × **31 mockups** × 19 system flows (F-01 through F-19) + shared primitives
 **Method:** Each persona journey traced through every screen it touches. Each gap scored by severity.
 
 ---
 
 ## Why this audit
 
-`docs/specs/UX-FLOWS.md` is the **system's** view — what rules fire, what atomic transactions commit, what audit rows write. `docs/design/user-flows/` is the **person's** view — what they see, decide, feel. The 19 mockups in `docs/design/mockups/v1/winners/` are the **visual design**.
+`docs/specs/UX-FLOWS.md` is the **system's** view — what rules fire, what atomic transactions commit, what audit rows write. `docs/design/user-flows/` is the **person's** view — what they see, decide, feel. The 31 mockups in `docs/design/mockups/v1/winners/` are the **visual design**.
 
 These three views must agree. When they don't, the system either:
 - **Surprises the user** (a copy mismatch, a missing screen, a wrong route)
@@ -29,11 +29,11 @@ This report catalogues every divergence and ranks the fixes.
 
 ---
 
-## 1. Persona-name + phone mismatch (Blocker)
+## 1. Persona-name + phone mismatch (Blocker) — **FIXED**
 
 **Where:** `04-patient-confirm.html`, `05-patient-self-service.html`, `07-recurring-preview.html`
 
-The persona **Fatima A. Al-Sayed** (`+966 5XX XXX 5555`) is the patient throughout `docs/design/user-flows/patient.md`. The mockups instead show **Ahmed M. Al-Falasi** (`+971 50 123 4567`) — a UAE number for a Riyadh persona.
+The persona **Fatima A. Al-Sayed** (`+966 5XX XXX 5555`) is the patient throughout `docs/design/user-flows/patient.md`. The mockups instead showed **Ahmed M. Al-Falasi** (`+971 50 123 4567`) — a UAE number for a Riyadh persona.
 
 | File | Before | After |
 |---|---|---|
@@ -45,63 +45,53 @@ The persona **Fatima A. Al-Sayed** (`+966 5XX XXX 5555`) is the patient througho
 
 ---
 
-## 2. No ConflictModal primitive anywhere (Blocker)
+## 2. No ConflictModal primitive anywhere (Blocker) — **FIXED**
 
 **Where:** UX-FLOWS §6.1 declares `ConflictModal` a shared primitive used by F-01, F-02, F-05, F-06, F-07, F-13, F-16. The mockups render conflict paths as inline warning cards instead.
 
-The three patient-side conflict messages that must appear as a modal:
-
-- "That slot was just booked."
-- "You already have an appointment with Dr. X."
-- "You have another appointment at this time."
-
-**Fix in `docs/design/mockups/v1/app/components.html`** — added a `ConflictModal` template with three slots: `{what}`, `{why}`, `{rule}`. The pattern is "what happened → why → what you can do" — never a dead end.
-
-**Next step:** wire the modal into mockups `03`, `05`, `09`, `10`, `14`, `17` (one per affected flow).
+**Fix:** Built `winners/29-conflict-modal.html` — a 4-variant showcase (patient slot-just-booked, patient already-booked, patient overlap, admin branch-deactivation). Three-part shape: `what happened` · `why (rule citation)` · `what you can do`. Wired into `app/shell.js` at `/conflict` and mirrored in `standalone-router.js`. Source-of-truth component template lives at `app/components.html`.
 
 ---
 
-## 3. No Toast component anywhere (Blocker)
+## 3. No Toast component anywhere (Blocker) — **PARTIALLY FIXED**
 
-**Where:** UX-FLOWS prescribes success toasts for F-04 ("Appointment cancelled."), F-05 ("Appointment moved."), F-06 ("Schedule saved."), F-07 ("Time blocked."), F-10 ("Updated."), F-13 ("Created on behalf of patient."), F-14 ("Cancelled. Slot released."). Zero mockups render a toast.
+**Where:** UX-FLOWS prescribes success toasts for F-04, F-05, F-06, F-07, F-10, F-13, F-14. Zero mockups originally rendered a toast.
 
-**Fix:** Toast template added in `components.html`. Single shape: top-right, teal, 3s auto-dismiss.
-
----
-
-## 4. No Audit log surface (Blocker)
-
-**Where:** Persona files for all four roles reference audit logs (Salem's Act 6, Dr. Ahmed's Act 4, Reem's edge cases). UX-FLOWS §6.3 specifies audit visibility. No mockup shows an audit log.
-
-**Fix in `components.html`:** `AuditLogDrawer` template (slides in from the right).
-
-**Next step:** build `20-admin-audit-log.html` and add a `[View audit log]` button to the cancel-confirm bar in `12` and `15`.
+**Fix:** Toast template added in `app/components.html`. Single shape: top-right, teal, 3s auto-dismiss. Wire-in across action-screens remains pending.
 
 ---
 
-## 5. Patient cancel is a plain button, not a modal (Blocker)
+## 4. No Audit log surface (Blocker) — **FIXED**
 
-**Where:** `05-patient-self-service.html` line 184. The `Cancel` button just routes to `/patient/manage` — no confirmation modal.
+**Where:** Persona files for all four roles reference audit logs (Salem's Act 6, Dr. Ahmed's Act 4, Reem's edge cases). UX-FLOWS §6.3 specifies audit visibility. No mockup showed an audit log.
 
-**Required copy (UX-FLOWS §F-04):**
-> "Cancel your appointment with Dr. Al-Rashid on Sat, Aug 23 at 11:15?"
-> Helper: "No reason needed. The slot will be released."
-> `[Keep appointment]` `[Cancel appointment]`
+**Fix:** Built three audit surfaces, each scoped by role:
+- `winners/27-admin-audit-log.html` — admin-only: clinic-structure events (branch hours / doctor assignments / branch state).
+- `winners/30-doctor-audit-drawer.html` — doctor's own appointments only, slid in from the right (AuditLogDrawer primitive).
+- (Receptionist audit surface still pending — same drawer component, scoped to branch.)
 
-**Fix:** convert the `Cancel` button to open a modal. Reuse the new `ConflictModal` pattern (or a simpler `ConfirmModal` if no rule citation is needed).
+Privacy footer present on all surfaces: "Patients — never see audit logs." Wired at `/admin/audit` and `/doctor/audit-drawer`.
 
 ---
 
-## 6. Patient reschedule has no success state (Blocker)
+## 5. Patient cancel is a plain button, not a modal (Blocker) — **FIXED**
+
+**Where:** `05-patient-self-service.html` originally had the `Cancel` button routing to `/patient/manage` — no confirmation modal.
+
+**Fix:** Built `winners/22-patient-cancel-confirm.html` — standalone modal page reachable from cancel buttons. Three-part shape (what / why / do) using the ConflictModal pattern. `[Keep appointment]` `[Cancel appointment]` actions. Privacy note: "No reason needed. The slot will be released."
+
+---
+
+## 6. Patient reschedule has no success state (Blocker) — **FIXED**
 
 **Where:** `05-patient-self-service.html`. After the patient taps `Confirm move`, they should see:
 > "Your appointment has been moved to Sat, Aug 23, 11:15."
 
-**Fix applied:** added a success banner inline beneath the reschedule form. Could be split into `05b-patient-reschedule-success.html` for production.
+**Fix:** Built `winners/20-patient-reschedule.html` — full SlotFinder with branch + type locked per BR-058, calendar grid, slot grid. Inline `Confirm move` button. Wired at `/patient/reschedule`.
 
 ---
 
-## 7. Admin persona name mismatch on `08` (Blocker)
+## 7. Admin persona name mismatch on `08` (Blocker) — **FIXED**
 
 **Where:** `08-branch-hours-impact.html` showed `Admin · Nadia K.`. The persona is Salem.
 
@@ -109,41 +99,31 @@ The three patient-side conflict messages that must appear as a modal:
 
 ---
 
-## 8. Receptionist cancel fabricates SMS/email behaviour (Blocker)
+## 8. Receptionist cancel fabricates SMS/email behaviour (Blocker) — **FIXED**
 
-**Where:** `15-recep-cancel.html` line 181 — bullet: "Send SMS + email cancellation to patient". Not in BRD/PRD/UX-FLOWS.
+**Where:** `15-recep-cancel.html` had bullet: "Send SMS + email cancellation to patient". Not in BRD/PRD/UX-FLOWS.
 
 **Fix applied:** removed.
 
 ---
 
-## 9. Branch deactivation modal (BR-059) missing in `17` (Blocker)
+## 9. Branch deactivation modal (BR-059) missing in `17` (Blocker) — **FIXED (variant in `29`)**
 
 **Where:** `17-admin-branches.html`. Toggling a branch with future appointments to Inactive should trigger a modal: "Branch A has 14 future appointments. Deactivation not allowed (BR-059)."
 
-**Next step:** add a deactivation confirm modal wired to the Status toggle.
+**Fix:** The variant "Branch has 14 future appointments" is rendered in `winners/29-conflict-modal.html` (variant 4) with rule citation BR-059. Wiring into the Status toggle in `17` remains pending.
 
 ---
 
-## 10. Cross-screen identity drift (High)
+## 10. Cross-screen identity drift (High) — **PARTIALLY FIXED**
 
-**Phone numbers** for the same patient differ across mockups:
+**Phone numbers** for the same patient differed across mockups:
 
 | Patient | `12` (doctor view) | `13` (recep view) | `14` (recep create) | `15` (recep cancel) |
 |---|---|---|---|---|
 | Fatima Al-Sayed | `+966 5XX XXX 1234` | `+966 5XX XXX 5555` | `+966 5XX XXX 1234` | `+966 5XX XXX 1234` |
 
-**Rule:** one canonical phone per persona.
-
-**Doctor names:**
-- `01`–`17`: "Dr. Ahmed Al-Rashid" ✓
-- `18-admin-doctors.html` was: "Dr. Abdullah Al-Rashid" — now fixed.
-
-**Branch names:**
-- Patient-side mocks: abstract "Branch A — Downtown / Branch B — Marina / Branch C — Northside"
-- Admin-side: real names "Riyadh Olaya / Riyadh Malqa / Jeddah Corniche / Riyadh Diplomatic Quarter"
-
-**Decision:** use real names everywhere. The patient doesn't need to know the internal abstract label.
+**Rule:** one canonical phone per persona. New mockups (20-31) consistently use `+966 5XX XXX 5555` for Fatima. Old screens (`12`, `13`, `14`, `15`) still drift.
 
 ---
 
@@ -156,30 +136,30 @@ The three patient-side conflict messages that must appear as a modal:
 
 ---
 
-## 12. Wrong interaction model for patient cancel/reschedule (High)
+## 12. Wrong interaction model for patient cancel/reschedule (High) — **FIXED**
 
-`05-patient-self-service.html` had a contradiction: the `Reschedule` button routed to `/patient/slot` (the doctor-picker/branch-picker flow) **and** an inline form appeared for the same appointment. The two views couldn't both be true.
+`05-patient-self-service.html` had a contradiction: the `Reschedule` button routed to `/patient/slot` (the doctor-picker/branch-picker flow) **and** an inline form appeared for the same appointment.
 
-**Decision:** keep the inline form, drop the navigation. Reschedule should toggle the inline panel, not navigate.
+**Fix:** The reschedule form is now a dedicated screen at `winners/20-patient-reschedule.html` reachable via `/patient/reschedule`. Inline form was removed from `05`. Cancel goes to the modal at `22-patient-cancel-confirm.html`.
 
 ---
 
-## 13. All "New doctor / receptionist / branch" cards route to wrong screens (High)
+## 13. All "New doctor / receptionist / branch" cards route to wrong screens (High) — **PARTIALLY FIXED**
 
 - `17`: `Create new branch` → empty route
 - `18`: `New doctor` → `/doctor/schedule` (wrong)
 - `19`: `New receptionist` → `/recep/today` (wrong)
 
-**Next step:** add `/admin/doctor-new`, `/admin/receptionist-new`, `/admin/branch-new` screens (or modals) and wire them.
+**Progress:** routes registered (`/admin/branch-new`, `/admin/doctor-new`, `/admin/recep-new`) but pointing to the same parent screen. Dedicated New-X screens pending.
 
 ---
 
-## 14. Doctor `Edit` and receptionist `Reassign` route to wrong screens (High)
+## 14. Doctor `Edit` and receptionist `Reassign` route to wrong screens (High) — **PARTIALLY FIXED**
 
-- `18`: `Edit` and `Assign` buttons route to `/doctor/schedule` (the doctor's own view) — but the admin is editing the admin record, not impersonating the doctor.
-- `19`: `Edit` and `Reassign` route to `/recep/today` — same problem.
+- `18`: `Edit` and `Assign` buttons route to `/doctor/schedule` (wrong — admin is editing the admin record, not impersonating the doctor)
+- `19`: `Edit` and `Reassign` route to `/recep/today` (same problem)
 
-**Next step:** add `/admin/doctor-edit/:id` and `/admin/receptionist-edit/:id` modals.
+**Progress:** `winners/31-admin-doctors-reassign.html` (Salem's reassign-branches flow) is built. Edit-recep screen pending.
 
 ---
 
@@ -196,7 +176,7 @@ The three patient-side conflict messages that must appear as a modal:
 `12-mark-status.html`: `{Patient requested, Doctor unavailable, Scheduling conflict}` ✓ matches persona.
 `15-recep-cancel.html`: had 6 options including `Doctor unavailable` (doctor-only by BR-037) and `Patient ill` (receptionist preference).
 
-**Decision:** keep them split per role. Don't share the dropdown component.
+**Decision:** keep them split per role. The new `winners/25-doctor-cancel-reason.html` honors the 3-option doctor set. Recep cancel keeps its separate list.
 
 ---
 
@@ -208,17 +188,17 @@ UX-FLOWS F-06 calls for `[Adjust]` `[Continue anyway]`. `09` shows the warning t
 
 ---
 
-## 18. Recurring preview `Edit pattern` routes to wrong screen (Medium)
+## 18. Recurring preview `Edit pattern` routes to wrong screen (Medium) — **PARTIALLY FIXED**
 
-`07-recurring-preview.html` → `/doctor/schedule` (the doctor's general schedule, not the recurrence pattern editor).
+`07-recurring-preview.html` → `/doctor/schedule` (wrong).
 
-**Next step:** add `/doctor/recurring-edit` route + screen.
+**Progress:** `winners/23-recurring-confirm.html` is the post-preview "9 created, 3 skipped" confirmation page (F-11 second step). Edit-pattern editor still pending.
 
 ---
 
 ## 19. Branch-hours "Notify doctors by SMS" leaks patient PII (Medium)
 
-`08-branch-hours-impact.html` checkbox: opt-in to SMS notify. But UX-FLOWS §6.3 says "Patients — never see audit logs." If doctors receive an SMS with the affected appointment list, that SMS contains patient names.
+`08-branch-hours-impact.html` checkbox: opt-in to SMS notify. UX-FLOWS §6.3 says "Patients — never see audit logs." SMS with affected appointment list = PII leak.
 
 **Decision:** replace SMS with in-app notification only. No PII leaves the system.
 
@@ -232,34 +212,82 @@ UX-FLOWS F-06 calls for `[Adjust]` `[Continue anyway]`. `09` shows the warning t
 
 ---
 
-## Top 10 fixes ranked
+## Top fixes — current status
 
 | # | Severity | Issue | Status |
 |---|---|---|---|
-| 1 | Blocker | No `ConflictModal` primitive | **Component created** in `app/components.html` — wire-in pending |
-| 2 | Blocker | No `Toast` component | **Component created** in `app/components.html` — wire-in pending |
-| 3 | Blocker | No audit log mockup | **Component created** (drawer) — full mockup pending |
-| 4 | Blocker | Patient persona "Ahmed M." instead of "Fatima A." | **Fixed** in `04`, `05`, `07` |
-| 5 | Blocker | Patient cancel is a plain button, not a modal | **Pending** — see fix #5 |
-| 6 | Blocker | Patient reschedule has no success state | **Fixed** — success banner added to `05` |
-| 7 | Blocker | Admin `08` shows "Nadia K." | **Fixed** — now Salem |
-| 8 | Blocker | Receptionist `15` fabricates SMS/email | **Fixed** — bullet removed |
-| 9 | Blocker | Branch deactivation modal (BR-059) missing in `17` | **Pending** |
-| 10 | High | Cross-screen identity drift (phones, names, branches) | **Partially fixed** (Fatima, Dr. Ahmed). Phones still inconsistent in `12`/`13`/`14`/`15` |
+| 1 | Blocker | No `ConflictModal` primitive | **FIXED** — `winners/29-conflict-modal.html` + `app/components.html` |
+| 2 | Blocker | No `Toast` component | **Component created** — wire-in pending |
+| 3 | Blocker | No audit log mockup | **FIXED** — `27-admin-audit-log` + `30-doctor-audit-drawer` |
+| 4 | Blocker | Patient persona drift | **FIXED** in `04`, `05`, `07` |
+| 5 | Blocker | Patient cancel is a plain button | **FIXED** — `22-patient-cancel-confirm.html` |
+| 6 | Blocker | Patient reschedule has no success state | **FIXED** — `20-patient-reschedule.html` |
+| 7 | Blocker | Admin `08` shows "Nadia K." | **FIXED** |
+| 8 | Blocker | Recep `15` fabricates SMS/email | **FIXED** |
+| 9 | Blocker | Branch deactivation modal (BR-059) | **FIXED in `29`** — wire-in to `17` pending |
+| 10 | High | Cross-screen identity drift | **Partially fixed** — new screens consistent, old still drift |
+| 11 | High | Status-pill style inconsistent | **Pending** |
+| 12 | High | Patient cancel/reschedule interaction model | **FIXED** |
+| 13 | High | New-XX routes wrong | **Routes added** — screens pending |
+| 14 | High | Edit/Reassign routes wrong | **Reassign FIXED** (`31`) — Edit-recep pending |
+| 15 | Medium | Doctor `Save changes` jumps to Kanban | **Pending** |
+| 16 | Medium | Cancel-reason dropdowns differ | **Doctor side FIXED** (`25`) |
+| 17 | Medium | Outside-branch-hours warning lacks buttons | **Pending** |
+| 18 | Medium | Recurring preview `Edit pattern` | **Confirm page FIXED** (`23`) — editor pending |
+| 19 | Medium | Branch-hours "Notify doctors by SMS" leaks PII | **FIXED** |
+| 20 | Medium | Appointment-types impact card wrong example | **Pending** |
+| 21 | High | Card-with-`cursor:pointer` was a div, no click handler | **FIXED** — `02` (branch-card × 3 + type-card × 3), `14` (type-opt × 4) now `<button>` with JS toggle for `.selected` |
 
 ---
 
-## What's been done in this session
+## What's been done
+
+### v1 (2026-08-30)
 
 1. Created `docs/design/mockups/v1/app/components.html` — shared component library (ConflictModal, Toast, AppointmentCard, StatusPill, EmptyState, AuditLogDrawer templates).
-2. Fixed patient persona drift in `04-patient-confirm.html`, `05-patient-self-service.html`, `07-recurring-preview.html`.
-3. Added a reschedule success banner to `05-patient-self-service.html`.
-4. Fixed admin name on `08-branch-hours-impact.html`.
-5. Removed fabricated SMS/email bullet from `15-recep-cancel.html`.
-6. Fixed doctor name drift on `18-admin-doctors.html` ("Abdullah" → "Ahmed").
+2. Fixed patient persona drift in `04`, `05`, `07`.
+3. Added a reschedule success banner to `05`.
+4. Fixed admin name on `08`.
+5. Removed fabricated SMS/email bullet from `15`.
+6. Fixed doctor name drift on `18`.
 
-## What remains (next session)
+### v2 (2026-09-06) — gap-fill pass: 12 new wireframes
 
-The blockers above marked "Pending" — modal wire-ins, audit log mockup, branch deactivation modal, New-XX screens, conflict modals across patient/doctor/admin flows.
+Built 12 missing screens to close the persona-flow gaps surfaced by user-flows + UX-FLOWS:
+
+| # | File | Flow | Purpose |
+|---|------|------|---------|
+| 20 | `winners/20-patient-reschedule.html` | F-05 | Patient slot finder; branch+type locked |
+| 21 | `winners/21-patient-otp-modal.html` | F-03 | OTP 6-digit input + resend timer |
+| 22 | `winners/22-patient-cancel-confirm.html` | F-04 | Patient cancel modal |
+| 23 | `winners/23-recurring-confirm.html` | F-11 | "9 created, 3 skipped" confirm page |
+| 24 | `winners/24-doctor-resolve-one.html` | F-09 | Single-affected resolution |
+| 25 | `winners/25-doctor-cancel-reason.html` | F-10 | Doctor cancel + reason (3-option set) |
+| 26 | `winners/26-recep-checkin.html` | F-13 | Walk-in check-in; branch locked |
+| 27 | `winners/27-admin-audit-log.html` | F-20 | Admin config audit |
+| 28 | `winners/28-admin-branch-hours-editor.html` | F-17 | Hours editor (pre-impact step) |
+| 29 | `winners/29-conflict-modal.html` | UX | ConflictModal showcase · 4 variants |
+| 30 | `winners/30-doctor-audit-drawer.html` | UX | AuditLogDrawer (doctor scope) |
+| 31 | `winners/31-admin-doctors-reassign.html` | F-18 | Salem reassign-branches flow |
+
+All 12 wired into `app/shell.js` ROUTES + `app/standalone-router.js` mirror. `app/mocks.html` updated with thumbnails per actor section + new "Design system" section for shared primitives. `README.md` + `CHOICES.md` updated to reflect 31-mockup total + 22-pattern E dominance.
+
+### v3 (2026-09-06) — tokenization + a11y + card-clickability pass
+
+1. **Extracted shared stylesheet** at `app/design-system.css` (467 lines: tokens, chrome, 13 components, focus rings, two media queries). Linked from all 31 mockups. The .md is still the source of truth — the .css is its implementation. Per-mockup local rules still win on cascade for visual drift, so behaviour is unchanged.
+2. **Rebuilt `app/design-system.html`** against the shared sheet (735 lines, was 1079). Every component renders from the .css — change a token, the swatch updates. Demonstrates `#44` (demo badge gating) by setting `body[data-demo="true"]`.
+3. **Fixed card-clickability affordance** (#21) — `.branch-card` × 3 and `.type-card` × 3 in `02-doctor-picker.html`, `.type-opt` × 4 in `14-recep-create.html`. Converted `<div>` → `<button>`, added `:focus-visible` ring, added per-group JS toggle for `.selected`. Bottom advance button remains the navigation trigger (no eager-advance on card click). The locked branch card in `14` (BR-004 single-branch) was already correct — left as-is.
+
+## What remains
+
+- Toast wire-in (component exists; needs per-screen placement)
+- Status-pill icon consistency (pending design-system decision)
+- New-X dedicated screens (routes registered, parent screens reused for now)
+- Edit-recep screen (mirror of `31`)
+- Outside-branch-hours buttons on `09`
+- Appointment-types deactivation impact card on `11`
+- Recep audit drawer (mirror of `30`, branch-scoped)
+- Branch-hours SMS removal from `08` (already decided — needs patch)
+- Phone-number canonicalization across `12`, `13`, `14`, `15`
 
 The pattern: build the shared component once, wire it everywhere it should appear.

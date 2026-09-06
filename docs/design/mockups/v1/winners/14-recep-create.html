@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Part 14-A — Receptionist Create: Stepped Form</title>
+<link rel="stylesheet" href="../app/design-system.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
@@ -40,8 +41,9 @@
 
   /* Type picker (compact) */
   .types { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .type-opt { padding: 12px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; cursor: pointer; }
+  .type-opt { padding: 12px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; cursor: pointer; font-family: inherit; color: inherit; text-align: left; background: white; width: 100%; appearance: none; -webkit-appearance: none; }
   .type-opt:hover { border-color: #99f6e4; }
+  .type-opt:focus-visible { outline: 3px solid #99f6e4; outline-offset: 2px; }
   .type-opt.selected { background: #f0fdfa; border-color: #0f766e; box-shadow: 0 0 0 2px #99f6e4; }
   .type-opt .name { font-weight: 600; color: #111827; font-size: 13px; }
   .type-opt .dur { font-size: 11px; color: #0f766e; font-weight: 600; margin-top: 3px; }
@@ -150,26 +152,26 @@
       <div class="form-group" style="margin-bottom: 0;">
         <label>Type</label>
         <div class="types">
-          <div class="type-opt selected">
+          <button type="button" class="type-opt selected">
             <div class="name">Cardiology consultation</div>
             <div class="dur">45 min</div>
             <div class="desc">Initial assessment for new patients.</div>
-          </div>
-          <div class="type-opt">
+          </button>
+          <button type="button" class="type-opt">
             <div class="name">Follow-up</div>
             <div class="dur">20 min</div>
             <div class="desc">Returning patient brief check.</div>
-          </div>
-          <div class="type-opt">
+          </button>
+          <button type="button" class="type-opt">
             <div class="name">ECG review</div>
             <div class="dur">15 min</div>
             <div class="desc">Reading + interpretation.</div>
-          </div>
-          <div class="type-opt">
+          </button>
+          <button type="button" class="type-opt">
             <div class="name">Pre-op assessment</div>
             <div class="dur">30 min</div>
             <div class="desc">Pre-surgical clearance.</div>
-          </div>
+          </button>
         </div>
       </div>
     </div>
@@ -271,5 +273,17 @@
 
 </div>
   <script src='../app/standalone-router.js'></script>
+  <script>
+    // Toggle .selected within the type picker
+    var types = document.querySelector('.types');
+    if (types) {
+      types.addEventListener('click', function (e) {
+        var opt = e.target.closest('.type-opt');
+        if (!opt) return;
+        types.querySelectorAll('.type-opt').forEach(function (c) { c.classList.remove('selected'); });
+        opt.classList.add('selected');
+      });
+    }
+  </script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>MediSlot — Mockup v1 Overview · All 19 Flows</title>
+<title>MediSlot — Mockup v1 Overview · All 31 Flows</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -117,14 +117,17 @@
 
 <!-- ─── Hero ─── -->
 <header class="hero">
-  <div class="kicker">Mockup v1 · Stakeholder Overview</div>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <div class="kicker">Mockup v1 · Stakeholder Overview</div>
+    <a href="app/index.html" style="background: rgba(255,255,255,.14); color: white; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; text-decoration: none; border: 1px solid rgba(255,255,255,.25);">← Connected app shell</a>
+  </div>
   <h1>MediSlot — UX Flow Library</h1>
   <p class="sub">Every flow across all 4 actors, side-by-side. Each card links to the chosen winner. Use the toolbar to filter by actor or pattern; switch grid density for screen-share vs print.</p>
   <div class="meta">
-    <div class="stat"><span class="num">19</span><span class="lbl">Flows covered</span></div>
+    <div class="stat"><span class="num">31</span><span class="lbl">Mockups · 12 new</span></div>
     <div class="stat"><span class="num">4</span><span class="lbl">Actor surfaces</span></div>
     <div class="stat"><span class="num">5</span><span class="lbl">Patterns adopted</span></div>
-    <div class="stat"><span class="num">3</span><span class="lbl">Cross-cutting patterns</span></div>
+    <div class="stat"><span class="num">3</span><span class="lbl">Cross-cutting primitives</span></div>
   </div>
 </header>
 
@@ -154,7 +157,7 @@
   <span class="pat c">C · Kanban / By-Branch</span>
   <span class="pat d">D · Card-by-Hour / Quick-Action</span>
   <span class="pat e">E · Stacked Vertical Flow</span>
-  <span class="count">· 11 flows use E (default)</span>
+  <span class="count">· 19 mockups use E (default)</span>
 </div>
 
 <!-- ─── Patient section ─── -->
@@ -162,7 +165,7 @@
   <div class="section-head">
     <span class="actor-tag patient">Patient</span>
     <h2>Self-service booking & management</h2>
-    <span class="count">5 flows</span>
+    <span class="count">8 mockups</span>
   </div>
   <div class="grid" id="patientGrid">
 
@@ -262,6 +265,56 @@
       </div>
     </article>
 
+    <article class="thumb" data-keywords="reschedule appointment move slot finder">
+      <div class="thumb-head">
+        <div class="num">20</div>
+        <div class="title">Reschedule appointment</div>
+        <span class="pat-tag e">E</span>
+      </div>
+      <div class="thumb-preview">
+        <iframe src="winners/20-patient-reschedule.html"></iframe>
+        <a class="open" href="winners/20-patient-reschedule.html" target="_blank">Open ⏱</a>
+      </div>
+      <div class="thumb-foot">
+        <span class="flow-id">F-05</span>
+        <a class="open-full" href="winners/20-patient-reschedule.html" target="_blank">View full →</a>
+      </div>
+      <div class="thumb-note"><strong>F-05.</strong> Branch + type locked; slot finder restricted.</div>
+    </article>
+
+    <article class="thumb" data-keywords="otp code phone verify six digit">
+      <div class="thumb-head">
+        <div class="num">21</div>
+        <div class="title">OTP verification modal</div>
+        <span class="pat-tag e">E</span>
+      </div>
+      <div class="thumb-preview">
+        <iframe src="winners/21-patient-otp-modal.html"></iframe>
+        <a class="open" href="winners/21-patient-otp-modal.html" target="_blank">Open ⏱</a>
+      </div>
+      <div class="thumb-foot">
+        <span class="flow-id">F-03</span>
+        <a class="open-full" href="winners/21-patient-otp-modal.html" target="_blank">View full →</a>
+      </div>
+    </article>
+
+    <article class="thumb" data-keywords="cancel confirm modal release slot">
+      <div class="thumb-head">
+        <div class="num">22</div>
+        <div class="title">Cancel confirmation modal</div>
+        <span class="pat-tag e">E</span>
+      </div>
+      <div class="thumb-preview">
+        <iframe src="winners/22-patient-cancel-confirm.html"></iframe>
+        <a class="open" href="winners/22-patient-cancel-confirm.html" target="_blank">Open ⏱</a>
+      </div>
+      <div class="thumb-foot">
+        <span class="flow-id">F-04</span>
+        <a class="open-full" href="winners/22-patient-cancel-confirm.html" target="_blank">View full →</a>
+      </div>
+      <div class="thumb-note"><strong>F-04.</strong> ConflictModal-style: what / why / do.</div>
+    </article>
+
   </div>
 </section>
 
@@ -270,7 +323,7 @@
   <div class="section-head">
     <span class="actor-tag doctor">Doctor</span>
     <h2>Schedule, status, and configuration</h2>
-    <span class="count">5 flows</span>
+    <span class="count">9 mockups</span>
   </div>
   <div class="grid" id="doctorGrid">
 
@@ -355,6 +408,72 @@
       <div class="thumb-note"><strong>Doctor + Patient.</strong> Bulk conflict resolution benefits from column visualization.</div>
     </article>
 
+    <article class="thumb" data-keywords="recurring confirm series occurrences created skipped">
+      <div class="thumb-head">
+        <div class="num">23</div>
+        <div class="title">Recurring confirm · 9 of 12</div>
+        <span class="pat-tag e">E</span>
+      </div>
+      <div class="thumb-preview">
+        <iframe src="winners/23-recurring-confirm.html"></iframe>
+        <a class="open" href="winners/23-recurring-confirm.html" target="_blank">Open ⏱</a>
+      </div>
+      <div class="thumb-foot">
+        <span class="flow-id">F-11</span>
+        <a class="open-full" href="winners/23-recurring-confirm.html" target="_blank">View full →</a>
+      </div>
+    </article>
+
+    <article class="thumb" data-keywords="resolve one slot finder locked type">
+      <div class="thumb-head">
+        <div class="num">24</div>
+        <div class="title">Resolve one appointment</div>
+        <span class="pat-tag e">E</span>
+      </div>
+      <div class="thumb-preview">
+        <iframe src="winners/24-doctor-resolve-one.html"></iframe>
+        <a class="open" href="winners/24-doctor-resolve-one.html" target="_blank">Open ⏱</a>
+      </div>
+      <div class="thumb-foot">
+        <span class="flow-id">F-09</span>
+        <a class="open-full" href="winners/24-doctor-resolve-one.html" target="_blank">View full →</a>
+      </div>
+      <div class="thumb-note"><strong>F-09 (single).</strong> Type locked per BR-058.</div>
+    </article>
+
+    <article class="thumb" data-keywords="cancel reason radio patient requested">
+      <div class="thumb-head">
+        <div class="num">25</div>
+        <div class="title">Cancel · reason + audit</div>
+        <span class="pat-tag e">E</span>
+      </div>
+      <div class="thumb-preview">
+        <iframe src="winners/25-doctor-cancel-reason.html"></iframe>
+        <a class="open" href="winners/25-doctor-cancel-reason.html" target="_blank">Open ⏱</a>
+      </div>
+      <div class="thumb-foot">
+        <span class="flow-id">F-10</span>
+        <a class="open-full" href="winners/25-doctor-cancel-reason.html" target="_blank">View full →</a>
+      </div>
+    </article>
+
+    <article class="thumb" data-keywords="audit drawer log doctor slide">
+      <div class="thumb-head">
+        <div class="num">30</div>
+        <div class="title">Audit log drawer</div>
+        <span class="pat-tag e">E</span>
+      </div>
+      <div class="thumb-preview">
+        <iframe src="winners/30-doctor-audit-drawer.html"></iframe>
+        <a class="open" href="winners/30-doctor-audit-drawer.html" target="_blank">Open ⏱</a>
+      </div>
+      <div class="thumb-foot">
+        <span class="flow-id">UX</span>
+        <a class="open-full" href="winners/30-doctor-audit-drawer.html" target="_blank">View full →</a>
+      </div>
+      <div class="thumb-note"><strong>Shared primitive.</strong> AuditLogDrawer — own appointments only.</div>
+    </article>
+
   </div>
 </section>
 
@@ -363,7 +482,7 @@
   <div class="section-head">
     <span class="actor-tag recep">Receptionist</span>
     <h2>Front-desk operations</h2>
-    <span class="count">4 flows</span>
+    <span class="count">5 mockups</span>
   </div>
   <div class="grid" id="recepGrid">
 
@@ -432,6 +551,23 @@
       </div>
     </article>
 
+    <article class="thumb" data-keywords="walk in checkin returning patient locked branch">
+      <div class="thumb-head">
+        <div class="num">26</div>
+        <div class="title">Walk-in patient check-in</div>
+        <span class="pat-tag d">D</span>
+      </div>
+      <div class="thumb-preview">
+        <iframe src="winners/26-recep-checkin.html"></iframe>
+        <a class="open" href="winners/26-recep-checkin.html" target="_blank">Open ⏱</a>
+      </div>
+      <div class="thumb-foot">
+        <span class="flow-id">F-13</span>
+        <a class="open-full" href="winners/26-recep-checkin.html" target="_blank">View full →</a>
+      </div>
+      <div class="thumb-note"><strong>Quick-Action.</strong> Branch locked; returning patient detected by phone.</div>
+    </article>
+
   </div>
 </section>
 
@@ -440,7 +576,7 @@
   <div class="section-head">
     <span class="actor-tag admin">Admin</span>
     <h2>Configuration & people management</h2>
-    <span class="count">5 flows</span>
+    <span class="count">8 mockups</span>
   </div>
   <div class="grid" id="adminGrid">
 
@@ -510,6 +646,86 @@
       <div class="thumb-note"><strong>Symmetric with F-18.</strong> Same role, same pattern.</div>
     </article>
 
+    <article class="thumb" data-keywords="audit log activity clinic config structure">
+      <div class="thumb-head">
+        <div class="num">27</div>
+        <div class="title">Activity &amp; audit log</div>
+        <span class="pat-tag e">E</span>
+      </div>
+      <div class="thumb-preview">
+        <iframe src="winners/27-admin-audit-log.html"></iframe>
+        <a class="open" href="winners/27-admin-audit-log.html" target="_blank">Open ⏱</a>
+      </div>
+      <div class="thumb-foot">
+        <span class="flow-id">F-20</span>
+        <a class="open-full" href="winners/27-admin-audit-log.html" target="_blank">View full →</a>
+      </div>
+      <div class="thumb-note"><strong>Privacy.</strong> Admins see config events only — no patient PII.</div>
+    </article>
+
+    <article class="thumb" data-keywords="branch hours editor weekly grid sat narrow">
+      <div class="thumb-head">
+        <div class="num">28</div>
+        <div class="title">Edit operating hours</div>
+        <span class="pat-tag e">E</span>
+      </div>
+      <div class="thumb-preview">
+        <iframe src="winners/28-admin-branch-hours-editor.html"></iframe>
+        <a class="open" href="winners/28-admin-branch-hours-editor.html" target="_blank">Open ⏱</a>
+      </div>
+      <div class="thumb-foot">
+        <span class="flow-id">F-17</span>
+        <a class="open-full" href="winners/28-admin-branch-hours-editor.html" target="_blank">View full →</a>
+      </div>
+      <div class="thumb-note"><strong>F-17 (editor).</strong> Pre-step to the impact preview.</div>
+    </article>
+
+    <article class="thumb" data-keywords="doctor reassign branches multi select clinic lock">
+      <div class="thumb-head">
+        <div class="num">31</div>
+        <div class="title">Reassign branches</div>
+        <span class="pat-tag e">E</span>
+      </div>
+      <div class="thumb-preview">
+        <iframe src="winners/31-admin-doctors-reassign.html"></iframe>
+        <a class="open" href="winners/31-admin-doctors-reassign.html" target="_blank">Open ⏱</a>
+      </div>
+      <div class="thumb-foot">
+        <span class="flow-id">F-18</span>
+        <a class="open-full" href="winners/31-admin-doctors-reassign.html" target="_blank">View full →</a>
+      </div>
+      <div class="thumb-note"><strong>F-18 (reassign).</strong> Clinic locked (BR-002). Temporary branch add for resolving.</div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ─── Cross-cutting primitives section ─── -->
+<section class="section" data-actor="ds">
+  <div class="section-head">
+    <span class="actor-tag admin">Design system</span>
+    <h2>Shared primitives · patterns used across actors</h2>
+    <span class="count">1 flow</span>
+  </div>
+  <div class="grid">
+
+    <article class="thumb" data-keywords="conflict modal primitive universal pattern what why do">
+      <div class="thumb-head">
+        <div class="num">29</div>
+        <div class="title">ConflictModal · 4 variants</div>
+        <span class="pat-tag e">E</span>
+      </div>
+      <div class="thumb-preview">
+        <iframe src="winners/29-conflict-modal.html"></iframe>
+        <a class="open" href="winners/29-conflict-modal.html" target="_blank">Open ⏱</a>
+      </div>
+      <div class="thumb-foot">
+        <span class="flow-id">UX</span>
+        <a class="open-full" href="winners/29-conflict-modal.html" target="_blank">View full →</a>
+      </div>
+      <div class="thumb-note"><strong>Universal.</strong> 3-part shape used by F-01, F-02, F-05, F-06, F-07, F-13, F-16.</div>
+    </article>
+
   </div>
 </section>
 
@@ -521,31 +737,31 @@
       <span class="pat-tag a">A</span>
       <div class="name">Clinical Calm + Sidebar / Stepped</div>
       <div class="desc">Top-level layout direction + stepped multi-step forms (F-01, F-13)</div>
-      <div class="count">2 flows</div>
+      <div class="count">2 mockups</div>
     </div>
     <div class="pat-card">
       <span class="pat-tag b">B</span>
       <div class="name">Card Grid / List by Day + Tabs</div>
       <div class="desc">People-directory feel + multi-period schedule editor (F-06, F-18, F-19)</div>
-      <div class="count">3 flows</div>
+      <div class="count">3 mockups</div>
     </div>
     <div class="pat-card">
       <span class="pat-tag c">C</span>
       <div class="name">Kanban / By-Branch Coverage</div>
       <div class="desc">Column visualization for bulk work + staffing gaps (F-09)</div>
-      <div class="count">1 flow</div>
+      <div class="count">1 mockup</div>
     </div>
     <div class="pat-card">
       <span class="pat-tag d">D</span>
       <div class="name">Card-by-Hour / Quick-Action Sidebar</div>
-      <div class="desc">Speed-optimized patterns for fast triage (F-10, F-12)</div>
-      <div class="count">2 flows</div>
+      <div class="desc">Speed-optimized patterns for fast triage (F-10, F-12, F-13-walk-in)</div>
+      <div class="count">3 mockups</div>
     </div>
     <div class="pat-card">
       <span class="pat-tag e">E</span>
       <div class="name">Stacked Vertical Flow</div>
       <div class="desc">Default for deliberate configuration + transactional flows. Mirrors across all actors for consistency.</div>
-      <div class="count">11 flows</div>
+      <div class="count">22 mockups</div>
     </div>
   </div>
 

@@ -6,7 +6,7 @@ Static HTML/CSS mockups for the Multi-Branch Clinic Appointment Scheduling Syste
 
 **For stakeholder walkthrough:** Open `app/index.html` — a connected application shell that lets you click through every flow as if it were a real app. Role switcher jumps between Patient / Doctor / Receptionist / Admin / Landing.
 
-**For stakeholder review:** Open `mocks.html` — a single scrollable page showing all 19 winners as thumbnails, with filter + search + grid-size controls.
+**For stakeholder review:** Open `mocks.html` — a single scrollable page showing all 31 winners as thumbnails, with filter + search + grid-size controls.
 
 ## Conventions
 
@@ -21,17 +21,17 @@ Static HTML/CSS mockups for the Multi-Branch Clinic Appointment Scheduling Syste
 ```
 docs/design/mockups/v1/
 ├── README.md                        ← you are here
-├── mocks.html                       ← stakeholder overview (all 19 winners as thumbnails)
+├── mocks.html                       ← stakeholder overview (all 31 winners as thumbnails)
 ├── CHOICES.md                       ← selection state (resume from here)
 │
 ├── app/                             ← connected app walkthrough
 │   ├── index.html                   ← shell entry point
 │   ├── shell.css                    ← topbar + responsive styles
-│   ├── shell.js                     ← hash router + 20 routes + cross-link interception
+│   ├── shell.js                     ← hash router + 32 routes + cross-link interception
 │   ├── standalone-router.js         ← drop-in fallback so each winner navigates standalone too
 │   └── logo.svg                     ← Logo 03 · Monoline Icon (selected winner)
 │
-├── winners/                         ← 19 selected mockups + 1 selected logo
+├── winners/                         ← 31 selected mockups + 1 selected logo
 │   ├── 01-layout-direction.html     ← A · Clinical Calm + Sidebar
 │   ├── 02-doctor-picker.html        ← E · Card-First + Sidebar
 │   ├── 03-availability-calendar.html ← E · Agenda Timeline
@@ -50,7 +50,19 @@ docs/design/mockups/v1/
 │   ├── 16-recep-availability.html   ← E · Stacked Vertical Flow
 │   ├── 17-admin-branches.html       ← E · Stacked Vertical Flow
 │   ├── 18-admin-doctors.html        ← B · Card Grid
-│   └── 19-admin-receptionists.html  ← B · Card Grid
+│   ├── 19-admin-receptionists.html  ← B · Card Grid
+│   ├── 20-patient-reschedule.html   ← E · Stacked (F-05 reschedule)
+│   ├── 21-patient-otp-modal.html    ← E · OTP modal (F-03)
+│   ├── 22-patient-cancel-confirm.html ← E · Cancel modal (F-04)
+│   ├── 23-recurring-confirm.html    ← E · Recurring confirm (F-11)
+│   ├── 24-doctor-resolve-one.html   ← E · Resolve single (F-09 single)
+│   ├── 25-doctor-cancel-reason.html ← E · Doctor cancel (F-10)
+│   ├── 26-recep-checkin.html        ← D · Walk-in check-in (F-13 walk-in)
+│   ├── 27-admin-audit-log.html      ← E · Admin audit log (F-20)
+│   ├── 28-admin-branch-hours-editor.html ← E · Hours editor (F-17 editor)
+│   ├── 29-conflict-modal.html       ← E · ConflictModal showcase
+│   ├── 30-doctor-audit-drawer.html  ← E · Audit drawer (shared primitive)
+│   └── 31-admin-doctors-reassign.html ← E · Doctor branch reassign (F-18 reassign)
 │
 └── logos/
     └── selected-logo-monoline-icon.html  ← Logo 03 · Monoline Icon
@@ -67,7 +79,7 @@ Open `app/index.html` for a clickable walk-through of every flow:
 - Cross-link cues (e.g. "Book another", "← Schedule editor", "+ New appointment") are intercepted and route between mockups
 - The demo `.badge` corner tag is hidden inside the shell — re-shown when you open a mockup standalone
 
-20 routes total: 1 landing + 5 patient + 6 doctor + 4 receptionist + 4 admin.
+32 routes total: 1 landing + 1 design-system + 8 patient + 9 doctor + 5 receptionist + 8 admin.
 
 **Standalone browsing:** every winner loads `app/standalone-router.js`, which mirrors the shell's `data-route` interception but navigates by changing `window.location` to the sibling file. So opening any file directly (e.g. `winners/02-doctor-picker.html`) still lets you click through the same flow — without the topbar or breadcrumb.
 
@@ -94,6 +106,18 @@ Open `app/index.html` for a clickable walk-through of every flow:
 | 17 | F-16 | Admin | Manage branches | E |
 | 18 | F-18 | Admin | Manage doctors | B |
 | 19 | F-19 | Admin | Manage receptionists | B |
+| 20 | F-05 | Patient | Reschedule appointment | E |
+| 21 | F-03 | Patient | OTP verification modal | E |
+| 22 | F-04 | Patient | Cancel confirmation modal | E |
+| 23 | F-11 | Doctor | Recurring confirm · 9 of 12 | E |
+| 24 | F-09 | Doctor | Resolve one appointment | E |
+| 25 | F-10 | Doctor | Cancel · reason + audit | E |
+| 26 | F-13 | Recep | Walk-in patient check-in | D |
+| 27 | F-20 | Admin | Activity & audit log | E |
+| 28 | F-17 | Admin | Edit operating hours | E |
+| 29 | UX | All | ConflictModal · 4 variants | E |
+| 30 | UX | Doctor | Audit log drawer | E |
+| 31 | F-18 | Admin | Reassign branches | E |
 
 ## Logo
 
@@ -103,4 +127,6 @@ Open `app/index.html` for a clickable walk-through of every flow:
 
 ## Resume protocol
 
-All 19 parts + logo complete. 🎉 See `CHOICES.md` for the final pattern picks + pattern tally. App shell at `app/index.html` ties everything together for stakeholder demos.
+All 31 parts + logo complete. 🎉 See `CHOICES.md` for the final pattern picks + pattern tally. App shell at `app/index.html` ties everything together for stakeholder demos.
+
+**Recent additions (12 new mockups, 2026-09):** parts 20-22 (patient reschedule/OTP/cancel modal), 23-25 (recurring confirm/resolve-one/cancel-reason), 26 (walk-in check-in), 27-28 (admin audit + hours editor), 29 (universal ConflictModal showcase), 30 (audit drawer), 31 (doctor branch reassign). Wireframe pages linked into `app/shell.js` and `app/standalone-router.js`.

@@ -1,9 +1,16 @@
 /* MediSlot app shell — hash router + role switcher + click-to-route wiring
  *
- * All 19 winner mockups are loaded into a single iframe.
+ * 31 winner mockups are loaded into a single iframe.
  * Each mockup has data-route attributes on its clickable elements
  * (button / a / .logo). The injection script below reads those
  * attributes and routes accordingly.
+ *
+ * SPA feel:
+ *  - Iframe fades on every navigation (160ms).
+ *  - Breadcrumbs are clickable (click earlier crumb → navigate).
+ *  - Quick-jump dropdown in topbar reaches any of the 31 mockups.
+ *  - History via location.hash (back/forward buttons work).
+ *  - Topbar role select jumps to that role's home route.
  *
  * Path resolution: this file lives at docs/design/mockups/v1/app/, so `../partNN-…`
  * resolves to docs/design/mockups/v1/partNN-… which is where each winner sits.
@@ -14,7 +21,6 @@
 
   // ─── Route table ────────────────────────────────────────────────────────
   // Each entry maps a hash to { file, actor, title, breadcrumb, isHome }
-  // file is relative to docs/design/mockups/v1/app/index.html → use ../ prefix.
   const ROUTES = {
     '/': {
       file: '../winners/01-layout-direction.html',
@@ -57,6 +63,24 @@
       title: 'Recurring series preview',
       breadcrumb: ['Patient', 'Recurring series'],
     },
+    '/patient/otp': {
+      file: '../winners/21-patient-otp-modal.html',
+      actor: 'patient',
+      title: 'Verify your phone',
+      breadcrumb: ['Patient', 'Manage', 'OTP'],
+    },
+    '/patient/cancel-confirm': {
+      file: '../winners/22-patient-cancel-confirm.html',
+      actor: 'patient',
+      title: 'Cancel your appointment',
+      breadcrumb: ['Patient', 'Manage', 'Cancel'],
+    },
+    '/patient/reschedule': {
+      file: '../winners/20-patient-reschedule.html',
+      actor: 'patient',
+      title: 'Reschedule your appointment',
+      breadcrumb: ['Patient', 'Manage', 'Reschedule'],
+    },
 
     // Doctor
     '/doctor/schedule': {
@@ -81,7 +105,7 @@
     '/doctor/today': {
       file: '../winners/12-mark-status.html',
       actor: 'doctor',
-      title: 'Today · Mark status',
+      title: "Today · Mark status",
       breadcrumb: ['Doctor', "Today's list"],
     },
     '/doctor/resolve': {
@@ -95,6 +119,30 @@
       actor: 'doctor',
       title: 'Preview recurring series',
       breadcrumb: ['Doctor', 'Recurring preview'],
+    },
+    '/recurring/confirm': {
+      file: '../winners/23-recurring-confirm.html',
+      actor: 'doctor',
+      title: 'Recurring series · ready',
+      breadcrumb: ['Doctor', 'Recurring confirm'],
+    },
+    '/doctor/resolve-one': {
+      file: '../winners/24-doctor-resolve-one.html',
+      actor: 'doctor',
+      title: 'Resolve this appointment',
+      breadcrumb: ['Doctor', 'Resolve affected', 'One'],
+    },
+    '/doctor/cancel-reason': {
+      file: '../winners/25-doctor-cancel-reason.html',
+      actor: 'doctor',
+      title: 'Cancel this appointment',
+      breadcrumb: ['Doctor', 'Today', 'Cancel reason'],
+    },
+    '/doctor/audit-drawer': {
+      file: '../winners/30-doctor-audit-drawer.html',
+      actor: 'doctor',
+      title: 'Audit log',
+      breadcrumb: ['Doctor', 'Audit log'],
     },
 
     // Receptionist
@@ -122,6 +170,12 @@
       actor: 'recep',
       title: 'Doctor availability · read-only',
       breadcrumb: ['Receptionist', 'Doctor availability'],
+    },
+    '/recep/checkin': {
+      file: '../winners/26-recep-checkin.html',
+      actor: 'recep',
+      title: 'Walk-in patient check-in',
+      breadcrumb: ['Receptionist', 'Walk-in check-in'],
     },
 
     // Admin
@@ -186,69 +240,208 @@
       title: 'Create new receptionist',
       breadcrumb: ['Admin', 'Receptionists', 'New'],
     },
+    '/admin/audit': {
+      file: '../winners/27-admin-audit-log.html',
+      actor: 'admin',
+      title: 'Activity & audit log',
+      breadcrumb: ['Admin', 'Audit log'],
+    },
+    '/admin/branch-hours-editor': {
+      file: '../winners/28-admin-branch-hours-editor.html',
+      actor: 'admin',
+      title: 'Edit operating hours',
+      breadcrumb: ['Admin', 'Branches', 'Hours editor'],
+    },
+    '/admin/doctor-reassign': {
+      file: '../winners/31-admin-doctors-reassign.html',
+      actor: 'admin',
+      title: 'Reassign branches',
+      breadcrumb: ['Admin', 'Doctors', 'Reassign'],
+    },
+    '/conflict': {
+      file: '../winners/29-conflict-modal.html',
+      actor: 'landing',
+      title: 'ConflictModal · universal pattern',
+      breadcrumb: ['Design system', 'ConflictModal'],
+    },
+  };
+
+  // ─── Display labels + group metadata for the quick-jump dropdown ──────
+  const ROUTE_META = {
+    '/':                          { num: '01',  flow: '—',  group: 'landing' },
+    '/patient/doctor':            { num: '02',  flow: 'F-02', group: 'patient' },
+    '/patient/slot':              { num: '03',  flow: 'F-02', group: 'patient' },
+    '/patient/confirm':           { num: '04',  flow: 'F-03', group: 'patient' },
+    '/patient/manage':            { num: '05',  flow: 'F-04/F-05', group: 'patient' },
+    '/patient/recurring':         { num: '07',  flow: 'F-11', group: 'patient' },
+    '/patient/otp':               { num: '21',  flow: 'F-03', group: 'patient' },
+    '/patient/cancel-confirm':    { num: '22',  flow: 'F-04', group: 'patient' },
+    '/patient/reschedule':        { num: '20',  flow: 'F-05', group: 'patient' },
+    '/doctor/schedule':           { num: '09',  flow: 'F-06', group: 'doctor' },
+    '/doctor/block':              { num: '10',  flow: 'F-07', group: 'doctor' },
+    '/doctor/types':              { num: '11',  flow: 'F-08', group: 'doctor' },
+    '/doctor/today':              { num: '12',  flow: 'F-10', group: 'doctor' },
+    '/doctor/resolve':            { num: '06',  flow: 'F-09', group: 'doctor' },
+    '/doctor/recurring-preview':  { num: '07b', flow: 'F-11', group: 'doctor' },
+    '/recurring/confirm':         { num: '23',  flow: 'F-11', group: 'doctor' },
+    '/doctor/resolve-one':        { num: '24',  flow: 'F-09', group: 'doctor' },
+    '/doctor/cancel-reason':      { num: '25',  flow: 'F-10', group: 'doctor' },
+    '/doctor/audit-drawer':       { num: '30',  flow: 'UX',  group: 'doctor' },
+    '/recep/today':               { num: '13',  flow: 'F-12', group: 'recep' },
+    '/recep/create':              { num: '14',  flow: 'F-13', group: 'recep' },
+    '/recep/cancel':              { num: '15',  flow: 'F-14', group: 'recep' },
+    '/recep/availability':        { num: '16',  flow: 'F-15', group: 'recep' },
+    '/recep/checkin':             { num: '26',  flow: 'F-13', group: 'recep' },
+    '/admin/branches':            { num: '17',  flow: 'F-16', group: 'admin' },
+    '/admin/branch-hours':        { num: '08',  flow: 'F-17', group: 'admin' },
+    '/admin/branch-hours-editor': { num: '28',  flow: 'F-17', group: 'admin' },
+    '/admin/doctors':             { num: '18',  flow: 'F-18', group: 'admin' },
+    '/admin/doctor-reassign':     { num: '31',  flow: 'F-18', group: 'admin' },
+    '/admin/receptionists':       { num: '19',  flow: 'F-19', group: 'admin' },
+    '/admin/audit':               { num: '27',  flow: 'F-20', group: 'admin' },
+    '/admin/branch-new':          { num: '17n', flow: '—',  group: 'admin' },
+    '/admin/doctor-edit':         { num: '18e', flow: '—',  group: 'admin' },
+    '/admin/doctor-new':          { num: '18n', flow: '—',  group: 'admin' },
+    '/admin/recep-edit':          { num: '19e', flow: '—',  group: 'admin' },
+    '/admin/recep-assign':        { num: '19a', flow: '—',  group: 'admin' },
+    '/admin/recep-new':           { num: '19n', flow: '—',  group: 'admin' },
+    '/conflict':                  { num: '29',  flow: 'UX',  group: 'ds' },
+  };
+
+  const GROUP_ORDER = ['landing', 'patient', 'doctor', 'recep', 'admin'];
+  const GROUP_LABEL = {
+    landing: 'Landing',
+    patient: 'Patient',
+    doctor:  'Doctor',
+    recep:   'Receptionist',
+    admin:   'Admin',
   };
 
   // ─── Role → home route mapping ─────────────────────────────────────────
   const ROLE_HOMES = {
     landing: '/',
     patient: '/patient/doctor',
-    doctor: '/doctor/schedule',
-    recep: '/recep/today',
-    admin: '/admin/branches',
+    doctor:  '/doctor/schedule',
+    recep:   '/recep/today',
+    admin:   '/admin/branches',
   };
 
   // ─── DOM refs ──────────────────────────────────────────────────────────
-  const iframe = document.getElementById('app-frame');
-  const crumbsEl = document.getElementById('crumbs');
-  const roleSelect = document.getElementById('roleSelect');
-  const openInNew = document.getElementById('openInNew');
-  const loadingEl = document.getElementById('loading');
-  const notFoundEl = document.getElementById('notfound');
-  const notFoundHashEl = document.getElementById('notfoundHash');
+  const iframe       = document.getElementById('app-frame');
+  const crumbsEl     = document.getElementById('crumbs');
+  const roleSelect   = document.getElementById('roleSelect');
+  const openInNew    = document.getElementById('openInNew');
+  const loadingEl    = document.getElementById('loading');
+  const notFoundEl   = document.getElementById('notfound');
+  const notFoundHash = document.getElementById('notfoundHash');
 
-  // ─── Current actor (updated in render()) ──────────────────────────────
+  // ─── State ─────────────────────────────────────────────────────────────
   let currentActor = 'landing';
+  let currentHash  = '/';
+  let isNavigating = false;          // debounce rapid clicks
 
-  // ─── Renderer ──────────────────────────────────────────────────────────
+  // ─── Quick-jump dropdown population ────────────────────────────────────
+  const quickJump     = document.getElementById('quickJump');
+  const quickJumpBtn  = document.getElementById('quickJumpBtn');
+  const quickJumpPanel = document.getElementById('quickJumpPanel');
+
+  function buildQuickJump() {
+    const byGroup = {};
+    Object.keys(ROUTES).forEach(hash => {
+      const meta = ROUTE_META[hash];
+      if (!meta) return;
+      (byGroup[meta.group] = byGroup[meta.group] || []).push({ hash, meta });
+    });
+
+    const html = GROUP_ORDER.filter(g => byGroup[g]).map(group => {
+      const items = byGroup[group].map(({ hash, meta }) => {
+        const r = ROUTES[hash];
+        return `<a class="qj-link" href="#${hash}" data-hash="${hash}"><span class="num">${meta.num}</span><span class="label">${escapeHtml(r.title)}</span><span class="flow">${meta.flow}</span></a>`;
+      }).join('');
+      return `<div class="qj-group"><div class="qj-group-head"><span class="dot ${group}"></span>${GROUP_LABEL[group]}<span class="count">${byGroup[group].length}</span></div>${items}</div>`;
+    }).join('');
+
+    quickJumpPanel.innerHTML = html;
+  }
+
+  function setQuickJumpActive(hash) {
+    quickJumpPanel.querySelectorAll('.qj-link').forEach(a => {
+      a.classList.toggle('active', a.dataset.hash === hash);
+    });
+  }
+
+  // Toggle dropdown
+  quickJumpBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = quickJump.classList.toggle('open');
+    quickJumpBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  // Click outside closes
+  document.addEventListener('click', e => {
+    if (!quickJump.contains(e.target)) quickJump.classList.remove('open');
+  });
+
+  // Esc closes
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') quickJump.classList.remove('open');
+  });
+
+  buildQuickJump();
+
+  // ─── Router ────────────────────────────────────────────────────────────
   function parseHash() {
     const raw = (location.hash || '#/').replace(/^#/, '');
     return raw || '/';
   }
 
-  function navigate(hash, opts) {
-    opts = opts || {};
-    if (!opts.silent && location.hash === '#' + hash) {
+  function navigate(hash) {
+    if (!ROUTES[hash]) return;
+    if (location.hash === '#' + hash) {
+      // Same hash → re-render in place
       render(hash);
       return;
     }
-    if (!opts.silent) location.hash = hash;
-    else render(hash);
+    location.hash = hash;
   }
 
   function render(hash) {
+    if (isNavigating) return;
     const route = ROUTES[hash];
+
     if (!route) {
-      notFoundHashEl.textContent = '#' + hash;
+      notFoundHash.textContent = '#' + hash;
       notFoundEl.classList.remove('hidden');
       iframe.style.display = 'none';
       loadingEl.classList.add('hidden');
+      quickJump.classList.remove('open');
       return;
     }
     notFoundEl.classList.add('hidden');
     iframe.style.display = 'block';
 
+    // Fade out + show spinner
+    isNavigating = true;
+    iframe.classList.add('fading');
     loadingEl.classList.remove('hidden');
+    quickJump.classList.remove('open');
 
     currentActor = route.actor;
-    iframe.src = route.file;
-    openInNew.href = route.file;
-    openInNew.title = 'Open ' + route.title + ' in new tab';
+    currentHash  = hash;
 
-    renderBreadcrumb(route.breadcrumb, route.actor);
+    // Update chrome
+    renderBreadcrumb(route.breadcrumb);
     roleSelect.value = route.actor;
+    openInNew.href     = route.file;
+    openInNew.title    = 'Open ' + route.title + ' in new tab';
+    document.title     = route.title + ' · MediSlot';
+    setQuickJumpActive(hash);
+
+    // Slight delay to let the fade visibly play
+    setTimeout(() => { iframe.src = route.file; }, 80);
   }
 
-  function renderBreadcrumb(parts, actor) {
+  function renderBreadcrumb(parts) {
     if (!parts || !parts.length) {
       crumbsEl.innerHTML = '';
       return;
@@ -256,10 +449,32 @@
     const html = parts.map((p, i) => {
       const isLast = i === parts.length - 1;
       const cls = isLast ? 'crumb crumb-leaf' : 'crumb crumb-root';
-      return `<span class="${cls}">${escapeHtml(p)}</span>` + (isLast ? '' : '<span class="crumb-sep">â€º</span>');
+      // Clicking a non-leaf crumb navigates to the corresponding home
+      const target = isLast ? '' : routeForCrumb(i);
+      const dataAttr = target ? ` data-route="${target}"` : '';
+      return `<span class="${cls}"${dataAttr}>${escapeHtml(p)}</span>` + (isLast ? '' : '<span class="crumb-sep">›</span>');
     }).join('');
     crumbsEl.innerHTML = html;
   }
+
+  // Map crumb index → hash: 0 = actor home, 1 = root, 2+ = leave leaf
+  function routeForCrumb(idx) {
+    if (idx === 0) return ROLE_HOMES[currentActor] || '/';
+    if (idx === 1) return firstRouteForActor(currentActor);
+    return null;
+  }
+
+  function firstRouteForActor(actor) {
+    const hash = Object.keys(ROUTES).find(h => ROUTES[h].actor === actor && ROUTES[h].isHome);
+    return hash || '/';
+  }
+
+  // Click handler for crumbs (delegated)
+  crumbsEl.addEventListener('click', e => {
+    const crumb = e.target.closest('.crumb[data-route]');
+    if (!crumb) return;
+    navigate(crumb.dataset.route);
+  });
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({
@@ -267,12 +482,11 @@
     }[c]));
   }
 
-  // ─── Iframe onload: inject click-to-route wiring ──────────────────────
-  // Strategy: each clickable element in the mockup has a data-route attribute
-  // pointing to the target hash. We listen on capture so we intercept clicks
-  // before any default behavior, read the attribute, and post a message.
+  // ─── Iframe onload: fade in + click-to-route wiring ────────────────────
   iframe.addEventListener('load', () => {
+    isNavigating = false;
     loadingEl.classList.add('hidden');
+    iframe.classList.remove('fading');
 
     let doc;
     try {
@@ -301,10 +515,9 @@
           let el = e.target;
           let depth = 0;
           while (el && depth < 8) {
-            // Direct data-route attribute on the element
             if (el.dataset && el.dataset.route !== undefined) {
               const route = el.dataset.route;
-              if (route === '') return; // explicitly inert
+              if (route === '') return;
               if (route === '__logo__') {
                 e.preventDefault();
                 e.stopPropagation();
@@ -341,19 +554,15 @@
   window.addEventListener('message', (e) => {
     if (!e.data || !e.data.type) return;
 
-    // Logo click → route to current actor's home
     if (e.data.type === 'cc-navigate-logo') {
       const home = ROLE_HOMES[currentActor] || '/';
       navigate(home);
       return;
     }
 
-    // Direct route click
     if (e.data.type === 'cc-navigate') {
       const hash = e.data.hash;
-      if (hash && ROUTES[hash]) {
-        navigate(hash);
-      }
+      if (hash && ROUTES[hash]) navigate(hash);
     }
   });
 
@@ -364,7 +573,7 @@
     if (home) navigate(home);
   });
 
-  // ─── Router: react to hashchange ───────────────────────────────────────
+  // ─── Hashchange ────────────────────────────────────────────────────────
   window.addEventListener('hashchange', () => {
     render(parseHash());
   });

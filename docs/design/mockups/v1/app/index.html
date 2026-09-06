@@ -5,6 +5,68 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MediSlot — App Preview</title>
 <link rel="stylesheet" href="shell.css">
+<style>
+  /* Quick-jump dropdown (replaces old sidebar) */
+  .quick-jump { position: relative; }
+  .quick-jump-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px; background: var(--gray-50);
+    border: 1px solid var(--gray-200); border-radius: 999px;
+    font-size: 12px; font-weight: 600; color: var(--gray-700);
+    cursor: pointer; transition: all .12s;
+  }
+  .quick-jump-btn:hover { border-color: var(--teal-300); background: white; color: var(--teal-700); }
+  .quick-jump-btn::after { content: '▾'; font-size: 10px; color: var(--gray-400); }
+  .quick-jump-panel {
+    position: absolute; top: calc(100% + 6px); right: 0;
+    width: 360px; max-height: 70vh; overflow-y: auto;
+    background: white; border: 1px solid var(--gray-200); border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(15,23,42,.12);
+    padding: 10px;
+    display: none; z-index: 200;
+  }
+  .quick-jump.open .quick-jump-panel { display: block; }
+  .qj-group { margin-bottom: 6px; }
+  .qj-group-head { display: flex; align-items: center; gap: 6px; padding: 4px 8px; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--gray-500); }
+  .qj-group-head .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .qj-group-head .dot.landing { background: var(--gray-300); }
+  .qj-group-head .dot.patient { background: #93c5fd; }
+  .qj-group-head .dot.doctor  { background: #fcd34d; }
+  .qj-group-head .dot.recep   { background: #f0abfc; }
+  .qj-group-head .dot.admin   { background: var(--teal-300); }
+  .qj-group-head .dot.ds      { background: var(--gray-400); }
+  .qj-group-head .count { margin-left: auto; color: var(--gray-400); font-weight: 600; }
+  .qj-link {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 8px 5px 22px; border-radius: 5px;
+    color: var(--gray-700); text-decoration: none;
+    font-size: 12px; line-height: 1.3;
+    transition: background .1s, color .1s;
+  }
+  .qj-link:hover { background: var(--teal-50); color: var(--teal-900); }
+  .qj-link.active { background: var(--teal-50); color: var(--teal-900); font-weight: 700; }
+  .qj-link .num { width: 22px; font-family: "SF Mono", Consolas, monospace; font-size: 10px; color: var(--gray-400); flex-shrink: 0; }
+  .qj-link .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .qj-link .flow { font-size: 10px; color: var(--gray-400); font-family: "SF Mono", Consolas, monospace; flex-shrink: 0; }
+  .qj-link.active .num, .qj-link.active .flow { color: var(--teal-700); }
+
+  /* Iframe transition wrapper for fade effect */
+  #app-frame { transition: opacity .14s ease-out; }
+  #app-frame.fading { opacity: 0; }
+
+  /* Clickable breadcrumbs */
+  .crumb { cursor: pointer; }
+  .crumb:hover { color: var(--teal-700); }
+  .crumb.crumb-root:hover { color: var(--gray-900); }
+  .crumb-leaf { cursor: default; }
+  .crumb-leaf:hover { color: var(--gray-900); }
+
+  /* Hide on small screens */
+  @media (max-width: 640px) {
+    .quick-jump-btn .label { display: none; }
+    .quick-jump-panel { width: 280px; right: -40px; }
+  }
+</style>
 </head>
 <body>
 
@@ -21,6 +83,14 @@
     </nav>
 
     <div class="topbar-actions">
+      <!-- Quick-jump: fast nav to any of 31 mockups (compact dropdown, no sidebar) -->
+      <div class="quick-jump" id="quickJump">
+        <button class="quick-jump-btn" id="quickJumpBtn" type="button" aria-haspopup="true" aria-expanded="false">
+          <span aria-hidden="true">🗂</span><span class="label">All pages</span>
+        </button>
+        <div class="quick-jump-panel" id="quickJumpPanel" role="menu"></div>
+      </div>
+
       <label class="role-select-wrap" title="Switch role">
         <span class="role-icon" aria-hidden="true">👤</span>
         <select id="roleSelect" class="role-select">
@@ -31,6 +101,7 @@
           <option value="admin">Admin</option>
         </select>
       </label>
+
       <a id="openInNew" class="open-new" href="../winners/01-layout-direction.html" target="_blank" title="Open current page in new tab">↗</a>
     </div>
   </header>

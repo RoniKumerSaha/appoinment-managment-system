@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 29-X — ConflictModal: Universal Pattern Showcase</title>
+<link rel="stylesheet" href="../app/design-system.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; line-height: 1.5; font-variant-numeric: tabular-nums; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1080px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .logo img { width: 28px; height: 28px; }
+  .actor-chip { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #4b5563; }
+  .actor-chip .avatar { width: 32px; height: 32px; border-radius: 50%; background: #ccfbf1; color: #0f766e; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+
+  .page { padding: 32px; }
+  .page-header { margin-bottom: 20px; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header h1 { font-size: 24px; color: #111827; font-weight: 600; margin-bottom: 6px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .demo { position: relative; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; min-height: 320px; display: flex; align-items: center; justify-content: center; }
+  .demo .label { position: absolute; top: 10px; left: 14px; font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em; }
+  .demo .label .flow { color: #0f766e; font-weight: 700; }
+
+  .modal-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.45); border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 12px; }
+  .modal { background: white; border-radius: 12px; padding: 22px 22px 18px; max-width: 380px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+  .modal-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px; }
+  .modal-icon.warn { background: #fef3c7; color: #b45309; }
+  .modal-icon.danger { background: #fecaca; color: #991b1b; }
+  .modal h3 { font-size: 16px; color: #111827; font-weight: 600; margin-bottom: 6px; }
+  .modal .what { font-size: 13px; color: #374151; margin-bottom: 10px; }
+  .modal .why { background: #f9fafb; border-left: 3px solid #e5e7eb; padding: 8px 12px; font-size: 12px; color: #4b5563; border-radius: 0 6px 6px 0; margin-bottom: 10px; }
+  .modal .why strong { color: #111827; font-weight: 600; }
+  .modal .rule { font-size: 11px; color: #6b7280; margin-bottom: 14px; font-family: "SF Mono", Consolas, monospace; }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .modal .actions button { padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; }
+  .modal .actions .ghost { background: white; color: #4b5563; border-color: #e5e7eb; }
+  .modal .actions .primary { background: #0f766e; color: white; }
+  .modal .actions .danger { background: #dc2626; color: white; }
+
+  .legend { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 10px; padding: 14px 18px; font-size: 12px; color: #065f46; }
+  .legend strong { font-weight: 700; }
+  .legend .shape { display: inline-flex; gap: 8px; align-items: center; background: white; padding: 4px 10px; border-radius: 999px; margin-right: 6px; font-size: 11px; }
+  .legend code { background: white; padding: 1px 6px; border-radius: 4px; font-family: "SF Mono", Consolas, monospace; color: #374151; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="badge">PART 29-X · ConflictModal · Universal Pattern</div>
+
+<div class="frame">
+  <nav class="nav">
+    <div class="logo" data-route="__logo__"><img src="../app/logo.svg" alt="MediSlot"> MediSlot</div>
+    <div class="actor-chip">
+      <span>Design system reference</span>
+      <span class="avatar">DS</span>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div class="crumb">Shared primitive · ConflictModal · 4 variants</div>
+      <h1>ConflictModal — universal pattern</h1>
+      <p class="sub">A three-part shape: <strong>what happened</strong> · <strong>why</strong> · <strong>what you can do</strong>. Used by F-01, F-02, F-05, F-06, F-07, F-13, F-16. Never a dead end — every modal offers a path forward.</p>
+    </div>
+
+    <div class="grid">
+      <!-- 1. Slot was just booked -->
+      <div class="demo">
+        <div class="label"><span class="flow">F-01</span> · Patient booking</div>
+        <div class="modal-backdrop">
+          <div class="modal">
+            <div class="modal-icon warn">!</div>
+            <h3>That slot was just booked</h3>
+            <div class="what">Someone else grabbed <strong>Sat, Aug 23 · 11:15</strong> with Dr. Al-Rashid before your booking completed.</div>
+            <div class="why"><strong>Why:</strong> Availability is the server's source of truth. Your hold expired before checkout completed.</div>
+            <div class="rule">rule: BR-024 · atomic_slot_hold_timeout</div>
+            <div class="actions">
+              <button class="ghost" data-route="/patient/doctor">Pick another time</button>
+              <button class="primary" data-route="/patient/slot">Refresh availability</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Already booked with this doctor -->
+      <div class="demo">
+        <div class="label"><span class="flow">F-01</span> · Patient booking</div>
+        <div class="modal-backdrop">
+          <div class="modal">
+            <div class="modal-icon warn">!</div>
+            <h3>You already have an appointment with Dr. Al-Rashid</h3>
+            <div class="what">An appointment is already scheduled for <strong>Thu, Aug 21 · 14:45</strong> with Dr. Al-Rashid at Riyadh Olaya.</div>
+            <div class="why"><strong>Why:</strong> One future appointment per doctor is the rule (BR-007). Booking another would silently double-book your time with the same clinician.</div>
+            <div class="rule">rule: BR-007 · one_future_appt_per_doctor</div>
+            <div class="actions">
+              <button class="ghost" data-route="/patient/manage">View your appointments</button>
+              <button class="primary" data-route="/patient/doctor">Pick a different doctor</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Overlap with another doctor -->
+      <div class="demo">
+        <div class="label"><span class="flow">F-05</span> · Patient reschedule</div>
+        <div class="modal-backdrop">
+          <div class="modal">
+            <div class="modal-icon warn">!</div>
+            <h3>You have another appointment at this time</h3>
+            <div class="what">Moving to <strong>Sat, Aug 23 · 11:15</strong> conflicts with your existing appointment with Dr. Sara at Riyadh Malqa.</div>
+            <div class="why"><strong>Why:</strong> Patient cannot be in two places at once. The slot finder hides overlapping options, but the rule fires when you confirm anyway.</div>
+            <div class="rule">rule: BR-006 · patient_overlap_check</div>
+            <div class="actions">
+              <button class="ghost" data-route="/patient/manage">View conflict</button>
+              <button class="primary" data-route="/patient/reschedule">Pick a different time</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Branch deactivation with future appointments -->
+      <div class="demo">
+        <div class="label"><span class="flow">F-17</span> · Admin branches</div>
+        <div class="modal-backdrop">
+          <div class="modal">
+            <div class="modal-icon danger">⊘</div>
+            <h3>Branch has 14 future appointments</h3>
+            <div class="what">Deactivating <strong>Riyadh Olaya</strong> would leave 14 future appointments orphaned. The system cannot close a clinic that is currently serving patients.</div>
+            <div class="why"><strong>Why:</strong> Deactivation requires zero future appointments (BR-059). Patients keep their bookings; no new bookings can be made.</div>
+            <div class="rule">rule: BR-059 · deactivate_requires_zero_future_appts</div>
+            <div class="actions">
+              <button class="ghost" data-route="/admin/branches">Keep active</button>
+              <button class="danger" data-route="/admin/branches">Resolve 14 appointments first</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <strong>Pattern:</strong> Three-part shape, never a dead end.
+      <div style="margin-top: 8px;">
+        <span class="shape"><code>what</code> · user-readable statement of what happened</span>
+        <span class="shape"><code>why</code> · the rule citation that explains it</span>
+        <span class="shape"><code>do</code> · at least one path forward</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../app/standalone-router.js"></script>
+</body>
+</html>
