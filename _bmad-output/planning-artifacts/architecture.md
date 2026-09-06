@@ -294,16 +294,20 @@ Errors use the **canonical `ErrorEnvelope`** (AD-4): `{code: <enum>, what: strin
 
 ---
 
-## 9. Open architectural questions
+## 9. Resolved & deferred stack choices
 
-These are intentionally deferred to sprint planning. The first six are language/infra choices; each is constrained by a contract clause in §3.1, §3.3, §3.8, or §4 so the choice cannot silently weaken an invariant.
+The following are **ratified as decisions** (2026-09-06):
 
-1. Web framework + language choice (greenfield; this spine is language-agnostic).
-2. **Database engine.** MUST satisfy the §4 DB-engine contract — row-level pessimistic locking, partial-unique-index capable, `tstzrange` range-overlap expression. Postgres is a conforming reference implementation.
-3. **SMS provider.** MUST satisfy the §3.8 provider contract — regionally compliant (US A2P 10DLC, KSA DLT, EU GDPR Art. 9 for health-adjacent context) and honor the §3.8 rate-limit.
-4. Hosting target (cloud region, edge presence).
-5. Background job system for audit retention (F18) and slot cache warming.
-6. **Auth library for staff.** MUST satisfy the §3.1 auth contract — claims include `{role, branch_ids, scope, doctor_id?}` plus a refresh contract.
+- **Frontend.** **Next.js 15 (App Router) + React 19 + Tailwind CSS v4 + Radix UI primitives.** Server Components are the default render mode; Server Actions for staff mutations; Route Handlers for cross-origin public surfaces (`/patient/otp/*`, `/bookings/*`). Tailwind consumes the §7 design tokens by name (`--brand-primary`, etc.); Radix supplies the accessible primitives for ConflictModal, OTP modal, and dialogs.
+- **Backend.** **Next.js Route Handlers + Server Actions on Node runtime.** Same repo, same auth boundary. Long-running transactions (AD-2 recurring confirm) require the Node runtime, not Edge — Edge runtime is reserved for tz normalization (AD-9) and middleware.
+- **Database.** **PostgreSQL 16 + Prisma 5.** Postgres is locked, not recommended — the §4 DB-engine contract (`EXCLUDE USING gist` on `tstzrange`, partial unique indexes, `SERIALIZABLE`, `timestamptz`) is the reason. Prisma handles migrations and queries; the `EXCLUDE USING gist` constraint is added via one raw-SQL migration per ADR-1 below.
+
+The following remain **deferred to sprint planning**. Each is constrained by a contract clause in §3.1, §3.3, §3.8, or §4 so the choice cannot silently weaken an invariant.
+
+1. Hosting target (cloud region, edge presence).
+2. **SMS provider.** MUST satisfy the §3.8 provider contract — regionally compliant (US A2P 10DLC, KSA DLT, EU GDPR Art. 9 for health-adjacent context) and honor the §3.8 rate-limit.
+3. Background job system for audit retention (F18) and slot cache warming.
+4. **Auth library for staff.** MUST satisfy the §3.1 auth contract — claims include `{role, branch_ids, scope, doctor_id?}` plus a refresh contract. Options: NextAuth.js v5 with a JWT+refresh session, Auth.js with an OIDC provider, or a hosted provider (Clerk, WorkOS) whose claim shape is verified against the §3.1 contract before adoption.
 
 ### 9.1 Operational envelope (deferred to sprint planning)
 
@@ -414,4 +418,46 @@ Stable IDs — never renumber. Add new decisions as the next AD-n. Each AD carri
 
 ---
 
-**Next step:** `bmad-create-epics-and-stories` — break the 19 system flows into sprintable stories using this architecture as the invariant guardrail.
+## 12. Ratified implementation choices (ADRs)
+
+Stable IDs — never renumber. Each ADR pins one ratified choice to the spine invariants it must not weaken. Decisions made 2026-09-06.
+
+### ADR-1 · Postgres `EXCLUDE USING gist` as a raw-SQL migration in Prisma
+
+- **Decision.** The `EXCLUDE USING gist (doctor_id WITH =, branch_id WITH =, tstzrange(start_datetime, end_datetime, '[)') WITH &&) WHERE (status = 'Scheduled')` constraint is added via one Prisma `prisma migrate` raw-SQL migration file, named e.g. `prisma/migrations/<timestamp>_appointment_exclusion_constraint/migration.sql`. Prisma's schema DSL does not express `EXCLUDE` constraints; the raw-SQL migration is the canonical path. The constraint is part of the `Appointment` table from day one and is verified by an integration test (booking conflict must fail at the DB layer, not at the application layer).
+- **Binds.** §4 DB-engine contract (F1), §3.3 `reserveSlot` (F14), ADR-2 below.
+- **Prevents.** Drift between Prisma's generated DDL and the runtime DDL; an implementation stream migrating the schema but forgetting the constraint; double-booking that the application layer "remembers" to prevent but the DB layer doesn't.
+
+### ADR-2 · `prisma.$transaction({ isolationLevel: 'Serializable' })` for §3.3 booking + reschedule + recurring confirm
+
+- **Decision.** The booking, reschedule, and recurring-confirm code paths use `prisma.$transaction(async tx => { ... }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 5000, timeout: 10000 })`. The transaction body MUST catch `Prisma.PrismaClientKnownRequestError` with `code 'P2034'` (transaction conflict) and retry up to 3× with jittered backoff. Application-level `SELECT … FOR UPDATE` on `(doctor_id, branch_id, start_datetime, status)` is unnecessary when the exclusion constraint + serializable retry cover the same surface — keep it only if profiling proves it helps.
+- **Binds.** AD-2, AD-5, §3.3, §3.4, §3.5, ADR-1.
+- **Prevents.** Silent downgrade to a weaker isolation level under load; transaction-conflict errors surfacing as 500s; an implementation stream "optimizing" away the serializable level for throughput and re-introducing the very race the exclusion constraint catches.
+
+### ADR-3 · Server Actions for staff mutations; Route Handlers for `/patient/*` and `/bookings/*`
+
+- **Decision.** Staff flows (doctor, receptionist, admin) use **Next.js Server Actions** invoked from React Server Components — co-located with the page, same auth context, same Node runtime. Public cross-origin surfaces (`/patient/otp/*`, `/patient/appointments`, `/bookings`, `/availability`, `/recurring/*`, `/audits/:appointment_id`) use **Route Handlers** under `app/api/`. Both call the same `BookingCore` / `ScheduleCore` service layer; the service layer is the only place that touches `prisma`. Edge runtime is reserved for middleware (session decode, tz normalization to UTC per AD-9).
+- **Binds.** §1.1 server-as-source-of-truth, §5 API surface, §3.1 auth, §3.3 reservation, AD-9.
+- **Prevents.** Staff mutations routed through a second auth boundary (defeats AD-8); patient APIs accidentally served from Server Actions (no CSRF token); edge runtime handling long-running recurring confirms (no `node:fs`, no Postgres wire protocol — would crash).
+
+### ADR-4 · Radix UI primitives + design-system tokens mapped to Tailwind config
+
+- **Decision.** Component primitives — Dialog (ConflictModal, OTP modal), AlertDialog, Toast, DropdownMenu, Tabs, Select, RadioGroup — are built on **Radix UI** (`@radix-ui/react-*`) for accessibility (focus traps, keyboard nav, ARIA). Visual styling is **Tailwind v4** consuming the design-system tokens from `DESIGN-SYSTEM.md` by name: `--brand-primary` → `bg-[var(--brand-primary)]`, `--surface-card` → `bg-[var(--surface-card)]`, etc. The CI lint rule from §7 (F19) fails on any literal hex color outside `app/styles/tokens.css`.
+- **Binds.** §7 frontend architecture, AD-19 (F19), design-system.md.
+- **Prevents.** Bespoke dialogs that drift from the ConflictModal canonical shape (AD-4); literal hex creeping back into components; accessibility regressions in modal focus management; redesigns that re-implement token names from scratch.
+
+### ADR-5 · Simulated OTP for v1 (hardcoded test code, SMS deferred)
+
+- **Decision.** For v1, OTP verification uses a **hardcoded test code** (`000000` unless overridden by `OTP_TEST_CODE` env). Behavior depends on `process.env.NODE_ENV`:
+  - `development` or `test`: any phone number passes the rate-limit and accept-counters, and verification succeeds when the submitted code equals `OTP_TEST_CODE` (default `000000`). No SMS provider is wired.
+  - `production` (or any non-test environment without `OTP_SIMULATOR=1`): behavior is unchanged from §3.8 — SMS provider is required and verified against the provider contract. Hardening this path is a tracked TODO before v1 GA.
+  - `OTP_SIMULATOR=1` (any env): the simulator path is active even outside dev/test, for staging demos.
+- The `OTPVerification` table (BR-029, §4) is still written — the row exists with `code_hash = hash(OTP_TEST_CODE)`, `attempt_count`, `expires_at`, `verified_at`, `locked_until`. TTL and 3-of-10 lockout continue to fire, so the §3.8 rate-limit is exercised end-to-end. The "send" step is a no-op that writes a `dev_console_log=true` flag and an audit row.
+- An environment-flag adapter (`isOtpSimulator()` in `lib/otp.ts`) is the **single** place that branches simulator vs. real. Production never imports the simulator branch.
+- The spine's §3.8 provider contract is preserved for the day SMS ships; AD-5 only changes the *implementation* of `/patient/otp/send`, not the contract.
+- **Binds.** §3.8 OTP (rate-limit, TTL, lockout — all preserved), §3.1 identity (patient-session creation unchanged), AD-4 error envelope (validation errors mapped to `ErrorEnvelope.code = VALIDATION`).
+- **Prevents.** Test environments accidentally buying SMS capacity; rate-limit logic skipped during v1 (locks accounts to 0 attempts); patient-session-create step accidentally coupled to the SMS path; future SMS rollout blocked because the contract was changed instead of the implementation.
+
+---
+
+**Next step:** `bmad-create-epics-and-stories` — break the 19 system flows into sprintable stories using this architecture as the invariant guardrail. The four ADRs above are the binding between stories and code.
