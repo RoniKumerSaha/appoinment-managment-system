@@ -2,11 +2,13 @@
 
 Static HTML/CSS mockups for the Multi-Branch Clinic Appointment Scheduling System.
 
+> **Reorganized 2026-09-06** to the canonical BMad structure: `mockups/` for promoted artifacts, `imports/` for user-supplied visuals / wiring, top-level docs. A BMad mirror lives at `_bmad-output/planning-artifacts/ux-designs/ux-appoinment-managment-system-2026-09-06/`.
+
 ## How to use
 
-**For stakeholder walkthrough:** Open `app/index.html` — a connected application shell that lets you click through every flow as if it were a real app. Role switcher jumps between Patient / Doctor / Receptionist / Admin / Landing.
+**For stakeholder walkthrough:** Open `imports/app/index.html` — a connected application shell that lets you click through every flow as if it were a real app. Role switcher jumps between Patient / Doctor / Receptionist / Admin / Landing.
 
-**For stakeholder review:** Open `mocks.html` — a single scrollable page showing all 31 winners as thumbnails, with filter + search + grid-size controls.
+**For stakeholder review:** Open `mocks.html` — a single scrollable page showing all 31 mockups as thumbnails, with filter + search + grid-size controls.
 
 ## Conventions
 
@@ -21,17 +23,10 @@ Static HTML/CSS mockups for the Multi-Branch Clinic Appointment Scheduling Syste
 ```
 docs/design/mockups/v1/
 ├── README.md                        ← you are here
-├── mocks.html                       ← stakeholder overview (all 31 winners as thumbnails)
+├── mocks.html                       ← stakeholder overview (all 31 mockups as thumbnails)
 ├── CHOICES.md                       ← selection state (resume from here)
 │
-├── app/                             ← connected app walkthrough
-│   ├── index.html                   ← shell entry point
-│   ├── shell.css                    ← topbar + responsive styles
-│   ├── shell.js                     ← hash router + 32 routes + cross-link interception
-│   ├── standalone-router.js         ← drop-in fallback so each winner navigates standalone too
-│   └── logo.svg                     ← Logo 03 · Monoline Icon (selected winner)
-│
-├── winners/                         ← 31 selected mockups + 1 selected logo
+├── mockups/                         ← 31 selected mockups
 │   ├── 01-layout-direction.html     ← A · Clinical Calm + Sidebar
 │   ├── 02-doctor-picker.html        ← E · Card-First + Sidebar
 │   ├── 03-availability-calendar.html ← E · Agenda Timeline
@@ -64,13 +59,24 @@ docs/design/mockups/v1/
 │   ├── 30-doctor-audit-drawer.html  ← E · Audit drawer (shared primitive)
 │   └── 31-admin-doctors-reassign.html ← E · Doctor branch reassign (F-18 reassign)
 │
-└── logos/
-    └── selected-logo-monoline-icon.html  ← Logo 03 · Monoline Icon
+└── imports/                         ← user-supplied supporting visuals / wiring
+    ├── app/                         ← connected app shell
+    │   ├── index.html               ← shell entry point
+    │   ├── shell.css                ← topbar + responsive styles
+    │   ├── shell.js                 ← hash router + 32 routes + cross-link interception
+    │   ├── standalone-router.js     ← drop-in fallback so each mockup navigates standalone too
+    │   ├── design-system.css        ← shared stylesheet (linked by every mockup)
+    │   ├── design-system.html       ← design-system showcase page
+    │   ├── components.html          ← components showcase page
+    │   └── logo.svg                 ← Logo 03 · Monoline Icon (selected winner)
+    │
+    └── logos/
+        └── selected-logo-monoline-icon.html  ← Logo 03 · Monoline Icon
 ```
 
 ## Connected app shell
 
-Open `app/index.html` for a clickable walk-through of every flow:
+Open `imports/app/index.html` for a clickable walk-through of every flow:
 
 - Topbar shows current actor + breadcrumb (computed from the route table)
 - Role switcher jumps to each actor's home route
@@ -81,7 +87,7 @@ Open `app/index.html` for a clickable walk-through of every flow:
 
 32 routes total: 1 landing + 1 design-system + 8 patient + 9 doctor + 5 receptionist + 8 admin.
 
-**Standalone browsing:** every winner loads `app/standalone-router.js`, which mirrors the shell's `data-route` interception but navigates by changing `window.location` to the sibling file. So opening any file directly (e.g. `winners/02-doctor-picker.html`) still lets you click through the same flow — without the topbar or breadcrumb.
+**Standalone browsing:** every mockup loads `imports/app/standalone-router.js`, which mirrors the shell's `data-route` interception but navigates by changing `window.location` to the sibling file. So opening any file directly (e.g. `mockups/02-doctor-picker.html`) still lets you click through the same flow — without the topbar or breadcrumb.
 
 ## Parts
 
@@ -123,10 +129,14 @@ Open `app/index.html` for a clickable walk-through of every flow:
 
 | # | Pick | File |
 |---|------|------|
-| Logo | **03 · Monoline Icon** | `logos/selected-logo-monoline-icon.html` · SVG mirror at `app/logo.svg` |
+| Logo | **03 · Monoline Icon** | `imports/logos/selected-logo-monoline-icon.html` · SVG mirror at `imports/app/logo.svg` |
+
+## BMad mirror
+
+The same workspace is mirrored to `_bmad-output/planning-artifacts/ux-designs/ux-appoinment-managment-system-2026-09-06/`. The mirror holds the BMad-specific artifacts: `DESIGN.md`, `EXPERIENCE.md`, `.memlog.md`. Source-of-truth remains here under `docs/`.
 
 ## Resume protocol
 
-All 31 parts + logo complete. 🎉 See `CHOICES.md` for the final pattern picks + pattern tally. App shell at `app/index.html` ties everything together for stakeholder demos.
+All 31 parts + logo complete. 🎉 See `CHOICES.md` for the final pattern picks + pattern tally. App shell at `imports/app/index.html` ties everything together for stakeholder demos.
 
-**Recent additions (12 new mockups, 2026-09):** parts 20-22 (patient reschedule/OTP/cancel modal), 23-25 (recurring confirm/resolve-one/cancel-reason), 26 (walk-in check-in), 27-28 (admin audit + hours editor), 29 (universal ConflictModal showcase), 30 (audit drawer), 31 (doctor branch reassign). Wireframe pages linked into `app/shell.js` and `app/standalone-router.js`.
+**Recent additions (12 new mockups, 2026-09):** parts 20-22 (patient reschedule/OTP/cancel modal), 23-25 (recurring confirm/resolve-one/cancel-reason), 26 (walk-in check-in), 27-28 (admin audit + hours editor), 29 (universal ConflictModal showcase), 30 (audit drawer), 31 (doctor branch reassign). Wireframe pages linked into `imports/app/shell.js` and `imports/app/standalone-router.js`.

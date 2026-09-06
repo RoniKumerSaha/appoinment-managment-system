@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 8-E — Branch Hours: Stacked Vertical Flow</title>
+<link rel="stylesheet" href="../imports/app/design-system.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 760px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 26px; height: 26px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 8px 15px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 9px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+  .btn-danger { background: #b45309; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+
+  .page { padding: 28px 24px 60px; }
+  .page-header { margin-bottom: 20px; }
+  .page-header h1 { font-size: 22px; color: #111827; margin-bottom: 4px; font-weight: 600; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .section { background: white; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+  .section.alert { border-color: #fde68a; }
+  .section.critical { border-color: #fecaca; }
+  .section-head { padding: 16px 20px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 12px; }
+  .section.alert .section-head { background: #fffbeb; border-bottom-color: #fde68a; }
+  .section.critical .section-head { background: #fef2f2; border-bottom-color: #fecaca; }
+  .section-num { width: 26px; height: 26px; background: #0f766e; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .section.alert .section-num { background: #b45309; }
+  .section.critical .section-num { background: #dc2626; }
+  .section-title { font-size: 15px; color: #111827; font-weight: 600; flex: 1; }
+  .section-sub { font-size: 12px; color: #6b7280; }
+  .section-body { padding: 18px 20px; }
+  .section-actions { padding: 14px 20px; border-top: 1px solid #f3f4f6; display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
+
+  .change-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+  .change-side { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; }
+  .change-side .l { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 3px; }
+  .change-side .v { font-size: 13px; color: #111827; font-weight: 500; }
+  .change-side.new { background: #f0fdfa; border-color: #99f6e4; }
+  .change-side.new .l { color: #0f766e; }
+
+  .contrast-card { background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; font-size: 13px; color: #422006; line-height: 1.5; }
+  .contrast-card strong { color: #422006; }
+
+  .appt-row { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+  .appt-row:last-child { margin-bottom: 0; }
+  .appt-row .date { font-weight: 600; font-size: 13px; min-width: 90px; color: #991b1b; }
+  .appt-row .info { flex: 1; }
+  .appt-row .time { font-size: 13px; color: #111827; font-weight: 500; }
+  .appt-row .meta { font-size: 12px; color: #6b7280; }
+  .appt-row .flag { background: #fde68a; color: #422006; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+
+  .confirmation { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; margin-bottom: 4px; }
+  .conf-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
+  .conf-row .k { color: #6b7280; }
+  .conf-row .v { color: #111827; font-weight: 500; }
+  .conf-row.highlight { background: #fef3c7; padding: 8px 10px; border-radius: 6px; margin: 6px -10px; }
+  .conf-row.highlight .k, .conf-row.highlight .v { color: #422006; font-weight: 600; }
+
+  .check-list { font-size: 13px; }
+  .check { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
+  .check:last-child { border-bottom: none; }
+  .check input { margin-top: 3px; width: 16px; height: 16px; }
+  .check .l { font-weight: 600; color: #111827; margin-bottom: 2px; }
+  .check .d { color: #6b7280; font-size: 12px; }
+  /* Read-only info row — replaces the SMS toggle (was a PII leak). */
+  .info-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; margin-top: 8px; background: var(--info-bg, #dbeafe); border-radius: 8px; border-left: 3px solid var(--info-text, #1e40af); }
+  .info-row .info-icon { color: var(--info-text, #1e40af); font-weight: 700; font-size: 14px; line-height: 1.4; }
+  .info-row .l { font-weight: 600; color: #111827; margin-bottom: 2px; font-size: 13px; }
+  .info-row .d { color: #4b5563; font-size: 12px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="badge">PART 8-E · Branch Hours: Stacked Vertical Flow</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo" data-route="__logo__"><img src="../imports/app/logo.svg" alt="MediSlot" style="width:28px;height:28px;display:block;"> MediSlot</div>
+    <span style="font-size:12px; color:#6b7280;">Admin · Salem Al-Mutairi</span>
+    <button class="btn-ghost" data-route="/admin/branches">← Editor</button>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Saving will affect 5 appointments</h1>
+      <p class="sub">Branch A — Downtown · Saturday hours narrowing from 09:00–17:00 to 09:00–13:00.</p>
+    </div>
+
+    <!-- Step 1: The change -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-num">1</div>
+        <div style="flex:1;">
+          <div class="section-title">The change you're about to save</div>
+          <div class="section-sub">Branch A — Downtown · effective on save.</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="change-row">
+          <div class="change-side">
+            <div class="l">Saturday (was)</div>
+            <div class="v">09:00 – 17:00</div>
+          </div>
+          <div class="change-side new">
+            <div class="l">Saturday (new)</div>
+            <div class="v">09:00 – 13:00</div>
+          </div>
+        </div>
+        <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">All other days unchanged.</div>
+      </div>
+    </div>
+
+    <!-- Step 2: The contrast -->
+    <div class="section alert">
+      <div class="section-head">
+        <div class="section-num">2</div>
+        <div style="flex:1;">
+          <div class="section-title">What this means</div>
+          <div class="section-sub">Critical contrast vs. doctor schedule changes.</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="contrast-card">
+          <strong>Doctor schedule changes</strong> (F-06, F-07) are <strong>rejected</strong> if they conflict with existing appointments.<br><br>
+          <strong>Admin branch-hours changes</strong> (this flow) are <strong>saved + flagged</strong>. The system never silently invalidates an appointment.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Affected appointments -->
+    <div class="section critical">
+      <div class="section-head">
+        <div class="section-num">3</div>
+        <div style="flex:1;">
+          <div class="section-title">5 appointments will be flagged</div>
+          <div class="section-sub">Status stays Scheduled. Doctors will see "Resolve" badges on their dashboards.</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="appt-row">
+          <div class="date">Sat, Aug 23</div>
+          <div class="info"><div class="time">14:00 – 14:45</div><div class="meta">Dr. Ahmed · Fatima A. · Cardiology</div></div>
+          <span class="flag">⚠  Flag</span>
+        </div>
+        <div class="appt-row">
+          <div class="date">Sat, Aug 30</div>
+          <div class="info"><div class="time">15:30 – 16:15</div><div class="meta">Dr. Ahmed · Mohammed K. · Cardiology</div></div>
+          <span class="flag">⚠  Flag</span>
+        </div>
+        <div class="appt-row">
+          <div class="date">Sat, Sep 6</div>
+          <div class="info"><div class="time">13:30 – 14:15</div><div class="meta">Dr. Sara · Layla S. · Dermatology</div></div>
+          <span class="flag">⚠  Flag</span>
+        </div>
+        <div class="appt-row">
+          <div class="date">Sat, Sep 13</div>
+          <div class="info"><div class="time">14:00 – 14:30</div><div class="meta">Dr. Sara · Omar R. · Dermatology</div></div>
+          <span class="flag">⚠  Flag</span>
+        </div>
+        <div class="appt-row">
+          <div class="date">Sat, Sep 20</div>
+          <div class="info"><div class="time">15:00 – 15:30</div><div class="meta">Dr. Ahmed · Sara M. · Cardiology</div></div>
+          <span class="flag">⚠  Flag</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Confirm behavior -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-num">4</div>
+        <div style="flex:1;">
+          <div class="section-title">Confirm what happens on save</div>
+          <div class="section-sub">All atomic. All auditable.</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="check-list">
+          <div class="check">
+            <input type="checkbox" checked disabled>
+            <div><div class="l">New hours are persisted.</div><div class="d">Effective immediately for new bookings.</div></div>
+          </div>
+          <div class="check">
+            <input type="checkbox" checked disabled>
+            <div><div class="l">5 appointments are flagged.</div><div class="d">Status stays Scheduled. metadata includes reason: "branch_hours_change".</div></div>
+          </div>
+          <div class="check">
+            <input type="checkbox" checked disabled>
+            <div><div class="l">Doctors see a "Resolve" badge.</div><div class="d">Dr. Ahmed (3 appts) and Dr. Sara (2 appts) will see these on their next login.</div></div>
+          </div>
+          <div class="info-row">
+            <span class="info-icon" aria-hidden="true">ⓘ</span>
+            <div><div class="l">In-app notification only.</div><div class="d">Affected doctors are notified in-app on next login. <strong>No SMS</strong> — appointment details (patient names, times) stay inside the system.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Save -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-num">5</div>
+        <div style="flex:1;">
+          <div class="section-title">Save anyway</div>
+          <div class="section-sub">Or go back and adjust the hours.</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="confirmation">
+          <div class="conf-row highlight"><span class="k">Action</span><span class="v">Save hours + flag 5 appointments</span></div>
+          <div class="conf-row"><span class="k">Branch</span><span class="v">Branch A — Downtown</span></div>
+          <div class="conf-row"><span class="k">Saturday (new)</span><span class="v">09:00 – 13:00</span></div>
+          <div class="conf-row"><span class="k">Affected</span><span class="v">5 appointments · 2 doctors</span></div>
+          <div class="conf-row"><span class="k">Audit</span><span class="v">1 row written · actor: admin</span></div>
+        </div>
+      </div>
+      <div class="section-actions">
+        <button class="btn-ghost" data-route="/admin/branches">Cancel</button>
+        <button class="btn-secondary" data-route="/admin/branch-hours-editor">Back to editor</button>
+        <button class="btn-danger" data-route="/admin/branches">Save anyway & flag 5 →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+  <script src='../imports/app/standalone-router.js'></script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 26-D — Receptionist Check-in: Quick-Action Pattern</title>
+<link rel="stylesheet" href="../imports/app/design-system.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; line-height: 1.5; font-variant-numeric: tabular-nums; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 760px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo img { width: 28px; height: 28px; }
+  .actor-chip { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #4b5563; }
+  .actor-chip .avatar { width: 32px; height: 32px; border-radius: 50%; background: #ccfbf1; color: #0f766e; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+  .actor-chip .branch { background: #f3f4f6; color: #4b5563; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+
+  .page { padding: 32px; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header h1 { font-size: 24px; color: #111827; font-weight: 600; margin-bottom: 6px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .step { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px 24px; margin-bottom: 14px; }
+  .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .step-num.current { background: #0f766e; color: white; box-shadow: 0 0 0 4px #99f6e4; }
+  .step-num.done { background: #0f766e; color: white; }
+  .step-num.future { background: #ccfbf1; color: #0f766e; }
+  .step-title { font-size: 15px; font-weight: 600; color: #111827; }
+  .step-hint { font-size: 12px; color: #6b7280; margin-left: auto; }
+
+  .picker-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .picker { background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+  .picker:hover { border-color: #0f766e; }
+  .picker.locked { background: #f3f4f6; cursor: not-allowed; border-color: #e5e7eb; }
+  .picker .label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .picker .value { font-size: 14px; color: #111827; font-weight: 500; }
+  .picker .lock { font-size: 11px; color: #6b7280; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .form-group { margin-bottom: 0; }
+  .form-group.full { grid-column: span 2; }
+  .form-group label { display: block; font-size: 12px; color: #374151; font-weight: 600; margin-bottom: 5px; }
+  .form-group label .req { color: #dc2626; margin-left: 2px; }
+  .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white; font-family: inherit; }
+  .form-group input:focus, .form-group select:focus { outline: none; border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15,118,110,0.1); }
+  .form-group .hint { font-size: 11px; color: #6b7280; margin-top: 4px; }
+
+  .returning { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #065f46; margin-bottom: 14px; }
+  .returning .check { width: 22px; height: 22px; background: #0f766e; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+
+  .slot-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 14px; }
+  .slot { padding: 8px 4px; border: 1.5px solid #e5e7eb; border-radius: 6px; text-align: center; font-size: 12px; font-weight: 600; color: #111827; cursor: pointer; }
+  .slot:hover { border-color: #0f766e; background: #f0fdfa; }
+  .slot.selected { background: #0f766e; color: white; border-color: #0f766e; }
+  .slot.unavailable { color: #d1d5db; cursor: not-allowed; background: #f9fafb; text-decoration: line-through; }
+
+  .step-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; padding-top: 16px; border-top: 1px solid #f3f4f6; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #4b5563; border: 1px solid #e5e7eb; padding: 9px 17px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 10px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="badge">PART 26-D · Receptionist Check-in · Quick-Action</div>
+
+<div class="frame">
+  <nav class="nav">
+    <div class="logo" data-route="__logo__"><img src="../imports/app/logo.svg" alt="MediSlot"> MediSlot</div>
+    <div class="actor-chip">
+      <span>Reem Al-Harbi</span>
+      <span class="branch">Riyadh Olaya</span>
+      <span class="avatar">RH</span>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div class="crumb">Today → Walk-in check-in</div>
+      <h1>Walk-in patient</h1>
+      <p class="sub">Patient at the desk — book for the next available slot today is unavailable; pick tomorrow onward.</p>
+    </div>
+
+    <!-- Patient details -->
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num current">1</div>
+        <div class="step-title">Patient details</div>
+        <div class="step-hint">Returning or new</div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Phone <span class="req">*</span></label>
+          <input value="+966 5XX XXX 7890">
+          <div class="hint">Returning patient detected.</div>
+        </div>
+        <div class="form-group">
+          <label>Patient name</label>
+          <input value="Mohammed Al-Dosari">
+        </div>
+      </div>
+      <div class="returning">
+        <div class="check">✓</div>
+        <span>Returning patient · 2 prior appointments · last seen Aug 3</span>
+      </div>
+    </div>
+
+    <!-- Doctor + branch -->
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num future">2</div>
+        <div class="step-title">Pick doctor &amp; branch</div>
+        <div class="step-hint">Branch locked to Riyadh Olaya</div>
+      </div>
+      <div class="picker-row">
+        <div class="picker locked">
+          <div class="label">Branch</div>
+          <div class="value">Riyadh Olaya</div>
+          <div class="lock">🔒 Your assigned branch</div>
+        </div>
+        <div class="picker">
+          <div class="label">Doctor</div>
+          <div class="value">Dr. Ahmed Al-Rashid</div>
+          <div class="lock">Works at this branch</div>
+        </div>
+      </div>
+      <div class="picker-row">
+        <div class="picker">
+          <div class="label">Appointment type</div>
+          <div class="value">Cardiology cons. 45m</div>
+          <div class="lock">Active</div>
+        </div>
+        <div class="picker">
+          <div class="label">Date</div>
+          <div class="value">Tomorrow, Aug 22 · 10:30</div>
+          <div class="lock">Same-day not allowed (FR-019)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slot grid -->
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num future">3</div>
+        <div class="step-title">Available slots · Fri, Aug 22</div>
+        <div class="step-hint">8 open</div>
+      </div>
+      <div class="slot-grid">
+        <div class="slot">09:00</div>
+        <div class="slot">09:45</div>
+        <div class="slot selected">10:30</div>
+        <div class="slot">11:15</div>
+        <div class="slot unavailable">12:00</div>
+        <div class="slot">12:45</div>
+        <div class="slot">13:30</div>
+        <div class="slot unavailable">14:15</div>
+        <div class="slot">15:00</div>
+        <div class="slot unavailable">15:45</div>
+        <div class="slot">16:30</div>
+        <div class="slot">17:15</div>
+      </div>
+
+      <div class="step-foot">
+        <button class="btn-ghost" data-route="/recep/today">Cancel</button>
+        <button class="btn-primary" data-route="/recep/today">Check in &amp; book 10:30</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../imports/app/standalone-router.js"></script>
+</body>
+</html>

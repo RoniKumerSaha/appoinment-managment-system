@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 3-E — Agenda Timeline</title>
+<link rel="stylesheet" href="../imports/app/design-system.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 1200px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .nav-links { display: flex; gap: 24px; font-size: 14px; color: #4b5563; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 9px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+
+  .progress { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 6px; }
+  .step-mini { padding: 4px 10px; border-radius: 4px; background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
+  .step-mini.done { background: #f0fdfa; color: #0f766e; border-color: #99f6e4; font-weight: 500; }
+  .step-mini.done .n { background: #0f766e; color: white; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; margin-right: 4px; }
+  .step-mini.current { background: #0f766e; color: white; border-color: #0f766e; font-weight: 500; }
+  .step-mini.current .n { background: rgba(255,255,255,0.25); color: white; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; margin-right: 4px; }
+
+  .layout { display: grid; grid-template-columns: 1fr 320px; }
+  .main-col { padding: 24px 32px 32px; }
+  .side-col { background: #f9fafb; border-left: 1px solid #e5e7eb; padding: 24px 24px; }
+
+  .back-link { color: #0f766e; font-size: 13px; cursor: pointer; margin-bottom: 8px; display: inline-block; }
+  .page-header h1 { font-size: 24px; color: #111827; margin-bottom: 4px; font-weight: 600; }
+  .page-header .sub { color: #6b7280; font-size: 14px; }
+
+  .view-toggle { display: inline-flex; background: #f3f4f6; border-radius: 8px; padding: 3px; margin-top: 18px; }
+  .view-toggle button { padding: 5px 14px; background: transparent; border: none; border-radius: 6px; font-size: 13px; color: #4b5563; cursor: pointer; font-weight: 500; }
+  .view-toggle button.active { background: white; color: #0f766e; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+  .agenda { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-top: 16px; }
+  .agenda-day { padding: 16px 0; border-bottom: 1px solid #f3f4f6; }
+  .agenda-day:last-child { border-bottom: none; }
+  .agenda-day.today-disabled { opacity: 0.4; }
+  .agenda-day-header { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .agenda-date { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 12px; text-align: center; min-width: 60px; }
+  .agenda-date .dow { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .agenda-date .num { font-size: 22px; color: #111827; font-weight: 700; }
+  .agenda-date.selected { background: #0f766e; border-color: #0f766e; }
+  .agenda-date.selected .dow { color: rgba(255,255,255,0.7); }
+  .agenda-date.selected .num { color: white; }
+  .agenda-day-title { font-size: 14px; color: #111827; font-weight: 600; }
+  .agenda-day-meta { font-size: 12px; color: #6b7280; }
+  .agenda-day-meta strong { color: #0f766e; }
+
+  .slot-line { display: grid; grid-template-columns: 80px 1fr; gap: 12px; padding: 4px 0; align-items: start; }
+  .slot-time { font-size: 13px; color: #6b7280; padding-top: 6px; text-align: right; font-variant-numeric: tabular-nums; }
+  .slot-bar { background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 8px 12px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 12px; }
+  .slot-bar:hover { border-color: #99f6e4; background: #f0fdfa; }
+  .slot-bar.selected { background: #0f766e; border-color: #0f766e; color: white; }
+  .slot-bar .time { font-weight: 700; color: #111827; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .slot-bar.selected .time { color: white; }
+  .slot-bar .dur { font-size: 11px; color: #6b7280; }
+  .slot-bar.selected .dur { color: rgba(255,255,255,0.7); }
+  .slot-bar.taken { background: #f9fafb; border-color: #f3f4f6; cursor: not-allowed; opacity: 0.6; }
+  .slot-bar.taken .time { color: #9ca3af; text-decoration: line-through; }
+
+  .slot-list-stacked { display: flex; flex-direction: column; gap: 4px; }
+
+  .side-col h3 { font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 12px; }
+  .summary-card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .summary-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .k { color: #6b7280; }
+  .summary-row .v { color: #111827; font-weight: 500; text-align: right; }
+  .summary-row.highlight { background: #f0fdfa; padding: 8px 10px; border-radius: 6px; margin: 6px -10px; border: none; }
+  .summary-row.highlight .k { color: #0f766e; font-weight: 600; }
+  .summary-row.highlight .v { color: #0f766e; }
+
+  .footer { border-top: 1px solid #e5e7eb; padding: 16px 32px; display: flex; justify-content: space-between; background: white; position: sticky; bottom: 0; }
+  .footer .summary { color: #6b7280; font-size: 13px; }
+  .footer .summary strong { color: #111827; }
+</style>
+</head>
+<body>
+<div class="badge">PART 3-E · Agenda Timeline</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo" data-route="__logo__"><img src="../imports/app/logo.svg" alt="MediSlot" style="width:28px;height:28px;display:block;"> MediSlot</div>
+    <div class="nav-links"><a data-route="/patient/doctor">Find a doctor</a><a data-route="/patient/manage">My appointments</a><a data-route="">Branches</a><a data-route="">Help</a></div>
+    <button class="btn-primary" data-route="/patient/doctor">Book appointment</button>
+  </nav>
+
+  <div class="progress">
+    <span class="step-mini done"><span class="n">✓</span>Doctor</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini done"><span class="n">✓</span>Branch & type</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini current"><span class="n">3</span>Date & time</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini"><span class="n">4</span>Your details</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini"><span class="n">5</span>Confirm</span>
+  </div>
+
+  <div class="layout">
+    <div class="main-col">
+      <div class="page-header">
+        <span class="back-link">← Back to branch & type</span>
+        <h1>Pick a date and time</h1>
+        <p class="sub">Dr. Ahmed · Branch A · Cardiology consultation (45 min)</p>
+      </div>
+
+      <div class="view-toggle">
+        <button class="active" data-route="">Agenda</button>
+        <button data-route="">Week</button>
+        <button data-route="">Month</button>
+      </div>
+
+      <div class="agenda">
+
+        <div class="agenda-day today-disabled">
+          <div class="agenda-day-header">
+            <div class="agenda-date"><div class="dow">Today</div><div class="num">18</div></div>
+            <div>
+              <div class="agenda-day-title">Monday, Aug 18</div>
+              <div class="agenda-day-meta">Not bookable — same-day is unavailable</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="agenda-day">
+          <div class="agenda-day-header">
+            <div class="agenda-date"><div class="dow">Tue</div><div class="num">19</div></div>
+            <div>
+              <div class="agenda-day-title">Tuesday, Aug 19</div>
+              <div class="agenda-day-meta"><strong>6 slots</strong> · morning + afternoon</div>
+            </div>
+          </div>
+          <div class="slot-list-stacked">
+            <div class="slot-line"><div class="slot-time">09:00</div><div class="slot-bar"><span class="time">09:00 – 09:45</span><span class="dur">· 45 min</span></div></div>
+            <div class="slot-line"><div class="slot-time">10:00</div><div class="slot-bar"><span class="time">10:00 – 10:45</span><span class="dur">· 45 min</span></div></div>
+            <div class="slot-line"><div class="slot-time">14:00</div><div class="slot-bar"><span class="time">14:00 – 14:45</span><span class="dur">· 45 min</span></div></div>
+          </div>
+        </div>
+
+        <div class="agenda-day">
+          <div class="agenda-day-header">
+            <div class="agenda-date selected"><div class="dow">Thu</div><div class="num">21</div></div>
+            <div>
+              <div class="agenda-day-title">Thursday, Aug 21</div>
+              <div class="agenda-day-meta"><strong>8 slots</strong> · morning + afternoon</div>
+            </div>
+          </div>
+          <div class="slot-list-stacked">
+            <div class="slot-line"><div class="slot-time">09:00</div><div class="slot-bar"><span class="time">09:00 – 09:45</span><span class="dur">· 45 min</span></div></div>
+            <div class="slot-line"><div class="slot-time">10:00</div><div class="slot-bar"><span class="time">10:00 – 10:45</span><span class="dur">· 45 min</span></div></div>
+            <div class="slot-line"><div class="slot-time">11:00</div><div class="slot-bar taken"><span class="time">11:00 – 11:45</span><span class="dur">· taken</span></div></div>
+            <div class="slot-line"><div class="slot-time">12:00</div><div class="slot-bar"><span class="time">12:00 – 12:45</span><span class="dur">· 45 min</span></div></div>
+            <div class="slot-line"><div class="slot-time">14:00</div><div class="slot-bar"><span class="time">14:00 – 14:45</span><span class="dur">· 45 min</span></div></div>
+            <div class="slot-line"><div class="slot-time">14:45</div><div class="slot-bar selected"><span class="time">14:45 – 15:30</span><span class="dur">· selected · 45 min</span></div></div>
+            <div class="slot-line"><div class="slot-time">15:30</div><div class="slot-bar"><span class="time">15:30 – 16:15</span><span class="dur">· 45 min</span></div></div>
+            <div class="slot-line"><div class="slot-time">16:15</div><div class="slot-bar"><span class="time">16:15 – 17:00</span><span class="dur">· 45 min</span></div></div>
+          </div>
+        </div>
+
+        <div class="agenda-day">
+          <div class="agenda-day-header">
+            <div class="agenda-date"><div class="dow">Fri</div><div class="num">22</div></div>
+            <div>
+              <div class="agenda-day-title">Friday, Aug 22</div>
+              <div class="agenda-day-meta"><strong>1 slot</strong> · afternoon only</div>
+            </div>
+          </div>
+          <div class="slot-list-stacked">
+            <div class="slot-line"><div class="slot-time">15:00</div><div class="slot-bar"><span class="time">15:00 – 15:45</span><span class="dur">· 45 min</span></div></div>
+          </div>
+        </div>
+
+        <div class="agenda-day">
+          <div class="agenda-day-header">
+            <div class="agenda-date"><div class="dow">Sun</div><div class="num">24</div></div>
+            <div>
+              <div class="agenda-day-title">Sunday, Aug 24</div>
+              <div class="agenda-day-meta"><strong>5 slots</strong> · morning + afternoon</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="side-col">
+      <h3>Your selection</h3>
+      <div class="summary-card">
+        <div class="summary-row"><span class="k">Doctor</span><span class="v">Dr. Ahmed</span></div>
+        <div class="summary-row"><span class="k">Branch</span><span class="v">Downtown</span></div>
+        <div class="summary-row"><span class="k">Type</span><span class="v">Consultation</span></div>
+        <div class="summary-row"><span class="k">Duration</span><span class="v">45 min</span></div>
+        <div class="summary-row highlight"><span class="k">Date</span><span class="v">Thu, Aug 21</span></div>
+        <div class="summary-row highlight"><span class="k">Time</span><span class="v">14:45 – 15:30</span></div>
+      </div>
+
+      <h3>Quick facts</h3>
+      <div style="font-size: 12px; color: #6b7280; line-height: 1.6;">
+        • Same-day bookings are not allowed.<br>
+        • Slots refresh in real time.<br>
+        • 30-day rolling window.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button class="btn-ghost" data-route="/patient/doctor">← Back</button>
+    <span class="summary">Thu, Aug 21 · <strong>14:45 – 15:30</strong> · Branch A</span>
+    <button class="btn-primary" data-route="/patient/confirm">Continue →</button>
+  </div>
+
+</div>
+  <script src='../imports/app/standalone-router.js'></script>
+</body>
+</html>

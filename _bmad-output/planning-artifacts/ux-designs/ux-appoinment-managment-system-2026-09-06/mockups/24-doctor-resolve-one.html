@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 24-E — Doctor Resolve One: Stacked Vertical Flow</title>
+<link rel="stylesheet" href="../imports/app/design-system.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; line-height: 1.5; font-variant-numeric: tabular-nums; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 760px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo img { width: 28px; height: 28px; }
+  .actor-chip { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #4b5563; }
+  .actor-chip .avatar { width: 32px; height: 32px; border-radius: 50%; background: #ccfbf1; color: #0f766e; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+
+  .page { padding: 32px; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header h1 { font-size: 24px; color: #111827; font-weight: 600; margin-bottom: 6px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .step { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px 24px; margin-bottom: 14px; }
+  .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .step-num.current { background: #0f766e; color: white; box-shadow: 0 0 0 4px #99f6e4; }
+  .step-num.done { background: #0f766e; color: white; }
+  .step-num.danger { background: #dc2626; color: white; box-shadow: 0 0 0 4px #fca5a5; }
+  .step-title { font-size: 15px; font-weight: 600; color: #111827; }
+  .step-hint { font-size: 12px; color: #6b7280; margin-left: auto; }
+
+  .read-only { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
+  .read-only .k { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 3px; }
+  .read-only .v { font-size: 13px; color: #111827; font-weight: 500; }
+  .read-only .locked { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 8px 10px; border-radius: 6px; font-size: 11px; color: #422006; grid-column: span 2; }
+
+  .picker-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .picker { background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+  .picker:hover { border-color: #0f766e; }
+  .picker.locked { background: #f3f4f6; cursor: not-allowed; border-color: #e5e7eb; }
+  .picker .label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .picker .value { font-size: 14px; color: #111827; font-weight: 500; }
+  .picker .lock { font-size: 11px; color: #6b7280; }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 14px; }
+  .cal-grid .dow-h { font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600; text-align: center; padding: 6px 0; }
+  .cal-grid .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #111827; border-radius: 6px; cursor: pointer; }
+  .cal-grid .day.muted { color: #d1d5db; }
+  .cal-grid .day.has-slots { background: #f0fdfa; color: #0f766e; font-weight: 600; }
+  .cal-grid .day.has-slots:hover { background: #ccfbf1; }
+  .cal-grid .day.selected { background: #0f766e; color: white; font-weight: 700; }
+
+  .slot-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 12px; }
+  .slot { padding: 8px 4px; border: 1.5px solid #e5e7eb; border-radius: 6px; text-align: center; font-size: 12px; font-weight: 600; color: #111827; cursor: pointer; }
+  .slot:hover { border-color: #0f766e; background: #f0fdfa; }
+  .slot.selected { background: #0f766e; color: white; border-color: #0f766e; }
+  .slot.unavailable { color: #d1d5db; cursor: not-allowed; background: #f9fafb; text-decoration: line-through; }
+
+  .step-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; padding-top: 16px; border-top: 1px solid #f3f4f6; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #4b5563; border: 1px solid #e5e7eb; padding: 9px 17px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 10px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+
+  .empty { background: #fffbeb; border: 1px solid #f59e0b; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #422006; }
+  .empty a { color: #dc2626; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="badge">PART 24-E · Resolve One · Stacked Flow</div>
+
+<div class="frame">
+  <nav class="nav">
+    <div class="logo" data-route="__logo__"><img src="../imports/app/logo.svg" alt="MediSlot"> MediSlot</div>
+    <div class="actor-chip">
+      <span>Dr. Ahmed Al-Rashid</span>
+      <span class="avatar">AR</span>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div class="crumb">Resolve affected → Mohammed K.</div>
+      <h1>Resolve this appointment</h1>
+      <p class="sub">Move it to another valid slot. Type is locked.</p>
+    </div>
+
+    <!-- Step 1: read-only current details -->
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num done">1</div>
+        <div class="step-title">Current appointment · Mohammed K.</div>
+        <div class="step-hint">Read-only</div>
+      </div>
+      <div class="read-only">
+        <div><div class="k">Patient</div><div class="v">Mohammed K.</div></div>
+        <div><div class="k">Phone</div><div class="v">+966 5XX XXX 1234</div></div>
+        <div><div class="k">Original date</div><div class="v">Mon, Sep 8 · 09:00</div></div>
+        <div><div class="k">Original branch</div><div class="v">Riyadh Olaya</div></div>
+        <div><div class="k">Doctor</div><div class="v">Dr. Ahmed Al-Rashid</div></div>
+        <div><div class="k">Type</div><div class="v">Cardiology cons. 45m</div></div>
+        <div class="locked">⚠ Appointment type is locked. Only branch and slot may change. (BR-058)</div>
+      </div>
+    </div>
+
+    <!-- Step 2: pick new slot -->
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num current">2</div>
+        <div class="step-title">Pick a new slot</div>
+        <div class="step-hint">Within 30 days</div>
+      </div>
+
+      <div class="picker-row">
+        <div class="picker">
+          <div class="label">New branch</div>
+          <div class="value">Riyadh Malqa</div>
+          <div class="lock">You work here</div>
+        </div>
+        <div class="picker locked">
+          <div class="label">Appointment type</div>
+          <div class="value">Cardiology cons. 45m</div>
+          <div class="lock">🔒 Locked during resolve</div>
+        </div>
+      </div>
+
+      <div class="cal-grid">
+        <div class="dow-h">Sun</div><div class="dow-h">Mon</div><div class="dow-h">Tue</div><div class="dow-h">Wed</div><div class="dow-h">Thu</div><div class="dow-h">Fri</div><div class="dow-h">Sat</div>
+        <div class="day muted">31</div><div class="day">1</div><div class="day">2</div><div class="day">3</div><div class="day">4</div><div class="day">5</div><div class="day">6</div>
+        <div class="day">7</div><div class="day">8</div><div class="day has-slots selected">9</div><div class="day">10</div><div class="day">11</div><div class="day">12</div><div class="day">13</div>
+        <div class="day">14</div><div class="day has-slots">15</div><div class="day">16</div><div class="day">17</div><div class="day">18</div><div class="day">19</div><div class="day">20</div>
+      </div>
+
+      <div class="slot-grid">
+        <div class="slot">09:00</div>
+        <div class="slot">09:45</div>
+        <div class="slot">10:30</div>
+        <div class="slot selected">11:15</div>
+        <div class="slot unavailable">12:00</div>
+        <div class="slot">12:45</div>
+        <div class="slot unavailable">13:30</div>
+        <div class="slot">14:15</div>
+        <div class="slot">15:00</div>
+        <div class="slot unavailable">15:45</div>
+        <div class="slot">16:30</div>
+        <div class="slot">17:15</div>
+      </div>
+
+      <div class="step-foot">
+        <button class="btn-ghost" data-route="/doctor/resolve">Back to queue (4 remaining)</button>
+        <button class="btn-primary" data-route="/doctor/resolve" disabled style="opacity:.5;cursor:not-allowed">Move to Tue, Sep 9 · 11:15</button>
+      </div>
+    </div>
+
+    <!-- Cancel path -->
+    <div class="empty">
+      <strong>No slots work for this patient?</strong> You can <a data-route="/doctor/today">cancel this appointment instead →</a>
+    </div>
+  </div>
+</div>
+
+<script src="../imports/app/standalone-router.js"></script>
+</body>
+</html>

@@ -1,0 +1,293 @@
+/* ─── Reset & base ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --teal-50: #f0fdfa;
+  --teal-100: #ccfbf1;
+  --teal-300: #99f6e4;
+  --teal-500: #14b8a6;
+  --teal-700: #0f766e;
+  --teal-900: #134e4a;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-700: #374151;
+  --gray-900: #111827;
+  --topbar-h: 56px;
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-2: 0 4px 6px rgba(15, 23, 42, 0.04), 0 2px 4px rgba(15, 23, 42, 0.06);
+}
+
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  color: var(--gray-900);
+  background: var(--gray-100);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden; /* iframe owns the scroll */
+}
+
+/* ─── Topbar ─── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 24px;
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-1);
+}
+
+/* Brand */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  flex-shrink: 0;
+}
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  display: block;
+  flex-shrink: 0;
+}
+.logo-text {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--teal-700);
+  letter-spacing: -0.01em;
+}
+.logo-tag {
+  margin-left: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--teal-50);
+  color: var(--teal-700);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--teal-300);
+}
+
+/* Crumbs */
+.crumbs {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--gray-500);
+  overflow: hidden;
+  white-space: nowrap;
+  min-width: 0;
+}
+.crumbs .crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.crumbs .crumb-sep {
+  color: var(--gray-300);
+  font-size: 11px;
+  margin: 0 2px;
+}
+.crumbs .crumb-leaf {
+  color: var(--gray-900);
+  font-weight: 600;
+}
+.crumbs .crumb-actor {
+  color: var(--teal-700);
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.crumbs .crumb-root {
+  color: var(--gray-500);
+}
+
+/* Role select */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.role-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 8px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.role-select-wrap:hover {
+  border-color: var(--teal-300);
+  background: white;
+}
+.role-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+.role-select {
+  appearance: none;
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-700);
+  cursor: pointer;
+  padding-right: 12px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='%236b7280' d='M6 8L1.5 3.5h9z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0 center;
+  background-size: 9px;
+}
+.role-select:focus { outline: none; }
+.role-select option { font-weight: 600; }
+
+/* Open in new tab */
+.open-new {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  color: var(--gray-700);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.12s;
+}
+.open-new:hover {
+  background: var(--teal-50);
+  border-color: var(--teal-300);
+  color: var(--teal-700);
+}
+
+/* ─── Iframe host ─── */
+.frame-host {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - var(--topbar-h));
+  background: white;
+}
+#app-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: white;
+}
+
+/* ─── Loading overlay ─── */
+.loading {
+  position: absolute;
+  inset: 0;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.18s ease-out;
+}
+.loading.hidden {
+  opacity: 0;
+}
+.loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid var(--teal-100);
+  border-top-color: var(--teal-700);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── 404 overlay ─── */
+.notfound {
+  position: absolute;
+  inset: 0;
+  background: var(--gray-50);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 10;
+}
+.notfound.hidden { display: none; }
+.notfound h1 {
+  font-size: 22px;
+  color: var(--gray-900);
+  font-weight: 700;
+}
+.notfound p {
+  font-size: 14px;
+  color: var(--gray-500);
+}
+.notfound code {
+  font-family: "SF Mono", Consolas, monospace;
+  background: var(--gray-100);
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: var(--gray-700);
+}
+.notfound-home {
+  margin-top: 8px;
+  padding: 8px 14px;
+  background: var(--teal-700);
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.notfound-home:hover { background: var(--teal-900); }
+
+/* ─── Responsive ─── */
+@media (max-width: 720px) {
+  .topbar {
+    padding: 0 14px;
+    gap: 10px;
+  }
+  .logo-tag { display: none; }
+  .crumbs { font-size: 12px; }
+}
+
+@media (max-width: 520px) {
+  .crumbs { display: none; }
+  .role-icon { display: none; }
+  .role-select-wrap { padding-left: 8px; }
+}
+
+/* ─── Focus state (accessibility) ─── */
+.role-select-wrap:focus-within {
+  border-color: var(--teal-700);
+  box-shadow: 0 0 0 3px var(--teal-100);
+}
+.open-new:focus-visible {
+  outline: 3px solid var(--teal-300);
+  outline-offset: 2px;
+}

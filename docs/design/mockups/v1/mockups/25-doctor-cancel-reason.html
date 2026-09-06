@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 25-E — Doctor Cancel Reason: Stacked Vertical Flow</title>
+<link rel="stylesheet" href="../imports/app/design-system.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; line-height: 1.5; font-variant-numeric: tabular-nums; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 760px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo img { width: 28px; height: 28px; }
+  .actor-chip { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #4b5563; }
+  .actor-chip .avatar { width: 32px; height: 32px; border-radius: 50%; background: #ccfbf1; color: #0f766e; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+
+  .page { padding: 32px; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header h1 { font-size: 24px; color: #111827; font-weight: 600; margin-bottom: 6px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .step { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px 24px; margin-bottom: 14px; }
+  .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .step-num.current-danger { background: #dc2626; color: white; box-shadow: 0 0 0 4px #fca5a5; }
+  .step-title { font-size: 15px; font-weight: 600; color: #111827; }
+  .step-hint { font-size: 12px; color: #6b7280; margin-left: auto; }
+
+  .appt-card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; display: flex; gap: 14px; align-items: center; margin-bottom: 16px; }
+  .appt-card .date { text-align: center; min-width: 56px; }
+  .appt-card .date .month { font-size: 10px; color: #0f766e; text-transform: uppercase; font-weight: 600; }
+  .appt-card .date .day { font-size: 22px; color: #111827; font-weight: 700; }
+  .appt-card .date .dow { font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600; }
+  .appt-card .body { flex: 1; }
+  .appt-card .body .name { font-weight: 600; color: #111827; font-size: 14px; }
+  .appt-card .body .meta { font-size: 12px; color: #6b7280; }
+
+  .reason-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .reason-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1.5px solid #e5e7eb; border-radius: 8px; cursor: pointer; }
+  .reason-item:hover { border-color: #fca5a5; background: #fef2f2; }
+  .reason-item.selected { border-color: #dc2626; background: #fef2f2; }
+  .reason-item .radio { width: 18px; height: 18px; border: 2px solid #d1d5db; border-radius: 50%; flex-shrink: 0; }
+  .reason-item.selected .radio { border-color: #dc2626; background: #dc2626; box-shadow: inset 0 0 0 3px white; }
+  .reason-item .body { flex: 1; }
+  .reason-item .body .label { font-weight: 500; color: #111827; font-size: 13px; }
+  .reason-item .body .desc { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 12px; color: #374151; font-weight: 600; margin-bottom: 5px; }
+  .form-group label .req { color: #dc2626; margin-left: 2px; }
+  .form-group textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white; font-family: inherit; resize: vertical; min-height: 80px; }
+  .form-group textarea:focus { outline: none; border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15,118,110,0.1); }
+
+  .impact { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 14px; margin-top: 12px; font-size: 12px; color: #7f1d1d; display: flex; gap: 10px; }
+  .impact .icon { font-size: 16px; }
+  .impact strong { font-weight: 700; }
+
+  .step-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; padding-top: 16px; border-top: 1px solid #f3f4f6; }
+  .btn-primary { background: #dc2626; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #4b5563; border: 1px solid #e5e7eb; padding: 9px 17px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 10px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+
+  .audit { font-size: 11px; color: #6b7280; }
+  .audit code { background: #f3f4f6; padding: 1px 6px; border-radius: 4px; color: #374151; font-family: "SF Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+<div class="badge">PART 25-E · Doctor Cancel Reason · Stacked Flow</div>
+
+<div class="frame">
+  <nav class="nav">
+    <div class="logo" data-route="__logo__"><img src="../imports/app/logo.svg" alt="MediSlot"> MediSlot</div>
+    <div class="actor-chip">
+      <span>Dr. Ahmed Al-Rashid</span>
+      <span class="avatar">AR</span>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div class="crumb">Today → Khalid Al-Otaibi → Cancel</div>
+      <h1>Cancel this appointment</h1>
+      <p class="sub">A reason is required. The slot will be released.</p>
+    </div>
+
+    <div class="step" style="border-color: #fca5a5;">
+      <div class="step-head">
+        <div class="step-num current-danger">!</div>
+        <div class="step-title">Reason + confirm</div>
+        <div class="step-hint">Slot will be released</div>
+      </div>
+
+      <div class="appt-card">
+        <div class="date">
+          <div class="month">AUG</div>
+          <div class="day">21</div>
+          <div class="dow">Thu</div>
+        </div>
+        <div class="body">
+          <div class="name">Khalid Al-Otaibi · Pre-op 30m</div>
+          <div class="meta">10:30 – 11:00 · Riyadh Olaya · +966 5XX XXX 3456</div>
+        </div>
+      </div>
+
+      <div class="reason-list">
+        <div class="reason-item selected">
+          <div class="radio"></div>
+          <div class="body">
+            <div class="label">Patient requested</div>
+            <div class="desc">Patient or family called in</div>
+          </div>
+        </div>
+        <div class="reason-item">
+          <div class="radio"></div>
+          <div class="body">
+            <div class="label">Doctor unavailable</div>
+            <div class="desc">Emergency, illness, schedule conflict</div>
+          </div>
+        </div>
+        <div class="reason-item">
+          <div class="radio"></div>
+          <div class="body">
+            <div class="label">Scheduling conflict</div>
+            <div class="desc">Overbooked, branch issue</div>
+          </div>
+        </div>
+        <div class="reason-item">
+          <div class="radio"></div>
+          <div class="body">
+            <div class="label">Other</div>
+            <div class="desc">Please describe below</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Internal note <span class="req">*</span></label>
+        <textarea placeholder="e.g. Patient called at 10:25, asked to reschedule next week"></textarea>
+      </div>
+
+      <div class="impact">
+        <span class="icon">⚠</span>
+        <span><strong>Slot will be released</strong> and become bookable again immediately. The patient will see "Cancelled by clinic" and can rebook from the booking page.</span>
+      </div>
+
+      <div class="step-foot">
+        <span class="audit">Audit row: <code>action=cancelled, actor=doctor, metadata={reason}</code></span>
+        <div style="display:flex; gap:10px;">
+          <button class="btn-ghost" data-route="/doctor/today">Keep appointment</button>
+          <button class="btn-primary" data-route="/doctor/today">Confirm cancel + release slot</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../imports/app/standalone-router.js"></script>
+</body>
+</html>

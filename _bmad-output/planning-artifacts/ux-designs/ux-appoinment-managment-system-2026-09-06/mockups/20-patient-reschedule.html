@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 20-E — Patient Reschedule: Stacked Vertical Flow</title>
+<link rel="stylesheet" href="../imports/app/design-system.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; line-height: 1.5; font-variant-numeric: tabular-nums; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 760px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo img { width: 28px; height: 28px; }
+  .patient-chip { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #4b5563; }
+  .patient-chip .avatar { width: 32px; height: 32px; border-radius: 50%; background: #ccfbf1; color: #0f766e; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+
+  .page { padding: 32px; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header h1 { font-size: 24px; color: #111827; font-weight: 600; margin-bottom: 6px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .step { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px 24px; margin-bottom: 14px; }
+  .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .step-num.current { background: #0f766e; color: white; box-shadow: 0 0 0 4px #99f6e4; }
+  .step-num.done { background: #0f766e; color: white; }
+  .step-num.future { background: #ccfbf1; color: #0f766e; }
+  .step-title { font-size: 15px; font-weight: 600; color: #111827; }
+  .step-hint { font-size: 12px; color: #6b7280; margin-left: auto; }
+
+  .appt-current { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; display: flex; gap: 14px; align-items: center; }
+  .appt-current .date { text-align: center; min-width: 56px; }
+  .appt-current .date .month { font-size: 10px; color: #0f766e; text-transform: uppercase; font-weight: 600; }
+  .appt-current .date .day { font-size: 22px; color: #111827; font-weight: 700; }
+  .appt-current .date .dow { font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600; }
+  .appt-current .body { flex: 1; }
+  .appt-current .body .name { font-weight: 600; color: #111827; font-size: 14px; }
+  .appt-current .body .meta { font-size: 12px; color: #6b7280; }
+
+  .picker-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .picker { background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+  .picker .label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .picker .value { font-size: 14px; color: #111827; font-weight: 500; }
+  .picker .lock { font-size: 11px; color: #6b7280; }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 14px; }
+  .cal-grid .dow-h { font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600; text-align: center; padding: 6px 0; }
+  .cal-grid .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #111827; border-radius: 6px; cursor: pointer; }
+  .cal-grid .day.muted { color: #d1d5db; }
+  .cal-grid .day.disabled { color: #d1d5db; cursor: not-allowed; }
+  .cal-grid .day.has-slots { background: #f0fdfa; color: #0f766e; font-weight: 600; }
+  .cal-grid .day.has-slots:hover { background: #ccfbf1; }
+  .cal-grid .day.selected { background: #0f766e; color: white; font-weight: 700; }
+
+  .slot-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 12px; }
+  .slot { padding: 8px 4px; border: 1.5px solid #e5e7eb; border-radius: 6px; text-align: center; font-size: 12px; font-weight: 600; color: #111827; cursor: pointer; }
+  .slot:hover { border-color: #0f766e; background: #f0fdfa; }
+  .slot.selected { background: #0f766e; color: white; border-color: #0f766e; }
+  .slot.unavailable { color: #d1d5db; cursor: not-allowed; background: #f9fafb; text-decoration: line-through; }
+
+  .step-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; padding-top: 16px; border-top: 1px solid #f3f4f6; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #4b5563; border: 1px solid #e5e7eb; padding: 9px 17px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 10px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+
+  .summary { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .summary .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+  .summary .row .k { color: #6b7280; }
+  .summary .row .v { color: #111827; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="badge">PART 20-E · Patient Reschedule · Stacked Flow</div>
+
+<div class="frame">
+  <nav class="nav">
+    <div class="logo" data-route="__logo__"><img src="../imports/app/logo.svg" alt="MediSlot"> MediSlot</div>
+    <div class="patient-chip">
+      <span>Fatima A. Al-Sayed</span>
+      <span class="avatar">FA</span>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div class="crumb">My appointments → Reschedule</div>
+      <h1>Move your appointment</h1>
+      <p class="sub">Pick a new branch, type, date, or time. Same doctor.</p>
+    </div>
+
+    <!-- Current appointment (locked context) -->
+    <div class="step" style="border-color: #99f6e4;">
+      <div class="step-head">
+        <div class="step-num done">✓</div>
+        <div class="step-title">Current appointment</div>
+        <div class="step-hint">Doctor is locked</div>
+      </div>
+      <div class="appt-current">
+        <div class="date">
+          <div class="month">AUG</div>
+          <div class="day">21</div>
+          <div class="dow">Thu</div>
+        </div>
+        <div class="body">
+          <div class="name">Dr. Ahmed Al-Rashid · Cardiology</div>
+          <div class="meta">14:45 – 15:30 · Riyadh Olaya · Cardiology cons. 45m</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pick new -->
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num current">2</div>
+        <div class="step-title">Pick a new slot</div>
+        <div class="step-hint">Within 30 days · tomorrow onward</div>
+      </div>
+
+      <div class="picker-row">
+        <div class="picker">
+          <div class="label">Branch</div>
+          <div class="value">Riyadh Olaya</div>
+          <div class="lock">Doctor works here</div>
+        </div>
+        <div class="picker">
+          <div class="label">Appointment type</div>
+          <div class="value">Cardiology cons. 45m</div>
+          <div class="lock">Active</div>
+        </div>
+      </div>
+
+      <div class="cal-grid">
+        <div class="dow-h">Sun</div><div class="dow-h">Mon</div><div class="dow-h">Tue</div><div class="dow-h">Wed</div><div class="dow-h">Thu</div><div class="dow-h">Fri</div><div class="dow-h">Sat</div>
+        <div class="day muted">27</div><div class="day muted">28</div><div class="day muted">29</div><div class="day muted">30</div><div class="day muted">31</div><div class="day">1</div><div class="day">2</div>
+        <div class="day">3</div><div class="day">4</div><div class="day">5</div><div class="day">6</div><div class="day">7</div><div class="day">8</div><div class="day has-slots">9</div>
+        <div class="day">10</div><div class="day">11</div><div class="day has-slots">12</div><div class="day">13</div><div class="day">14</div><div class="day">15</div><div class="day has-slots selected">16</div>
+        <div class="day">17</div><div class="day">18</div><div class="day">19</div><div class="day">20</div><div class="day">21</div><div class="day">22</div><div class="day">23</div>
+        <div class="day">24</div><div class="day has-slots">25</div><div class="day">26</div><div class="day">27</div><div class="day">28</div><div class="day">29</div><div class="day has-slots">30</div>
+      </div>
+
+      <div class="slot-grid">
+        <div class="slot">09:00</div>
+        <div class="slot">09:45</div>
+        <div class="slot unavailable">10:30</div>
+        <div class="slot">11:15</div>
+        <div class="slot selected">11:45</div>
+        <div class="slot">12:30</div>
+        <div class="slot">13:15</div>
+        <div class="slot unavailable">14:00</div>
+        <div class="slot">14:45</div>
+        <div class="slot">15:30</div>
+        <div class="slot">16:15</div>
+        <div class="slot unavailable">17:00</div>
+      </div>
+
+      <div class="summary">
+        <div class="row"><span class="k">New date</span><span class="v">Sat, Aug 16 · 11:45</span></div>
+        <div class="row"><span class="k">Branch</span><span class="v">Riyadh Olaya</span></div>
+        <div class="row"><span class="k">Doctor</span><span class="v">Dr. Ahmed Al-Rashid</span></div>
+        <div class="row"><span class="k">Type</span><span class="v">Cardiology cons. 45m</span></div>
+      </div>
+
+      <div class="step-foot">
+        <button class="btn-ghost" data-route="/patient/manage">Back</button>
+        <button class="btn-primary" data-route="/patient/manage">Confirm move</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../imports/app/standalone-router.js"></script>
+</body>
+</html>

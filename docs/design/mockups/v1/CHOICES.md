@@ -83,7 +83,7 @@
 
 | Pick | Name | File |
 |------|------|------|
-| **03 · Monoline Icon** | Calendar frame + medical cross + slot dots | `logos/selected-logo-monoline-icon.html` · SVG mirror at `app/logo.svg` |
+| **03 · Monoline Icon** | Calendar frame + medical cross + slot dots | `imports/logos/selected-logo-monoline-icon.html` · SVG mirror at `imports/app/logo.svg` |
 
 ---
 
@@ -93,7 +93,7 @@ All files live at `docs/design/mockups/v1/` — see `README.md` for the director
 
 After the v1 cleanup, all rejected options and legacy folders were deleted. Only winners remain:
 
-- `winners/01-…31-*.html` — 31 selected mockup files
-- `logos/selected-logo-monoline-icon.html` — selected logo
-- `app/` — connected app shell (`index.html`, `shell.js`, `shell.css`, `standalone-router.js`, `components.html`, `design-system.html`)
+- `mockups/01-…31-*.html` — 31 selected mockup files
+- `imports/logos/selected-logo-monoline-icon.html` — selected logo
+- `imports/app/` — connected app shell (`index.html`, `shell.js`, `shell.css`, `standalone-router.js`, `components.html`, `design-system.html`)
 - `mocks.html` — stakeholder overview page (31 thumbs + filter + search)
