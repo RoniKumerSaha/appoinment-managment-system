@@ -3,6 +3,8 @@
 > **BMad planning artifact.** The architectural spine: the invariants that keep features, epics, and stories consistent. Derived from `_bmad-output/planning-artifacts/prd.md` and `_bmad-output/planning-artifacts/ux.md`. This is the **what must be true** for any implementation to satisfy the design.
 >
 > The repository is currently design-only (`docs/` + `_bmad/`). Code has not landed. Therefore this is a **greenfield spine** that ratifies the design as the contract that future code must honor.
+>
+> **Update history:** 2026-09-06 — review-gate findings F1–F19 rolled in. Added `§11 Architecture Decisions` (AD-1 through AD-10) and targeted amendments to §1, §3, §4, §5, §6, §7, §9. See `_bmad-output/planning-artifacts/architecture-update-2026-09-06/.memlog.md` for the full decision log.
 
 ## Source documents
 
@@ -18,9 +20,9 @@
 1. **The server is the single source of truth for availability.** UI shows slots; only the server may grant or release one. (UX-FLOWS §6.2)
 2. **Atomicity over clever UX.** Booking and rescheduling use transactional slot reservation. No tentative holds client-side.
 3. **Never silently invalidate an appointment.** Schedule/block changes that would conflict are **rejected**; branch-hours changes **save and flag** for manual resolution.
-4. **Patient identity is a phone number.** No passwords, no accounts. Identity verification is SMS OTP, server-side filtered.
-5. **Branch-local time.** All branch hours and slot times are in the branch's timezone. UI labels match.
-6. **Role × Branch authorization is a server concern.** Receptionists are branch-scoped; doctors are self-scoped; admins don't see individual appointments.
+4. **Patient identity is a phone number.** No passwords, no accounts. Identity verification is SMS OTP, server-side filtered. **Prevents:** a patient from seeing or being matched to another patient's appointments.
+5. **Branch-local time.** All branch hours and slot times are stored UTC and rendered in the *appointment's branch* timezone (per AD-9). UI labels always carry tz; the session's branch tz never relabels another branch's event.
+6. **Role × Branch authorization is a server concern.** Receptionists are branch-scoped; doctors are self-scoped via a doctor-patient link table (per AD-8); admins don't see individual appointments. **Prevents:** cross-branch reads/writes by a receptionist (BR-063); admin visibility into individual appointments (BR-065); a doctor enumerating patient relationships beyond first-booking doctor-patient link.
 7. **Audit by default.** Every important appointment and configuration event writes one audit row.
 8. **The design system is a contract.** Token names in `DESIGN-SYSTEM.md` map 1:1 to CSS variables / theme tokens in code. Drift is a bug.
 
@@ -88,6 +90,8 @@ SMS provider is the only external dependency. Email/in-app/push are out of scope
 - **Patient:** phone → OTP → short-lived session token. No persistent account.
 - **Staff (doctor/receptionist/admin):** signed-in session with role + (for doctors) multi-branch list or (for receptionists) single branch id.
 
+**Auth contract (provider clause).** The chosen auth library MUST issue session tokens whose signed claims include `{role, branch_ids: string[], scope, doctor_id?: string}` plus a refresh contract. Server reads `branch_ids` from the claim, never from the request body. Any auth implementation that does not produce these claims does not satisfy this invariant — pick a library that does.
+
 ### 3.2 Availability engine
 
 A pure function:
@@ -114,8 +118,8 @@ Implementation requirement: server-side, transactional, **never cached on the cl
 
 Two operations, both transactional:
 
-- **`reserveSlot(doctor, branch, start, end)`** — insert a TentativeHold row (TTL seconds) or a guarded insert into `Appointment(status = Scheduled)` inside `SERIALIZABLE` / row-level lock with `UNIQUE(doctor_id, branch_id, start_datetime) WHERE status = Scheduled`.
-- **`releaseSlot(doctor, branch, start, end)`** — transaction commits the prior hold and lets availability recompute.
+- **`reserveSlot(doctor, branch, start, end)`** — guarded insert into `Appointment(status = Scheduled)`. The table MUST carry a Postgres `EXCLUDE USING gist (doctor_id WITH =, branch_id WITH =, tstzrange(start_datetime, end_datetime, '[)') WITH &&) WHERE (status = 'Scheduled')` constraint so overlapping ranges for the same doctor/branch cannot commit. Application code wraps the write in either `SELECT FOR UPDATE` on the `(doctor_id, branch_id, start_datetime, status)` partial-unique tuple, or a `SERIALIZABLE` retry on `40001`, as belt-and-braces.
+- **`releaseSlot(doctor, branch, start, end)`** — defined as **the same transaction that sets the prior Appointment's status to a non-`Scheduled` terminal state** (per AD-5). Availability cache invalidation is write-ahead within the same transaction, not read-after-commit.
 
 Booking transaction (PRD §10):
 
@@ -143,6 +147,8 @@ existing appointment
 
 If reserve-new fails, the original is untouched.
 
+**Series-occurrence reschedule (AD-3).** A row materialized from a recurring series retains `series_id` and `series_occurrence_index`. Rescheduling such a row creates an `OverrideOccurrence` child row (or sets an override flag) instead of mutating `start`. The original-pattern slot is released; the new slot is reserved; one audit row. The pattern itself is never retroactively rewritten.
+
 ### 3.5 Recurring series
 
 A **preview-only** generator that reuses `availability()` per occurrence:
@@ -154,7 +160,7 @@ preview(doctor, branch, type, pattern, count_or_end_date):
   return summary + per-row detail
 ```
 
-On confirm: atomic batch insert of `will_create` rows; one audit row per created occurrence. Skipped rows are never persisted except as part of the result panel response.
+On confirm (per AD-2): each row runs through the §3.3 booking transaction with full validators and the `SERIALIZABLE` lock. Rows that fail at confirm time are returned in `skipped:[{date, reason: <enum>}]` and are **not** counted as `will_create` for audit purposes. The `reason` field is a closed enum tied to AD-4 codes (`race_lost`, `branch_closed`, `doctor_unavailable`, `patient_conflict`, `type_unavailable`, ...; see AD-11). The success response carries exactly the rows that succeeded; the failure response carries exactly the rows that failed; the client never receives a `will_create` row that does not exist in storage. One audit row per row that committed.
 
 ### 3.6 Conflict resolution (doctor flow F-09)
 
@@ -165,6 +171,12 @@ When a schedule/block save is rejected:
 3. Each resolution uses the rescheduling transaction (3.4) with appointment type locked and branch set restricted to doctor's branches.
 4. After zero remaining, server re-runs the schedule validation; if clean, persists the change and audits.
 
+**Schedule-lattice single-writer rule (AD-1).** There is exactly one writer of authority per `(branch_id, doctor_id, local_date)` cell. The cell is mutated via one of two operations: `DoctorScheduleMutation` (this section — reject if conflicts) or `BranchHoursMutation` (§3.7 — save + flag + enqueue resolution work item). A flag is a durable work item owned by `FlagResolver`; `FlagResolver` either reschedules the appointment (§3.4) or escalates. Doctors resolving their own schedule changes cannot consume admin-origin flags — they are dispatched to the flag owner.
+
+**Schedule-change audit (AD-7).** The schedule-change audit row includes `affected_appointment_ids` at validation time in metadata and is written in the same transaction as the schedule row update. Each per-appointment resolution writes its own audit row with `cause: "schedule_change:<schedule_change_id>"`. The schedule-change audit is written only on successful persist; if the doctor abandons, no audit row, and any partial per-appointment audits are reconciled via a `cause`-replay walk.
+
+**Block creation (AD-6).** Block creation validates against (a) all `Appointment` rows where `status = Scheduled` overlapping the proposed window AND (b) all existing blocks for the same doctor overlapping the proposed window, under the same `SERIALIZABLE` lock as §3.3. Block creation and booking creation racing for the same `(doctor, branch, start_datetime)` row are serialized through the same lock target; whichever loses receives the appropriate 409/410 per AD-4.
+
 ### 3.7 Branch-hours impact (admin flow F-17)
 
 Different from doctor flow on purpose (PRD §4.6):
@@ -172,7 +184,7 @@ Different from doctor flow on purpose (PRD §4.6):
 1. Admin saves the new hours.
 2. Server identifies future affected appointments (`status = Scheduled AND start_local_time ∉ new_hours`).
 3. Affected appointments are **flagged** (a flag column / linked resolution task) — status remains Scheduled.
-4. Each affected appointment appears on the assigned doctor's dashboard with a "Resolve" badge.
+4. Each affected appointment appears on the assigned doctor's dashboard with a "Resolve" badge, **dispatched to `FlagResolver`** per AD-1.
 
 The system never silently invalidates an appointment.
 
@@ -182,6 +194,8 @@ The system never silently invalidates an appointment.
 - 5-minute TTL.
 - 3-attempt cap per phone per 10-minute window → lockout.
 - Server-side verification creates a short-lived patient session.
+
+**SMS provider contract (provider clause).** The chosen SMS provider MUST be regionally compliant — US A2P 10DLC brand+campaign registration, KSA DLT registration, EU GDPR Art. 9 disclosure for health-adjacent context — and MUST honor the rate-limit above. Provider-specific concerns (deliverability, sender ID, regional failover) are accounted for in implementation, not here.
 
 ### 3.9 Audit
 
@@ -194,16 +208,22 @@ Append-only `AppointmentAudit` table with `(appointment_id, action, actor_role, 
 Derived from PRD §8 and design constraints:
 
 - `Appointment.status ∈ {Scheduled, Completed, Cancelled, No-show}` — no other states.
-- A doctor has at most one `Scheduled` appointment per `(start_datetime, end_datetime, branch_id)` tuple.
+- A doctor has at most one `Scheduled` appointment per `(start_datetime, end_datetime, branch_id)` tuple. **Enforcement:** Postgres `EXCLUDE USING gist (doctor_id WITH =, branch_id WITH =, tstzrange(start_datetime, end_datetime, '[)') WITH &&) WHERE (status = 'Scheduled')` (F14), with row-lock / SERIALIZABLE as belt-and-braces.
 - A patient has at most one `Scheduled` appointment per `(doctor_id)`.
-- A patient has no time-overlapping `Scheduled` appointments (across doctors/branches).
+- A patient has no time-overlapping `Scheduled` appointments (across doctors/branches). **Index:** `(patient_phone, status, start_datetime)`; falls back to read-replica if availability call exceeds NFR-008 budget (F16).
 - `created_by` is either a staff user id or a patient phone number (guest booking).
 - `Appointment` rows are never deleted — `Cancelled` is the terminal state.
-- `AppointmentAudit` is append-only.
-- `Branch.tz` is required for production (UX-FLOWS §6.4).
+- `AppointmentAudit` is append-only. Retention: at least 7 years (F18); specifics (cold storage, encryption-at-rest, PII scrubbing) deferred to §9.1.
+- `Branch.tz` is required for production (UX-FLOWS §6.4). All appointment timestamps are stored UTC and rendered in `appointment.branch.tz` (AD-9); session branch tz never relabels another branch's event.
+- `Branch.active` is required. Inactive branches are excluded from `/availability` and `/bookings` at the data layer; existing `Scheduled` appointments remain Scheduled and resolvable (F17).
 - `DoctorSchedule` is keyed by `(doctor_id, branch_id, day_of_week, effective_from)` with multiple periods per day.
+- `DoctorPatientLink` is populated on first booking; required for AD-8 doctor self-scope.
+- `RoleFieldPolicy` declares field-level access per role; `patient.phone` is visible to `{receptionist: same_branch, doctor: own_appointment, admin: never}` (AD-10).
 - `Patient` is identified by `phone_number` (unique).
 - `OTPVerification` is created on send, marked verified on success, expired on TTL, locked on attempt-cap.
+- `OverrideOccurrence` (or override flag) carries the per-occurrence reschedule for a series-materialized row (AD-3); `series_id` and `series_occurrence_index` are preserved on the underlying row.
+
+**DB-engine contract (F1).** The DB engine MUST support all three: row-level pessimistic locking, partial-unique-index capable (predicate `WHERE` clause), and range-overlap expression via `tstzrange` (Postgres `EXCLUDE USING gist` or equivalent). Engines that lack any of these (e.g. MySQL — no partial indexes; SQLite — no real `SERIALIZABLE`) do not satisfy this invariant. Postgres is a conforming reference implementation.
 
 ---
 
@@ -225,18 +245,24 @@ Derived from PRD §8 and design constraints:
 | GET | `/staff/appointments` | Auth: staff session. Server-side role+branch filter. |
 | GET | `/audits/:appointment_id` | Doctor/receptionist: own scope. Admin: config audits only. |
 
-Errors use the ConflictModal shape: `{what, why, can_do: [{label, action}]}`.
+Errors use the **canonical `ErrorEnvelope`** (AD-4): `{code: <enum>, what: string, why: string, can_do: [{label: string, action: <enum>}] | null, details: object | null}`.
+
+- `code` is a closed enum: `SLOT_RACED`, `SLOT_NO_LONGER_AVAILABLE`, `PATIENT_CONFLICT`, `BRANCH_HOURS_CONFLICT`, `SCHEDULE_CONFLICT`, `VALIDATION`, ...
+- 410 fires **only** for terminal availability codes (`SLOT_NO_LONGER_AVAILABLE` and similar).
+- `can_do` is non-null for terminal codes; `action` is a closed enum the ConflictModal can dispatch.
+- Save-time conflicts (e.g. doctor schedule change with affected appointments) carry the affected list in `details`, **not** as recovery actions.
 
 ---
 
 ## 6. Non-functional architecture
 
-- **Concurrency:** row-level locks on `(doctor_id, branch_id, start_datetime)` for slot reservation; SQL `SERIALIZABLE` or equivalent. Booking throughput target: 50 RPS sustained.
-- **Availability latency:** NFR-008 (≤2s). Strategy: server-side cache of generated slots, invalidated synchronously on every appointment write. Indexes on `(doctor_id, branch_id, start_datetime)` and `(patient_phone, status, start_datetime)`.
-- **TZ:** store all timestamps as UTC; convert at branch tz for display. Branch `tz` is the conversion source.
-- **Observability:** structured logs include `actor_role`, `actor_id`, `appointment_id`, `trace_id`. Counter for double-booking incidents (should always be 0).
-- **Privacy:** NFR-007 — patient filtering is server-side only. The API never returns appointments for a phone other than the verified session.
-- **Audit durability:** `AppointmentAudit` writes are in the same transaction as the appointment write.
+- **Concurrency:** row-level locks on `(doctor_id, branch_id, start_datetime)` for slot reservation, **plus the `EXCLUDE USING gist` constraint** (F14, AD-5); SQL `SERIALIZABLE` or equivalent. Booking throughput target: 50 RPS sustained. The double-booking counter (below) MUST remain 0.
+- **Availability latency:** NFR-008 (≤2s). Strategy: server-side cache of generated slots, invalidated **write-ahead in the same transaction** as the appointment write (AD-5 — not read-after-commit). Indexes on `(doctor_id, branch_id, start_datetime)` and `(patient_phone, status, start_datetime)`; the patient-overlap check routes through the read-replica if the availability call would blow NFR-008 (F16).
+- **TZ:** store all timestamps as UTC; convert at `appointment.branch.tz` for display (AD-9 — never `session.branch.tz`). Edge gateway normalizes incoming timestamps to UTC only, never to a tz (only the application knows which branch the request targets). Every appointment-related response carries an explicit `tz` field.
+- **Observability:** structured logs include `actor_role`, `actor_id`, `appointment_id`, `trace_id`. Counter for double-booking incidents (should always be 0). Alerting thresholds are deferred to §9.1.
+- **Privacy:** NFR-007 — patient filtering is server-side only. The API never returns appointments for a phone other than the verified session. **Field-level PII is governed by `RoleFieldPolicy` (AD-10):** `patient.phone` visibility per role is declared in §4 and inherited by every endpoint. A future role must declare its field policy at provisioning.
+- **Audit durability:** `AppointmentAudit` writes are in the same transaction as the appointment write. Schedule-change audits carry `affected_appointment_ids` and reference `cause: "schedule_change:<id>"` on per-resolution audits (AD-7). Audit retention ≥ 7 years (F18); specifics in §9.1.
+- **Staff scope on `/staff/appointments`:** role+branch filter per AD-8 — doctor: `doctor_id = session AND branch_id IN session.branch_ids AND patient IN DoctorPatientLink`; receptionist: `branch_id = session.branch_id` (no phone, no doctor); admin: empty (config audits only).
 
 ---
 
@@ -245,7 +271,8 @@ Errors use the ConflictModal shape: `{what, why, can_do: [{label, action}]}`.
 - **Stack freedom within token discipline.** The repo is greenfield; framework choice is downstream of this spine. Whatever is chosen must consume design tokens by name (`--brand-primary`, etc.), not literal hex.
 - **No web fonts.** System stack only (DESIGN-SYSTEM §3). Zero layout shift.
 - **Single source for tokens.** A `tokens.css` (or equivalent) generated from `DESIGN-SYSTEM.md`. Updating one without the other is a bug.
-- **ConflictModal shape is global.** Every conflict surface uses the same three-part pattern, not bespoke error toasts.
+- **CI lint on token discipline.** A lint rule on the chosen frontend MUST fail CI when a literal hex color appears outside `tokens.css` (or equivalent generated artifact). Token names referenced as variables are required; literal hex is forbidden (F19).
+- **ConflictModal shape is global.** Every conflict surface uses the same `ErrorEnvelope` shape (AD-4); not bespoke error toasts.
 - **Status pills never use brand teal.** Brand teal is for actions (DESIGN-SYSTEM §2.4 color rule).
 - **Touch targets ≥ 40×40** on mobile, even though mockups target 1440.
 - **Honor `prefers-reduced-motion`.** Toast slide and modal scale-in are disabled.
@@ -269,16 +296,29 @@ Errors use the ConflictModal shape: `{what, why, can_do: [{label, action}]}`.
 
 ## 9. Open architectural questions
 
-These are intentionally deferred to sprint planning:
+These are intentionally deferred to sprint planning. The first six are language/infra choices; each is constrained by a contract clause in §3.1, §3.3, §3.8, or §4 so the choice cannot silently weaken an invariant.
 
 1. Web framework + language choice (greenfield; this spine is language-agnostic).
-2. Database engine (Postgres recommended given the concurrency story).
-3. SMS provider (Twilio / Unifonic / others — chosen at implementation time).
+2. **Database engine.** MUST satisfy the §4 DB-engine contract — row-level pessimistic locking, partial-unique-index capable, `tstzrange` range-overlap expression. Postgres is a conforming reference implementation.
+3. **SMS provider.** MUST satisfy the §3.8 provider contract — regionally compliant (US A2P 10DLC, KSA DLT, EU GDPR Art. 9 for health-adjacent context) and honor the §3.8 rate-limit.
 4. Hosting target (cloud region, edge presence).
-5. Background job system for audit retention and slot cache warming.
-6. Auth library for staff (likely OIDC/SAML given admin/clinical operations).
+5. Background job system for audit retention (F18) and slot cache warming.
+6. **Auth library for staff.** MUST satisfy the §3.1 auth contract — claims include `{role, branch_ids, scope, doctor_id?}` plus a refresh contract.
 
-These are outside the spine; none of them changes the invariants above.
+### 9.1 Operational envelope (deferred to sprint planning)
+
+At system altitude the spine must enumerate — even if it doesn't decide — the operational envelope. The items below are deferred but each touches at least one invariant; an implementation choice that contradicts an item must surface the conflict before shipping.
+
+- **Environments:** dev / staging / prod parity; branch-deployment strategy; CI/CD expectations; environment-variable contract.
+- **SLOs:** NFR-008 (availability latency ≤2s) and NFR-009 (booking service availability) translated to specific targets and alerting thresholds; the §6 double-booking counter remains 0 by definition.
+- **DR / backup:** RPO/RTO targets; backup frequency; restore drill cadence.
+- **Secrets management:** rotation cadence; storage contract; split between edge and application secrets.
+- **Audit retention:** ≥ 7 years per F18; cold storage, encryption-at-rest, PII scrubbing for compliance exports.
+- **Scaling strategy:** read replica labeled optional (no sharding decision at this altitude); connection-pool sizing; write-scaling story if traffic grows.
+- **TLS / transport security:** cert management (rotation, mTLS internal, HSTS).
+- **Observability depth:** beyond the §6 structured logs and counter — metrics, traces, dashboards.
+
+These are outside the spine's load-bearing decisions but inside its mandate at this altitude; an implementation that treats them as out-of-scope is the failure mode this enumeration prevents.
 
 ---
 
@@ -287,6 +327,90 @@ These are outside the spine; none of them changes the invariants above.
 - Not a code library. Implementation teams choose the wire format for tokens, ORM, etc.
 - Not a one-time write. When the UX or PRD changes, this spine is updated first.
 - Not a substitute for design review. The mockups in `docs/design/mockups/v1/winners/` are still the visual ground truth.
+
+---
+
+## 11. Architecture decisions (ADs)
+
+Stable IDs — never renumber. Add new decisions as the next AD-n. Each AD carries Rule + Binds + Prevents. Rolled in from the 2026-09-06 validate-gate review.
+
+### AD-1 · Schedule-lattice single-writer rule (FlagResolver)
+
+- **Rule.** There is exactly one writer of authority per `(branch_id, doctor_id, local_date)` cell. The cell is mutated via one of two operations: `DoctorScheduleMutation` (§3.6 — reject if conflicts) or `BranchHoursMutation` (§3.7 — save + flag + enqueue resolution work item). A flag is a durable work item owned by `FlagResolver`; `FlagResolver` either reschedules the appointment (§3.4) or escalates. Doctors resolving their own schedule changes cannot consume admin-origin flags — they are dispatched to the flag owner.
+- **Binds.** `ScheduleCore`, `BookingCore`, `FlagResolver`, §3.6, §3.7.
+- **Prevents.** A doctor schedule change being blocked by an admin-flagged appointment that the doctor has no authority to resolve; a flagged appointment silently staying `Scheduled` past branch-hours change without an open resolution work item; two systems both believing they own the cleanup of the same cell.
+
+### AD-2 · Recurring-confirm atomic per-row with race_lost reason
+
+- **Rule.** Recurring confirm runs each row through the §3.3 booking transaction with full validators and the `SERIALIZABLE` lock. Rows that fail at confirm time are returned in `skipped:[{date, reason: "race_lost"}]` and are **not** counted as `will_create` for audit purposes. The success response carries exactly the rows that succeeded; the failure response carries exactly the rows that failed; the client never receives a `will_create` row that does not exist in storage.
+- **Binds.** `RecurringSeries`, `BookingCore`, `Audit`, §6 double-booking counter.
+- **Prevents.** The double-booking counter incrementing on a documented race; audit rows for rows that did not materialize; preview result becoming a contract the server cannot honor.
+
+### AD-3 · OverrideOccurrence for recurring-occurrence reschedule
+
+- **Rule.** A row materialized from a recurring series retains `series_id` and `series_occurrence_index`. Rescheduling such a row creates an `OverrideOccurrence` child row (or sets an override flag) instead of mutating `start`. The original-pattern slot is released; the new slot is reserved; one audit row. The pattern itself is never retroactively rewritten.
+- **Binds.** `BookingCore`, `RecurringSeries`, `AvailabilityEngine`, `Audit`, §3.4.
+- **Prevents.** Silent loss of series identity after a single-occurrence reschedule; duplicate slots if the series is ever re-materialized; inconsistent audit trail between row-level and series-level actions.
+
+### AD-4 · Closed-enum `ErrorEnvelope` (ConflictModal canonical shape)
+
+- **Rule.** Every error response from `/bookings/*`, `/recurring/*`, `/doctors/*/schedule`, `/admin/branches` uses `ErrorEnvelope = {code: <enum>, what: string, why: string, can_do: [{label: string, action: <enum>}] | null, details: object | null}`. Codes are a closed enum (`SLOT_RACED`, `SLOT_NO_LONGER_AVAILABLE`, `PATIENT_CONFLICT`, `BRANCH_HOURS_CONFLICT`, `SCHEDULE_CONFLICT`, `VALIDATION`, ...). 410 fires **only** for terminal availability codes; `can_do` is non-null for terminal codes; `can_do.action` is a closed enum the ConflictModal can dispatch. Save-time conflicts carry the affected list in `details`, **not** as recovery actions.
+- **Binds.** Every API endpoint, every error path in `BookingCore`/`ScheduleCore`/`RecurringSeries`, §5 API surface, §7 frontend ConflictModal.
+- **Prevents.** Endpoint-specific error shapes that drift the ConflictModal; untyped `can_do.action` strings the modal cannot dispatch; 409s for save-time conflicts that force a list-of-appointments into a recovery-actions shape.
+
+### AD-5 · `releaseSlot` = status mutation in one transaction
+
+- **Rule.** `releaseSlot(doctor, branch, start, end)` is defined as **the same transaction that sets the prior `Appointment.status` to a non-`Scheduled` terminal state**. Availability cache invalidation is write-ahead within the same transaction, not read-after-commit. For recurring series cancel, all rows cancel in a single transaction with one `series_id` audit parent + N child audit rows; failure rolls back the whole series.
+- **Binds.** `BookingCore`, `ScheduleCore` (cache invalidation), `Audit`, `RecurringSeries`, §3.3, §3.4.
+- **Prevents.** Window between `status = Cancelled` and availability recompute where another booking can win the slot; partial series-cancel with audit rows committed but appointment rows not (or vice versa).
+
+### AD-6 · Block creation validates against appointments AND existing blocks
+
+- **Rule.** Block creation validates against (a) all `Appointment` rows where `status = Scheduled` overlapping the proposed window AND (b) all existing blocks for the same doctor overlapping the proposed window, under the same `SERIALIZABLE` lock as §3.3. A block creation and a booking creation racing for the same `(doctor, branch, start_datetime)` row are serialized through the same lock target; whichever loses receives the appropriate 409/410 per AD-4.
+- **Binds.** `ScheduleCore`, `BookingCore`, `AvailabilityEngine`, §3.6.
+- **Prevents.** Two overlapping blocks silently emptying availability; a booking landing inside a block via a TOCTOU race between block-read and block-write.
+
+### AD-7 · Schedule-change audit `cause` link
+
+- **Rule.** Schedule-change audits include the set of `affected_appointment_ids` at validation time in metadata and are written in the same transaction as the schedule row update, which is itself serialized against other schedule mutations on the same `(doctor, branch, day_of_week)`. Each per-appointment resolution writes its own audit row with `cause: "schedule_change:<schedule_change_id>"`. The schedule-change audit is written only on successful persist; if the doctor abandons, no audit row, and any partial per-appointment audits are reconciled via a `cause`-replay walk that ties them to the abandoned change.
+- **Binds.** `ScheduleCore`, `BookingCore`, `Audit`, `ConflictResolver`, §3.6, §6.
+- **Prevents.** Audit log showing reschedules/cancels with no upstream cause; schedule-change audit row that does not match the validated state; orphaned per-appointment audits after an abandoned schedule change.
+
+### AD-8 · Doctor self-scope via doctor-patient link
+
+- **Rule.** `/staff/appointments` filter is exactly `(role=doctor → doctor_id = session.doctor_id AND branch_id IN session.branch_ids AND patient IN DoctorPatientLink)` OR `(role=receptionist → branch_id = session.branch_id)`. A receptionist cannot filter by phone or by doctor. Admin scope on appointments is empty (configuration audits only per §3.9/§5). `DoctorPatientLink` is populated on first booking.
+- **Binds.** `StaffAppointmentsController`, `ApplicationAPI` (authz middleware), `PatientPrivacyFilter`, §5 `/staff/appointments`, §6.
+- **Prevents.** A doctor seeing every appointment at any of their branches regardless of patient relationship; a receptionist enumerating patients across doctors at one branch; an admin escalating via a shared session.
+
+### AD-9 · Response `tz` = `appointment.branch.tz`
+
+- **Rule.** Every appointment-related timestamp in any response carries an explicit `tz` field naming the IANA tz it is rendered in, and the value is always `appointment.branch.tz`. The session's branch tz is never used to relabel an appointment. Edge gateway normalizes incoming timestamps to UTC only, never to a tz (only the application knows which branch the request targets).
+- **Binds.** `EdgeGateway`, `ApplicationAPI`, every response serializer, §1.5, §6.
+- **Prevents.** A doctor scheduling on the wrong day because session-tz labels were applied to an event at another branch's tz; edge normalizing against request-supplied `branch_id` and silently shifting the doctor's query window.
+
+### AD-10 · `RoleFieldPolicy` for PII visibility
+
+- **Rule.** Field-level access is declared per role in a `RoleFieldPolicy` table. `patient.phone` is visible to `{receptionist: same_branch, doctor: own_appointment, admin: never}`. New roles added in the future MUST declare their field policy at provisioning; endpoints inherit. The spine is updated whenever a new role is introduced.
+- **Binds.** All response serializers, every endpoint returning patient PII, §4, §6.
+- **Prevents.** A future role (nurse, manager, billing) inheriting receptionist's phone visibility by default; a receptionist seeing patient phones for appointments they do not staff; an admin escalating to read patient phones via a config-audit side channel.
+
+### AD-11 · `skipped[].reason` as closed enum tied to AD-4 codes
+
+- **Rule.** The `reason` field in `skipped[]` (AD-2) is a closed enum mapped 1:1 to AD-4 `ErrorEnvelope` codes: `race_lost`, `branch_closed`, `doctor_unavailable`, `patient_conflict`, `type_unavailable`, ... Per-row `ErrorEnvelope`-shaped entries with `code` in `details.skipped[]` are the canonical alternative — both shapes are accepted, but free-form strings are forbidden.
+- **Binds.** AD-2, AD-4, `RecurringSeries`, `BookingCore`, §3.5.
+- **Prevents.** Free-form `reason` strings the client cannot dispatch; drift between per-row reasons and the top-level `ErrorEnvelope` shape; new failure modes silently inventing reason verbs.
+
+### AD-12 · `OverrideOccurrence` ownership on series-cancel
+
+- **Rule.** A recurring series cancel (AD-5 single-tx cascade) tombstones existing `OverrideOccurrence` rows in the same transaction: `status = superseded`, `parent_appointment_id` preserved, one audit row per override. `OverrideOccurrence` rows are owned by their parent series row; the cascade is tombstone (not delete) so audit history remains reconstructable.
+- **Binds.** AD-3, AD-5, `BookingCore`, `RecurringSeries`, `Audit`, §3.5.
+- **Prevents.** Orphaned `OverrideOccurrence` rows after series cancel; lost override audit history; two writers for the override cell.
+
+### AD-13 · Cause-replay walk serialization + self-audit
+
+- **Rule.** The cause-replay walk (AD-7 abandoned-change reconciliation) reads the schedule-change row where `abandoned_at IS NOT NULL`, holds the same `(doctor, branch, day_of_week)` lock as the original schedule change, and writes one `cause_replay` audit row per walk. Walks are idempotent (re-runnable on the same `abandoned_change_id`) and serialize via the schedule-change lock, not a separate lock target.
+- **Binds.** AD-1, AD-7, `ScheduleCore`, `Audit`, `ConflictResolver`, §3.6, §6.
+- **Prevents.** The cause-replay walk racing live schedule changes; orphan audit rows after replay; concurrent walks double-reconciling the same abandoned change.
 
 ---
 
