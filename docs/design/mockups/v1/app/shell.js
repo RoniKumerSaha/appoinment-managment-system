@@ -115,7 +115,7 @@
       breadcrumb: ['Doctor', 'Resolve affected'],
     },
     '/doctor/recurring-preview': {
-      file: '../winners/07-recurring-preview.html',
+      file: '../winners/23-recurring-confirm.html',
       actor: 'doctor',
       title: 'Preview recurring series',
       breadcrumb: ['Doctor', 'Recurring preview'],
@@ -282,7 +282,7 @@
     '/doctor/types':              { num: '11',  flow: 'F-08', group: 'doctor' },
     '/doctor/today':              { num: '12',  flow: 'F-10', group: 'doctor' },
     '/doctor/resolve':            { num: '06',  flow: 'F-09', group: 'doctor' },
-    '/doctor/recurring-preview':  { num: '07b', flow: 'F-11', group: 'doctor' },
+    '/doctor/recurring-preview':  { num: '23',  flow: 'F-11', group: 'doctor' },
     '/recurring/confirm':         { num: '23',  flow: 'F-11', group: 'doctor' },
     '/doctor/resolve-one':        { num: '24',  flow: 'F-09', group: 'doctor' },
     '/doctor/cancel-reason':      { num: '25',  flow: 'F-10', group: 'doctor' },

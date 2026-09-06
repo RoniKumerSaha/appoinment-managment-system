@@ -228,13 +228,13 @@ UX-FLOWS F-06 calls for `[Adjust]` `[Continue anyway]`. `09` shows the warning t
 | 10 | High | Cross-screen identity drift | **Partially fixed** — new screens consistent, old still drift |
 | 11 | High | Status-pill style inconsistent | **Pending** |
 | 12 | High | Patient cancel/reschedule interaction model | **FIXED** |
-| 13 | High | New-XX routes wrong | **Routes added** — screens pending |
-| 14 | High | Edit/Reassign routes wrong | **Reassign FIXED** (`31`) — Edit-recep pending |
-| 15 | Medium | Doctor `Save changes` jumps to Kanban | **Pending** |
+| 13 | High | Recurring route collision (07 served both patient + doctor) | **FIXED** — `/doctor/recurring-preview` now → `23-recurring-confirm.html` (the doctor screen); `07` stays as patient-only. `23`'s `Edit pattern` → `/doctor/schedule` (upstream). Standalone-router + shell.js + ROUTE_META updated. |
+| 14 | High | Branch-hours editor vs preview routing | **FIXED** — `08`'s `Back to editor` now → `/admin/branch-hours-editor` (28, the editor); `28`'s `Save & preview impact` → `/admin/branch-hours` (08, the preview); `08`'s `Cancel` + `Save anyway` still → `/admin/branches` (17, list) |
+| 15 | Medium | Doctor `Save changes` jumps to Kanban | **FIXED** — `09` Save stays on page, toast reveals on click, auto-dismiss 3s |
 | 16 | Medium | Cancel-reason dropdowns differ | **Doctor side FIXED** (`25`) |
-| 17 | Medium | Outside-branch-hours warning lacks buttons | **Pending** |
+| 17 | Medium | Outside-branch-hours warning lacks buttons | **FIXED** — `09` warning now has `[Adjust periods]` (scrolls + highlights first period) and `[Continue anyway]` (dismisses, focuses Save) |
 | 18 | Medium | Recurring preview `Edit pattern` | **Confirm page FIXED** (`23`) — editor pending |
-| 19 | Medium | Branch-hours "Notify doctors by SMS" leaks PII | **FIXED** |
+| 19 | Medium | Branch-hours "Notify doctors by SMS" leaks PII | **FIXED** — `08` SMS toggle replaced with in-app notification info row (no PII leaves the system) |
 | 20 | Medium | Appointment-types impact card wrong example | **Pending** |
 | 21 | High | Card-with-`cursor:pointer` was a div, no click handler | **FIXED** — `02` (branch-card × 3 + type-card × 3), `14` (type-opt × 4) now `<button>` with JS toggle for `.selected` |
 
@@ -284,10 +284,17 @@ All 12 wired into `app/shell.js` ROUTES + `app/standalone-router.js` mirror. `ap
 - Status-pill icon consistency (pending design-system decision)
 - New-X dedicated screens (routes registered, parent screens reused for now)
 - Edit-recep screen (mirror of `31`)
-- Outside-branch-hours buttons on `09`
 - Appointment-types deactivation impact card on `11`
 - Recep audit drawer (mirror of `30`, branch-scoped)
-- Branch-hours SMS removal from `08` (already decided — needs patch)
 - Phone-number canonicalization across `12`, `13`, `14`, `15`
+
+### v3 (2026-09-06) — bug-fix sweep: routing + card a11y + copy fixes
+
+1. **Card-with-`cursor:pointer` was a `<div>` (#21).** `02-doctor-picker.html` (branch-card × 3, type-card × 3) and `14-recep-create.html` (type-opt × 4) converted to `<button>`, added `:focus-visible` ring + `appearance:none` button-reset, added per-group JS toggle for `.selected`. Bottom advance button remains the navigation trigger (no eager-advance on card click). Locked branch card in `14` (BR-004) was already correct — left as-is.
+2. **Doctor `Save changes` jumped to Kanban (#15).** `09-doctor-schedule.html`: toast was visible on page load (a phantom "saved" message). Fixed by hiding `.toast-stack` by default, showing it via JS on Save click. Capture-phase listener on `window` runs before the standalone-router's document-capture handler, so `preventDefault` + `stopImmediatePropagation` blocks the self-route navigation. Auto-dismiss after 3 s; manual dismiss button works.
+3. **Outside-branch-hours warning had no buttons (#17).** `09-doctor-schedule.html` warning now has `[Adjust periods]` (smooth-scrolls to first period, brief amber halo) and `[Continue anyway]` (fades the warning, focuses Save).
+4. **Recurring route collision (#13).** `/doctor/recurring-preview` was → `07-recurring-preview.html` (the **patient** screen — wrong perspective). Re-routed to `23-recurring-confirm.html` (the doctor recurring preview/confirmation). Updated in standalone-router.js + shell.js ROUTES + ROUTE_META. Also fixed `23`'s `Edit pattern` button which had `data-route="/doctor/recurring-preview"` (self-loop) → now `/doctor/schedule` (upstream).
+5. **Branch-hours editor/preview routing (#14).** `08`'s `Back to editor` was → `/admin/branches` (the branches list — wrong). Re-routed to `/admin/branch-hours-editor` (28, the editor). Cancel + Save-anyway still → `/admin/branches` (correct).
+6. **Branch-hours SMS PII leak (#19).** `08` had a "Notify doctors by SMS" opt-in checkbox — sending appointment details by SMS violates UX-FLOWS §6.3 ("PII never leaves the system"). Replaced with a read-only info row: "In-app notification only. Affected doctors are notified in-app on next login. **No SMS** — appointment details (patient names, times) stay inside the system."
 
 The pattern: build the shared component once, wire it everywhere it should appear.

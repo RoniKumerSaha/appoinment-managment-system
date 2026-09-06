@@ -39,7 +39,9 @@
     '/doctor/types':              '11-appointment-types.html',
     '/doctor/today':              '12-mark-status.html',
     '/doctor/resolve':            '06-resolve-affected.html',
-    '/doctor/recurring-preview':  '07-recurring-preview.html',
+    // Doctor recurring-preview is screen 23 — system-generated preview/confirmation.
+    // Previously collided with /patient/recurring (both pointed to 07, the patient view).
+    '/doctor/recurring-preview':  '23-recurring-confirm.html',
     '/recurring/confirm':         '23-recurring-confirm.html',
     '/doctor/resolve-one':        '24-doctor-resolve-one.html',
     '/doctor/cancel-reason':      '25-doctor-cancel-reason.html',

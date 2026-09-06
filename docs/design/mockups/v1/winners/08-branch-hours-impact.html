@@ -67,6 +67,11 @@
   .check input { margin-top: 3px; width: 16px; height: 16px; }
   .check .l { font-weight: 600; color: #111827; margin-bottom: 2px; }
   .check .d { color: #6b7280; font-size: 12px; }
+  /* Read-only info row — replaces the SMS toggle (was a PII leak). */
+  .info-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; margin-top: 8px; background: var(--info-bg, #dbeafe); border-radius: 8px; border-left: 3px solid var(--info-text, #1e40af); }
+  .info-row .info-icon { color: var(--info-text, #1e40af); font-weight: 700; font-size: 14px; line-height: 1.4; }
+  .info-row .l { font-weight: 600; color: #111827; margin-bottom: 2px; font-size: 13px; }
+  .info-row .d { color: #4b5563; font-size: 12px; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -187,9 +192,9 @@
             <input type="checkbox" checked disabled>
             <div><div class="l">Doctors see a "Resolve" badge.</div><div class="d">Dr. Ahmed (3 appts) and Dr. Sara (2 appts) will see these on their next login.</div></div>
           </div>
-          <div class="check">
-            <input type="checkbox">
-            <div><div class="l">Notify doctors by SMS</div><div class="d">Optional. Sends a brief alert to each affected doctor.</div></div>
+          <div class="info-row">
+            <span class="info-icon" aria-hidden="true">ⓘ</span>
+            <div><div class="l">In-app notification only.</div><div class="d">Affected doctors are notified in-app on next login. <strong>No SMS</strong> — appointment details (patient names, times) stay inside the system.</div></div>
           </div>
         </div>
       </div>
@@ -215,7 +220,7 @@
       </div>
       <div class="section-actions">
         <button class="btn-ghost" data-route="/admin/branches">Cancel</button>
-        <button class="btn-secondary" data-route="/admin/branches">Back to editor</button>
+        <button class="btn-secondary" data-route="/admin/branch-hours-editor">Back to editor</button>
         <button class="btn-danger" data-route="/admin/branches">Save anyway & flag 5 →</button>
       </div>
     </div>
