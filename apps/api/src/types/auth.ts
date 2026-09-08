@@ -21,7 +21,7 @@ export interface AuthClaim {
    * for staff tokens; patient tokens may legitimately have an empty array
    * because patient sessions filter by phone, not branch.
    */
-  branch_ids: string[];
+  readonly branch_ids: readonly string[];
   /** Authoritative scope label; cross-branch URLs fail-closed at the guard. */
   scope: Scope;
   /** Required when role === 'doctor' on doctor-only routes. */

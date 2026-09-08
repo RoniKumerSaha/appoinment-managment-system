@@ -24,8 +24,18 @@ function isScope(v: unknown): v is AuthClaim['scope'] {
   return v === 'self' || v === 'branch' || v === 'clinic' || v === 'global';
 }
 
+// Caps chosen to bound work the parser must do per request. The header is
+// caller-controlled, so a 4 KiB cap and a 256-id cap stop a single request
+// from forcing unbounded JSON.parse / Array.every work. Anything over either
+// cap is treated as malformed and yields anonymous (request continues).
+const MAX_X_AUTH_CLAIM_BYTES = 4096;
+const MAX_BRANCH_IDS = 256;
+
 function parseClaimHeader(raw: string | undefined): AuthClaim | null {
   if (!raw) return null;
+  // Hard cap on header length so a malicious client cannot force unbounded
+  // JSON.parse work via a multi-megabyte x-auth-claim header.
+  if (raw.length > MAX_X_AUTH_CLAIM_BYTES) return null;
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -37,6 +47,9 @@ function parseClaimHeader(raw: string | undefined): AuthClaim | null {
   if (typeof c.sub !== 'string') return null;
   if (!isRole(c.role)) return null;
   if (!Array.isArray(c.branch_ids)) return null;
+  // Cap on branch_ids.length so a claim cannot carry an arbitrarily large
+  // array. Anything longer is malformed — return null (anonymous).
+  if (c.branch_ids.length > MAX_BRANCH_IDS) return null;
   if (!c.branch_ids.every((id) => typeof id === 'string')) return null;
   if (!isScope(c.scope)) return null;
   if (c.doctor_id !== undefined && typeof c.doctor_id !== 'string') return null;

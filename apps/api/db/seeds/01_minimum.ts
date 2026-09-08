@@ -17,7 +17,7 @@ const RECEPTIONIST_NAME = 'Receptionist Test';
 const ADMIN_NAME = 'Admin Test';
 
 async function seed(): Promise<void> {
-  const pool = getPool();
+  const pool = await getPool();
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

@@ -120,3 +120,33 @@ test('/healthz remains pre-auth — always 200 regardless of claim (auth runs af
     .set('x-auth-claim', claim({ role: 'receptionist', branch_ids: [] }));
   assert.equal(res.status, 200);
 });
+
+test('oversized x-auth-claim header (>4096 bytes) is treated as anonymous', async () => {
+  const app = createApp();
+  // Pad the claim with whitespace (invalid JSON, but the length check runs
+  // BEFORE JSON.parse so any >4096-byte value is rejected with the same
+  // outcome — anonymous, request continues to the 404 fallthrough).
+  const oversized = 'x'.repeat(4097);
+  const res = await request(app)
+    .get(POST_AUTH_PATH)
+    .set('x-auth-claim', oversized);
+  assert.equal(res.status, 404, 'oversized header must NOT 4xx the request');
+});
+
+test('branch_ids.length > 256 is treated as anonymous', async () => {
+  const app = createApp();
+  const tooMany = Array.from({ length: 257 }, (_, i) => `b-${i}`);
+  const res = await request(app)
+    .get(POST_AUTH_PATH)
+    .set('x-auth-claim', claim({ role: 'receptionist', branch_ids: tooMany }));
+  assert.equal(res.status, 404, 'oversized branch_ids must NOT 4xx the request');
+});
+
+test('branch_ids.length == 256 still passes auth', async () => {
+  const app = createApp();
+  const justRight = Array.from({ length: 256 }, (_, i) => `b-${i}`);
+  const res = await request(app)
+    .get(POST_AUTH_PATH)
+    .set('x-auth-claim', claim({ role: 'receptionist', branch_ids: justRight }));
+  assert.equal(res.status, 404, '256 branch_ids is allowed; must reach 404 fallthrough');
+});
