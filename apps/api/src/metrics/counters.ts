@@ -31,11 +31,27 @@ const state: Record<CounterName, number> = NAMED_COUNTERS.reduce(
 );
 
 export function inc(name: CounterName, by = 1): void {
+  if (!(name in state)) {
+    // Defend the contract: unknown names signal a typo in caller code and
+    // would silently disappear from /metrics. Throw so the mistake is caught
+    // at the first increment attempt, not six months later at runtime review.
+    throw new Error(`unknown_counter_name:${name}`);
+  }
   state[name] = (state[name] ?? 0) + by;
 }
 
 export function snapshot(): Record<CounterName, number> {
   return { ...state };
+}
+
+/**
+ * Reset every counter to 0. Intended for test setup so each test sees a
+ * deterministic starting snapshot — production code never calls this.
+ */
+export function reset(): void {
+  for (const name of NAMED_COUNTERS) {
+    state[name] = 0;
+  }
 }
 
 export function knownCounters(): readonly CounterName[] {

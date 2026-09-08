@@ -3,18 +3,30 @@
  *
  * `server.ts` is the runnable entry that binds to PORT. Tests import this
  * module directly so importing does NOT start listening on a real port.
+ *
+ * `opts.requestLogger` (optional) lets a test inject a `pinoHttp()` instance
+ * wired to an in-memory destination so the JSON log line can be captured
+ * without depending on stdout interception (which is unreliable on Windows
+ * where SonicBoom writes via the fd-1 path directly). Production callers
+ * omit this and get the production `requestLogger`.
  */
 import express from 'express';
+import type { RequestHandler } from 'express';
 import { healthRouter } from './routes/health.js';
 import { metricsRouter } from './routes/metrics.js';
 import { authMiddleware } from './middleware/auth.js';
 import { logger, requestLogger } from './middleware/log.js';
 
-export function createApp(): express.Express {
+export interface CreateAppOptions {
+  requestLogger?: RequestHandler;
+}
+
+export function createApp(opts: CreateAppOptions = {}): express.Express {
+  const logMw = opts.requestLogger ?? requestLogger;
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '64kb' }));
-  app.use(requestLogger);
+  app.use(logMw);
 
   app.use(healthRouter);
   app.use(metricsRouter);

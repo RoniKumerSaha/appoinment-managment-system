@@ -1,62 +1,145 @@
 /**
  * Structured-log contract test.
  *
- * Asserts that pino's emit produces a JSON line carrying:
- *   request_id, actor_role, actor_id, appointment_id
+ * Drives a real HTTP request through `createApp()` so the production
+ * `requestLogger` (pino-http + customProps + genReqId) is the thing being
+ * exercised — NOT a stand-alone `pino()` instance. The test redirects the
+ * pino destination to an in-memory Writable so the emitted JSON line can be
+ * captured reliably across platforms (SonicBoom's fd-1 path does NOT go
+ * through `process.stdout.write` on Windows, so stdout interception is
+ * unreliable).
  *
- * We use pino's destination with a write callback so the test captures the
- * raw JSON line — no live DB or HTTP needed.
+ * Asserts the contract:
+ *   - line carries request_id, actor_role, actor_id, appointment_id
+ *   - x-request-id header is round-tripped through genReqId
+ *   - genReqId rejects ill-formed ids and substitutes a UUID
+ *
+ * Also asserts (MP-4) that the exported `redactPaths` includes the seven
+ * required paths (authorization, cookie, password, phone_number, code,
+ * x-auth-claim, set-cookie).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import request from 'supertest';
 import { Writable } from 'node:stream';
 import pino from 'pino';
+import {
+  createBaseLogger,
+  createRequestLogger,
+  redactPaths,
+} from '../src/middleware/log.js';
+import { createApp } from '../src/app.js';
 
-test('structured log line carries the four contract fields', async () => {
-  const captured: string[] = [];
+/**
+ * Create an app whose requestLogger is wired to a captured Writable so the
+ * emitted JSON lines can be inspected synchronously.
+ */
+function makeAppWithCapture(): { app: ReturnType<typeof createApp>; lines: string[]; stream: Writable } {
+  const lines: string[] = [];
   const stream = new Writable({
     write(chunk, _enc, cb) {
-      captured.push(chunk.toString());
+      // Pino writes a complete JSON line per emit; chunk is either a string
+      // or a Buffer carrying that line plus its trailing newline.
+      const s = typeof chunk === 'string' ? chunk : chunk.toString('utf8');
+      for (const piece of s.split('\n')) {
+        if (piece.length > 0) lines.push(piece);
+      }
       cb();
     },
   });
+  const baseLogger = createBaseLogger(stream);
+  const requestLogger = createRequestLogger({ logger: baseLogger });
+  const app = createApp({ requestLogger });
+  return { app, lines, stream };
+}
 
-  const logger = pino(
-    {
-      level: 'info',
-      base: { service: 'clinic-api' },
-      timestamp: pino.stdTimeFunctions.isoTime,
-    },
-    stream,
-  );
+test('requestLogger emits a JSON line carrying request_id, actor_role, actor_id, appointment_id', async () => {
+  const { app, lines, stream } = makeAppWithCapture();
+  // Use the x-auth-claim header so authMiddleware populates actor_role and
+  // actor_id via attachLogContext. The four contract fields are then
+  // surface-able in the captured pino-http line through customProps.
+  // (appointment_id is only set by appointment-scoped handlers; the contract
+  // is that the KEY is always present even when null.)
+  const claim = JSON.stringify({
+    sub: 'doctor-abc',
+    role: 'doctor',
+    branch_ids: ['branch-a'],
+    scope: 'branch',
+    doctor_id: 'doctor-abc',
+  });
 
-  const ctx = {
-    request_id: '11111111-1111-1111-1111-111111111111',
-    actor_role: 'doctor',
-    actor_id: 'doctor-abc',
-    appointment_id: 'appt-xyz',
-  };
-  logger.info(ctx, 'test_event');
-
-  // pino writes synchronously into the stream; flush before asserting.
+  const res = await request(app).get('/__no_such_route__').set('x-auth-claim', claim);
+  assert.equal(res.status, 404);
+  // flush + wait for the async log emit to land in the stream
   await new Promise<void>((resolve) => stream.end(resolve));
 
-  assert.equal(captured.length, 1, 'expected exactly one log line');
-  const line = captured[0]!;
-  const parsed = JSON.parse(line) as Record<string, unknown>;
+  const events = lines
+    .map((l) => {
+      try {
+        return JSON.parse(l) as Record<string, unknown>;
+      } catch {
+        return null;
+      }
+    })
+    .filter((p): p is Record<string, unknown> => p !== null && 'req' in p);
+
+  assert.ok(events.length > 0, `expected at least one pino-http line; got ${lines.length}`);
+  const ev = events[0]!;
   for (const key of ['request_id', 'actor_role', 'actor_id', 'appointment_id']) {
-    assert.ok(
-      key in parsed,
-      `log line must include ${key}; got keys=${Object.keys(parsed).join(',')}`,
-    );
+    assert.ok(key in ev, `line must include ${key}; got keys=${Object.keys(ev).join(',')}`);
   }
-  assert.equal(parsed.request_id, ctx.request_id);
-  assert.equal(parsed.actor_role, ctx.actor_role);
-  assert.equal(parsed.actor_id, ctx.actor_id);
-  assert.equal(parsed.appointment_id, ctx.appointment_id);
+  assert.equal(ev.actor_role, 'doctor');
+  assert.equal(ev.actor_id, 'doctor-abc');
+  assert.equal(ev.appointment_id, null);
+  assert.ok(
+    typeof ev.request_id === 'string' && (ev.request_id as string).length > 0,
+    'request_id must be a non-empty string',
+  );
 });
 
-test('pino redact strips password / phone_number / code keys', async () => {
+test('genReqId honours a caller-supplied x-request-id when it is well-formed', async () => {
+  const { app } = makeAppWithCapture();
+  const supplied = 'abc-123-XYZ';
+  const res = await request(app).get('/__no_such_route__').set('x-request-id', supplied);
+  assert.equal(res.status, 404);
+  assert.equal(res.headers['x-request-id'], supplied);
+});
+
+test('genReqId replaces an ill-formed x-request-id with a fresh UUID (charset guard)', async () => {
+  const { app } = makeAppWithCapture();
+  // Whitespace and underscore are outside /^[A-Za-z0-9-]{1,128}$/ so genReqId
+  // must replace them with a fresh UUID. (The CRLF variant is also invalid
+  // but Node's HTTP parser rejects CRLF at the wire before our middleware
+  // even sees it — whitespace is the realistic bypass vector.)
+  const evil = 'bad id with spaces_and_underscores';
+  const res = await request(app).get('/__no_such_route__').set('x-request-id', evil);
+  assert.equal(res.status, 404);
+  const header = res.headers['x-request-id'];
+  assert.ok(typeof header === 'string' && header.length > 0, 'x-request-id must still be present');
+  assert.notEqual(header, evil);
+  assert.match(header as string, /^[A-Za-z0-9-]{1,128}$/);
+});
+
+test('redactPaths covers authorization, cookie, password, phone_number, code, x-auth-claim, set-cookie', () => {
+  for (const p of [
+    'req.headers.authorization',
+    'req.headers.cookie',
+    'req.body.password',
+    'req.body.phone_number',
+    'req.body.code',
+    'req.headers["x-auth-claim"]',
+    'res.headers["set-cookie"]',
+  ]) {
+    assert.ok(
+      redactPaths.includes(p),
+      `redactPaths must include ${p}; got=${redactPaths.join(',')}`,
+    );
+  }
+});
+
+test('pino redact strips password / phone_number / code keys (sanity)', async () => {
+  // Defence-in-depth check that the production logger actually applies
+  // redaction — not just that the list contains the paths.
   const captured: string[] = [];
   const stream = new Writable({
     write(chunk, _enc, cb) {
