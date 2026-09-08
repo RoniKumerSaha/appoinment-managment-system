@@ -21,9 +21,11 @@
 
   // ─── Route table ────────────────────────────────────────────────────────
   // Each entry maps a hash to { file, actor, title, breadcrumb, isHome }
+  // Note: this shell lives at v1/imports/app/index.html and loads mockups
+  // from v1/mockups/, so file paths go up two levels.
   const ROUTES = {
     '/': {
-      file: '../mockups/01-layout-direction.html',
+      file: '../../mockups/01-layout-direction.html',
       actor: 'landing',
       title: 'Landing · Find your doctor',
       breadcrumb: ['Landing'],
@@ -32,51 +34,51 @@
 
     // Patient
     '/patient/doctor': {
-      file: '../mockups/02-doctor-picker.html',
+      file: '../../mockups/02-doctor-picker.html',
       actor: 'patient',
       title: 'Choose a branch & appointment type',
       breadcrumb: ['Patient', 'Choose a branch & type'],
       isHome: true,
     },
     '/patient/slot': {
-      file: '../mockups/03-availability-calendar.html',
+      file: '../../mockups/03-availability-calendar.html',
       actor: 'patient',
       title: 'Pick a date and time',
       breadcrumb: ['Patient', 'Pick a date and time'],
     },
     '/patient/confirm': {
-      file: '../mockups/04-patient-confirm.html',
+      file: '../../mockups/04-patient-confirm.html',
       actor: 'patient',
       title: 'Confirm your booking',
       breadcrumb: ['Patient', 'Confirm your booking'],
     },
     '/patient/manage': {
-      file: '../mockups/05-patient-self-service.html',
+      file: '../../mockups/05-patient-self-service.html',
       actor: 'patient',
       title: 'Manage your appointments',
       breadcrumb: ['Patient', 'Manage your appointments'],
       isHome: true,
     },
     '/patient/recurring': {
-      file: '../mockups/07-recurring-preview.html',
+      file: '../../mockups/07-recurring-preview.html',
       actor: 'patient',
       title: 'Recurring series preview',
       breadcrumb: ['Patient', 'Recurring series'],
     },
     '/patient/otp': {
-      file: '../mockups/21-patient-otp-modal.html',
+      file: '../../mockups/21-patient-otp-modal.html',
       actor: 'patient',
       title: 'Verify your phone',
       breadcrumb: ['Patient', 'Manage', 'OTP'],
     },
     '/patient/cancel-confirm': {
-      file: '../mockups/22-patient-cancel-confirm.html',
+      file: '../../mockups/22-patient-cancel-confirm.html',
       actor: 'patient',
       title: 'Cancel your appointment',
       breadcrumb: ['Patient', 'Manage', 'Cancel'],
     },
     '/patient/reschedule': {
-      file: '../mockups/20-patient-reschedule.html',
+      file: '../../mockups/20-patient-reschedule.html',
       actor: 'patient',
       title: 'Reschedule your appointment',
       breadcrumb: ['Patient', 'Manage', 'Reschedule'],
@@ -84,62 +86,62 @@
 
     // Doctor
     '/doctor/schedule': {
-      file: '../mockups/09-doctor-schedule.html',
+      file: '../../mockups/09-doctor-schedule.html',
       actor: 'doctor',
       title: 'Manage weekly schedule',
       breadcrumb: ['Doctor', 'Weekly schedule'],
       isHome: true,
     },
     '/doctor/block': {
-      file: '../mockups/10-doctor-block-time.html',
+      file: '../../mockups/10-doctor-block-time.html',
       actor: 'doctor',
       title: 'Block time off',
       breadcrumb: ['Doctor', 'Block time off'],
     },
     '/doctor/types': {
-      file: '../mockups/11-appointment-types.html',
+      file: '../../mockups/11-appointment-types.html',
       actor: 'doctor',
       title: 'Manage appointment types',
       breadcrumb: ['Doctor', 'Appointment types'],
     },
     '/doctor/today': {
-      file: '../mockups/12-mark-status.html',
+      file: '../../mockups/12-mark-status.html',
       actor: 'doctor',
       title: "Today · Mark status",
       breadcrumb: ['Doctor', "Today's list"],
     },
     '/doctor/resolve': {
-      file: '../mockups/06-resolve-affected.html',
+      file: '../../mockups/06-resolve-affected.html',
       actor: 'doctor',
       title: 'Resolve affected appointments',
       breadcrumb: ['Doctor', 'Resolve affected'],
     },
     '/doctor/recurring-preview': {
-      file: '../mockups/23-recurring-confirm.html',
+      file: '../../mockups/23-recurring-confirm.html',
       actor: 'doctor',
       title: 'Preview recurring series',
       breadcrumb: ['Doctor', 'Recurring preview'],
     },
     '/recurring/confirm': {
-      file: '../mockups/23-recurring-confirm.html',
+      file: '../../mockups/23-recurring-confirm.html',
       actor: 'doctor',
       title: 'Recurring series · ready',
       breadcrumb: ['Doctor', 'Recurring confirm'],
     },
     '/doctor/resolve-one': {
-      file: '../mockups/24-doctor-resolve-one.html',
+      file: '../../mockups/24-doctor-resolve-one.html',
       actor: 'doctor',
       title: 'Resolve this appointment',
       breadcrumb: ['Doctor', 'Resolve affected', 'One'],
     },
     '/doctor/cancel-reason': {
-      file: '../mockups/25-doctor-cancel-reason.html',
+      file: '../../mockups/25-doctor-cancel-reason.html',
       actor: 'doctor',
       title: 'Cancel this appointment',
       breadcrumb: ['Doctor', 'Today', 'Cancel reason'],
     },
     '/doctor/audit-drawer': {
-      file: '../mockups/30-doctor-audit-drawer.html',
+      file: '../../mockups/30-doctor-audit-drawer.html',
       actor: 'doctor',
       title: 'Audit log',
       breadcrumb: ['Doctor', 'Audit log'],
@@ -147,32 +149,32 @@
 
     // Receptionist
     '/recep/today': {
-      file: '../mockups/13-recep-today.html',
+      file: '../../mockups/13-recep-today.html',
       actor: 'recep',
       title: "Today's branch view",
       breadcrumb: ['Receptionist', "Today's view"],
       isHome: true,
     },
     '/recep/create': {
-      file: '../mockups/14-recep-create.html',
+      file: '../../mockups/14-recep-create.html',
       actor: 'recep',
       title: 'Book on behalf of patient',
       breadcrumb: ['Receptionist', 'Book on behalf'],
     },
     '/recep/cancel': {
-      file: '../mockups/15-recep-cancel.html',
+      file: '../../mockups/15-recep-cancel.html',
       actor: 'recep',
       title: 'Cancel an appointment',
       breadcrumb: ['Receptionist', 'Cancel appointment'],
     },
     '/recep/availability': {
-      file: '../mockups/16-recep-availability.html',
+      file: '../../mockups/16-recep-availability.html',
       actor: 'recep',
       title: 'Doctor availability · read-only',
       breadcrumb: ['Receptionist', 'Doctor availability'],
     },
     '/recep/checkin': {
-      file: '../mockups/26-recep-checkin.html',
+      file: '../../mockups/26-recep-checkin.html',
       actor: 'recep',
       title: 'Walk-in patient check-in',
       breadcrumb: ['Receptionist', 'Walk-in check-in'],
@@ -180,86 +182,86 @@
 
     // Admin
     '/admin/branches': {
-      file: '../mockups/17-admin-branches.html',
+      file: '../../mockups/17-admin-branches.html',
       actor: 'admin',
       title: 'Manage branches',
       breadcrumb: ['Admin', 'Branches'],
       isHome: true,
     },
     '/admin/branch-hours': {
-      file: '../mockups/08-branch-hours-impact.html',
+      file: '../../mockups/08-branch-hours-impact.html',
       actor: 'admin',
       title: 'Branch hours change impact',
       breadcrumb: ['Admin', 'Branch hours · impact'],
     },
     '/admin/doctors': {
-      file: '../mockups/18-admin-doctors.html',
+      file: '../../mockups/18-admin-doctors.html',
       actor: 'admin',
       title: 'Manage doctors',
       breadcrumb: ['Admin', 'Doctors'],
     },
     '/admin/receptionists': {
-      file: '../mockups/19-admin-receptionists.html',
+      file: '../../mockups/19-admin-receptionists.html',
       actor: 'admin',
       title: 'Manage receptionists',
       breadcrumb: ['Admin', 'Receptionists'],
     },
     '/admin/branch-new': {
-      file: '../mockups/17-admin-branches.html',
+      file: '../../mockups/17-admin-branches.html',
       actor: 'admin',
       title: 'Create new branch',
       breadcrumb: ['Admin', 'Branches', 'New'],
     },
     '/admin/doctor-edit': {
-      file: '../mockups/18-admin-doctors.html',
+      file: '../../mockups/18-admin-doctors.html',
       actor: 'admin',
       title: 'Edit doctor',
       breadcrumb: ['Admin', 'Doctors', 'Edit'],
     },
     '/admin/doctor-new': {
-      file: '../mockups/18-admin-doctors.html',
+      file: '../../mockups/18-admin-doctors.html',
       actor: 'admin',
       title: 'Create new doctor',
       breadcrumb: ['Admin', 'Doctors', 'New'],
     },
     '/admin/recep-edit': {
-      file: '../mockups/19-admin-receptionists.html',
+      file: '../../mockups/19-admin-receptionists.html',
       actor: 'admin',
       title: 'Edit receptionist',
       breadcrumb: ['Admin', 'Receptionists', 'Edit'],
     },
     '/admin/recep-assign': {
-      file: '../mockups/19-admin-receptionists.html',
+      file: '../../mockups/19-admin-receptionists.html',
       actor: 'admin',
       title: 'Reassign receptionist',
       breadcrumb: ['Admin', 'Receptionists', 'Reassign'],
     },
     '/admin/recep-new': {
-      file: '../mockups/19-admin-receptionists.html',
+      file: '../../mockups/19-admin-receptionists.html',
       actor: 'admin',
       title: 'Create new receptionist',
       breadcrumb: ['Admin', 'Receptionists', 'New'],
     },
     '/admin/audit': {
-      file: '../mockups/27-admin-audit-log.html',
+      file: '../../mockups/27-admin-audit-log.html',
       actor: 'admin',
       title: 'Activity & audit log',
       breadcrumb: ['Admin', 'Audit log'],
     },
     '/admin/branch-hours-editor': {
-      file: '../mockups/28-admin-branch-hours-editor.html',
+      file: '../../mockups/28-admin-branch-hours-editor.html',
       actor: 'admin',
       title: 'Edit operating hours',
       breadcrumb: ['Admin', 'Branches', 'Hours editor'],
     },
     '/admin/doctor-reassign': {
-      file: '../mockups/31-admin-doctors-reassign.html',
+      file: '../../mockups/31-admin-doctors-reassign.html',
       actor: 'admin',
       title: 'Reassign branches',
       breadcrumb: ['Admin', 'Doctors', 'Reassign'],
     },
     '/conflict': {
-      file: '../mockups/29-conflict-modal.html',
+      file: '../../mockups/29-conflict-modal.html',
       actor: 'landing',
       title: 'ConflictModal · universal pattern',
       breadcrumb: ['Design system', 'ConflictModal'],

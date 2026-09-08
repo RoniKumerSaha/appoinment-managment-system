@@ -229,27 +229,41 @@
 
 </div>
   <!-- BR-059 ConflictModal: branch deactivation with future appointments -->
-  <div class="modal-backdrop">
-    <div class="modal" role="dialog" aria-modal="true">
+  <div class="modal-backdrop" id="conflictModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="conflictModalTitle">
       <div class="modal-head">
         <div class="modal-icon">⚠</div>
         <div>
-          <div class="modal-title">Branch has 98 future appointments.</div>
+          <div class="modal-title" id="conflictModalTitle">Branch has 98 future appointments.</div>
           <p class="modal-sub">Riyadh Olaya cannot be deactivated while bookings exist.</p>
         </div>
-        <button class="modal-x" aria-label="Close">×</button>
+        <button class="modal-x" id="conflictModalX" aria-label="Close">×</button>
       </div>
       <div class="modal-body">
         <p class="modal-lead">Deactivation would silently cancel 98 appointments. To protect existing patients, move or cancel those appointments first, then deactivate.</p>
         <div class="modal-rule">Rule BR-059: a branch with future appointments cannot be deactivated.</div>
       </div>
       <div class="modal-foot">
-        <button class="btn-ghost">Review appointments</button>
-        <button class="btn-primary">Got it</button>
+        <button class="btn-ghost" id="conflictModalReview">Review appointments</button>
+        <button class="btn-primary" id="conflictModalGotIt">Got it</button>
       </div>
     </div>
   </div>
 
   <script src='../imports/app/standalone-router.js'></script>
+  <script>
+    (function () {
+      var modal = document.getElementById('conflictModal');
+      if (!modal) return;
+      function close() { modal.style.display = 'none'; }
+      // Scrim click — only when the click lands on the backdrop itself
+      modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+      document.getElementById('conflictModalX').addEventListener('click', close);
+      document.getElementById('conflictModalGotIt').addEventListener('click', close);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal.style.display !== 'none') close();
+      });
+    })();
+  </script>
 </body>
 </html>
