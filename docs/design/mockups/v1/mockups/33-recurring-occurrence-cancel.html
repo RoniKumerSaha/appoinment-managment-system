@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 33 — Per-occurrence Recurring Cancel</title>
+<link rel="stylesheet" href="../imports/app/design-system.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+
+  .frame { max-width: 760px; margin: 0 auto; background: white; min-height: 100vh; }
+
+  /* Top nav (patient shell) */
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 17px; display: flex; align-items: center; gap: 8px; cursor: pointer; text-decoration: none; }
+  .logo img { width: 26px; height: 26px; display: block; }
+  .nav-links { display: flex; gap: 18px; font-size: 13px; color: #4b5563; }
+  .nav-links a { cursor: pointer; }
+
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 8px 15px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 9px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+  .btn-danger { background: #dc2626; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+
+  .page { padding: 28px 24px 60px; }
+
+  /* Crumb */
+  .crumb { font-size: 12px; color: #6b7280; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .crumb .sep { color: #d1d5db; }
+  .crumb .here { color: #111827; font-weight: 600; }
+
+  /* Page header */
+  .page-header { margin-bottom: 22px; }
+  .page-header h1 { font-size: 22px; color: #111827; font-weight: 600; margin-bottom: 4px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  /* ─── Series context card (NEW for E6-S4) ─── */
+  .series-card { background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%); border: 1px solid #99f6e4; border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; display: flex; align-items: center; gap: 16px; }
+  .series-icon { width: 44px; height: 44px; background: #0f766e; color: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .series-body { flex: 1; }
+  .series-body .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: #065f46; margin-bottom: 4px; }
+  .series-body .title { font-size: 15px; font-weight: 600; color: #111827; }
+  .series-body .meta { font-size: 12px; color: #4b5563; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .series-counter { background: white; border: 1px solid #99f6e4; border-radius: 999px; padding: 8px 14px; font-size: 13px; color: #065f46; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .series-counter .num { font-size: 18px; color: #0f766e; }
+
+  /* Section card */
+  .section { background: white; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+  .section-head { padding: 14px 20px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 10px; }
+  .section-title { font-size: 15px; color: #111827; font-weight: 600; flex: 1; }
+  .section-sub { font-size: 12px; color: #6b7280; }
+  .section-body { padding: 16px 20px; }
+  .section-actions { padding: 14px 20px; border-top: 1px solid #f3f4f6; display: flex; gap: 10px; justify-content: space-between; align-items: center; }
+
+  /* Target occurrence (the one being cancelled) */
+  .target-card { background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; }
+  .target-card .radio { width: 18px; height: 18px; border: 2px solid #0f766e; border-radius: 50%; background: #0f766e; box-shadow: inset 0 0 0 3px white; flex-shrink: 0; }
+  .target-card .date-block { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 10px; padding: 8px 12px; text-align: center; min-width: 64px; }
+  .target-card .date-block .month { font-size: 10px; color: #92400e; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+  .target-card .date-block .day { font-size: 22px; color: #111827; font-weight: 700; line-height: 1; }
+  .target-card .date-block .dow { font-size: 9px; color: #92400e; text-transform: uppercase; font-weight: 700; }
+  .target-card .body { flex: 1; }
+  .target-card .body .row1 { font-size: 14px; font-weight: 600; color: #111827; }
+  .target-card .body .row2 { font-size: 12px; color: #6b7280; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .target-card .pill { background: #fde68a; color: #92400e; padding: 4px 10px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* Sibling list (other occurrences in the series) */
+  .sibling-list { display: flex; flex-direction: column; gap: 8px; }
+  .sibling { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; }
+  .sibling .ix { width: 22px; height: 22px; background: white; border: 1px solid #e5e7eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #4b5563; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .sibling .date-mini { font-size: 13px; font-weight: 600; color: #111827; min-width: 92px; font-variant-numeric: tabular-nums; }
+  .sibling .time-mini { font-size: 12px; color: #6b7280; flex: 1; font-variant-numeric: tabular-nums; }
+  .sibling .status { font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; }
+  .sibling .status.scheduled { background: #dbeafe; color: #1e40af; }
+  .sibling .status.rescheduled { background: #ccfbf1; color: #0f766e; }
+  .sibling .status.target { background: #fde68a; color: #92400e; }
+
+  /* Sibling section footer note */
+  .sibling-foot { font-size: 12px; color: #6b7280; padding: 12px 20px; border-top: 1px solid #f3f4f6; background: #f9fafb; display: flex; align-items: flex-start; gap: 8px; }
+  .sibling-foot .ic { color: #0f766e; font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .sibling-foot strong { color: #111827; }
+
+  /* "Cancel whole series" alternative */
+  .alt-card { background: #f9fafb; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+  .alt-card .ic { width: 36px; height: 36px; background: white; border: 1px solid #e5e7eb; color: #6b7280; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .alt-card .body { flex: 1; }
+  .alt-card .body .t { font-size: 13px; font-weight: 600; color: #111827; }
+  .alt-card .body .s { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .alt-card a { font-size: 13px; color: #0f766e; font-weight: 600; cursor: pointer; }
+
+  /* Confirmation modal */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 29, 35, 0.45); display: flex; align-items: center; justify-content: center; z-index: 300; padding: 24px; }
+  .modal { background: white; border-radius: 12px; max-width: 480px; width: 100%; box-shadow: 0 12px 36px rgba(0,0,0,0.18); overflow: hidden; }
+  .modal-head { display: flex; gap: 14px; padding: 20px 24px; border-bottom: 1px solid #f3f4f6; align-items: flex-start; }
+  .modal-icon { width: 36px; height: 36px; background: #fef3c7; color: #92400e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .modal-title { font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 4px; }
+  .modal-sub { font-size: 13px; color: #6b7280; }
+  .modal-x { background: none; border: none; color: #6b7280; cursor: pointer; font-size: 20px; margin-left: auto; padding: 0 4px; }
+  .modal-body { padding: 18px 24px; }
+  .modal-lead { font-size: 13px; color: #374151; margin-bottom: 12px; line-height: 1.5; }
+  .modal-rule { background: #f9fafb; border-left: 3px solid #d1d5db; padding: 10px 14px; border-radius: 0 6px 6px 0; font-size: 12px; color: #4b5563; }
+  .modal-target-strip { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; margin-bottom: 12px; font-size: 13px; color: #111827; font-variant-numeric: tabular-nums; }
+  .modal-target-strip strong { color: #92400e; }
+  .modal-foot { padding: 14px 24px; border-top: 1px solid #f3f4f6; display: flex; gap: 8px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<span class="badge">PART 33 · Patient · Per-occurrence cancel</span>
+
+<div class="frame">
+
+  <!-- ─── Top nav ─── -->
+  <nav class="nav">
+    <a class="logo" data-route="__logo__">
+      <img src="../imports/app/logo.svg" alt="MediSlot" style="width:26px;height:26px;display:block;"> MediSlot
+    </a>
+    <div class="nav-links">
+      <a data-route="/patient/doctor">Book</a>
+      <a data-route="/patient/manage" style="color:#0f766e;font-weight:600;">My appointments</a>
+      <a>Help</a>
+    </div>
+    <button class="btn-ghost" style="font-size:12px;">Sign out</button>
+  </nav>
+
+  <div class="page">
+
+    <!-- Breadcrumb -->
+    <div class="crumb">
+      <a data-route="/patient/manage" style="color:#6b7280;text-decoration:none;">My appointments</a>
+      <span class="sep">›</span>
+      <span class="here">Cancel one occurrence</span>
+    </div>
+
+    <!-- Page header -->
+    <div class="page-header">
+      <h1>Cancel one occurrence</h1>
+      <div class="sub">You're cancelling a single visit from a recurring series. Other visits in the series will not be affected.</div>
+    </div>
+
+    <!-- ─── Series context card (E6-S4 key affordance) ─── -->
+    <div class="series-card">
+      <div class="series-icon">↻</div>
+      <div class="series-body">
+        <div class="label">Recurring series</div>
+        <div class="title">Weekly follow-up with Dr. Layla Karim</div>
+        <div class="meta">Branch A · Consultation (30 min) · Started Tue 22 Jul · repeats every Tuesday</div>
+      </div>
+      <div class="series-counter">
+        Occurrence <span class="num">3</span> of 8
+      </div>
+    </div>
+
+    <!-- ─── Target occurrence (this one will be cancelled) ─── -->
+    <section class="section">
+      <header class="section-head">
+        <div class="section-title">This occurrence will be cancelled</div>
+        <div class="section-sub">Slot will be released.</div>
+      </header>
+      <div class="section-body">
+        <div class="target-card">
+          <div class="radio" aria-label="selected"></div>
+          <div class="date-block">
+            <div class="month">Aug</div>
+            <div class="day">12</div>
+            <div class="dow">Tue</div>
+          </div>
+          <div class="body">
+            <div class="row1">Dr. Layla Karim · Branch A</div>
+            <div class="row2">Tue 12 Aug · 10:00–10:30 · +966 5XX XXX 5555</div>
+          </div>
+          <div class="pill">This one</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Sibling list (other occurrences — left alone) ─── -->
+    <section class="section">
+      <header class="section-head">
+        <div class="section-title">Other occurrences in this series</div>
+        <div class="section-sub">7 still scheduled · unaffected</div>
+      </header>
+      <div class="section-body">
+
+        <!-- Past occurrences (greyed) -->
+        <div class="sibling-list">
+          <div class="sibling" style="opacity:0.55;">
+            <div class="ix">1</div>
+            <div class="date-mini">Tue 22 Jul</div>
+            <div class="time-mini">10:00–10:30</div>
+            <div class="status scheduled">Completed</div>
+          </div>
+          <div class="sibling" style="opacity:0.55;">
+            <div class="ix">2</div>
+            <div class="date-mini">Tue 29 Jul</div>
+            <div class="time-mini">10:00–10:30</div>
+            <div class="status scheduled">Completed</div>
+          </div>
+        </div>
+
+        <div style="font-size:11px;color:#9ca3af;text-align:center;margin:6px 0 4px;">— upcoming —</div>
+
+        <!-- Target highlighted -->
+        <div class="sibling-list">
+          <div class="sibling" style="background:#fff7ed;border-color:#fed7aa;">
+            <div class="ix" style="background:#0f766e;color:white;border-color:#0f766e;">3</div>
+            <div class="date-mini">Tue 12 Aug</div>
+            <div class="time-mini">10:00–10:30</div>
+            <div class="status target">Cancelling…</div>
+          </div>
+          <div class="sibling">
+            <div class="ix">4</div>
+            <div class="date-mini">Tue 19 Aug</div>
+            <div class="time-mini">10:00–10:30</div>
+            <div class="status scheduled">Scheduled</div>
+          </div>
+          <div class="sibling">
+            <div class="ix">5</div>
+            <div class="date-mini">Tue 26 Aug</div>
+            <div class="time-mini">10:00–10:30</div>
+            <div class="status scheduled">Scheduled</div>
+          </div>
+          <div class="sibling">
+            <div class="ix">6</div>
+            <div class="date-mini">Tue 02 Sep</div>
+            <div class="time-mini">10:00–10:30</div>
+            <div class="status scheduled">Scheduled</div>
+          </div>
+          <div class="sibling">
+            <div class="ix">7</div>
+            <div class="date-mini">Tue 09 Sep</div>
+            <div class="time-mini">10:00–10:30</div>
+            <div class="status scheduled">Scheduled</div>
+          </div>
+          <div class="sibling">
+            <div class="ix">8</div>
+            <div class="date-mini">Tue 16 Sep</div>
+            <div class="time-mini">10:00–10:30</div>
+            <div class="status scheduled">Scheduled</div>
+          </div>
+        </div>
+
+        <!-- Footnote: explain independence -->
+        <div class="sibling-foot">
+          <span class="ic">i</span>
+          <div><strong>Each occurrence is independent</strong> after creation (per BR-052 / FR-049). Cancelling this one only releases Tue 12 Aug · 10:00. The other 5 upcoming visits stay Scheduled and can be cancelled or rescheduled individually.</div>
+        </div>
+
+        <!-- Alt: cancel the whole series -->
+        <div class="alt-card">
+          <div class="ic">↻</div>
+          <div class="body">
+            <div class="t">Want to stop the whole series?</div>
+            <div class="s">You can also cancel every upcoming occurrence at once.</div>
+          </div>
+          <a>Cancel series →</a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ─── Footer actions ─── -->
+    <section class="section">
+      <div class="section-actions">
+        <button class="btn-ghost" data-route="/patient/manage">Back</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-secondary">Reschedule this one instead</button>
+          <button class="btn-danger">Cancel this occurrence</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ─── Confirmation modal (sits on top of the page) ─── -->
+<div class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-icon">!</div>
+      <div>
+        <div class="modal-title">Cancel Tue 12 Aug at 10:00?</div>
+        <div class="modal-sub">You're cancelling one visit, not the whole series.</div>
+      </div>
+      <button class="modal-x">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-target-strip">
+        <strong>Occurrence 3 of 8</strong> · Tue 12 Aug · 10:00–10:30 · Dr. Layla Karim
+      </div>
+      <div class="modal-lead">No reason needed. The 10:00 slot will be released and may be booked by another patient. The 5 other upcoming visits in this series remain Scheduled.</div>
+      <div class="modal-rule">Per FR-049, each occurrence is independent after creation — only this one is affected.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost">Keep appointment</button>
+      <button class="btn-danger">Cancel this occurrence</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

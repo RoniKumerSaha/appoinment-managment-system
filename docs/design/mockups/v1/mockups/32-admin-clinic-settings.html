@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 32 — Admin Clinic Settings</title>
+<link rel="stylesheet" href="../imports/app/design-system.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+
+  .frame { max-width: 1080px; margin: 0 auto; background: white; min-height: 100vh; }
+
+  /* Top nav (admin shell) */
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .logo img { width: 28px; height: 28px; display: block; }
+  .nav-links { display: flex; gap: 22px; font-size: 13px; color: #4b5563; }
+  .nav-links a { cursor: pointer; padding: 6px 4px; border-bottom: 2px solid transparent; }
+  .nav-links a.active { color: #0f766e; border-bottom-color: #0f766e; font-weight: 600; }
+  .nav-user { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #374151; }
+  .nav-avatar { width: 30px; height: 30px; background: #ccfbf1; color: #0f766e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 9px 17px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 10px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .page { padding: 32px; }
+
+  /* Breadcrumb */
+  .crumb { font-size: 12px; color: #6b7280; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .crumb .sep { color: #d1d5db; }
+  .crumb .here { color: #111827; font-weight: 600; }
+
+  /* Page header */
+  .page-header { margin-bottom: 24px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .page-header .title h1 { font-size: 24px; color: #111827; font-weight: 600; margin-bottom: 6px; }
+  .page-header .title .sub { color: #6b7280; font-size: 13px; }
+
+  /* Card */
+  .card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+  .card-head { padding: 18px 24px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 12px; }
+  .card-head .title { font-size: 15px; font-weight: 600; color: #111827; flex: 1; }
+  .card-head .hint { font-size: 12px; color: #6b7280; }
+  .card-body { padding: 22px 24px; }
+  .card-foot { padding: 14px 24px; border-top: 1px solid #f3f4f6; display: flex; gap: 10px; justify-content: flex-end; background: #f9fafb; }
+
+  /* Form rows */
+  .form-row { display: grid; grid-template-columns: 200px 1fr; gap: 24px; align-items: flex-start; padding: 14px 0; }
+  .form-row + .form-row { border-top: 1px solid #f3f4f6; }
+  .form-row .label { font-size: 13px; font-weight: 600; color: #374151; padding-top: 10px; }
+  .form-row .label .req { color: #dc2626; margin-left: 2px; }
+  .form-row .label .hint { display: block; font-weight: 400; font-size: 12px; color: #6b7280; margin-top: 4px; }
+  .form-row input, .form-row select, .form-row textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white; font-family: inherit; color: #111827; }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus { outline: none; border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15,118,110,0.1); }
+  .form-row input:disabled, .form-row select:disabled { background: #f9fafb; color: #6b7280; cursor: not-allowed; }
+  .form-row .field-meta { font-size: 12px; color: #6b7280; margin-top: 6px; }
+
+  /* Read-only key/value row */
+  .readonly-row { display: grid; grid-template-columns: 200px 1fr; gap: 24px; align-items: center; padding: 14px 0; }
+  .readonly-row + .readonly-row { border-top: 1px solid #f3f4f6; }
+  .readonly-row .label { font-size: 13px; font-weight: 600; color: #374151; }
+  .readonly-row .value { font-size: 14px; color: #111827; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+
+  /* Stats grid (E1-S0 admin counts) */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding: 20px 24px; background: #f9fafb; border-bottom: 1px solid #f3f4f6; }
+  .stat { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; }
+  .stat .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: #6b7280; margin-bottom: 6px; }
+  .stat .stat-num { font-size: 28px; font-weight: 700; color: #111827; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stat .stat-sub { font-size: 11px; color: #6b7280; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .stat .stat-sub .ok { color: #065f46; font-weight: 600; }
+  .stat .stat-sub .warn { color: #92400e; font-weight: 600; }
+
+  /* Quick-links row (entry points to other admin sections) */
+  .quicklinks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 20px 24px; }
+  .qlink { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: white; border: 1.5px solid #e5e7eb; border-radius: 10px; cursor: pointer; transition: border-color .12s, background .12s; }
+  .qlink:hover { border-color: #99f6e4; background: #f0fdfa; }
+  .qlink .ic { width: 36px; height: 36px; background: #f0fdfa; color: #0f766e; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .qlink .body { flex: 1; }
+  .qlink .body .t { font-size: 14px; font-weight: 600; color: #111827; }
+  .qlink .body .s { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .qlink .arr { color: #9ca3af; font-size: 16px; }
+
+  /* Info banner (single-clinic note) */
+  .info-banner { display: flex; gap: 12px; padding: 14px 18px; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 10px; margin-bottom: 16px; }
+  .info-banner .ic { width: 28px; height: 28px; background: #0f766e; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .info-banner .copy { font-size: 13px; color: #064e3b; line-height: 1.5; }
+  .info-banner .copy strong { color: #065f46; }
+
+  /* Section divider label inside card */
+  .divider-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: #6b7280; padding: 0 0 10px; }
+</style>
+</head>
+<body>
+
+<span class="badge">PART 32 · Admin · Clinic settings</span>
+
+<div class="frame">
+
+  <!-- ─── Top nav ─── -->
+  <nav class="nav">
+    <div class="logo" data-route="__logo__"><img src="../imports/app/logo.svg" alt="MediSlot" style="width:28px;height:28px;display:block;"> MediSlot · Admin</div>
+    <div class="nav-links">
+      <a class="active" data-route="/admin/clinic">Clinic</a>
+      <a data-route="/admin/branches">Branches</a>
+      <a data-route="/admin/doctors">Doctors</a>
+      <a data-route="/admin/receptionists">Receptionists</a>
+      <a data-route="/admin/audit">Audit log</a>
+    </div>
+    <div class="nav-user">
+      <div class="nav-avatar">SA</div>
+      <div>
+        <div style="font-weight:600;color:#111827;">Sara Al-Otaibi</div>
+        <div style="font-size:11px;color:#6b7280;">Administrator</div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page">
+
+    <!-- Breadcrumb -->
+    <div class="crumb">
+      <a data-route="/admin/clinic">Admin</a>
+      <span class="sep">›</span>
+      <span class="here">Clinic settings</span>
+    </div>
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div class="title">
+        <h1>Clinic settings</h1>
+        <div class="sub">Edit clinic identity and review what's running across every branch.</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-ghost">View audit log</button>
+        <button class="btn-secondary" disabled>Discard changes</button>
+        <button class="btn-primary" disabled>Save clinic</button>
+      </div>
+    </div>
+
+    <!-- Single-clinic note -->
+    <div class="info-banner">
+      <div class="ic">i</div>
+      <div class="copy">
+        <strong>Single-clinic deployment.</strong> All branches, doctors, receptionists, and patients in this system belong to one clinic. The data model is multi-tenant-ready; expanding to multiple clinics is a future-deployment concern, not a UX change here.
+      </div>
+    </div>
+
+    <!-- ─── Identity card (editable) ─── -->
+    <section class="card">
+      <header class="card-head">
+        <div class="title">Clinic identity</div>
+        <div class="hint">Visible to every patient during booking and to staff in the topbar.</div>
+      </header>
+
+      <div class="card-body">
+        <div class="divider-label">Display name</div>
+        <div class="form-row">
+          <div class="label">Clinic name <span class="req">*</span></div>
+          <div>
+            <input type="text" value="MediSlot Clinic Group" />
+            <div class="field-meta">Shown to patients on the landing page and in confirmation emails.</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="label">Display tagline</div>
+          <div>
+            <input type="text" value="Boring software that gets appointments right." />
+            <div class="field-meta">Optional. Up to 80 characters.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body" style="padding-top:0;">
+        <div class="divider-label">Configuration keys (read-only)</div>
+        <div class="readonly-row">
+          <div class="label">Clinic ID</div>
+          <div class="value">clinic_01HMZK9F3PRQ8N5VXJD7C2B4WA</div>
+        </div>
+        <div class="readonly-row">
+          <div class="label">Deployment region</div>
+          <div class="value">me-central-1 · Riyadh, KSA</div>
+        </div>
+        <div class="readonly-row">
+          <div class="label">Created</div>
+          <div class="value">2026-08-25 · by Sara Al-Otaibi</div>
+        </div>
+      </div>
+
+      <footer class="card-foot">
+        <button class="btn-ghost">Cancel</button>
+        <button class="btn-primary" disabled>Save clinic name</button>
+      </footer>
+    </section>
+
+    <!-- ─── Operational snapshot ─── -->
+    <section class="card">
+      <header class="card-head">
+        <div class="title">Operational snapshot</div>
+        <div class="hint">Live counts. Click a tile to jump into that section.</div>
+      </header>
+
+      <div class="stats">
+        <a class="stat" data-route="/admin/branches" style="cursor:pointer;">
+          <div class="stat-label">Branches</div>
+          <div class="stat-num">4</div>
+          <div class="stat-sub"><span class="ok">3 active</span> · 1 inactive</div>
+        </a>
+        <a class="stat" data-route="/admin/doctors" style="cursor:pointer;">
+          <div class="stat-label">Doctors</div>
+          <div class="stat-num">12</div>
+          <div class="stat-sub"><span class="ok">11 active</span> · 1 inactive</div>
+        </a>
+        <a class="stat" data-route="/admin/receptionists" style="cursor:pointer;">
+          <div class="stat-label">Receptionists</div>
+          <div class="stat-num">5</div>
+          <div class="stat-sub"><span class="ok">5 active</span></div>
+        </a>
+        <a class="stat" style="cursor:pointer;">
+          <div class="stat-label">Patients</div>
+          <div class="stat-num">2 318</div>
+          <div class="stat-sub"><span class="warn">+ 47 this week</span></div>
+        </a>
+      </div>
+
+      <!-- Quick-links into deeper admin sections -->
+      <div class="quicklinks">
+        <a class="qlink" data-route="/admin/branches">
+          <div class="ic">⌂</div>
+          <div class="body">
+            <div class="t">Manage branches</div>
+            <div class="s">Add, edit, deactivate branches · operating hours</div>
+          </div>
+          <div class="arr">›</div>
+        </a>
+        <a class="qlink" data-route="/admin/doctors">
+          <div class="ic">✚</div>
+          <div class="body">
+            <div class="t">Manage doctors</div>
+            <div class="s">Create, deactivate, assign branches</div>
+          </div>
+          <div class="arr">›</div>
+        </a>
+        <a class="qlink" data-route="/admin/receptionists">
+          <div class="ic">☎</div>
+          <div class="body">
+            <div class="t">Manage receptionists</div>
+            <div class="s">One branch per receptionist</div>
+          </div>
+          <div class="arr">›</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- ─── Booking policy (read-only constants) ─── -->
+    <section class="card">
+      <header class="card-head">
+        <div class="title">Booking policy</div>
+        <div class="hint">MVP constants. Promoting these to admin-editable is a future consideration (PRD §14).</div>
+      </header>
+
+      <div class="card-body">
+        <div class="readonly-row">
+          <div class="label">Booking window</div>
+          <div class="value">30 days (fixed)</div>
+        </div>
+        <div class="readonly-row">
+          <div class="label">Same-day booking</div>
+          <div class="value">Not allowed · earliest is tomorrow</div>
+        </div>
+        <div class="readonly-row">
+          <div class="label">Buffer between appointments</div>
+          <div class="value">None · back-to-back slots</div>
+        </div>
+        <div class="readonly-row">
+          <div class="label">Recurring series cap</div>
+          <div class="value">30-day window</div>
+        </div>
+        <div class="readonly-row">
+          <div class="label">Patient authentication</div>
+          <div class="value">SMS OTP · 5-min TTL · 3-attempt cap / 10-min lockout</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Danger zone ─── -->
+    <section class="card" style="border-color:#fca5a5;">
+      <header class="card-head" style="background:#fef2f2;">
+        <div class="title" style="color:#7f1d1d;">Danger zone</div>
+        <div class="hint">Affects every patient and staff user. Requires typed confirmation.</div>
+      </header>
+      <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+        <div>
+          <div style="font-size:14px;color:#111827;font-weight:600;margin-bottom:4px;">Deactivate this clinic</div>
+          <div style="font-size:12px;color:#6b7280;">Stops every booking across every branch. Existing appointments remain Scheduled; you'll need to cancel them individually.</div>
+        </div>
+        <button class="btn-secondary" style="color:#991b1b;border-color:#fca5a5;">Deactivate clinic…</button>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+</body>
+</html>
