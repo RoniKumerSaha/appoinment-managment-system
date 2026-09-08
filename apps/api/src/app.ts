@@ -8,19 +8,24 @@ import express from 'express';
 import { healthRouter } from './routes/health.js';
 import { metricsRouter } from './routes/metrics.js';
 import { authMiddleware } from './middleware/auth.js';
-import { initLogContext, logger, requestLogger } from './middleware/log.js';
+import { logger, requestLogger } from './middleware/log.js';
 
 export function createApp(): express.Express {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '64kb' }));
   app.use(requestLogger);
-  app.use(initLogContext);
 
   app.use(healthRouter);
   app.use(metricsRouter);
 
   app.use(authMiddleware);
+
+  // JSON 404 fallthrough — kept after the routers so a matching route wins;
+  // every other path returns a stable JSON error envelope (no HTML default).
+  app.use((_req, res) => {
+    res.status(404).json({ error: 'not_found' });
+  });
 
   app.use(
     (

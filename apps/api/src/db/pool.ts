@@ -7,6 +7,7 @@
  *   than a thrown stack trace.
  */
 import pg from 'pg';
+import { logger } from '../middleware/log.js';
 
 const { Pool } = pg;
 
@@ -26,10 +27,10 @@ export function getPool(): pg.Pool {
       connectionTimeoutMillis: 2_000,
     });
     pool.on('error', (err) => {
-      // Idle client errors must not crash the process.
-      // Surface via the structured logger when wired; for now, last-resort log.
-      // eslint-disable-next-line no-console
-      console.error('[pg.Pool] idle client error', err.message);
+      // Idle client errors must not crash the process. Surface via the
+      // structured logger so the failure is correlated with the request_id of
+      // whichever request was unlucky enough to grab the broken client.
+      logger.error({ err: err.message }, 'pg_pool_idle_error');
     });
   }
   return pool;
@@ -44,7 +45,11 @@ export async function pingDb(): Promise<boolean> {
     } finally {
       client.release();
     }
-  } catch {
+  } catch (err) {
+    // Surface the unreachable-DB cause via the structured logger rather than
+    // swallowing it — /readyz still returns 503 to the caller (via the route
+    // handler) but operators can see the underlying failure in pino.
+    logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'db_unreachable');
     return false;
   }
 }
