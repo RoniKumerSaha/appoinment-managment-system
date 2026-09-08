@@ -1,0 +1,22 @@
+{
+  "name": "clinic-scheduling",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Clinic scheduling platform — pnpm workspace monorepo (E0-S1 skeleton).",
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --stream run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "db:migrate": "pnpm --filter @clinic/api run db:migrate",
+    "db:seed": "pnpm --filter @clinic/api run db:seed"
+  },
+  "devDependencies": {
+    "typescript": "5.6.3"
+  }
+}
