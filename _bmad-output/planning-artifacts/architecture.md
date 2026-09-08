@@ -1,6 +1,6 @@
 # Architecture — Multi-Branch Clinic Appointment Scheduling System
 
-> **BMad planning artifact.** The architectural spine: the invariants that keep features, epics, and stories consistent. Derived from `_bmad-output/planning-artifacts/prd.md` and `_bmad-output/planning-artifacts/ux.md`. This is the **what must be true** for any implementation to satisfy the design.
+> **BMad planning artifact.** The architectural spine: the invariants that keep features, epics, and stories consistent. Derived from `docs/specs/PRD.md` and `docs/specs/UX-FLOWS.md`. This is the **what must be true** for any implementation to satisfy the design.
 >
 > The repository is currently design-only (`docs/` + `_bmad/`). Code has not landed. Therefore this is a **greenfield spine** that ratifies the design as the contract that future code must honor.
 >
@@ -8,8 +8,8 @@
 
 ## Source documents
 
-- Requirements: `_bmad-output/planning-artifacts/prd.md` (PRD) + `docs/specs/BRD.md`
-- UX spec: `_bmad-output/planning-artifacts/ux.md` + `docs/design/DESIGN-SYSTEM.md`
+- Requirements: `docs/specs/PRD.md` + `docs/specs/BRD.md`
+- UX spec: `docs/specs/UX-FLOWS.md` + `docs/design/DESIGN-SYSTEM.md`
 - System flows: `docs/specs/UX-FLOWS.md` (F-01…F-19)
 - Visual reference: `docs/design/mockups/v1/winners/`
 

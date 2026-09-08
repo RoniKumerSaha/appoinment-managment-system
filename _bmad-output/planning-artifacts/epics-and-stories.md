@@ -6,8 +6,8 @@
 
 ## Source documents
 
-- PRD: `_bmad-output/planning-artifacts/prd.md`
-- UX: `_bmad-output/planning-artifacts/ux.md`
+- PRD: `docs/specs/PRD.md`
+- UX: `docs/specs/UX-FLOWS.md`
 - Architecture: `_bmad-output/planning-artifacts/architecture.md`
 - System flows: `docs/specs/UX-FLOWS.md` (F-01…F-19)
 - Acceptance scenarios: PRD §15
