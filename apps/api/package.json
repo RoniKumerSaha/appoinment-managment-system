@@ -10,7 +10,7 @@
     "start": "node dist/src/server.js",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test test/*.test.ts",
+    "test": "node --import tsx --test --test-global-setup=test/setup/globalSetup.cjs --test-concurrency=1 test/*.test.ts",
     "db:migrate": "node-pg-migrate -m db/migrations -j sql --env DATABASE_URL -f dist/db/migrations/.applied.json up",
     "db:seed": "tsx db/seeds/01_minimum.ts"
   },

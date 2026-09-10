@@ -57,8 +57,14 @@ CREATE TRIGGER trg_doctor_set_updated_at
 
 -- ===== doctor_branch (junction) =====
 -- updated_at on a junction table is unusual but the spec lists it. Acceptable.
+-- E0-S1's doctor_branch had no `created_at`; we add it here so the updated_at
+-- backfill (next statement) has a coherent source value. DEFAULT now() matches
+-- the other entities' backfill semantics.
+ALTER TABLE doctor_branch
+  ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT app_now();
 ALTER TABLE doctor_branch
   ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT app_now();
+UPDATE doctor_branch SET updated_at = created_at WHERE updated_at IS DISTINCT FROM created_at;
 DROP TRIGGER IF EXISTS trg_doctor_branch_set_updated_at ON doctor_branch;
 CREATE TRIGGER trg_doctor_branch_set_updated_at
   BEFORE UPDATE ON doctor_branch

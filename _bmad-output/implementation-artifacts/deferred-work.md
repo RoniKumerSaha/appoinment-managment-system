@@ -37,3 +37,14 @@
 - **W16 — Rate limiting / brute-force on `/patient/otp/verify-now`:** E0-S3 ships the mock with no rate limit; E0-S4 (SMS gateway) and E4-S1 (real OTP) own the lockout contract per Architecture §3.8.
 - **W17 — Migration numbering collision with E0-S4:** E0-S3 reserves `0011_pgcrypto_grants.sql`. E0-S4 begins at `0012` to avoid collision.
 - **W18 — AUTH_SECRET entropy / all-same-byte check:** Boot guard only checks byte length. Low-entropy secrets (e.g. all-zero 32 bytes) would pass; a future story adds entropy heuristics.
+
+## Deferred from: code review of spec-0-2-data-model-migrations.md implementation (2026-09-10)
+
+- **W8 — `appointment.patient_phone` is not FK to `patient.(phone_number)`:** Could enforce "every appointment references a registered patient" at the DB layer; E0-S2 deliberately leaves `patient_phone text` because the patient row is created on first booking. Belongs in E3 (booking core).
+- **W9 — `appointment.appointment_type_id` cross-clinic FK leak:** UUID v4 collision is negligible in practice (1 in 2^122), but a `(clinic_id, appointment_type_id)` composite guard would close the door entirely. Defer to E3 booking transaction.
+- **W10 — `code_hash` length cap of 256 may be too tight:** Future argon2id parameter sets can produce PHC strings > 256 chars. E0-S4 (SMS OTP gateway) chooses the hash algorithm and can widen the cap to 1024 in a forward migration.
+- **W11 — `appointment_audit.actor_role` / `actor_id` / `event` have no CHECK constraints:** Free-form strings accepted; a future hardening story adds enum-style validation. Spec AC-13/AC-14 cover the append-only contract (no UPDATE/DELETE); value-level validation is app-layer.
+- **W12 — `patient(phone_number)` has no E.164 normalization:** Plain `text`, no format constraint. E4-S1 (real OTP verification) enforces the E.164 format at write time.
+- **W13 — No index on `appointment.clinic_id`:** Architecture §6 does not list it; deferred until a clinic-level appointment list view is requested (likely E5 staff dashboards).
+- **W14 — `withTestDb.applyMigrations` runs files as single `pool.query(sql)`:** Multi-statement files (e.g., 0009 with `DO $$`) work because pg accepts them; documented in code comment. No defect.
+- **W15 — `eslint-disable @typescript-eslint/no-var-requires` on dynamic `import()` is a no-op:** Wrong lint directive name (the disable is for `require`, not dynamic `import()`); ignore directive does nothing. Cosmetic. Fix when lint rules are tightened.

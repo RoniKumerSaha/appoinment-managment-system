@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS doctor_schedule (
   end_time        time NOT NULL CHECK (end_time > start_time),
   effective_from  date NOT NULL,
   effective_to    date CHECK (effective_to IS NULL OR effective_to >= effective_from),
-  created_by      text NOT NULL CHECK (created_by ~ '^(staff|patient):[A-Za-z0-9+_.-]{1,255}$' AND length(created_by) <= 256),
+  created_by      text NOT NULL CHECK (created_by ~ '^(staff|patient):[A-Za-z0-9+_.-]{1,255}$'),
   created_at      timestamptz NOT NULL DEFAULT app_now(),
   updated_at      timestamptz NOT NULL DEFAULT app_now()
 );

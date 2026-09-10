@@ -17,13 +17,9 @@
  * The low-privilege role is created inside the test transaction so the
  * fixture does not leak between tests.
  */
-import { test, after } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { closeShared, withTestDb } from './db/withTestDb.js';
-
-after(async () => {
-  await closeShared();
-});
+import { withTestDb } from './db/withTestDb.js';
 
 test('pgcrypto extension is installed', async () => {
   await withTestDb(async ({ pool }) => {

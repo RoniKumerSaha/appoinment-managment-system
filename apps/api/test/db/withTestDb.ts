@@ -4,18 +4,18 @@
  * Two operating modes:
  *
  * 1. **TESTCONTAINERS mode (CI default):** spins up a `postgres:16-alpine`
- *    container, applies all migrations, yields a pool. The container is stopped
- *    on every callback exit (normal or thrown). Used when `DATABASE_URL` is not
- *    set and Testcontainers is available.
+ *    container, applies all migrations, yields a pool. The container is
+ *    stopped when the process exits (beforeExit / SIGTERM / SIGINT).
  *
  * 2. **DATABASE_URL mode (local dev):** uses an existing `DATABASE_URL` (the
  *    migrations must already be applied). No container lifecycle to manage.
  *    Selected automatically when `DATABASE_URL` is present in the env.
  *
- * The test container is created once per worker via `globalSetup.ts` and the
- * resulting pool is reused across `migrations.test.ts`, `invariants.test.ts`,
- * and `seed.test.ts` — re-booting per file would double migration time and
- * risk clock-skew between containers.
+ * The test container is shared across the worker via a promise-as-mutex
+ * singleton (`sharedDbPromise`). Re-entry returns the same promise, so two
+ * parallel first-callers cannot double-boot a container. Cleanup is
+ * process-level — `beforeExit` + `SIGTERM` + `SIGINT` — not per-call, because
+ * per-call close would defeat the shared container invariant.
  */
 import pg from 'pg';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -31,7 +31,11 @@ export interface TestDb {
   close: () => Promise<void>;
 }
 
-let sharedDb: TestDb | null = null;
+// Promise-as-mutex singleton: two parallel first-callers both receive the
+// same in-flight promise, so only one container spin-up runs.
+let sharedDbPromise: Promise<TestDb> | null = null;
+let sharedDbResolved: TestDb | null = null;
+let isClosed = false;
 
 async function applyMigrations(pool: pg.Pool): Promise<void> {
   // Forward-only; ignore already-applied (we boot a fresh DB each time).
@@ -58,7 +62,6 @@ async function fromEnv(): Promise<TestDb> {
 
 async function fromTestcontainers(): Promise<TestDb> {
   // Lazy import so dev environments without testcontainers don't fail at parse time.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { PostgreSqlContainer } = await import('@testcontainers/postgresql');
   const container = await new PostgreSqlContainer('postgres:16-alpine').start();
   const pool = new Pool({ connectionString: container.getConnectionUri() });
@@ -74,29 +77,57 @@ async function fromTestcontainers(): Promise<TestDb> {
 
 /**
  * Get (or create) the shared test DB. Subsequent calls return the same pool.
- * Always call `closeShared()` in suite teardown (or rely on process exit).
+ * Concurrent first-callers are de-duplicated via the promise-as-mutex.
  */
 export async function getTestDb(): Promise<TestDb> {
-  if (sharedDb) return sharedDb;
-  sharedDb = process.env['DATABASE_URL']
-    ? await fromEnv()
-    : await fromTestcontainers();
-  return sharedDb;
+  if (isClosed) {
+    throw new Error('withTestDb: shared pool already closed; cannot re-open');
+  }
+  if (!sharedDbPromise) {
+    sharedDbPromise = (async () => {
+      const db = process.env['DATABASE_URL']
+        ? await fromEnv()
+        : await fromTestcontainers();
+      sharedDbResolved = db;
+      return db;
+    })();
+  }
+  return sharedDbPromise;
 }
 
+/**
+ * Close the shared test DB. Idempotent: subsequent calls are no-ops.
+ *
+ * Cleanup is also wired to `process.on('beforeExit' | 'SIGTERM' | 'SIGINT')`
+ * at module-load time so test workers don't leak containers on non-zero exit.
+ * Per-file `after()` hooks should NOT call this — sibling test files in the
+ * same worker would re-bootstrap the container (~5s spin-up penalty each).
+ */
 export async function closeShared(): Promise<void> {
-  if (sharedDb) {
-    await sharedDb.close();
-    sharedDb = null;
+  if (sharedDbResolved) {
+    const db = sharedDbResolved;
+    sharedDbResolved = null;
+    sharedDbPromise = null;
+    isClosed = true;
+    await db.close();
   }
 }
+
+// Process-level cleanup. `beforeExit` fires only on natural event-loop drain;
+// SIGTERM/SIGINT cover non-zero exits (CI test failures that crash the worker
+// would otherwise leak the Testcontainers container). All three are no-ops if
+// the pool was already closed by `closeShared()`.
+const cleanup = () => {
+  void closeShared().catch(() => undefined);
+};
+process.on('beforeExit', cleanup);
+process.on('SIGTERM', cleanup);
+process.on('SIGINT', cleanup);
 
 export async function withTestDb<T>(fn: (db: TestDb) => Promise<T>): Promise<T> {
   const db = await getTestDb();
-  try {
-    return await fn(db);
-  } finally {
-    // Intentionally NOT closing the shared pool here — see globalSetup.ts for
-    // worker-level teardown. Per-call close would defeat the shared container.
-  }
+  // Intentionally NOT closing the shared pool here — the process-level
+  // handlers above own cleanup. Per-call close would defeat the shared
+  // container invariant.
+  return await fn(db);
 }

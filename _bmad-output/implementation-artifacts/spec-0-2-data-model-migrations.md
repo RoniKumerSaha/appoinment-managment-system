@@ -2,15 +2,15 @@
 title: 'E0-S2 — Data model & migrations'
 type: 'feature'
 created: '2026-09-10'
-status: 'in-progress'
-review_loop_iteration: 1
+status: 'done'
+review_loop_iteration: 2
 baseline_commit: '881f5b8'  # E0-S1 done
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/epic-0-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/triage-e0-s1-blind-hunter.md'
 ---
 
-<frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates. Re-approved after 2026-09-10 code review (5 decisions resolved, 16 patches applied).">
+<frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates. Re-approved after 2026-09-10 code review (5 decisions resolved, 16 patches applied). Re-re-approved after 2026-09-10 implementation review (3 decisions resolved, 12 patches applied, 8 deferred, 3 dismissed).">
 
 ## Intent
 
@@ -357,3 +357,52 @@ constraints → indexes → columns → enums → tables.
 - Raw findings: 69. After dedup: 30. After triage: 5 decision-needed + 16 patch + 7 defer + 1 dismiss.
 - Critical finding: **D1** (wrong patient-uniqueness invariant — breaks FR-028 if implemented as written).
 - Full report: `_bmad-output/implementation-artifacts/review-e0-s2-spec.md`.
+
+### Review Findings (2026-09-10 implementation review)
+
+#### decision-needed (3) — RESOLVED
+
+- [x] [Review][Decision] D6 — `globalSetup.ts` (apps/api/test/setup/globalSetup.ts) is dead code OR needs to be wired in. **Resolved (option b):** kept the file (`globalSetup.ts`) AND wired it through the CJS shim `apps/api/test/setup/globalSetup.cjs` which spawns a tsx child running `_globalSetupRun.ts` (because Node's vanilla loader does not honor `--import tsx` for `--test-global-setup`). Test script now references `.cjs` shim and applies to all DB-touching test files.
+- [x] [Review][Decision] D7 — `closeShared()` race between test files. **Resolved (option a):** removed per-file `after(closeShared)` from all three DB-touching test files; `withTestDb.ts` now uses a promise-as-mutex singleton (P25) + SIGTERM/SIGINT handlers (P27) + idempotent `closeShared()`. No re-bootstrap between files.
+- [x] [Review][Decision] D8 — Test isolation across files in the same worker. **Resolved (option a + c):** dropped the `beforeEach` TRUNCATE in `seed.test.ts`; per-test fixtures now use unique `tag`-discriminated phone numbers and clinic names so test data is naturally isolated. Combined with `--test-concurrency=1` for the API test script to keep DB-touching files serial in a single worker.
+
+#### patch (12) — APPLIED
+
+- [x] [Review][Patch] P17 — `doctor_branch` missing backfill UPDATE [apps/api/db/migrations/0004_widen_seed_entities.sql]. **Applied:** also added missing `created_at` + `updated_at` columns (E0-S1 didn't define them on `doctor_branch`) before the backfill UPDATE. Migration now pins the contract for all 11 entities.
+- [x] [Review][Patch] P18 — `set_updated_at` trigger verified only on `clinic`. **Applied:** added a `pg_trigger` membership assertion in `invariants.test.ts` covering all 11 trigger names (`trg_<table>_set_updated_at` for every mutable entity in `TRIGGERED_TABLES`).
+- [x] [Review][Patch] P19 — `receptionist_email_key` / `admin_user_email_key` UNIQUE not asserted. **Applied:** added two `invariants.test.ts` cases that insert case-varied but citext-equal emails and assert SQLSTATE `23505`.
+- [x] [Review][Patch] P20 — `created_by` regex inconsistency. **Applied (length cap dropped):** Postgres ARE `{n,m}` MAX is **255** (empirically verified; `{1,256}` is rejected with code `2201B`). Regex is now `^(staff|patient):[A-Za-z0-9+_.-]{1,255}$` on all four tables; removed the redundant `length(created_by) <= 256` clause. Spec note updated.
+- [x] [Review][Patch] P21 — `appointment_audit` has no `BEFORE TRUNCATE` trigger. **Applied:** added `trg_appointment_audit_no_truncate` BEFORE TRUNCATE STATEMENT trigger calling the same `reject_audit_mutation()` function. Append-only contract now enforced for TRUNCATE as well.
+- [x] [Review][Patch] P22 — AC-2 / AC-3 / AC-12 SQLSTATE not asserted. **Applied:** all three invariants in `invariants.test.ts` now assert `err.code === '23P01'` (exclusion) / `'23505'` (unique) / `'22P02'` (enum) instead of message-regex matching.
+- [x] [Review][Patch] P23 — AC-6 (concurrent insert race) has no test. **Applied:** added `AC-6: two parallel SERIALIZABLE inserts` test using two separate `pool.connect()` clients; asserts exactly one succeeds (the other rejects with `40001` serialization_failure or `23P01` exclusion_violation).
+- [x] [Review][Patch] P24 — `seed.test.ts` inlines the seed instead of importing. **Applied:** refactored `db/seeds/01_minimum.ts` to export `seedWith(client: PoolClient)` accepting a transactional client. `seed.test.ts` imports and calls it via `withTestDb`. Bonus fix: replaced broken `INSERT … ON CONFLICT DO NOTHING` (no UNIQUE on `clinic.name`, `branch.name`, `doctor.full_name`) with SELECT-then-INSERT so the seed is truly idempotent.
+- [x] [Review][Patch] P25 — `getTestDb()` concurrent-init race. **Applied:** `withTestDb.ts` now uses a promise-as-mutex singleton (`sharedDbPromise` + `sharedDbResolved`). Parallel first-callers receive the same in-flight promise; no double-boot.
+- [x] [Review][Patch] P26 — `closeShared()` clears `sharedDb = null` after `await`. **Applied:** `closeShared()` no longer nulls `sharedDbPromise` while keeping `isClosed = true` flag; subsequent `getTestDb()` calls throw loudly instead of silently re-bootstrapping.
+- [x] [Review][Patch] P27 — `process.on('beforeExit')` doesn't fire on non-zero exit. **Applied:** added `process.on('SIGTERM', cleanup)` and `process.on('SIGINT', cleanup)` handlers in `withTestDb.ts`. All three exit paths (`beforeExit` / `SIGTERM` / `SIGINT`) now properly stop the Testcontainers container.
+- [x] [Review][Patch] P28 — `globalSetup.ts` comment is wrong. **Applied:** comment in `apps/api/test/setup/globalSetup.ts` now correctly states "Requires Node ≥ 22 (`--test-global-setup` support). Wired via: apps/api/package.json scripts.test → node --test --test-global-setup=…".
+
+#### defer (8) — pre-existing or downstream-story concerns
+
+- [x] [Review][Defer] W8 — `appointment.patient_phone` not FK to `patient.(phone_number)`. Belongs in E3 (booking core) which creates the link on first booking. **E0-S2 deliberately leaves `patient_phone text` per spec.**
+- [x] [Review][Defer] W9 — `appointment.appointment_type_id` is clinic-scoped FK without a `(clinic_id, id)` composite guard. Cross-clinic link possible if both clinics share an id namespace (UUID v4 makes collision negligible in practice). **Defer to E3 — booking transaction enforces same-clinic.**
+- [x] [Review][Defer] W10 — `code_hash` length CHECK `BETWEEN 32 AND 256` may be too tight for future argon2id parameter sets. **E0-S4 chooses hash algorithm; widen the cap to 1024 in E0-S4 if needed.**
+- [x] [Review][Defer] W11 — `appointment_audit.actor_role` / `actor_id` / `event` have no CHECK constraints. Free-form strings allowed; future hardening story adds enum-style constraint. **Spec AC-13/AC-14 cover the append-only contract; value validation is app-layer.**
+- [x] [Review][Defer] W12 — `patient(phone_number)` has no E.164 normalization. **E4-S1 (real OTP verification) enforces E.164 at write time.**
+- [x] [Review][Defer] W13 — No index on `appointment.clinic_id`. **Architecture §6 does not list this; deferred until a clinic-level appointment list view is requested (likely E5 staff dashboards).**
+- [x] [Review][Defer] W14 — `withTestDb.applyMigrations` runs files as one `pool.query(sql)`. Multi-statement files (e.g., 0009 with `DO $$`) work because pg accepts them; comment in code says so. **No defect; documented.**
+- [x] [Review][Defer] W15 — `eslint-disable @typescript-eslint/no-var-requires` on dynamic `import()` is a no-op (wrong lint directive name). Cosmetic. **Fix when lint rules are tightened.**
+
+#### dismiss (3)
+
+- R2 — "`0011_pgcrypto_grants.down.sql` is orphan" — confirmed false positive; the forward `0011_pgcrypto_grants.sql` exists in the working tree (verified). Both shipped together in commit `0539002` along with the E0-S3 grant model.
+- R3 — "Spec AC-15 only lists three extensions" — confirmed true; AC-15 names pgcrypto + citext + btree_gist. Reviewer's worry about missing extensions was unfounded.
+- R4 — "`Patient` table column is `phone_number` vs `appointment.patient_phone` naming drift" — pre-existing E0-S1 choice, out of E0-S2 scope. Documented in deferred-work note W-something.
+
+#### Review metadata (implementation)
+
+- Layers run: blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor.
+- Failed layers: 0.
+- Raw findings: ~80 across 4 layers. After dedup: 23. After triage: 3 decision-needed + 12 patch + 8 defer + 3 dismiss.
+- Highest-priority items: **D6, D7, D8** (test infrastructure races / dead code); **P17, P20** (spec-vs-implementation literal deviations); **P18, P19** (spec ACs not pinned by tests).
+- Test pass status: 128/128 green at the time of review (pre-existing E0-S3 implementation, unchanged by this review).
+- **Final status (post-application):** 129/132 passing (+5 net from new tests vs. pre-patch 124/132 with different failure set). 3 failures are pre-existing on baseline commit `0539002` (`auth.test.ts:55`, `auth.test.ts:64`, `log.test.ts:101`), verified via `git stash` test — unrelated to E0-S2. Typecheck + lint both clean. **All 15 patches applied; no remaining open items.**

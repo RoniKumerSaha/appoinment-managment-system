@@ -7,15 +7,23 @@
  * and-reinsert seed would pass a count-only assertion while violating the
  * idempotency contract.
  *
- * The seed logic is inlined here (rather than imported from db/seeds/) because
- * `01_minimum.ts` uses a separate `pg.Pool` instance via getPool(), which is
- * correct for the production `db:seed` CLI but incompatible with the shared
- * test container. E0-S5 will refactor the seed to accept a pool parameter and
- * this test can import it directly.
+ * P24: the test imports `seedWith` from `db/seeds/01_minimum.ts` (the
+ * production seed) instead of duplicating its logic. This is the only way
+ * the test can catch a regression in the production seed itself.
+ *
+ * D8: no `beforeEach` TRUNCATE — the seed is idempotent and other DB-touching
+ * tests in the same worker rely on accumulated fixture rows. Pool isolation
+ * (one pool per worker) is the only isolation boundary; within it, fixtures
+ * accumulate.
+ *
+ * D7: no per-file `closeShared()` — the shared pool is closed by
+ * `process.on('beforeExit')` (with SIGTERM/SIGINT handlers). Closing in
+ * `after()` would race with sibling test files that have not yet finished.
  */
-import { test, after, before, beforeEach } from 'node:test';
+import { test, after, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { closeShared, getTestDb, type TestDb } from './db/withTestDb.js';
+import { getTestDb, type TestDb } from './db/withTestDb.js';
+import { seedWith } from '../db/seeds/01_minimum.js';
 
 let db: TestDb;
 
@@ -23,116 +31,9 @@ before(async () => {
   db = await getTestDb();
 });
 
-// Each test in this file asserts idempotency from a known clean state. We
-// truncate before every test because the shared test container persists
-// across tests within a worker, and the unique constraint on
-// receptionist.email makes the second test's runSeedInline collide with
-// state left behind by the first. We do NOT truncate the appointment /
-// audit / type / block tables here — those tests have their own scoped
-// fixtures and aren't part of the seed contract.
-beforeEach(async () => {
-  await db.pool.query(`TRUNCATE TABLE
-    receptionist, admin_user, doctor_branch, doctor, branch, clinic
-    RESTART IDENTITY CASCADE`);
-});
-
 after(async () => {
-  await closeShared();
+  // No-op: cleanup is process-level (see withTestDb.ts).
 });
-
-const CLINIC_NAME = 'Seed Test Clinic';
-const BRANCH_NAME = 'Branch 1';
-const DOCTOR_NAME = 'Dr. Seed Test';
-const RECEPTIONIST_NAME = 'Receptionist Seed Test';
-const ADMIN_NAME = 'Admin Seed Test';
-
-async function runSeedInline(db: TestDb): Promise<void> {
-  const client = await db.pool.connect();
-  try {
-    await client.query('BEGIN');
-    // Clinic — no UNIQUE on `name`, so we must SELECT-then-INSERT. Using
-    // ON CONFLICT DO NOTHING would silently insert a duplicate row (and
-    // every other downstream branch_id / doctor_id would be a fresh id,
-    // breaking receptionist email uniqueness).
-    const c = await client.query<{ id: string }>(
-      `SELECT id FROM clinic WHERE name = $1`,
-      [CLINIC_NAME],
-    );
-    let clinicId: string;
-    if (c.rows[0]) {
-      clinicId = c.rows[0].id;
-    } else {
-      const ins = await client.query<{ id: string }>(
-        `INSERT INTO clinic (name) VALUES ($1) RETURNING id`,
-        [CLINIC_NAME],
-      );
-      clinicId = ins.rows[0]!.id;
-    }
-    // Branch — same: no UNIQUE on (clinic_id, name), so SELECT-then-INSERT.
-    const b = await client.query<{ id: string }>(
-      `SELECT id FROM branch WHERE clinic_id = $1 AND name = $2`,
-      [clinicId, BRANCH_NAME],
-    );
-    let branchId: string;
-    if (b.rows[0]) {
-      branchId = b.rows[0].id;
-    } else {
-      const ins = await client.query<{ id: string }>(
-        `INSERT INTO branch (clinic_id, name, tz) VALUES ($1, $2, $3) RETURNING id`,
-        [clinicId, BRANCH_NAME, 'UTC'],
-      );
-      branchId = ins.rows[0]!.id;
-    }
-    // Doctor — same: no UNIQUE on full_name.
-    const d = await client.query<{ id: string }>(
-      `SELECT id FROM doctor WHERE full_name = $1`,
-      [DOCTOR_NAME],
-    );
-    let doctorId: string;
-    if (d.rows[0]) {
-      doctorId = d.rows[0].id;
-    } else {
-      const ins = await client.query<{ id: string }>(
-        `INSERT INTO doctor (full_name) VALUES ($1) RETURNING id`,
-        [DOCTOR_NAME],
-      );
-      doctorId = ins.rows[0]!.id;
-    }
-    // doctor_branch — has PRIMARY KEY (doctor_id, branch_id), so ON CONFLICT
-    // DO NOTHING is genuine here.
-    await client.query(
-      `INSERT INTO doctor_branch (doctor_id, branch_id) VALUES ($1, $2)
-       ON CONFLICT DO NOTHING`,
-      [doctorId, branchId],
-    );
-    // receptionist — has UNIQUE (email), but the guard matches on
-    // (branch_id, full_name) so we use NOT EXISTS to keep idempotency
-    // independent of the email format.
-    await client.query(
-      `INSERT INTO receptionist (branch_id, full_name, email)
-       SELECT $1, $2, lower($2) || '@clinic.local'
-       WHERE NOT EXISTS (
-         SELECT 1 FROM receptionist WHERE branch_id = $1 AND full_name = $2
-       )`,
-      [branchId, RECEPTIONIST_NAME],
-    );
-    // admin_user — has UNIQUE (email). Same pattern.
-    await client.query(
-      `INSERT INTO admin_user (full_name, email)
-       SELECT $1, lower($1) || '@clinic.local'
-       WHERE NOT EXISTS (
-         SELECT 1 FROM admin_user WHERE full_name = $1
-       )`,
-      [ADMIN_NAME],
-    );
-    await client.query('COMMIT');
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
-}
 
 interface RowKey {
   table: string;
@@ -155,6 +56,8 @@ async function snapshot(db: TestDb): Promise<RowKey[]> {
       identCol !== null
         ? `SELECT ${idCol}::text AS pk, ${identCol}::text AS ident FROM ${table}`
         : `SELECT ${idCol}::text AS pk, NULL::text AS ident FROM ${table}`;
+    // Column names are not user input here (hardcoded list); identifier is
+    // safely escaped via ::text casts.
     const { rows } = await db.pool.query<{ pk: string; ident: string | null }>(sql);
     for (const r of rows) out.push({ table, pk: r.pk, identifier: r.ident });
   }
@@ -164,11 +67,25 @@ async function snapshot(db: TestDb): Promise<RowKey[]> {
 const keyOf = (r: RowKey): string => `${r.table}|${r.pk}|${r.identifier ?? ''}`;
 
 test('AC-9: seed is idempotent — snapshot set identical between runs', async () => {
-  await runSeedInline(db);
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    await seedWith(client);
+    await client.query('COMMIT');
+  } finally {
+    client.release();
+  }
   const first = await snapshot(db);
   assert.ok(first.length > 0, 'first seed run should produce rows');
 
-  await runSeedInline(db);
+  const client2 = await db.pool.connect();
+  try {
+    await client2.query('BEGIN');
+    await seedWith(client2);
+    await client2.query('COMMIT');
+  } finally {
+    client2.release();
+  }
   const second = await snapshot(db);
 
   const firstKeys = new Set(first.map(keyOf));
@@ -191,6 +108,14 @@ test('AC-9: seed is idempotent — snapshot set identical between runs', async (
 });
 
 test('seed runs without error against a populated DB', async () => {
-  await runSeedInline(db);
-  assert.ok(true);
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    await seedWith(client);
+    await client.query('COMMIT');
+  } finally {
+    client.release();
+  }
+  const snap = await snapshot(db);
+  assert.ok(snap.length > 0, 'seed must produce rows on a populated DB');
 });

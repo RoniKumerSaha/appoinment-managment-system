@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS appointment (
   start_datetime      timestamptz NOT NULL,
   end_datetime        timestamptz NOT NULL CHECK (end_datetime > start_datetime),
   status              appointment_status NOT NULL DEFAULT 'Scheduled',
-  created_by          text NOT NULL CHECK (created_by ~ '^(staff|patient):[A-Za-z0-9+_.-]{1,255}$' AND length(created_by) <= 256),
+  created_by          text NOT NULL CHECK (created_by ~ '^(staff|patient):[A-Za-z0-9+_.-]{1,255}$'),
   created_at          timestamptz NOT NULL DEFAULT app_now(),
   updated_at          timestamptz NOT NULL DEFAULT app_now()
 );

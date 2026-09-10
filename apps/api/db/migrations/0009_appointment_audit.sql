@@ -60,6 +60,14 @@ CREATE TRIGGER trg_appointment_audit_no_delete
   BEFORE DELETE ON appointment_audit
   FOR EACH ROW EXECUTE FUNCTION reject_audit_mutation();
 
+-- BEFORE TRUNCATE (statement-level) — TRUNCATE bypasses row-level BEFORE
+-- UPDATE/DELETE triggers, so a separate statement-level guard is required to
+-- fully honor the "append-only" contract.
+DROP TRIGGER IF EXISTS trg_appointment_audit_no_truncate ON appointment_audit;
+CREATE TRIGGER trg_appointment_audit_no_truncate
+  BEFORE TRUNCATE ON appointment_audit
+  FOR EACH STATEMENT EXECUTE FUNCTION reject_audit_mutation();
+
 CREATE INDEX IF NOT EXISTS idx_appointment_audit_appointment_id
   ON appointment_audit(appointment_id);
 CREATE INDEX IF NOT EXISTS idx_appointment_audit_actor

@@ -8,13 +8,9 @@
  * Testcontainers Postgres and applies migrations. In local dev, point at any
  * Postgres 16 instance with the migrations already applied.
  */
-import { test, after } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { closeShared, withTestDb } from './db/withTestDb.js';
-
-after(async () => {
-  await closeShared();
-});
+import { withTestDb } from './db/withTestDb.js';
 
 test('AC-15: pg_extension includes pgcrypto, citext, btree_gist', async () => {
   await withTestDb(async ({ pool }) => {

@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS appointment_type (
   name             text NOT NULL,
   duration_minutes integer NOT NULL CHECK (duration_minutes BETWEEN 5 AND 480),
   is_active        boolean NOT NULL DEFAULT true,
-  created_by       text NOT NULL CHECK (created_by ~ '^(staff|patient):[A-Za-z0-9+_.-]{1,255}$' AND length(created_by) <= 256),
+  created_by       text NOT NULL CHECK (created_by ~ '^(staff|patient):[A-Za-z0-9+_.-]{1,255}$'),
   created_at       timestamptz NOT NULL DEFAULT app_now(),
   updated_at       timestamptz NOT NULL DEFAULT app_now()
 );
