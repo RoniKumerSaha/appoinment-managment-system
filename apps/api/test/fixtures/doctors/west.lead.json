@@ -1,0 +1,6 @@
+{
+  "id": "doctor-west-lead",
+  "full_name": "Dr. West Lead",
+  "branch_ids": ["branch-west"],
+  "appointment_type_ids": ["appointment-type-consult", "appointment-type-followup"]
+}

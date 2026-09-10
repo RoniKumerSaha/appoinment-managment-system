@@ -1,0 +1,6 @@
+{
+  "id": "doctor-east-support",
+  "full_name": "Dr. East Support",
+  "branch_ids": ["branch-east"],
+  "appointment_type_ids": ["appointment-type-general"]
+}

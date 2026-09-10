@@ -44,6 +44,14 @@
 
 generated: 09-08-2026 12:00
 last_updated: 09-10-2026
+# 2026-09-10 bmad-build step-04 review on E0-S5 complete (review_loop_iteration=1):
+#   - 4 patch findings applied: P1 (AC-3 strict ===), P2 (single-JSON-line log via
+#     formatSeedLog helper), P3/P3b (seed_unchanged log pinned by 2 new tests),
+#     P4 (new apps/api/test/loader.test.ts covering all loadX + FixtureInvalidError)
+#   - 18 findings rejected (TOCTOU races, defense-in-depth, out-of-scope)
+#   - 0 deferrals
+#   - 184 tests now in suite, 179 pass, 5 pre-existing baseline failures unchanged
+# Story E0-S5 → done.
 # 2026-09-10 bmad-code-review pass on E0-S4: 16 patches applied; story moved to in-progress pending pre-existing AC-1/AC-2 pgcrypto digest::text bytea-parser regression (unrelated to review patches).
 # E0-S3 implementation complete 09-10-2026:
 #   - apps/api/src/auth/{config,jwt}.ts, apps/api/src/routes/patient-otp.ts
@@ -68,7 +76,24 @@ development_status:
   0-2-data-model-migrations: review
   0-3-auth-provider-wiring: review
   0-4-sms-otp-gateway: in-progress
-  0-5-seed-data-role-fixtures: backlog
+  0-5-seed-data-role-fixtures: done
+  # 2026-09-10 bmad-build step-03 implementation complete for E0-S5:
+  #   - apps/api/db/seeds/01_minimum.ts extended (2 branches, 3 doctors, 2 receptionists,
+  #     1 admin, 5 patients, 3 appointment_types, 1 future appointment; SeedResult
+  #     type returns {inserted, rowCount}; seed() CLI wrapper logs seed_complete/seed_unchanged)
+  #   - apps/api/db/seeds/02_role_ids.ts (NEW, 51 lines, 17 as-const literal IDs)
+  #   - apps/api/test/fixtures/{clinic,branches/{east,west},doctors/{east.lead,east.support,west.lead},
+  #     receptionists/{east,west},admins/main,patients/{0001..0005}}.json (11 NEW files)
+  #   - apps/api/test/fixtures/loader.ts (NEW, 224 lines, typed path-based loader with
+  #     FixtureNotFoundError + FixtureInvalidError, path-traversal guard)
+  #   - apps/api/test/fixtures/loader.smoke.ts (NEW, 9 OK assertions including traversal block)
+  #   - apps/api/test/seed.test.ts (MODIFIED, 4 tests: AC-9 idempotency snapshot, AC-2
+  #     inserted=false on re-run, AC-3 patient-0001 future appointment, populated-DB no-throw)
+  # 166/171 tests green (5 pre-existing baseline failures unrelated to E0-S5:
+  #   2x auth-bearer, 1x log.test.ts actor_role, 2x sms-otp code_hash bytea-parser bug;
+  #   all confirmed present on pre-patch state via stash). Seed suite 4/4 green.
+  # Loader smoke 9/9 OK. No regressions introduced.
+  # Awaiting bmad-build step-04 review pass before moving to review/done.
   0-6-observability-baseline: backlog
   epic-0-retrospective: optional
 
