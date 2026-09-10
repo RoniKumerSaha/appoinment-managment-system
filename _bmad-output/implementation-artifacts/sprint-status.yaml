@@ -44,6 +44,7 @@
 
 generated: 09-08-2026 12:00
 last_updated: 09-10-2026
+# 2026-09-10 bmad-code-review pass on E0-S4: 16 patches applied; story moved to in-progress pending pre-existing AC-1/AC-2 pgcrypto digest::text bytea-parser regression (unrelated to review patches).
 # E0-S3 implementation complete 09-10-2026:
 #   - apps/api/src/auth/{config,jwt}.ts, apps/api/src/routes/patient-otp.ts
 #   - apps/api/src/middleware/auth.ts extended (Bearer-first, debug fallback)
@@ -66,7 +67,7 @@ development_status:
   0-1-repo-skeleton-starter-template: done
   0-2-data-model-migrations: review
   0-3-auth-provider-wiring: review
-  0-4-sms-otp-gateway: backlog
+  0-4-sms-otp-gateway: in-progress
   0-5-seed-data-role-fixtures: backlog
   0-6-observability-baseline: backlog
   epic-0-retrospective: optional

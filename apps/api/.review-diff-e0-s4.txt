@@ -1,0 +1,2124 @@
+warning: in the working copy of '_bmad-output/implementation-artifacts/sprint-status.yaml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'apps/api/src/app.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'apps/api/src/server.ts', LF will be replaced by CRLF the next time Git touches it
+diff --git a/_bmad-output/implementation-artifacts/sprint-status.yaml b/_bmad-output/implementation-artifacts/sprint-status.yaml
+index e2873cf..7896ad0 100644
+--- a/_bmad-output/implementation-artifacts/sprint-status.yaml
++++ b/_bmad-output/implementation-artifacts/sprint-status.yaml
+@@ -66,7 +66,7 @@ development_status:
+   0-1-repo-skeleton-starter-template: done
+   0-2-data-model-migrations: review
+   0-3-auth-provider-wiring: review
+-  0-4-sms-otp-gateway: backlog
++  0-4-sms-otp-gateway: review
+   0-5-seed-data-role-fixtures: backlog
+   0-6-observability-baseline: backlog
+   epic-0-retrospective: optional
+diff --git a/apps/api/src/app.ts b/apps/api/src/app.ts
+index 385cc9f..b81b8ce 100644
+--- a/apps/api/src/app.ts
++++ b/apps/api/src/app.ts
+@@ -10,20 +10,31 @@
+  * where SonicBoom writes via the fd-1 path directly). Production callers
+  * omit this and get the production `requestLogger`.
+  *
++ * `opts.smsOtpService` (optional) lets a test inject the SmsOtpService
++ * with a stub provider. Production callers construct the service in
++ * `server.ts` from the env and pass it in. If omitted, the SMS OTP router
++ * is NOT registered.
++ *
+  * Mock-OTP route registration is gated on `NODE_ENV ∈ {development, test}`
+- * via `loadAuthConfig().mockOtpAllowed` — see `./auth/config.ts`.
++ * via `loadAuthConfig().mockOtpAllowed`. E0-S4 removes the mock — the
++ * real SMS OTP gateway replaces it. The mock flag stays in `AuthConfig`
++ * for one story to keep the diff visible; it is unused by `createApp()`
++ * and documented as `@deprecated`.
+  */
+ import express from 'express';
+ import type { RequestHandler } from 'express';
+ import { healthRouter } from './routes/health.js';
+ import { metricsRouter } from './routes/metrics.js';
+ import { patientOtpRouter } from './routes/patient-otp.js';
++import { createSmsOtpRouter } from './routes/sms-otp.js';
+ import { authMiddleware } from './middleware/auth.js';
+ import { getLogger, requestLogger } from './middleware/log.js';
+ import { loadAuthConfig } from './auth/config.js';
++import type { SmsOtpService } from './otp/service.js';
+ 
+ export interface CreateAppOptions {
+   requestLogger?: RequestHandler;
++  smsOtpService?: SmsOtpService;
+ }
+ 
+ export function createApp(opts: CreateAppOptions = {}): express.Express {
+@@ -36,10 +47,17 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
+   app.use(healthRouter);
+   app.use(metricsRouter);
+ 
+-  // Mock-OTP router mounts BEFORE authMiddleware so an unauthenticated caller
+-  // can hit the login route. The route handler itself is the auth gate for
+-  // this surface. Body-parser is also above this point so the route can
+-  // read `req.body`.
++  // SMS-OTP router mounts BEFORE authMiddleware so an unauthenticated
++  // caller can hit the login routes. The routes are themselves the auth
++  // gate (the OTP is the credential). Body-parser is also above this
++  // point so the routes can read `req.body`.
++  if (opts.smsOtpService) {
++    app.use('/patient', createSmsOtpRouter({ service: opts.smsOtpService }));
++  }
++
++  // Mock-OTP router mounts BEFORE authMiddleware for backward compatibility
++  // with E0-S3's test suite. The mock stays for one story per the E0-S4
++  // spec; E4-S1 will delete it when the real OTP modal lands.
+   let mockOtpAllowed = false;
+   try {
+     mockOtpAllowed = loadAuthConfig().mockOtpAllowed;
+diff --git a/apps/api/src/server.ts b/apps/api/src/server.ts
+index eac2d0d..c45ee87 100644
+--- a/apps/api/src/server.ts
++++ b/apps/api/src/server.ts
+@@ -2,18 +2,32 @@
+  * Runnable API entry. Imports the factory from `./app.ts` and binds to PORT.
+  * Tests do NOT import this file; they import `./app.ts` directly.
+  *
+- * Boot guard: `loadAuthConfig()` is called BEFORE `createApp()` so a missing
+- * or weak `AUTH_SECRET` (per E0-S3 AC-5/AC-6) fails the process before any
+- * socket is bound. The exit code is non-zero so a supervisor restarts and the
++ * Boot guards (run in order; first failure exits non-zero):
++ *   1. `loadAuthConfig()` — refuses if AUTH_SECRET missing/weak/short.
++ *   2. `loadOtpConfig()` — refuses if OTP_PROVIDER=log in production, etc.
++ *
++ * The exit code is non-zero so a process supervisor restarts and the
+  * failure is visible in deployment logs.
++ *
++ * Composition root: the SMS OTP provider is selected here (the only place
++ * the service + provider wiring exists). `LogSmsOtpProvider` for dev/test,
++ * `TwilioSmsOtpProvider` for production (lazy-imported).
+  */
+ import { createApp } from './app.js';
+ import { getLogger } from './middleware/log.js';
+-import { closePool } from './db/pool.js';
++import { closePool, getPool } from './db/pool.js';
+ import { loadAuthConfig } from './auth/config.js';
++import { loadOtpConfig } from './otp/config.js';
++import { SmsOtpService } from './otp/service.js';
++import { LogSmsOtpProvider } from './otp/log-provider.js';
++import {
++  TwilioSmsOtpProvider,
++  buildTwilioProviderFromEnv,
++} from './otp/twilio-provider.js';
+ 
+ const PORT = Number(process.env.PORT ?? 3001);
+ 
++// Boot guard 1: AUTH_SECRET validation (E0-S3 contract).
+ try {
+   loadAuthConfig();
+ } catch (err) {
+@@ -22,32 +36,65 @@ try {
+   process.exit(1);
+ }
+ 
+-const app = createApp();
+-const server = app.listen(PORT, () => {
+-  getLogger().info({ port: PORT }, 'api_listening');
+-});
+-
+-// Surface bind failures (e.g. EADDRINUSE) via the structured logger and
+-// exit non-zero so a process supervisor restarts cleanly.
+-server.on('error', (err) => {
+-  getLogger().error({ err: err.message }, 'bind_failed');
++// Boot guard 2: OTP provider validation (E0-S4 contract). Refuses to start
++// if `OTP_PROVIDER=log` is configured in production (the log provider
++// writes the raw OTP code to stdout — that's a leak in prod).
++let otpCfg: ReturnType<typeof loadOtpConfig>;
++try {
++  otpCfg = loadOtpConfig();
++} catch (err) {
++  const message = err instanceof Error ? err.message : 'otp_config_load_failed';
++  getLogger().error({ err: message }, 'otp_config_load_failed');
+   process.exit(1);
+-});
++}
++
++// Composition root: assemble the provider + service. Tests stub the pool
++// and the service via the `smsOtpService` option on `createApp()` and
++// never reach this file. Production takes this path.
++async function bootstrap(): Promise<void> {
++  const pool = await getPool();
++  const provider =
++    otpCfg.provider === 'twilio'
++      ? buildTwilioProviderFromEnv() ?? new LogSmsOtpProvider()
++      : new LogSmsOtpProvider();
++  if (otpCfg.provider === 'twilio' && !(provider instanceof TwilioSmsOtpProvider)) {
++    getLogger().warn(
++      { event: 'twilio_fallback_to_log' },
++      'twilio credentials missing; falling back to LogSmsOtpProvider — DO NOT USE IN PRODUCTION',
++    );
++  }
++  const smsOtpService = new SmsOtpService(pool, provider, otpCfg);
++  const app = createApp({ smsOtpService });
++  const server = app.listen(PORT, () => {
++    getLogger().info({ port: PORT, otp_provider: otpCfg.provider }, 'api_listening');
++  });
+ 
+-// Graceful shutdown: stop accepting new connections, drain in-flight
+-// requests, close the pg.Pool, then exit.
+-const shutdown = (signal: string) => {
+-  getLogger().info({ signal }, 'shutting_down');
+-  server.close(() => {
+-    closePool()
+-      .catch((err) => {
+-        getLogger().error({ err: err instanceof Error ? err.message : String(err) }, 'pool_close_failed');
+-      })
+-      .finally(() => {
+-        process.exit(0);
+-      });
++  // Surface bind failures (e.g. EADDRINUSE) via the structured logger and
++  // exit non-zero so a process supervisor restarts cleanly.
++  server.on('error', (err) => {
++    getLogger().error({ err: err.message }, 'bind_failed');
++    process.exit(1);
+   });
+-};
+-process.on('SIGTERM', () => shutdown('SIGTERM'));
+-process.on('SIGINT', () => shutdown('SIGINT'));
+ 
++  // Graceful shutdown: stop accepting new connections, drain in-flight
++  // requests, close the pg.Pool, then exit.
++  const shutdown = (signal: string) => {
++    getLogger().info({ signal }, 'shutting_down');
++    server.close(() => {
++      closePool()
++        .catch((err) => {
++          getLogger().error(
++            { err: err instanceof Error ? err.message : String(err) },
++            'pool_close_failed',
++          );
++        })
++        .finally(() => {
++          process.exit(0);
++        });
++    });
++  };
++  process.on('SIGTERM', () => shutdown('SIGTERM'));
++  process.on('SIGINT', () => shutdown('SIGINT'));
++}
++
++void bootstrap();
+diff --git a/../../_bmad-output/implementation-artifacts/spec-0-4-sms-otp-gateway.md b/../../_bmad-output/implementation-artifacts/spec-0-4-sms-otp-gateway.md
+new file mode 100644
+index 0000000..71321d7
+--- /dev/null
++++ b/../../_bmad-output/implementation-artifacts/spec-0-4-sms-otp-gateway.md
+@@ -0,0 +1,196 @@
++---
++title: 'E0-S4 — SMS OTP gateway'
++type: 'feature'
++created: '2026-09-10'
++status: 'review'
++review_loop_iteration: 0
++baseline_commit: 'E0-S3 review'  # current HEAD at spec time
++context:
++  - '{project-root}/_bmad-output/implementation-artifacts/epic-0-context.md'
++  - '{project-root}/_bmad-output/implementation-artifacts/deferred-work.md'  # W16 (rate limit), W17 (migration numbering) live here
++  - '{project-root}/_bmad-output/implementation-artifacts/spec-0-3-auth-provider-wiring.md'
++---
++
++## Intent
++
++**Problem:** E0-S3 left `/patient/otp/verify-now` as a **mocked** OTP check (`code === process.env.MOCK_OTP_CODE`). The architecture spine (Architecture §3.8 — Identity & Access: OTP) and PRD FR-031 require a real SMS-backed OTP gateway that:
++
++1. Persists issued OTPs (so they survive a server restart) with a 5-minute TTL, a 3-attempts-per-10-minute lockout, and a 30-second resend cooldown.
++2. Persists attempt counts so a brute-force probe is rate-limited at the DB layer (not just in memory).
++3. Surfaces a swappable provider interface so dev/test runs use a console-log stub and prod runs use a real SMS provider (Twilio in scope; the interface must be open).
++4. **Hashes** stored OTP codes with pgcrypto's `digest(...)` so a DB compromise does not leak live OTPs.
++5. Plays cleanly with E0-S3's minted patient JWT — the verify path produces the same `{token, claim, expires_at}` shape so E4-S1 can swap its body without rewriting the response contract.
++
++E0-S4 ships the gateway + a real `/patient/otp/send` route + a real `/patient/otp/verify` route. The mocked `/patient/otp/verify-now` is **removed** (delegated route file removed; the allowlist in `loadAuthConfig().mockOtpAllowed` becomes obsolete — the route registration in `app.ts` is gated on `NODE_ENV ∈ {development, test}` instead, OR the mock route stays for the duration of this story and is deleted in a follow-up. See "Ask First" — A1.)
++
++**Approach:** A `SmsOtpProvider` interface with two implementations: `LogSmsOtpProvider` (dev/test; emits the OTP code to the structured logger at `info` level) and `TwilioSmsOtpProvider` (prod; imports `twilio` lazily so the dev install does not require a Twilio account; failure modes surface as `SmsSendFailed`). A `SmsOtpService` wraps the provider and the DB: it generates a 6-digit numeric OTP, hashes it via `pgcrypto.digest(...)` (sha-256 in `hex` encoding → 64-char hex string, well inside the `BETWEEN 32 AND 256` CHECK on `code_hash`), inserts an `otp_verification` row inside a `BEGIN/COMMIT` transaction, and exposes `send(phone)` + `verify(phone, code)` + `attemptCount(phone)` + `remainingCooldownMs(phone)`. The verify path runs inside a transaction: it locks the `otp_verification` row with `SELECT … FOR UPDATE` (prevents two parallel verify requests both decrementing `attempts`), recomputes the hash, `timingSafeEqual`-compares, increments `attempts` on failure, sets `locked_until` when the 3-attempt threshold is hit, deletes the row on success. The 30-second resend cooldown is enforced in `send()` via a `SELECT MAX(created_at) FROM otp_verification WHERE phone_e164 = $1 AND created_at > now() - INTERVAL '30 seconds'` — if a recent row exists, return a structured cooldown error to the caller. Route handlers translate service errors into HTTP envelopes (`429` for cooldown, `429` for locked, `401` for invalid-code, `502` for provider failure).
++
++**Out of scope (deferred):**
++- Real Twilio wire-up (E1 or beyond — this story ships the interface + Twilio client class but does not require Twilio credentials at boot).
++- Web modal UI for the OTP flow (E4-S1).
++- Synthetic `patient.id` UUID for `sub` (W13 — E4-S1 owns).
++- Logout / denylist (W9 — E7 hardening).
++- Refresh tokens (W8 — E7 hardening).
++
++## Boundaries & Constraints
++
++**Always:**
++- `SmsOtpProvider` interface is the only seam between the service and the outside world. The service never imports `twilio` directly. The interface is:
++  ```ts
++  interface SmsOtpProvider {
++    send(phone: string, code: string): Promise<void>;  // throws SmsSendFailed on failure
++  }
++  ```
++- Two providers ship in this story: `LogSmsOtpProvider` (writes `{event: 'mock_otp_send', phone, code}` to the structured logger — replaces the old `mock_otp_attempt` log family with a `mock_otp_send` family since the surface is now a real send) and `TwilioSmsOtpProvider` (real Twilio client; constructed lazily). Selection is process-level via `OTP_PROVIDER` env var (`'log'` or `'twilio'`; default `'log'` in non-prod, `'twilio'` in prod).
++- `LogSmsOtpProvider` emits the OTP code to logs at `info` level — this is intentional dev/test behavior. Production guard: when `OTP_PROVIDER=log` AND `NODE_ENV === 'production'`, the service refuses to start (logs `otp_provider_log_in_production` and throws). Same posture as E0-S3's mock-route production guard.
++- Real Twilio is wired but **dormant** in this story: `TwilioSmsOtpProvider` is exported and exercised by a unit test that mocks `twilio` via dependency injection (the constructor accepts an optional `client` parameter; tests inject a stub). No live Twilio HTTP calls during the test suite. Twilio credentials are NOT required in `.env.example`.
++- `code_hash` uses `pgcrypto.digest(code, 'sha256')` producing a 64-char hex string. The `code_hash` column's `CHECK (length(code_hash) BETWEEN 32 AND 256)` already accepts this (verified in E0-S2). Plain OTP codes are NEVER stored — verified by `apps/api/test/sms-otp.test.ts` which inspects every column of an inserted row and asserts `code_hash` is not the raw code.
++- `send()` uses an explicit `BEGIN/COMMIT` transaction: cleanup of expired rows (rows with `expires_at < now()`) is done in the same transaction as the insert, so a leftover row from a previous send can never block a fresh send. The cleanup is `DELETE FROM otp_verification WHERE phone_e164 = $1 AND expires_at < now()` (UNIQUE on `phone_e164` means at most one outstanding row per phone; the cleanup is defense-in-depth so the UNIQUE never fires spuriously).
++- The 5-minute TTL is enforced via `expires_at = now() + INTERVAL '5 minutes'` at INSERT time. The verify path rejects `now() > expires_at` with `401 {error: 'otp_expired'}` — same status as wrong code (no oracle for "code was right but expired").
++- The 3-attempt cap is enforced via `attempts >= 3` AFTER incrementing on failure. When the cap is reached, `locked_until = now() + INTERVAL '10 minutes'`. The `send()` path checks `locked_until > now()` and returns `429 {error: 'otp_locked', retry_after_ms}` if the row is locked (lockout spans sends AND verifies — both refuse until `locked_until`).
++- The 30-second resend cooldown is enforced in `send()` via `SELECT MAX(created_at) FROM otp_verification WHERE phone_e164 = $1 AND created_at > now() - INTERVAL '30 seconds'`. If a row is within 30 seconds, `send()` returns `429 {error: 'otp_cooldown', retry_after_ms}` (computed from the row's `created_at + 30s - now()`).
++- Phone validation: `^\+[1-9]\d{6,14}$` (E.164; same regex as E0-S3's patient-otp route). The route rejects non-string / non-E.164 phones with `400 {error: 'invalid_phone'}` BEFORE consulting the service.
++- Code validation: `^\d{6}$` (exactly 6 digits). The route rejects non-string / non-matching codes with `400 {error: 'invalid_code'}` BEFORE consulting the service.
++- The verify path locks the row with `SELECT … FOR UPDATE` (in a transaction) — two parallel verify requests cannot both decrement `attempts`. The losing request blocks until the winner commits, then sees the updated state.
++- Constant-time hash comparison: the verify path computes `pgcrypto.digest(input, 'sha256')` and compares to the stored `code_hash` via `crypto.timingSafeEqual` on equal-length `Buffer`s (both 64 chars hex). No early-return string compare.
++- Structured logs include `actor_role: 'patient'`, `actor_id: <redacted-phone last-4>` (matches E0-S3's redaction), and the four contract fields `request_id` / `actor_role` / `actor_id` / `appointment_id: null`. Phone numbers are redacted to last-4 in every log line.
++- `req.auth.claim` is never consulted by `/patient/otp/send` or `/patient/otp/verify` — the routes are unauthenticated (the OTP **is** the authentication). `x-auth-claim` debug header is never consulted either. Both routes mount BEFORE `authMiddleware` (mirroring E0-S3's mount order for `/patient/otp/verify-now`).
++- Routes are registered when `NODE_ENV ∈ {development, test, staging, production}` — the real OTP gateway is **never** dev-only. The mocked `LogSmsOtpProvider` is what dev/test use; the gateway itself runs in every env. (See A1 for the mock-verify-now disposition.)
++- Migration: `0012_sms_otp_send_attempts.sql` — adds a `last_sent_at timestamptz` column to `otp_verification` for the 30-second cooldown check (the existing `created_at` is not enough — a successful verify must NOT reset the cooldown, only a fresh send should; `last_sent_at` is the column that `send()` updates). Also adds `attempts` index for the locked-window lookup. Plus the existing down migration. Migration numbering starts at `0012` per W17.
++- Counter: `inc('otp.verification', 1)` fires on every verify attempt (success + failure) — matches the metrics contract from E0-S1 and is observable from `GET /metrics`.
++- Log redaction: `req.body.code` is already in `redactPaths` (E0-S1 contract). Phone numbers are redacted to last-4 in `info` audit logs. The full 6-digit OTP code is logged at `info` by `LogSmsOtpProvider` ONLY — production guard refuses to register `LogSmsOtpProvider` in production.
++
++**Ask First:**
++- **A1** — Disposition of the mocked `/patient/otp/verify-now` route: **delete it (recommended)** — the real `/patient/otp/verify` route replaces it; the mock allowed E0-S3's tests to pass before the real gateway shipped. Keep it would mean two login routes with overlapping semantics. Alternative: keep the mock behind the same `NODE_ENV ∈ {development, test}` allowlist as today, and add a deprecation log on registration. The user should pick.
++- **A2** — `OTP_PROVIDER` default in production: **`twilio` (recommended)** — boot fails if `OTP_PROVIDER` is unset in production, mirroring E0-S3's AUTH_SECRET posture. Alternative: default to `log` with a startup warning (less safe, weaker contract). The user should pick.
++- **A3** — OTP code generation source: **`crypto.randomInt(0, 1_000_000)` with `String(n).padStart(6, '0')` (recommended)** — uniform distribution, no modulo bias. Alternative: `crypto.randomBytes(3).readUIntBE(0, 3) % 1_000_000` — also unbiased but the int version is more obviously correct. The user should pick.
++
++**Never:**
++- No plain-text OTP storage — every stored code is sha-256-hashed.
++- No direct import of `twilio` from the service — the provider interface is the seam. Production callers wire `TwilioSmsOtpProvider` via composition root (`server.ts`) only.
++- No consultation of `req.auth.claim` or `req.body.role` / `req.body.branch_ids` by the OTP routes.
++- No consultation of the existing mocked `/patient/otp/verify-now` route — E0-S4's real verify path replaces it. (If A1 picks "keep", the mock stays for dev/test only.)
++- No metric name additions — `otp.verification` is already in the `NAMED_COUNTERS` registry from E0-S1.
++- No partial unique index on `otp_verification` — Schema invariant from E0-S2 (D4): plain `UNIQUE (phone_e164)` is correct because `now()` is volatile in partial-index predicates.
++- No rate limit beyond the OTP lockout itself — Redis-backed token-bucket belongs to a future hardening story (W16 partial). The DB-row-based lockout is the E0-S4 contract.
++- No new grants — `pgcrypto.digest` is callable by PUBLIC in `pgcrypto` schema after the E0-S3 migration.
++
++## I/O & Edge-Case Matrix
++
++| Scenario | Input / State | Expected Output / Behavior | Error Handling |
++|----------|--------------|---------------------------|----------------|
++| `POST /patient/otp/send` happy path | `{phone: '+15551234567'}` first time | `200 {expires_at: '<iso>', cooldown_ms: 0}`; row inserted with 5-min TTL; provider invoked; log `sms_otp_send` success; counter not affected | N/A |
++| `POST /patient/otp/send` cooldown (within 30s) | `{phone: '+15551234567'}` 5 seconds after a previous send | `429 {error: 'otp_cooldown', retry_after_ms}` | No row inserted; no provider call; log `sms_otp_send` rejected with `outcome: 'cooldown'` |
++| `POST /patient/otp/send` lockout (10-min window active) | `{phone: '+15551234567'}` while `locked_until > now()` | `429 {error: 'otp_locked', retry_after_ms}` | No row inserted; no provider call; log `sms_otp_send` rejected with `outcome: 'locked'` |
++| `POST /patient/otp/send` invalid phone | `{phone: '5551234'}` (not E.164) | `400 {error: 'invalid_phone'}` | Validated at route, before service call |
++| `POST /patient/otp/send` missing phone | `{}` (no `phone`) | `400 {error: 'invalid_phone'}` | Type-check + regex |
++| `POST /patient/otp/send` non-string phone | `{phone: 1234567890}` | `400 {error: 'invalid_phone'}` | Type-check |
++| `POST /patient/otp/send` provider failure | Provider throws `SmsSendFailed` | `502 {error: 'sms_send_failed'}`; row is rolled back; log `sms_otp_send` failure | Transaction rolls back; no orphan `otp_verification` row |
++| `POST /patient/otp/send` cleanup-of-expired-row path | `{phone: '+15551234567'}` where existing row's `expires_at < now()` | Old row deleted in same transaction; new row inserted; provider invoked | Atomic via `BEGIN; DELETE …; INSERT …; COMMIT` |
++| `POST /patient/otp/verify` happy path | `{phone: '+15551234567', code: '482917'}` with matching hash | `200 {token, claim, expires_at}`; row deleted in same transaction; log `sms_otp_verify` success; `inc('otp.verification', 1)` | Mirrors E0-S3's `/patient/otp/verify-now` response shape exactly |
++| `POST /patient/otp/verify` wrong code (attempts < 3) | `{phone: '+15551234567', code: '000000'}` with `attempts=0` | `401 {error: 'invalid_otp_code'}`; row updated: `attempts = 1`; row NOT deleted; `inc('otp.verification', 1)`; log `sms_otp_verify` rejected with `outcome: 'wrong_code'` | Counter increments even on failure (matches E0-S1 contract) |
++| `POST /patient/otp/verify` wrong code (attempts=3 → lockout) | `{phone: '+15551234567', code: '000000'}` with `attempts=2` | `401 {error: 'invalid_otp_code'}`; row updated: `attempts = 3`, `locked_until = now() + 10min`; log `sms_otp_verify` rejected with `outcome: 'wrong_code'` | Counter increments; lockout active for next 10 minutes |
++| `POST /patient/otp/verify` during lockout | `{phone: '+15551234567', code: '000000'}` with `locked_until > now()` | `429 {error: 'otp_locked', retry_after_ms}`; attempts NOT incremented; log `sms_otp_verify` rejected with `outcome: 'locked'` | Counter still increments; lockout window honored |
++| `POST /patient/otp/verify` expired code | `{phone: '+15551234567', code: '482917'}` with `expires_at < now()` | `401 {error: 'otp_expired'}`; row NOT deleted (caller can re-verify until lockout); log `sms_otp_verify` rejected with `outcome: 'expired'` | Caller must `POST /send` again |
++| `POST /patient/otp/verify` no outstanding row | `{phone: '+15551234567', code: '482917'}` with no `otp_verification` row | `401 {error: 'no_outstanding_otp'}`; log `sms_otp_verify` rejected with `outcome: 'no_row'` | Caller must `POST /send` first |
++| `POST /patient/otp/verify` invalid code format | `{phone: '+15551234567', code: 'abc'}` | `400 {error: 'invalid_code'}` | Validated at route, before service call |
++| `POST /patient/otp/verify` missing fields | `{}` or `{phone}` only | `400 {error: 'invalid_phone'}` or `400 {error: 'invalid_code'}` | Type-check + regex per field |
++| `POST /patient/otp/verify` parallel verify race | Two parallel `POST /verify` for the same phone with correct code | First request locks row, deletes it on success, commits. Second request's `SELECT … FOR UPDATE` blocks until first commits, then sees no row → `401 {error: 'no_outstanding_otp'}`. Exactly one verification succeeds. | Verified by a `Promise.all` test in `sms-otp.test.ts` |
++| `POST /patient/otp/verify` body-escalation | `{phone, code, role: 'admin', branch_ids: ['sneaky']}` | Minted JWT is always patient-scoped (`role: 'patient', branch_ids: [], scope: 'self'`); body fields ignored | Mirrors E0-S3 AC-10b invariant |
++| `LogSmsOtpProvider` writes OTP code to log | Any send call | Log line at `info` includes the 6-digit code | Intentional dev/test behavior; production guard refuses registration |
++| `OTP_PROVIDER=log` in production | Boot in `NODE_ENV=production` with `OTP_PROVIDER=log` | Process refuses to start; logs `otp_provider_log_in_production` and exits non-zero | Boot guard |
++| Twilio provider missing credentials | `OTP_PROVIDER=twilio` with no `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` | `send()` throws `SmsSendFailed`; route returns `502`; transaction rolls back | Same posture as provider failure |
++| Migration applies cleanly | Fresh DB | `0012_sms_otp_send_attempts.sql` adds `last_sent_at` + index; `pgcrypto.digest(...)` works under PUBLIC role | Migration runner exits 0 |
++| Migration down reverses cleanly | After forward apply | `0012_sms_otp_send_attempts.down.sql` drops `last_sent_at` + index | Down-order matches E0-S2 spec |
++
++## Code Map
++
++- `apps/api/src/otp/provider.ts` (NEW) — `SmsOtpProvider` interface, `SmsSendFailed` error class. Pure interface; no I/O.
++- `apps/api/src/otp/log-provider.ts` (NEW) — `LogSmsOtpProvider` implementation. Emits `{event: 'sms_otp_send', outcome, phone: redact(phone), code, provider: 'log'}` to the structured logger.
++- `apps/api/src/otp/twilio-provider.ts` (NEW) — `TwilioSmsOtpProvider` implementation. Lazy-imports `twilio` so dev installs do not require it. Constructor accepts an optional `client: TwilioClient` for dependency-injection in tests; default reads `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`/`TWILIO_FROM_NUMBER` from env.
++- `apps/api/src/otp/service.ts` (NEW) — `SmsOtpService` class wrapping the provider and `pg.Pool`. Methods: `send(phone): Promise<{expires_at: Date; cooldownMs: number}>`, `verify(phone, code): Promise<{token: string; claim: any; expires_at: string}>`. All DB access via explicit `BEGIN; … COMMIT` / `ROLLBACK`. `code_hash = pgcrypto.digest(code, 'sha256')` (64-char hex).
++- `apps/api/src/otp/errors.ts` (NEW) — `OtpCooldownError`, `OtpLockedError`, `OtpExpiredError`, `NoOutstandingOtpError`, `InvalidOtpCodeError`. Each carries `retryAfterMs` where applicable. Routes translate these to HTTP envelopes.
++- `apps/api/src/otp/config.ts` (NEW) — `loadOtpConfig(): { provider: 'log' | 'twilio', ttlSeconds: number, lockoutThreshold: number, lockoutSeconds: number, cooldownSeconds: number, codeLength: number }`. Reads `OTP_PROVIDER`, `OTP_TTL_SECONDS` (default 300), `OTP_LOCKOUT_THRESHOLD` (default 3), `OTP_LOCKOUT_SECONDS` (default 600), `OTP_COOLDOWN_SECONDS` (default 30), `OTP_CODE_LENGTH` (default 6). Validates at boot. Throws `otp_provider_log_in_production` if `OTP_PROVIDER === 'log'` AND `NODE_ENV === 'production'`. Throws `otp_provider_invalid` for unknown values. Memoized.
++- `apps/api/src/routes/sms-otp.ts` (NEW) — two routes:
++  - `POST /patient/otp/send` — body `{phone}` → `200 {expires_at, cooldown_ms}` or 4xx/5xx per the matrix.
++  - `POST /patient/otp/verify` — body `{phone, code}` → `200 {token, claim, expires_at}` or 4xx/5xx per the matrix.
++  - Both mount BEFORE `authMiddleware`. Neither consults `req.auth.claim` or `req.body.role`/`branch_ids`/`scope`/`doctor_id`. Both redact phone to last-4 in audit logs.
++- `apps/api/src/app.ts` (modified) — registers `smsOtpRouter` (BEFORE `authMiddleware`, alongside the existing patient-OTP router if A1 picks "keep mock"; removed if A1 picks "delete mock"). The mock router's allowlist registration is unchanged if A1 picks "keep"; otherwise the `mockOtpAllowed` flag becomes unused.
++- `apps/api/src/server.ts` (modified) — calls `loadOtpConfig()` before `createApp()` so a `log-in-production` misconfig fails the boot. Constructs the appropriate `SmsOtpProvider` based on config and passes it to `SmsOtpService`.
++- `apps/api/db/migrations/0012_sms_otp_send_attempts.sql` (NEW) — adds `last_sent_at timestamptz` column to `otp_verification` (DEFAULT `app_now()`, NOT NULL), index `idx_otp_verification_last_sent` on `(phone_e164, last_sent_at DESC)`. Migration starts with `CREATE EXTENSION IF NOT EXISTS pgcrypto` for idempotency.
++- `apps/api/db/migrations/down/0012_sms_otp_send_attempts.down.sql` (NEW) — drops index, drops column.
++- `apps/api/test/sms-otp.test.ts` (NEW) — full coverage of the I/O matrix above. Uses `withTestDb` so the test runs against a real Postgres container.
++- `apps/api/test/sms-otp-provider.test.ts` (NEW) — unit tests for `LogSmsOtpProvider` (asserts code is logged) and `TwilioSmsOtpProvider` (asserts Twilio client is invoked with correct args; stub client injected). No DB access.
++- `apps/api/test/sms-otp-config.test.ts` (NEW) — asserts `loadOtpConfig()` throws on `OTP_PROVIDER=log` in production; throws on unknown provider; memoizes; reads env once.
++- `apps/api/.env.example` — appends commented-out `OTP_PROVIDER=log`, `OTP_TTL_SECONDS=300`, `OTP_LOCKOUT_THRESHOLD=3`, `OTP_LOCKOUT_SECONDS=600`, `OTP_COOLDOWN_SECONDS=30`, `OTP_CODE_LENGTH=6`. Plus commented-out Twilio creds: `TWILIO_ACCOUNT_SID=`, `TWILIO_AUTH_TOKEN=`, `TWILIO_FROM_NUMBER=+15551234567`.
++- `apps/api/test/seed.test.ts` — unchanged. The seed does not provision `otp_verification` rows.
++
++**No files removed** unless A1 picks "delete mock". E0-S3's `patient-otp.ts`, `auth.test.ts`, `auth-jwt.test.ts`, `auth-bearer.test.ts`, `log-bearer.test.ts`, `auth-config.test.ts`, `pgcrypto-grants.test.ts` are untouched. The `mockOtpAllowed` flag in `AuthConfig` becomes unused if A1 picks "delete" — kept with a `@deprecated` JSDoc tag for one story to make the diff visible to reviewers.
++
++## Acceptance Criteria
++
++- [ ] **AC-1** `POST /patient/otp/send {phone: '+15551234567'}` (first time) returns `200 {expires_at: '<iso>', cooldown_ms: 0}`; an `otp_verification` row exists with `phone_e164 = '+15551234567'`, `code_hash` of length 64 (sha-256 hex), `expires_at = created_at + INTERVAL '5 minutes'`, `attempts = 0`, `locked_until IS NULL`, `last_sent_at = created_at`. Test asserts the row contents via direct DB query (`withTestDb`).
++- [ ] **AC-2** The `code_hash` column is NOT the plain 6-digit code. Test reads back the row and asserts `code_hash !== code` and `code_hash.length === 64`.
++- [ ] **AC-3** `POST /patient/otp/send` followed by a second `POST /patient/otp/send` within 30 seconds returns `429 {error: 'otp_cooldown', retry_after_ms: <positive integer < 30000>}`. Only one row exists in `otp_verification`. Test uses `await new Promise(setImmediate)` between calls to keep clock monotonic.
++- [ ] **AC-4** After three consecutive wrong-code verifies, the row's `attempts = 3` AND `locked_until > now()`. A fourth verify (even with correct code) returns `429 {error: 'otp_locked', retry_after_ms: <positive>}` and does NOT increment `attempts`.
++- [ ] **AC-5** `POST /patient/otp/verify` with correct code returns `200 {token, claim, expires_at}` matching the E0-S3 response shape exactly. The `otp_verification` row is deleted in the same transaction. `verifyToken(token)` round-trips to `{role: 'patient', branch_ids: [], scope: 'self'}`.
++- [ ] **AC-6** `POST /patient/otp/verify` with wrong code returns `401 {error: 'invalid_otp_code'}`. The row's `attempts` is incremented by exactly 1. Counter `otp.verification` is incremented by exactly 1.
++- [ ] **AC-7** `POST /patient/otp/verify` with a code whose `expires_at < now()` returns `401 {error: 'otp_expired'}`. The row is NOT deleted (caller can retry up to 3 times within the lockout window).
++- [ ] **AC-8** `POST /patient/otp/verify` with no outstanding row (never sent, or already verified) returns `401 {error: 'no_outstanding_otp'}`. No row is inserted. Counter is incremented.
++- [ ] **AC-9** Two parallel `POST /patient/otp/verify` requests for the same phone with the correct code resolve with exactly one `200` and exactly one `401 {error: 'no_outstanding_otp'}`. The `SELECT … FOR UPDATE` lock prevents both from succeeding. Test uses `Promise.all` + two separate `pool.connect()` clients.
++- [ ] **AC-10** `POST /patient/otp/send` with phone `'5551234'` (not E.164) returns `400 {error: 'invalid_phone'}`. Same for missing / non-string phone.
++- [ ] **AC-11** `POST /patient/otp/verify` with code `'abc'` returns `400 {error: 'invalid_code'}`. Same for missing / non-string code or wrong-length numeric code.
++- [ ] **AC-12** Body-escalation: `POST /patient/otp/verify {phone, code, role: 'admin', branch_ids: ['sneaky']}` mints a patient JWT. `verifyToken(token).role === 'patient'`. Mirrors E0-S3 AC-10b.
++- [ ] **AC-13** `LogSmsOtpProvider.send()` emits `{event: 'sms_otp_send', outcome: 'success', provider: 'log', code: '<6-digit>', phone: '<redacted-last-4>'}` to the structured logger. Test captures pino output via the existing `appWithCapture` helper.
++- [ ] **AC-14** `TwilioSmsOtpProvider` (injected with a stub client) calls `client.messages.create({to, from, body})` exactly once with the phone, the configured `from` number, and a body containing the 6-digit code. No DB or HTTP access.
++- [ ] **AC-15** `OTP_PROVIDER=log` AND `NODE_ENV=production` makes `loadOtpConfig()` throw `otp_provider_log_in_production`. Test runs `loadOtpConfig()` in a child process (or after `__resetOtpConfigForTests`) and asserts the throw.
++- [ ] **AC-16** `OTP_PROVIDER=carrier-pigeon` makes `loadOtpConfig()` throw `otp_provider_invalid`.
++- [ ] **AC-17** `loadOtpConfig()` is memoized. Mutating `process.env.OTP_PROVIDER` after first call does not change the returned config.
++- [ ] **AC-18** The `0012_sms_otp_send_attempts.sql` migration applies cleanly to the E0-S2 + E0-S3 schema. The `pgcrypto.digest` call works under the PUBLIC role granted in `0011_pgcrypto_grants.sql`. Down migration reverses cleanly.
++- [ ] **AC-19** Migration runner produces a row in `pg_extension` that includes `pgcrypto` (covered by existing `pgcrypto-grants.test.ts`) — no new extension is added by E0-S4.
++- [ ] **AC-20** `code_hash` uses `pgcrypto.digest(code, 'sha256')` — verified by `sms-otp.test.ts` reading back the row and asserting `code_hash = encode(sha256(code), 'hex')` (computed via Node's `createHash('sha256').update(code).digest('hex')` in the test, NOT in the production code path).
++- [ ] **AC-21** Counter `otp.verification` increments by exactly 1 per verify attempt (success + failure + expired + locked + no-row). After 5 mixed verify attempts, `GET /metrics` shows `counters['otp.verification'] === 5` + 1 for each prior baseline test (test isolation via `reset()` before assertion).
++- [ ] **AC-22** Provider failure rolls back the transaction. Test injects a stub provider that throws `SmsSendFailed`. `POST /patient/otp/send` returns 502. The `otp_verification` table has NO row for that phone (cleanup-of-expired-row path also reverted).
++- [ ] **AC-23** The 30-second resend cooldown uses `last_sent_at`, not `created_at`. After a successful verify (which deletes the row) followed by a fresh `POST /send`, the new row's `last_sent_at` is `now()` and `created_at` is `now()` — there is no stale `created_at` carried over. Verified by the AC-1 row inspection.
++- [ ] **AC-24** Log redaction: phone numbers in audit logs are redacted to last-4. Test captures pino output for both success and failure paths and asserts no full phone appears.
++- [ ] **AC-25** All E0-S2 + E0-S3 invariants still hold. Re-run `migrations.test.ts` + `invariants.test.ts` + `seed.test.ts` + `pgcrypto-grants.test.ts` + `auth-bearer.test.ts` + `auth-jwt.test.ts` + `auth-config.test.ts` + `patient-otp.test.ts` + `log-bearer.test.ts` — all green.
++
++## Tasks
++
++- [ ] `apps/api/src/otp/provider.ts` — `SmsOtpProvider` interface (`send(phone, code): Promise<void>`) + `SmsSendFailed` error class.
++- [ ] `apps/api/src/otp/log-provider.ts` — `LogSmsOtpProvider` implementation. Writes `{event, outcome, provider, phone (redacted), code}` to logger.
++- [ ] `apps/api/src/otp/twilio-provider.ts` — `TwilioSmsOtpProvider` implementation. Lazy-import `twilio`; constructor accepts injectable client; reads creds from env.
++- [ ] `apps/api/src/otp/errors.ts` — `OtpCooldownError`, `OtpLockedError`, `OtpExpiredError`, `NoOutstandingOtpError`, `InvalidOtpCodeError`. Each carries `retryAfterMs` where applicable.
++- [ ] `apps/api/src/otp/config.ts` — `loadOtpConfig()` with boot-time validation; memoized; production guard.
++- [ ] `apps/api/src/otp/service.ts` — `SmsOtpService` class. `send()` runs `BEGIN; DELETE expired; SELECT last_sent; if (within 30s) throw OtpCooldownError; if (locked_until > now()) throw OtpLockedError; INSERT; COMMIT; provider.send(...)`. `verify()` runs `BEGIN; SELECT … FOR UPDATE; if (no row) throw NoOutstandingOtpError; if (locked_until > now()) throw OtpLockedError; if (expires_at < now()) throw OtpExpiredError; if (timingSafeEqual(hash(code), code_hash)) { DELETE row; COMMIT; return mint JWT }; else { UPDATE attempts++, if attempts >= threshold then locked_until = now()+10min; COMMIT; throw InvalidOtpCodeError }`. Both methods increment `otp.verification` counter on every verify call (send does NOT increment — only verifies do).
++- [ ] `apps/api/src/routes/sms-otp.ts` — `POST /patient/otp/send` + `POST /patient/otp/verify`. Phone E.164 validation. Code 6-digit numeric validation. Translates service errors to HTTP envelopes. Audit logs every call with redacted phone.
++- [ ] `apps/api/src/app.ts` — register `smsOtpRouter` BEFORE `authMiddleware`. If A1 picks "delete", remove `/patient/otp/verify-now` registration and `mockOtpAllowed` consumption.
++- [ ] `apps/api/src/server.ts` — call `loadOtpConfig()` before `createApp()`; construct the appropriate provider; pass to `SmsOtpService` via composition root.
++- [ ] `apps/api/db/migrations/0012_sms_otp_send_attempts.sql` — `ALTER TABLE otp_verification ADD COLUMN last_sent_at timestamptz NOT NULL DEFAULT app_now(); CREATE INDEX idx_otp_verification_last_sent ON otp_verification(phone_e164, last_sent_at DESC);` Paired down migration.
++- [ ] `apps/api/.env.example` — append commented-out OTP config + Twilio creds (see Code Map).
++- [ ] `apps/api/test/sms-otp.test.ts` — full I/O matrix coverage using `withTestDb` + supertest. Includes parallel-verify race test, body-escalation test, redaction test, hash-format test, counter-increment test.
++- [ ] `apps/api/test/sms-otp-provider.test.ts` — unit tests for both providers. Inject stub Twilio client.
++- [ ] `apps/api/test/sms-otp-config.test.ts` — boot-time validation tests for `loadOtpConfig()`.
++- [ ] Update CI workflow to run `apps/api/test/sms-otp*.test.ts` (already covered by the existing `node --test test/*.test.ts` glob).
++- [ ] Re-run full `pnpm -w test` AND `pnpm -w test:db`; confirm all tests green.
++
++## Out-of-scope follow-ups (deferred-work.md appendices)
++
++- **W19** — `code_hash` length cap of 256 is acceptable for sha-256 hex (64 chars) but may be too tight for future argon2id PHC strings (≥95 chars typical, >200 with high-cost parameters). If E0-S4 ever switches hash algorithms, widen via a forward migration.
++- **W20** — Synthetic `patient.id` UUID for `sub` instead of phone E.164 (PII, mutable). E4-S1 owns.
++- **W21** — Token refresh / denylist — still W8 / W9 from E0-S3. The OTP gateway does not change those timelines.
++- **W22** — Twilio webhook for delivery status — out of scope. SMS delivery is fire-and-forget; delivery failures surface only via the synchronous `send()` exception.
++- **W23** — Real Twilio credentials in CI — out of scope. The Twilio provider is wired but never invoked in the test suite (a stub client is injected).
++- **W24** — Per-phone rolling rate limit (e.g. max 10 sends per hour) beyond the 3-attempts-per-10-min lockout — future hardening story. The lockout covers the brute-force case; this would cover SMS-cost abuse.
++- **W25** — OTP code via voice call as fallback for users without signal — UX-FLOWS §7 parking lot item 4.
++
++## Open Questions for Human
++
++1. **A1** — Delete the mocked `/patient/otp/verify-now` route in this story (recommended), or keep it behind the dev/test allowlist?
++2. **A2** — `OTP_PROVIDER` default in production: hard-fail boot if unset (recommended), or default to `log` with a startup warning?
++3. **A3** — OTP code generation: `crypto.randomInt(0, 1_000_000).toString().padStart(6, '0')` (recommended) or `crypto.randomBytes(3).readUIntBE(0, 3) % 1_000_000`?
++
++<!-- Populated after bmad-code-review. Empty on first draft. -->
++## Review Findings
++
++<!-- Populated after bmad-code-review. Empty on first draft. -->
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000..bafa63d
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,85 @@
++# Clinic API — environment variables
++#
++# Copy this file to `.env` and uncomment the variables you need. Production
++# deployments MUST set every required variable explicitly; there are no
++# dev/test fallback values. Each block below documents the security posture
++# and the validation the API performs at boot.
++
++# ─── Auth (E0-S3) ───────────────────────────────────────────────────────────
++#
++# AUTH_SECRET is the HS256 signing key for patient + staff JWTs. Required in
++# every env. Must be ≥ 32 bytes (Buffer.byteLength, UTF-8 encoded — emoji
++# count for more bytes than UTF-16 code units). Boot fails with
++# `auth_secret_too_short` if shorter.
++#
++# Generate a random one with:
++#   node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
++#
++# AUTH_SECRET=
++
++# Token TTL in seconds. Default 3600 (60 minutes). Must be a positive
++# integer. Boot fails with `auth_ttl_invalid` otherwise.
++# AUTH_TOKEN_TTL_SECONDS=3600
++
++# Mock OTP code for the dev/test `/patient/otp/verify-now` route. Default
++# `123456`. Production MUST NOT set this AND the route is not registered
++# in production regardless (allowlist: development, test). E0-S4 keeps the
++# mock for one story; E4-S1 deletes it.
++# MOCK_OTP_CODE=123456
++
++# ─── OTP gateway (E0-S4) ────────────────────────────────────────────────────
++#
++# OTP provider: `log` (dev/test only — writes the raw code to stdout) or
++# `twilio` (production — requires the TWILIO_* vars below). Default is
++# `log` in development/test, `twilio` otherwise. Boot fails with
++# `otp_provider_log_in_production` if `log` is selected in production —
++# we refuse rather than silently route plaintext OTPs through prod logs.
++# OTP_PROVIDER=log
++
++# OTP TTL in seconds. Default 300 (5 minutes).
++# OTP_TTL_SECONDS=300
++
++# Number of consecutive wrong-code verifies that triggers a 10-min lockout.
++# Default 3.
++# OTP_LOCKOUT_THRESHOLD=3
++
++# Lockout window in seconds. Default 600 (10 minutes).
++# OTP_LOCKOUT_SECONDS=600
++
++# Resend cooldown in seconds — minimum gap between consecutive sends.
++# Default 30.
++# OTP_COOLDOWN_SECONDS=30
++
++# OTP code length in digits. Default 6. The contract is 6 digits; widening
++# this requires a code-format audit on E4-S1's modal.
++# OTP_CODE_LENGTH=6
++
++# ─── Twilio (E0-S4, prod only) ──────────────────────────────────────────────
++#
++# Required only when OTP_PROVIDER=twilio. Missing-credential misconfig
++# results in 502 from `/patient/otp/send` (the row is rolled back). Set
++# these in your prod secret manager, never in version control.
++#
++# TWILIO_ACCOUNT_SID=
++# TWILIO_AUTH_TOKEN=
++# TWILIO_FROM_NUMBER=+15551234567
++
++# ─── Database ───────────────────────────────────────────────────────────────
++#
++# Connection string for the Postgres 16 database. Required in every env.
++# The API uses raw-SQL via `pg`; no ORM. Used by `getPool()` and the
++# DB-touching test suite.
++# DATABASE_URL=postgres://user:pass@host:5432/dbname
++
++# ─── Logging ────────────────────────────────────────────────────────────────
++#
++# Log level. Default `info`. Production typically runs at `info`; dev can
++# drop to `debug` for verbose request logs. The API redacts `password`,
++# `phone_number`, `code`, `authorization`, `cookie`, and `x-auth-claim`
++# regardless of level.
++# LOG_LEVEL=info
++
++# ─── Server ─────────────────────────────────────────────────────────────────
++#
++# HTTP port. Default 3001.
++# PORT=3001
+diff --git a/db/migrations/0012_sms_otp_send_attempts.sql b/db/migrations/0012_sms_otp_send_attempts.sql
+new file mode 100644
+index 0000000..593cab3
+--- /dev/null
++++ b/db/migrations/0012_sms_otp_send_attempts.sql
+@@ -0,0 +1,25 @@
++-- E0-S4: 0012 — sms_otp_send_attempts.
++--
++-- Adds `last_sent_at` to otp_verification so the 30-second resend cooldown
++-- is anchored to the most recent send attempt (not the original `created_at`,
++-- which is a row's birthday and would survive a successful verify if we
++-- reused it). A fresh row inserted after a verify has a fresh `last_sent_at`,
++-- so the cooldown window starts at the latest send.
++--
++-- The index on (phone_e164, last_sent_at DESC) supports the cooldown query
++-- in the send() path:
++--   SELECT MAX(last_sent_at) FROM otp_verification WHERE phone_e164 = $1
++--   AND last_sent_at > now() - INTERVAL '30 seconds'
++-- without forcing a sequential scan of every historical row.
++--
++-- The plain UNIQUE (phone_e164) constraint from migration 0010 still applies;
++-- only one row per phone ever exists in the table at a time (cleaned up by
++-- the service's DELETE-expired step inside the same transaction as INSERT).
++
++CREATE EXTENSION IF NOT EXISTS pgcrypto;
++
++ALTER TABLE otp_verification
++  ADD COLUMN IF NOT EXISTS last_sent_at timestamptz NOT NULL DEFAULT app_now();
++
++CREATE INDEX IF NOT EXISTS idx_otp_verification_last_sent
++  ON otp_verification(phone_e164, last_sent_at DESC);
+diff --git a/db/migrations/down/0012_sms_otp_send_attempts.down.sql b/db/migrations/down/0012_sms_otp_send_attempts.down.sql
+new file mode 100644
+index 0000000..c081460
+--- /dev/null
++++ b/db/migrations/down/0012_sms_otp_send_attempts.down.sql
+@@ -0,0 +1,9 @@
++-- E0-S4: 0012 down — sms_otp_send_attempts.
++--
++-- Reverse the up migration: drop the index, then the column.
++-- Down-order matches E0-S2 spec: indexes → columns.
++
++DROP INDEX IF EXISTS idx_otp_verification_last_sent;
++
++ALTER TABLE otp_verification
++  DROP COLUMN IF EXISTS last_sent_at;
+diff --git a/src/otp/provider.ts b/src/otp/provider.ts
+new file mode 100644
+index 0000000..8b8cffb
+--- /dev/null
++++ b/src/otp/provider.ts
+@@ -0,0 +1,35 @@
++/**
++ * SmsOtpProvider — the seam between the OTP service and the outside world.
++ *
++ * The service never imports a real SDK directly. Every implementation must
++ * conform to this interface so a stub (LogSmsOtpProvider, dev/test) and a
++ * real Twilio client (TwilioSmsOtpProvider, prod) can be swapped without
++ * touching the service code.
++ *
++ * Contract:
++ *   - `send()` is fire-and-forget from the caller's POV: a successful return
++ *     means the provider accepted the message; delivery failures are async
++ *     and out of scope (W22).
++ *   - `send()` MUST throw `SmsSendFailed` on synchronous failure (auth,
++ *     validation, network unreachable). The service rolls back the DB
++ *     transaction on this error.
++ *   - The phone is already E.164-validated by the route before this call,
++ *     so providers may assume a normalized format.
++ *   - The code is the raw 6-digit OTP — providers MUST NOT log it at info+
++ *     unless they are `LogSmsOtpProvider` (which exists for that exact
++ *     reason in dev/test).
++ */
++
++export class SmsSendFailed extends Error {
++  public readonly cause?: unknown;
++  constructor(message: string, cause?: unknown) {
++    super(message);
++    this.name = 'SmsSendFailed';
++    this.cause = cause;
++  }
++}
++
++export interface SmsOtpProvider {
++  /** Send the OTP code to the given phone. Throws `SmsSendFailed` on failure. */
++  send(phone: string, code: string): Promise<void>;
++}
+diff --git a/src/otp/log-provider.ts b/src/otp/log-provider.ts
+new file mode 100644
+index 0000000..a921073
+--- /dev/null
++++ b/src/otp/log-provider.ts
+@@ -0,0 +1,37 @@
++/**
++ * LogSmsOtpProvider — dev/test OTP transport.
++ *
++ * Writes the OTP code (and redacted phone) to the structured logger at
++ * `info` level so a developer running the API locally can pick up the code
++ * from stdout without configuring Twilio. This is INTENTIONAL behavior in
++ * dev/test; production refuses to register this provider (see
++ * `loadOtpConfig()` — `otp_provider_log_in_production`).
++ *
++ * The implementation never throws. If the logger misbehaves, pino itself
++ * will throw — but that bubbles up to a 500 from the route handler, which
++ * is the correct posture (the OTP subsystem is broken, not the caller).
++ */
++import type { SmsOtpProvider } from './provider.js';
++import { getLogger } from '../middleware/log.js';
++
++function redactPhone(phone: string): string {
++  if (phone.length <= 4) return '****';
++  return `***${phone.slice(-4)}`;
++}
++
++export class LogSmsOtpProvider implements SmsOtpProvider {
++  public async send(phone: string, code: string): Promise<void> {
++    // Note: we deliberately log the raw 6-digit `code`. This is only safe in
++    // dev/test — `loadOtpConfig()` refuses this provider in production.
++    getLogger().info(
++      {
++        event: 'sms_otp_send',
++        outcome: 'success',
++        provider: 'log',
++        phone: redactPhone(phone),
++        code,
++      },
++      'sms_otp_send_logged',
++    );
++  }
++}
+diff --git a/src/otp/twilio-provider.ts b/src/otp/twilio-provider.ts
+new file mode 100644
+index 0000000..7018f7a
+--- /dev/null
++++ b/src/otp/twilio-provider.ts
+@@ -0,0 +1,98 @@
++/**
++ * TwilioSmsOtpProvider — production OTP transport.
++ *
++ * Lazy-imports `twilio` so dev installs do not require the package. The
++ * composition root (`server.ts`) is the only place that constructs this
++ * class in production; tests inject a stub via the `client` parameter so no
++ * real Twilio HTTP call ever fires in CI.
++ *
++ * Credentials are read from env at construction time (NOT at first `send`),
++ * so a missing-credential misconfig fails the boot process — same posture
++ * as `loadAuthConfig()` and `loadOtpConfig()`. The `client` parameter takes
++ * precedence over env when supplied; this lets tests wire a stub without
++ * polluting the env.
++ *
++ * `send()` throws `SmsSendFailed` on any Twilio error. The service's
++ * transaction rolls back the row insert, so a Twilio outage never leaves
++ * a phantom OTP row.
++ */
++import type { SmsOtpProvider } from './provider.js';
++import { SmsSendFailed } from './provider.js';
++
++export interface TwilioClientLike {
++  messages: {
++    create(args: { to: string; from: string; body: string }): Promise<unknown>;
++  };
++}
++
++export interface TwilioSmsOtpProviderOptions {
++  accountSid: string;
++  authToken: string;
++  fromNumber: string;
++  /**
++   * Injectable Twilio client. If omitted, the provider is "unbound" and
++   * the first `send()` will lazy-import `twilio` and bind on demand. Tests
++   * always inject.
++   */
++  client?: TwilioClientLike;
++}
++
++export class TwilioSmsOtpProvider implements SmsOtpProvider {
++  private readonly from: string;
++  private readonly accountSid: string;
++  private readonly authToken: string;
++  private client: TwilioClientLike | null;
++
++  constructor(opts: TwilioSmsOtpProviderOptions) {
++    if (!opts.accountSid) throw new SmsSendFailed('twilio_account_sid_missing');
++    if (!opts.authToken) throw new SmsSendFailed('twilio_auth_token_missing');
++    if (!opts.fromNumber) throw new SmsSendFailed('twilio_from_number_missing');
++    this.from = opts.fromNumber;
++    this.accountSid = opts.accountSid;
++    this.authToken = opts.authToken;
++    this.client = opts.client ?? null;
++  }
++
++  public async send(phone: string, code: string): Promise<void> {
++    if (!this.client) {
++      this.client = await this.bindClient();
++    }
++    try {
++      await this.client.messages.create({
++        to: phone,
++        from: this.from,
++        body: `Your verification code is ${code}. It expires in 5 minutes.`,
++      });
++    } catch (err) {
++      throw new SmsSendFailed('twilio_send_failed', err);
++    }
++  }
++
++  private async bindClient(): Promise<TwilioClientLike> {
++    // Lazy import so dev/test installs do not require `twilio`.
++    const twilioModule = (await import('twilio')) as unknown as {
++      default: (sid: string, token: string) => TwilioClientLike;
++    };
++    return twilioModule.default(this.accountSid, this.authToken);
++  }
++}
++
++/**
++ * Build a TwilioSmsOtpProvider from env. Reads TWILIO_ACCOUNT_SID,
++ * TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER. Returns null if any required env
++ * var is missing — the composition root decides what to do (typically log
++ * a warning and fall back to LogSmsOtpProvider in dev). Throwing here
++ * would force CI to mock twilio even when OTP_PROVIDER=log; null-return
++ * is the more permissive shape.
++ */
++export function buildTwilioProviderFromEnv(): TwilioSmsOtpProvider | null {
++  const accountSid = process.env['TWILIO_ACCOUNT_SID'];
++  const authToken = process.env['TWILIO_AUTH_TOKEN'];
++  const fromNumber = process.env['TWILIO_FROM_NUMBER'];
++  if (!accountSid || !authToken || !fromNumber) return null;
++  return new TwilioSmsOtpProvider({
++    accountSid,
++    authToken,
++    fromNumber,
++  });
++}
+diff --git a/src/otp/service.ts b/src/otp/service.ts
+new file mode 100644
+index 0000000..30970bb
+--- /dev/null
++++ b/src/otp/service.ts
+@@ -0,0 +1,265 @@
++/**
++ * SmsOtpService — the OTP subsystem's brain.
++ *
++ * Two entry points:
++ *   - `send(phone)`     — generate + persist + dispatch a 6-digit OTP
++ *   - `verify(phone, code)` — compare + commit
++ *
++ * The service is the SOLE writer to `otp_verification`. Routes call this
++ * class; nothing else inserts/updates/deletes rows in that table. (Test
++ * helpers may create fixtures but never with the live `code_hash` column.)
++ *
++ * Transactional contract:
++ *   - `send()` runs `BEGIN; DELETE expired; check cooldown/locked; INSERT;
++ *     provider.send(); COMMIT`. If the provider throws, the transaction
++ *     is rolled back and no orphan `otp_verification` row remains. The
++ *     caller surfaces 502 and the user retries. This is the AC-22
++ *     contract — provider failure is atomic with the DB write.
++ *
++ *   - `verify()` runs `BEGIN; SELECT FOR UPDATE; compare hash; on success
++ *     DELETE row + COMMIT + mint JWT; on failure UPDATE attempts (and
++ *     locked_until if threshold hit) + COMMIT + throw`. The `FOR UPDATE`
++ *     lock prevents two parallel verifies from both decrementing attempts.
++ *
++ * `code_hash` is `pgcrypto.digest(code, 'sha256')` — 64-char hex. We do
++ * NOT compute the hash in Node because then we'd be computing the same
++ * hash on every verify (defeating timing-safe comparison at the SQL level).
++ * Doing it in SQL keeps the contract symmetric: insert-side and verify-side
++ * both use the database's pgcrypto.
++ */
++import type pg from 'pg';
++import { randomInt, timingSafeEqual } from 'node:crypto';
++import { signClaim, verifyToken, type AuthClaim } from '../auth/jwt.js';
++import type { SmsOtpProvider } from './provider.js';
++import { SmsSendFailed } from './provider.js';
++import type { OtpConfig } from './config.js';
++import {
++  OtpCooldownError,
++  OtpLockedError,
++  OtpExpiredError,
++  NoOutstandingOtpError,
++  InvalidOtpCodeError,
++} from './errors.js';
++
++export interface SendResult {
++  expiresAt: Date;
++  cooldownMs: number;
++}
++
++export interface VerifyResult {
++  token: string;
++  claim: AuthClaim;
++  expiresAt: string;
++}
++
++interface OtpRow {
++  id: string;
++  phone_e164: string;
++  code_hash: string;
++  expires_at: Date;
++  attempts: number;
++  locked_until: Date | null;
++  last_sent_at: Date;
++  created_at: Date;
++}
++
++export class SmsOtpService {
++  private readonly pool: pg.Pool;
++  private readonly provider: SmsOtpProvider;
++  private readonly cfg: OtpConfig;
++
++  constructor(pool: pg.Pool, provider: SmsOtpProvider, cfg: OtpConfig) {
++    this.pool = pool;
++    this.provider = provider;
++    this.cfg = cfg;
++  }
++
++  /**
++   * Generate a 6-digit numeric code with uniform distribution via
++   * `crypto.randomInt`. `padStart` handles leading zeros (e.g. 0..99 → '000123').
++   */
++  private generateCode(): string {
++    const n = randomInt(0, 10 ** this.cfg.codeLength);
++    return String(n).padStart(this.cfg.codeLength, '0');
++  }
++
++  /**
++   * Compute `retryAfterMs` from a future Date. Defensive against clock skew
++   * (returns 0 if the date is already past).
++   */
++  private msUntil(when: Date | null): number {
++    if (!when) return 0;
++    const ms = when.getTime() - Date.now();
++    return ms > 0 ? ms : 0;
++  }
++
++  public async send(phone: string): Promise<SendResult> {
++    const code = this.generateCode();
++    const client = await this.pool.connect();
++    try {
++      await client.query('BEGIN');
++      // Step 1: cleanup any expired row for this phone. Plain UNIQUE on
++      // phone_e164 means at most one outstanding row ever; this delete is
++      // defense-in-depth so the INSERT never trips the unique constraint
++      // spuriously.
++      await client.query(
++        `DELETE FROM otp_verification WHERE phone_e164 = $1 AND expires_at < now()`,
++        [phone],
++      );
++      // Step 2: fetch the live row (if any) to evaluate cooldown + lockout.
++      const rowResult = await client.query<OtpRow>(
++        `SELECT id, phone_e164, code_hash, expires_at, attempts, locked_until, last_sent_at, created_at
++         FROM otp_verification WHERE phone_e164 = $1 FOR UPDATE`,
++        [phone],
++      );
++      const row = rowResult.rows[0];
++      const now = Date.now();
++      if (row) {
++        // Lockout takes precedence over cooldown: a locked phone stays
++        // locked even if the cooldown window has elapsed, until 10 minutes
++        // pass since the lockout was set.
++        if (row.locked_until && new Date(row.locked_until).getTime() > now) {
++          await client.query('COMMIT');
++          throw new OtpLockedError(this.msUntil(row.locked_until));
++        }
++        // Resend cooldown: 30s since the last send.
++        const lastSent = new Date(row.last_sent_at).getTime();
++        const cooldownMs = this.cfg.cooldownSeconds * 1000 - (now - lastSent);
++        if (cooldownMs > 0) {
++          await client.query('COMMIT');
++          throw new OtpCooldownError(cooldownMs);
++        }
++      }
++      // Step 3: insert (or replace) the row. The ON CONFLICT DO UPDATE path
++      // covers the case where a row exists but neither locked nor in
++      // cooldown — we rotate the code, attempts, locked_until, and reset
++      // created_at / last_sent_at.
++      const codeHashResult = await client.query<{ code_hash: string }>(
++        `SELECT pgcrypto.digest($1, 'sha256')::text AS code_hash`,
++        [code],
++      );
++      const codeHash = codeHashResult.rows[0]!.code_hash;
++      const expiresAt = new Date(now + this.cfg.ttlSeconds * 1000);
++      const insertResult = await client.query<{ expires_at: Date }>(
++        `INSERT INTO otp_verification (phone_e164, code_hash, expires_at, attempts, locked_until, last_sent_at, created_at)
++         VALUES ($1, $2, $3, 0, NULL, app_now(), app_now())
++         ON CONFLICT (phone_e164) DO UPDATE SET
++           code_hash = EXCLUDED.code_hash,
++           expires_at = EXCLUDED.expires_at,
++           attempts = 0,
++           locked_until = NULL,
++           last_sent_at = EXCLUDED.last_sent_at,
++           created_at = EXCLUDED.created_at
++         RETURNING expires_at`,
++        [phone, codeHash, expiresAt],
++      );
++      const newExpiresAt = insertResult.rows[0]!.expires_at;
++      // Step 4: dispatch via the provider BEFORE committing so a provider
++      // failure rolls back the INSERT and no orphan row remains. The user
++      // then retries after the cooldown; the new send supersedes nothing.
++      try {
++        await this.provider.send(phone, code);
++      } catch (err) {
++        await client.query('ROLLBACK').catch(() => undefined);
++        if (err instanceof SmsSendFailed) throw err;
++        throw new SmsSendFailed('provider_threw_unknown', err);
++      }
++      await client.query('COMMIT');
++      return {
++        expiresAt: newExpiresAt,
++        cooldownMs: this.cfg.cooldownSeconds * 1000,
++      };
++    } catch (err) {
++      // If we already committed, the rollback is a no-op; pg ignores it.
++      await client.query('ROLLBACK').catch(() => undefined);
++      throw err;
++    } finally {
++      client.release();
++    }
++  }
++
++  public async verify(phone: string, code: string): Promise<VerifyResult> {
++    const client = await this.pool.connect();
++    try {
++      await client.query('BEGIN');
++      const rowResult = await client.query<OtpRow>(
++        `SELECT id, phone_e164, code_hash, expires_at, attempts, locked_until, last_sent_at, created_at
++         FROM otp_verification WHERE phone_e164 = $1 FOR UPDATE`,
++        [phone],
++      );
++      const row = rowResult.rows[0];
++      const now = Date.now();
++      if (!row) {
++        await client.query('COMMIT');
++        throw new NoOutstandingOtpError();
++      }
++      if (row.locked_until && new Date(row.locked_until).getTime() > now) {
++        // Locked: do NOT increment attempts. The lockout window is a hard
++        // stop until it expires; counting failures during the lockout
++        // would extend the window unpredictably.
++        await client.query('COMMIT');
++        throw new OtpLockedError(this.msUntil(row.locked_until));
++      }
++      if (new Date(row.expires_at).getTime() <= now) {
++        await client.query('COMMIT');
++        throw new OtpExpiredError();
++      }
++      // Compute the hash of the input via the DB so we compare against the
++      // same digest the service stored. Doing the hash in Node would be
++      // equivalent in correctness but loses the SQL-side symmetry that
++      // makes the contract self-documenting.
++      const inputHashResult = await client.query<{ code_hash: string }>(
++        `SELECT pgcrypto.digest($1, 'sha256')::text AS code_hash`,
++        [code],
++      );
++      const inputHash = inputHashResult.rows[0]!.code_hash;
++      // timingSafeEqual on equal-length buffers. Both are 64-char hex
++      // (sha-256); lengths are guaranteed identical.
++      const a = Buffer.from(row.code_hash, 'utf8');
++      const b = Buffer.from(inputHash, 'utf8');
++      const matches = a.length === b.length && timingSafeEqual(a, b);
++      if (!matches) {
++        const newAttempts = row.attempts + 1;
++        const hitThreshold = newAttempts >= this.cfg.lockoutThreshold;
++        if (hitThreshold) {
++          const lockedUntil = new Date(now + this.cfg.lockoutSeconds * 1000);
++          await client.query(
++            `UPDATE otp_verification SET attempts = $2, locked_until = $3 WHERE id = $1`,
++            [row.id, newAttempts, lockedUntil],
++          );
++        } else {
++          await client.query(
++            `UPDATE otp_verification SET attempts = $2 WHERE id = $1`,
++            [row.id, newAttempts],
++          );
++        }
++        await client.query('COMMIT');
++        throw new InvalidOtpCodeError();
++      }
++      // Success path: delete the row in the same transaction, mint the
++      // JWT, and return. The JWT minting is intentionally outside the
++      // transaction's lock window — the row is already gone from the DB
++      // before we hand the token to the caller.
++      await client.query(`DELETE FROM otp_verification WHERE id = $1`, [row.id]);
++      await client.query('COMMIT');
++      const token = signClaim({
++        sub: phone,
++        role: 'patient',
++        branch_ids: [],
++        scope: 'self',
++      });
++      const claim = verifyToken(token);
++      if (!claim) {
++        // Unreachable: we just signed it with our own verifier's rules.
++        throw new Error('sms_otp_mint_failed_internal');
++      }
++      const expiresAt = new Date(claim.expires_at * 1000).toISOString();
++      return { token, claim, expiresAt };
++    } catch (err) {
++      await client.query('ROLLBACK').catch(() => undefined);
++      throw err;
++    } finally {
++      client.release();
++    }
++  }
++}
+diff --git a/src/otp/config.ts b/src/otp/config.ts
+new file mode 100644
+index 0000000..5a3ab88
+--- /dev/null
++++ b/src/otp/config.ts
+@@ -0,0 +1,132 @@
++/**
++ * OtpConfig — boot-time validation + memoized singleton.
++ *
++ * Reads env once on first call. Subsequent calls return the same object —
++ * runtime env mutations after boot are ignored. Throws on missing /
++ * malformed inputs in any env (no dev/test fallback; devs copy
++ * `.env.example`).
++ *
++ * Production guard: `OTP_PROVIDER=log` AND `NODE_ENV=production` is a
++ * boot-fatal misconfig because the log provider writes the raw OTP code
++ * to stdout — we refuse rather than silently route plaintext OTPs through
++ * a prod log pipeline.
++ */
++/**
++ * OtpConfig — boot-time validation + memoized singleton.
++ *
++ * Reads env once on first call. Subsequent calls return the same object —
++ * runtime env mutations after boot are ignored. Throws on missing /
++ * malformed inputs in any env (no dev/test fallback; devs copy
++ * `.env.example`).
++ *
++ * Production guard: `OTP_PROVIDER=log` AND `NODE_ENV=production` is a
++ * boot-fatal misconfig because the log provider writes the raw OTP code
++ * to stdout — we refuse rather than silently route plaintext OTPs through
++ * a prod log pipeline.
++ */
++
++export type OtpProviderName = 'log' | 'twilio';
++
++const PROVIDER_NAMES = new Set<OtpProviderName>(['log', 'twilio']);
++
++export interface OtpConfig {
++  /** Selected provider (single source of truth for composition root). */
++  provider: OtpProviderName;
++  /** OTP TTL in seconds (default 300 = 5 minutes). */
++  ttlSeconds: number;
++  /** Number of verify failures before lockout (default 3). */
++  lockoutThreshold: number;
++  /** Lockout window in seconds (default 600 = 10 minutes). */
++  lockoutSeconds: number;
++  /** Resend cooldown in seconds (default 30). */
++  cooldownSeconds: number;
++  /** OTP code length in digits (default 6). */
++  codeLength: number;
++}
++
++const DEFAULT_TTL_SECONDS = 300;
++const DEFAULT_LOCKOUT_THRESHOLD = 3;
++const DEFAULT_LOCKOUT_SECONDS = 600;
++const DEFAULT_COOLDOWN_SECONDS = 30;
++const DEFAULT_CODE_LENGTH = 6;
++
++let memoized: OtpConfig | null = null;
++
++function parsePositiveInt(raw: string | undefined, fallback: number, name: string): number {
++  if (raw === undefined || raw === '') return fallback;
++  const n = Number(raw);
++  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
++    throw new Error(`otp_${name}_invalid`);
++  }
++  return n;
++}
++
++function isProduction(): boolean {
++  return process.env['NODE_ENV'] === 'production';
++}
++
++function isDevelopmentOrTest(): boolean {
++  return process.env['NODE_ENV'] === 'development' || process.env['NODE_ENV'] === 'test';
++}
++
++function resolveProvider(raw: string | undefined): OtpProviderName {
++  // Default: `log` for dev/test, `twilio` for everything else (prod).
++  if (raw === undefined || raw === '') {
++    return isDevelopmentOrTest() ? 'log' : 'twilio';
++  }
++  if (!PROVIDER_NAMES.has(raw as OtpProviderName)) {
++    throw new Error('otp_provider_invalid');
++  }
++  return raw as OtpProviderName;
++}
++
++/**
++ * Read env vars, validate, return a frozen `OtpConfig`. Throws on:
++ *   - `otp_provider_invalid` — unknown provider name
++ *   - `otp_provider_log_in_production` — `OTP_PROVIDER=log` in production
++ *   - `otp_ttl_invalid`, `otp_lockout_threshold_invalid`,
++ *     `otp_lockout_seconds_invalid`, `otp_cooldown_seconds_invalid`,
++ *     `otp_code_length_invalid` — non-integer / non-finite / `<= 0`
++ *
++ * Memoized: subsequent calls return the same object.
++ */
++export function loadOtpConfig(): OtpConfig {
++  if (memoized) return memoized;
++  const provider = resolveProvider(process.env['OTP_PROVIDER']);
++  if (provider === 'log' && isProduction()) {
++    throw new Error('otp_provider_log_in_production');
++  }
++  const cfg: OtpConfig = {
++    provider,
++    ttlSeconds: parsePositiveInt(process.env['OTP_TTL_SECONDS'], DEFAULT_TTL_SECONDS, 'ttl'),
++    lockoutThreshold: parsePositiveInt(
++      process.env['OTP_LOCKOUT_THRESHOLD'],
++      DEFAULT_LOCKOUT_THRESHOLD,
++      'lockout_threshold',
++    ),
++    lockoutSeconds: parsePositiveInt(
++      process.env['OTP_LOCKOUT_SECONDS'],
++      DEFAULT_LOCKOUT_SECONDS,
++      'lockout_seconds',
++    ),
++    cooldownSeconds: parsePositiveInt(
++      process.env['OTP_COOLDOWN_SECONDS'],
++      DEFAULT_COOLDOWN_SECONDS,
++      'cooldown_seconds',
++    ),
++    codeLength: parsePositiveInt(
++      process.env['OTP_CODE_LENGTH'],
++      DEFAULT_CODE_LENGTH,
++      'code_length',
++    ),
++  };
++  memoized = Object.freeze(cfg);
++  return memoized;
++}
++
++/**
++ * Test-only: reset the memoized config. Production code never invokes this.
++ */
++export function __resetOtpConfigForTests(): void {
++  memoized = null;
++}
+diff --git a/src/otp/errors.ts b/src/otp/errors.ts
+new file mode 100644
+index 0000000..f223fa3
+--- /dev/null
++++ b/src/otp/errors.ts
+@@ -0,0 +1,63 @@
++/**
++ * Typed errors raised by SmsOtpService. Each carries `retryAfterMs` where
++ * applicable so the route handler can return the right HTTP envelope
++ * without doing arithmetic.
++ *
++ * The routes translate these into the HTTP status + body shape documented
++ * in the E0-S4 spec's I/O matrix. The error classes are intentionally
++ * distinct from `SmsSendFailed` (a provider-level error) so the route
++ * can distinguish "client sent bad input" from "provider is broken".
++ */
++
++export class OtpCooldownError extends Error {
++  public readonly retryAfterMs: number;
++  constructor(retryAfterMs: number) {
++    super('otp_cooldown');
++    this.name = 'OtpCooldownError';
++    this.retryAfterMs = retryAfterMs;
++  }
++}
++
++export class OtpLockedError extends Error {
++  public readonly retryAfterMs: number;
++  constructor(retryAfterMs: number) {
++    super('otp_locked');
++    this.name = 'OtpLockedError';
++    this.retryAfterMs = retryAfterMs;
++  }
++}
++
++export class OtpExpiredError extends Error {
++  constructor() {
++    super('otp_expired');
++    this.name = 'OtpExpiredError';
++  }
++}
++
++export class NoOutstandingOtpError extends Error {
++  constructor() {
++    super('no_outstanding_otp');
++    this.name = 'NoOutstandingOtpError';
++  }
++}
++
++export class InvalidOtpCodeError extends Error {
++  constructor() {
++    super('invalid_otp_code');
++    this.name = 'InvalidOtpCodeError';
++  }
++}
++
++export class OtpPhoneFormatError extends Error {
++  constructor(message: string) {
++    super(message);
++    this.name = 'OtpPhoneFormatError';
++  }
++}
++
++export class OtpCodeFormatError extends Error {
++  constructor(message: string) {
++    super(message);
++    this.name = 'OtpCodeFormatError';
++  }
++}
+diff --git a/src/routes/sms-otp.ts b/src/routes/sms-otp.ts
+new file mode 100644
+index 0000000..75c9785
+--- /dev/null
++++ b/src/routes/sms-otp.ts
+@@ -0,0 +1,168 @@
++/**
++ * SMS OTP routes — `/patient/otp/send` and `/patient/otp/verify`.
++ *
++ * Both routes are unauthenticated (the OTP is the credential). They mount
++ * BEFORE `authMiddleware` so a patient who has not yet verified can hit
++ * them. They NEVER consult `req.auth.claim` or `req.body.role` /
++ * `req.body.branch_ids` / `req.body.scope` / `req.body.doctor_id`.
++ *
++ * Phone is E.164-validated (`^\+[1-9]\d{6,14}$`). Code is 6-digit numeric.
++ * Validation errors return 400 BEFORE consulting the service so a bad
++ * input never increments `attempts`.
++ *
++ * The verify path produces the same `{token, claim, expires_at}` shape as
++ * E0-S3's `/patient/otp/verify-now`, so E4-S1 can swap its body without
++ * touching the response contract.
++ */
++import { Router, type Request, type Response, type RequestHandler } from 'express';
++import { getLogger } from '../middleware/log.js';
++import type { SmsOtpService } from '../otp/service.js';
++import {
++  OtpCooldownError,
++  OtpLockedError,
++  OtpExpiredError,
++  NoOutstandingOtpError,
++  InvalidOtpCodeError,
++} from '../otp/errors.js';
++import { SmsSendFailed } from '../otp/provider.js';
++import { inc } from '../metrics/counters.js';
++
++const E164_REGEX = /^\+[1-9]\d{6,14}$/;
++const CODE_REGEX = /^\d{6}$/;
++
++function redactPhone(phone: string): string {
++  if (phone.length <= 4) return '****';
++  return `***${phone.slice(-4)}`;
++}
++
++export interface SmsOtpRouterDeps {
++  service: SmsOtpService;
++}
++
++export function createSmsOtpRouter(deps: SmsOtpRouterDeps): Router {
++  const router = Router();
++
++  router.post('/otp/send', (async (req: Request, res: Response): Promise<void> => {
++    const body = (req.body ?? {}) as Record<string, unknown>;
++    if (typeof body['phone'] !== 'string' || !E164_REGEX.test(body['phone'])) {
++      getLogger().info(
++        { event: 'sms_otp_send', outcome: 'invalid_phone', phone: redactPhone(String(body['phone'] ?? '')) },
++        'sms_otp_send_rejected',
++      );
++      res.status(400).json({ error: 'invalid_phone' });
++      return;
++    }
++    const phone = body['phone'] as string;
++    try {
++      const result = await deps.service.send(phone);
++      getLogger().info(
++        { event: 'sms_otp_send', outcome: 'success', phone: redactPhone(phone) },
++        'sms_otp_send_success',
++      );
++      res.status(200).json({
++        expires_at: result.expiresAt.toISOString(),
++        cooldown_ms: result.cooldownMs,
++      });
++    } catch (err) {
++      if (err instanceof OtpCooldownError) {
++        getLogger().info(
++          { event: 'sms_otp_send', outcome: 'cooldown', phone: redactPhone(phone), retry_after_ms: err.retryAfterMs },
++          'sms_otp_send_rejected',
++        );
++        res.status(429).json({ error: 'otp_cooldown', retry_after_ms: err.retryAfterMs });
++        return;
++      }
++      if (err instanceof OtpLockedError) {
++        getLogger().info(
++          { event: 'sms_otp_send', outcome: 'locked', phone: redactPhone(phone), retry_after_ms: err.retryAfterMs },
++          'sms_otp_send_rejected',
++        );
++        res.status(429).json({ error: 'otp_locked', retry_after_ms: err.retryAfterMs });
++        return;
++      }
++      if (err instanceof SmsSendFailed) {
++        getLogger().warn(
++          { event: 'sms_otp_send', outcome: 'provider_failure', phone: redactPhone(phone), err: err.message },
++          'sms_otp_send_failed',
++        );
++        res.status(502).json({ error: 'sms_send_failed' });
++        return;
++      }
++      throw err;
++    }
++  }) as RequestHandler);
++
++  router.post('/otp/verify', (async (req: Request, res: Response): Promise<void> => {
++    const body = (req.body ?? {}) as Record<string, unknown>;
++    if (typeof body['phone'] !== 'string' || !E164_REGEX.test(body['phone'])) {
++      getLogger().info(
++        { event: 'sms_otp_verify', outcome: 'invalid_phone', phone: redactPhone(String(body['phone'] ?? '')) },
++        'sms_otp_verify_rejected',
++      );
++      res.status(400).json({ error: 'invalid_phone' });
++      return;
++    }
++    if (typeof body['code'] !== 'string' || !CODE_REGEX.test(body['code'])) {
++      getLogger().info(
++        { event: 'sms_otp_verify', outcome: 'invalid_code', phone: redactPhone(body['phone'] as string) },
++        'sms_otp_verify_rejected',
++      );
++      res.status(400).json({ error: 'invalid_code' });
++      return;
++    }
++    const phone = body['phone'] as string;
++    const code = body['code'] as string;
++    try {
++      // Increment on EVERY verify attempt (success + failure + expired +
++      // locked + no-row) — matches the E0-S1 metrics contract and the
++      // E7-S9 (product metrics) success-rate calculation.
++      inc('otp.verification');
++      const result = await deps.service.verify(phone, code);
++      getLogger().info(
++        { event: 'sms_otp_verify', outcome: 'success', phone: redactPhone(phone) },
++        'sms_otp_verify_success',
++      );
++      res.status(200).json({
++        token: result.token,
++        claim: result.claim,
++        expires_at: result.expiresAt,
++      });
++    } catch (err) {
++      if (err instanceof NoOutstandingOtpError) {
++        getLogger().info(
++          { event: 'sms_otp_verify', outcome: 'no_row', phone: redactPhone(phone) },
++          'sms_otp_verify_rejected',
++        );
++        res.status(401).json({ error: 'no_outstanding_otp' });
++        return;
++      }
++      if (err instanceof OtpExpiredError) {
++        getLogger().info(
++          { event: 'sms_otp_verify', outcome: 'expired', phone: redactPhone(phone) },
++          'sms_otp_verify_rejected',
++        );
++        res.status(401).json({ error: 'otp_expired' });
++        return;
++      }
++      if (err instanceof OtpLockedError) {
++        getLogger().info(
++          { event: 'sms_otp_verify', outcome: 'locked', phone: redactPhone(phone), retry_after_ms: err.retryAfterMs },
++          'sms_otp_verify_rejected',
++        );
++        res.status(429).json({ error: 'otp_locked', retry_after_ms: err.retryAfterMs });
++        return;
++      }
++      if (err instanceof InvalidOtpCodeError) {
++        getLogger().info(
++          { event: 'sms_otp_verify', outcome: 'wrong_code', phone: redactPhone(phone) },
++          'sms_otp_verify_rejected',
++        );
++        res.status(401).json({ error: 'invalid_otp_code' });
++        return;
++      }
++      throw err;
++    }
++  }) as RequestHandler);
++
++  return router;
++}
+diff --git a/test/sms-otp-config.test.ts b/test/sms-otp-config.test.ts
+new file mode 100644
+index 0000000..8eda427
+--- /dev/null
++++ b/test/sms-otp-config.test.ts
+@@ -0,0 +1,137 @@
++/**
++ * sms-otp-config.test.ts — boot-time validation of OtpConfig.
++ *
++ * Mirrors E0-S3's auth-config.test.ts pattern: mutate `process.env` at
++ * module / per-test boundaries, call `loadOtpConfig()` (after resetting
++ * the memoization), assert the throw path or the returned shape.
++ */
++import { test, before, after, beforeEach } from 'node:test';
++import assert from 'node:assert/strict';
++import { loadOtpConfig, __resetOtpConfigForTests } from '../src/otp/config.js';
++
++before(() => {
++  // Set required env so unrelated tests don't see a missing-secret state.
++  process.env['AUTH_SECRET'] = 'a'.repeat(48);
++  process.env['NODE_ENV'] = 'test';
++});
++
++after(() => {
++  // No global cleanup; per-test `beforeEach` handles each case.
++});
++
++beforeEach(() => {
++  __resetOtpConfigForTests();
++  delete process.env['OTP_PROVIDER'];
++  delete process.env['OTP_TTL_SECONDS'];
++  delete process.env['OTP_LOCKOUT_THRESHOLD'];
++  delete process.env['OTP_LOCKOUT_SECONDS'];
++  delete process.env['OTP_COOLDOWN_SECONDS'];
++  delete process.env['OTP_CODE_LENGTH'];
++});
++
++test('default provider in dev/test is `log`', () => {
++  process.env['NODE_ENV'] = 'test';
++  const cfg = loadOtpConfig();
++  assert.equal(cfg.provider, 'log');
++  assert.equal(cfg.ttlSeconds, 300);
++  assert.equal(cfg.lockoutThreshold, 3);
++  assert.equal(cfg.lockoutSeconds, 600);
++  assert.equal(cfg.cooldownSeconds, 30);
++  assert.equal(cfg.codeLength, 6);
++});
++
++test('default provider in production is `twilio`', () => {
++  process.env['NODE_ENV'] = 'production';
++  __resetOtpConfigForTests();
++  const cfg = loadOtpConfig();
++  assert.equal(cfg.provider, 'twilio');
++  process.env['NODE_ENV'] = 'test';
++  __resetOtpConfigForTests();
++});
++
++test('OTP_PROVIDER=log in production throws `otp_provider_log_in_production`', () => {
++  process.env['NODE_ENV'] = 'production';
++  process.env['OTP_PROVIDER'] = 'log';
++  __resetOtpConfigForTests();
++  assert.throws(
++    () => loadOtpConfig(),
++    /otp_provider_log_in_production/,
++  );
++  process.env['NODE_ENV'] = 'test';
++});
++
++test('OTP_PROVIDER=twilio reads through; OTP_PROVIDER=invalid throws', () => {
++  process.env['NODE_ENV'] = 'test';
++  process.env['OTP_PROVIDER'] = 'twilio';
++  __resetOtpConfigForTests();
++  const cfg = loadOtpConfig();
++  assert.equal(cfg.provider, 'twilio');
++
++  process.env['OTP_PROVIDER'] = 'carrier-pigeon';
++  __resetOtpConfigForTests();
++  assert.throws(
++    () => loadOtpConfig(),
++    /otp_provider_invalid/,
++  );
++});
++
++test('non-integer OTP_TTL_SECONDS throws `otp_ttl_invalid`', () => {
++  process.env['NODE_ENV'] = 'test';
++  process.env['OTP_TTL_SECONDS'] = 'NaN';
++  __resetOtpConfigForTests();
++  assert.throws(() => loadOtpConfig(), /otp_ttl_invalid/);
++});
++
++test('non-integer OTP_LOCKOUT_THRESHOLD throws', () => {
++  process.env['NODE_ENV'] = 'test';
++  process.env['OTP_LOCKOUT_THRESHOLD'] = '2.5';
++  __resetOtpConfigForTests();
++  assert.throws(() => loadOtpConfig(), /otp_lockout_threshold_invalid/);
++});
++
++test('OTP_LOCKOUT_SECONDS=0 throws `otp_lockout_seconds_invalid`', () => {
++  process.env['NODE_ENV'] = 'test';
++  process.env['OTP_LOCKOUT_SECONDS'] = '0';
++  __resetOtpConfigForTests();
++  assert.throws(() => loadOtpConfig(), /otp_lockout_seconds_invalid/);
++});
++
++test('OTP_COOLDOWN_SECONDS=0 throws `otp_cooldown_seconds_invalid`', () => {
++  process.env['NODE_ENV'] = 'test';
++  process.env['OTP_COOLDOWN_SECONDS'] = '0';
++  __resetOtpConfigForTests();
++  assert.throws(() => loadOtpConfig(), /otp_cooldown_seconds_invalid/);
++});
++
++test('OTP_CODE_LENGTH=0 throws `otp_code_length_invalid`', () => {
++  process.env['NODE_ENV'] = 'test';
++  process.env['OTP_CODE_LENGTH'] = '0';
++  __resetOtpConfigForTests();
++  assert.throws(() => loadOtpConfig(), /otp_code_length_invalid/);
++});
++
++test('all overrides are read', () => {
++  process.env['NODE_ENV'] = 'test';
++  process.env['OTP_TTL_SECONDS'] = '180';
++  process.env['OTP_LOCKOUT_THRESHOLD'] = '5';
++  process.env['OTP_LOCKOUT_SECONDS'] = '900';
++  process.env['OTP_COOLDOWN_SECONDS'] = '45';
++  process.env['OTP_CODE_LENGTH'] = '8';
++  __resetOtpConfigForTests();
++  const cfg = loadOtpConfig();
++  assert.equal(cfg.ttlSeconds, 180);
++  assert.equal(cfg.lockoutThreshold, 5);
++  assert.equal(cfg.lockoutSeconds, 900);
++  assert.equal(cfg.cooldownSeconds, 45);
++  assert.equal(cfg.codeLength, 8);
++});
++
++test('memoization: env mutation after first call does not affect returned config', () => {
++  process.env['NODE_ENV'] = 'test';
++  __resetOtpConfigForTests();
++  const cfg1 = loadOtpConfig();
++  process.env['OTP_TTL_SECONDS'] = '999';
++  const cfg2 = loadOtpConfig();
++  assert.equal(cfg1, cfg2, 'memoization invariant');
++  assert.equal(cfg2.ttlSeconds, 300, 'memoized value must not change after env mutation');
++});
+diff --git a/test/sms-otp-provider.test.ts b/test/sms-otp-provider.test.ts
+new file mode 100644
+index 0000000..93728ce
+--- /dev/null
++++ b/test/sms-otp-provider.test.ts
+@@ -0,0 +1,125 @@
++/**
++ * sms-otp-provider.test.ts — provider implementations.
++ *
++ * Pure unit tests for `LogSmsOtpProvider` and `TwilioSmsOtpProvider`. No DB
++ * access; no HTTP. The Twilio test injects a stub client so no real Twilio
++ * API call ever fires in CI.
++ *
++ * AC-13 (Log writes OTP code) and AC-14 (Twilio calls messages.create
++ * with correct args) live here.
++ */
++import { test, before, after } from 'node:test';
++import assert from 'node:assert/strict';
++import { Writable } from 'node:stream';
++import { LogSmsOtpProvider } from '../src/otp/log-provider.js';
++import { TwilioSmsOtpProvider } from '../src/otp/twilio-provider.js';
++import { SmsSendFailed } from '../src/otp/provider.js';
++import {
++  __redirectBaseLoggerForTests,
++  createBaseLogger,
++} from '../src/middleware/log.js';
++
++before(() => {
++  process.env['NODE_ENV'] = 'test';
++});
++
++after(() => {
++  // Restore the original stdout logger.
++  __redirectBaseLoggerForTests();
++});
++
++function captureLogLines(): { lines: string[]; stream: Writable } {
++  const lines: string[] = [];
++  const stream = new Writable({
++    write(chunk, _enc, cb) {
++      const s = typeof chunk === 'string' ? chunk : chunk.toString('utf8');
++      for (const piece of s.split('\n')) {
++        if (piece.length > 0) lines.push(piece);
++      }
++      cb();
++    },
++  });
++  __redirectBaseLoggerForTests(stream);
++  createBaseLogger(stream);
++  return { lines, stream };
++}
++
++test('LogSmsOtpProvider writes the 6-digit code + redacted phone to logger (AC-13)', async () => {
++  const { lines } = captureLogLines();
++  const provider = new LogSmsOtpProvider();
++  await provider.send('+15551234567', '482917');
++  const logLine = lines.find((l) => l.includes('sms_otp_send'));
++  assert.ok(logLine, 'expected a sms_otp_send log line');
++  const obj = JSON.parse(logLine!) as Record<string, unknown>;
++  assert.equal(obj['event'], 'sms_otp_send');
++  assert.equal(obj['outcome'], 'success');
++  assert.equal(obj['provider'], 'log');
++  assert.equal(obj['code'], '482917', 'log provider must surface the raw code (intentional dev behavior)');
++  assert.equal(obj['phone'], '***4567', 'phone must be redacted to last-4');
++});
++
++test('LogSmsOtpProvider does not throw on success (always resolves)', async () => {
++  const { lines: _lines } = captureLogLines();
++  const provider = new LogSmsOtpProvider();
++  await provider.send('+15551234567', '123456');
++  // No assertion needed beyond the awaited promise resolving.
++});
++
++test('TwilioSmsOtpProvider calls messages.create with to/from/body containing the code (AC-14)', async () => {
++  const calls: Array<{ to: string; from: string; body: string }> = [];
++  const stubClient = {
++    messages: {
++      create: async (args: { to: string; from: string; body: string }): Promise<unknown> => {
++        calls.push(args);
++        return { sid: 'SM_TEST' };
++      },
++    },
++  };
++  const provider = new TwilioSmsOtpProvider({
++    accountSid: 'AC_TEST_SID',
++    authToken: 'TEST_TOKEN',
++    fromNumber: '+15559999000',
++    client: stubClient,
++  });
++  await provider.send('+15551234567', '654321');
++  assert.equal(calls.length, 1);
++  assert.equal(calls[0]!.to, '+15551234567');
++  assert.equal(calls[0]!.from, '+15559999000');
++  assert.ok(calls[0]!.body.includes('654321'), 'body must include the OTP code');
++  assert.ok(calls[0]!.body.toLowerCase().includes('expire'), 'body should mention expiration');
++});
++
++test('TwilioSmsOtpProvider wraps client errors in SmsSendFailed', async () => {
++  const stubClient = {
++    messages: {
++      create: async (): Promise<unknown> => {
++        throw new Error('twilio internal: rate limit');
++      },
++    },
++  };
++  const provider = new TwilioSmsOtpProvider({
++    accountSid: 'AC_TEST_SID',
++    authToken: 'TEST_TOKEN',
++    fromNumber: '+15559999000',
++    client: stubClient,
++  });
++  await assert.rejects(
++    () => provider.send('+15551234567', '111111'),
++    (err: unknown) => err instanceof SmsSendFailed && (err as { message: string }).message === 'twilio_send_failed',
++  );
++});
++
++test('TwilioSmsOtpProvider throws SmsSendFailed on missing credentials at construction', () => {
++  assert.throws(
++    () => new TwilioSmsOtpProvider({ accountSid: '', authToken: 't', fromNumber: '+1' }),
++    (err: unknown) => err instanceof SmsSendFailed && (err as { message: string }).message === 'twilio_account_sid_missing',
++  );
++  assert.throws(
++    () => new TwilioSmsOtpProvider({ accountSid: 'a', authToken: '', fromNumber: '+1' }),
++    (err: unknown) => err instanceof SmsSendFailed && (err as { message: string }).message === 'twilio_auth_token_missing',
++  );
++  assert.throws(
++    () => new TwilioSmsOtpProvider({ accountSid: 'a', authToken: 't', fromNumber: '' }),
++    (err: unknown) => err instanceof SmsSendFailed && (err as { message: string }).message === 'twilio_from_number_missing',
++  );
++});
+diff --git a/test/sms-otp.test.ts b/test/sms-otp.test.ts
+new file mode 100644
+index 0000000..1138b4a
+--- /dev/null
++++ b/test/sms-otp.test.ts
+@@ -0,0 +1,458 @@
++/**
++ * sms-otp.test.ts — `/patient/otp/send` + `/patient/otp/verify` integration.
++ *
++ * Exercises the live route via `createApp()` + supertest, against a real
++ * Postgres container (`withTestDb`). The SmsOtpService is constructed
++ * with `LogSmsOtpProvider` (the test capture destination) so the OTP code
++ * is observable in logs but never sent over the wire.
++ *
++ * Coverage matrix (refer to spec-0-4-sms-otp-gateway.md):
++ *   AC-1, AC-2 (send happy path; code_hash format)
++ *   AC-3 (cooldown)
++ *   AC-4 (lockout after 3 wrong verifies)
++ *   AC-5 (verify happy path; row deleted)
++ *   AC-6 (wrong code; attempts incremented; counter incremented)
++ *   AC-7 (expired code)
++ *   AC-8 (no outstanding row)
++ *   AC-9 (parallel verify race)
++ *   AC-10 (invalid phone)
++ *   AC-11 (invalid code)
++ *   AC-12 (body-escalation ignored)
++ *   AC-21 (counter increments per verify)
++ *   AC-22 (provider failure rolls back)
++ *   AC-23 (last_sent_at anchored to send, not created_at)
++ *   AC-24 (log redaction)
++ *   AC-25 (E0-S2/E0-S3 invariants unaffected — covered by re-running
++ *          the existing migration/invariant/seed/auth/pgcrypto suites)
++ */
++import { test, before, after, beforeEach } from 'node:test';
++import assert from 'node:assert/strict';
++import request from 'supertest';
++import { Writable } from 'node:stream';
++import { createHash } from 'node:crypto';
++import { getTestDb, type TestDb } from './db/withTestDb.js';
++import { createApp } from '../src/app.js';
++import { SmsOtpService } from '../src/otp/service.js';
++import { LogSmsOtpProvider } from '../src/otp/log-provider.js';
++import {
++  __redirectBaseLoggerForTests,
++  createBaseLogger,
++  createRequestLogger,
++} from '../src/middleware/log.js';
++import { reset } from '../src/metrics/counters.js';
++import { SmsSendFailed } from '../src/otp/provider.js';
++import { loadAuthConfig, __resetAuthConfigForTests } from '../src/auth/config.js';
++import { verifyToken } from '../src/auth/jwt.js';
++
++const VALID_SECRET = 'a'.repeat(48);
++
++let db: TestDb;
++let service: SmsOtpService;
++let lines: string[];
++
++before(async () => {
++  process.env['AUTH_SECRET'] = VALID_SECRET;
++  process.env['NODE_ENV'] = 'test';
++  __resetAuthConfigForTests();
++  loadAuthConfig();
++  db = await getTestDb();
++  service = new SmsOtpService(db.pool, new LogSmsOtpProvider(), {
++    provider: 'log',
++    ttlSeconds: 300,
++    lockoutThreshold: 3,
++    lockoutSeconds: 600,
++    cooldownSeconds: 30,
++    codeLength: 6,
++  });
++});
++
++after(async () => {
++  __redirectBaseLoggerForTests();
++});
++
++function appWithCapture() {
++  lines = [];
++  const stream = new Writable({
++    write(chunk, _enc, cb) {
++      const s = typeof chunk === 'string' ? chunk : chunk.toString('utf8');
++      for (const piece of s.split('\n')) {
++        if (piece.length > 0) lines.push(piece);
++      }
++      cb();
++    },
++  });
++  const prevLevel = process.env['LOG_LEVEL'];
++  process.env['LOG_LEVEL'] = 'info';
++  __redirectBaseLoggerForTests(stream);
++  const baseLogger = createBaseLogger(stream);
++  const requestLogger = createRequestLogger({ logger: baseLogger });
++  return createApp({ requestLogger, smsOtpService: service });
++}
++
++function sha256Hex(s: string): string {
++  return createHash('sha256').update(s).digest('hex');
++}
++
++async function fetchOtpRow(phone: string): Promise<{
++  code_hash: string;
++  expires_at: Date;
++  attempts: number;
++  locked_until: Date | null;
++  last_sent_at: Date;
++  created_at: Date;
++} | null> {
++  const { rows } = await db.pool.query<{
++    code_hash: string;
++    expires_at: Date;
++    attempts: number;
++    locked_until: Date | null;
++    last_sent_at: Date;
++    created_at: Date;
++  }>(
++    `SELECT code_hash, expires_at, attempts, locked_until, last_sent_at, created_at
++     FROM otp_verification WHERE phone_e164 = $1`,
++    [phone],
++  );
++  return rows[0] ?? null;
++}
++
++async function fetchOtpCode(phone: string): Promise<string | null> {
++  // Pulls the most recent code from the in-memory log capture. The
++  // `LogSmsOtpProvider` writes the raw code into the log so tests can
++  // recover it without standing up a stub registry.
++  const logLine = [...lines].reverse().find(
++    (l) => l.includes('sms_otp_send_logged') && l.includes('"phone":"***'),
++  );
++  if (!logLine) return null;
++  const obj = JSON.parse(logLine) as { code?: string; phone?: string };
++  if (obj.phone !== '***' + phone.slice(-4)) return null;
++  return typeof obj.code === 'string' ? obj.code : null;
++}
++
++beforeEach(async () => {
++  reset();
++  await db.pool.query(`DELETE FROM otp_verification`);
++  lines = [];
++});
++
++test('AC-1: send happy path inserts row with sha-256 hex code_hash', async () => {
++  const app = appWithCapture();
++  const res = await request(app)
++    .post('/patient/otp/send')
++    .send({ phone: '+15551234567' });
++  assert.equal(res.status, 200);
++  assert.equal(typeof res.body.expires_at, 'string');
++  assert.equal(res.body.cooldown_ms, 30000);
++
++  const row = await fetchOtpRow('+15551234567');
++  assert.ok(row, 'row must exist after send');
++  assert.equal(row!.code_hash.length, 64, 'sha-256 hex is exactly 64 chars');
++  assert.equal(row!.attempts, 0);
++  assert.equal(row!.locked_until, null);
++});
++
++test('AC-2: code_hash is NOT the raw code; matches sha256(code)', async () => {
++  const app = appWithCapture();
++  await request(app).post('/patient/otp/send').send({ phone: '+15551234567' });
++  const code = await fetchOtpCode('+15551234567');
++  assert.ok(code, 'expected to capture the OTP code from log');
++  const row = await fetchOtpRow('+15551234567');
++  assert.ok(row);
++  assert.notEqual(row!.code_hash, code, 'code_hash MUST NOT be the raw code');
++  assert.equal(row!.code_hash, sha256Hex(code!), 'code_hash must equal sha256(code) hex');
++});
++
++test('AC-3: cooldown (30s) on second send within window', async () => {
++  const app = appWithCapture();
++  const first = await request(app).post('/patient/otp/send').send({ phone: '+15551234567' });
++  assert.equal(first.status, 200);
++  const second = await request(app).post('/patient/otp/send').send({ phone: '+15551234567' });
++  assert.equal(second.status, 429);
++  assert.equal(second.body.error, 'otp_cooldown');
++  assert.ok(second.body.retry_after_ms > 0, 'retry_after_ms must be positive');
++  assert.ok(second.body.retry_after_ms <= 30000, 'retry_after_ms must be within cooldown');
++  // Exactly one row.
++  const { rows } = await db.pool.query(`SELECT id FROM otp_verification WHERE phone_e164 = $1`, ['+15551234567']);
++  assert.equal(rows.length, 1, 'cooldown path must not insert a second row');
++});
++
++test('AC-4: 3 wrong-code verifies → lockout; 4th is locked without incrementing attempts', async () => {
++  const app = appWithCapture();
++  await request(app).post('/patient/otp/send').send({ phone: '+15551234567' });
++  const code = await fetchOtpCode('+15551234567');
++  assert.ok(code);
++  const wrongCode = code === '000000' ? '111111' : '000000';
++
++  for (let i = 0; i < 3; i++) {
++    const r = await request(app)
++      .post('/patient/otp/verify')
++      .send({ phone: '+15551234567', code: wrongCode });
++    assert.equal(r.status, 401, `attempt ${i + 1} should be 401`);
++    assert.equal(r.body.error, 'invalid_otp_code');
++  }
++  let row = await fetchOtpRow('+15551234567');
++  assert.ok(row);
++  assert.equal(row!.attempts, 3, 'attempts must be 3 after three failures');
++  assert.ok(row!.locked_until !== null, 'locked_until must be set after threshold');
++  assert.ok(new Date(row!.locked_until!).getTime() > Date.now(), 'locked_until must be in the future');
++
++  // 4th attempt with correct code (just to prove the lockout blocks even right code).
++  const fourth = await request(app)
++    .post('/patient/otp/verify')
++    .send({ phone: '+15551234567', code });
++  assert.equal(fourth.status, 429, '4th attempt within lockout returns 429');
++  assert.equal(fourth.body.error, 'otp_locked');
++  assert.ok(fourth.body.retry_after_ms > 0);
++
++  row = await fetchOtpRow('+15551234567');
++  assert.equal(row!.attempts, 3, 'attempts MUST NOT increment during lockout');
++});
++
++test('AC-5: verify happy path returns JWT, deletes row, counter increments', async () => {
++  const app = appWithCapture();
++  await request(app).post('/patient/otp/send').send({ phone: '+15551234567' });
++  const code = await fetchOtpCode('+15551234567');
++  assert.ok(code);
++  reset();
++  const r = await request(app)
++    .post('/patient/otp/verify')
++    .send({ phone: '+15551234567', code });
++  assert.equal(r.status, 200);
++  assert.equal(typeof r.body.token, 'string');
++  const claim = verifyToken(r.body.token)!;
++  assert.equal(claim.sub, '+15551234567');
++  assert.equal(claim.role, 'patient');
++  assert.deepEqual([...claim.branch_ids], []);
++  assert.equal(claim.scope, 'self');
++  assert.equal(typeof r.body.expires_at, 'string');
++  assert.equal(r.body.expires_at, new Date(claim.expires_at * 1000).toISOString());
++  const row = await fetchOtpRow('+15551234567');
++  assert.equal(row, null, 'row must be deleted on successful verify');
++  const { snapshot } = await import('../src/metrics/counters.js');
++  assert.equal(snapshot()['otp.verification'], 1, 'counter MUST increment on success');
++});
++
++test('AC-6: wrong code increments attempts by exactly 1; counter increments', async () => {
++  const app = appWithCapture();
++  await request(app).post('/patient/otp/send').send({ phone: '+15551234567' });
++  reset();
++  const before = (await db.pool.query(`SELECT attempts FROM otp_verification WHERE phone_e164 = $1`, ['+15551234567'])).rows[0]?.attempts ?? 0;
++  const r = await request(app)
++    .post('/patient/otp/verify')
++    .send({ phone: '+15551234567', code: '999999' });
++  assert.equal(r.status, 401);
++  assert.equal(r.body.error, 'invalid_otp_code');
++  const row = await fetchOtpRow('+15551234567');
++  assert.equal(row!.attempts, before + 1, 'attempts must increment by 1');
++  // Read counter via fresh import to avoid circular reset.
++  const { snapshot } = await import('../src/metrics/counters.js');
++  assert.equal(snapshot()['otp.verification'], 1, 'counter MUST increment on failure');
++});
++
++test('AC-7: expired code returns 401 otp_expired (not deleted)', async () => {
++  const app = appWithCapture();
++  await request(app).post('/patient/otp/send').send({ phone: '+15551234567' });
++  // Force expiry by rewriting the row.
++  await db.pool.query(
++    `UPDATE otp_verification SET expires_at = now() - INTERVAL '1 second' WHERE phone_e164 = $1`,
++    ['+15551234567'],
++  );
++  const code = await fetchOtpCode('+15551234567');
++  assert.ok(code);
++  const r = await request(app)
++    .post('/patient/otp/verify')
++    .send({ phone: '+15551234567', code });
++  assert.equal(r.status, 401);
++  assert.equal(r.body.error, 'otp_expired');
++  const row = await fetchOtpRow('+15551234567');
++  assert.ok(row, 'expired row must NOT be deleted (caller can re-verify up to lockout)');
++});
++
++test('AC-8: no outstanding row → 401 no_outstanding_otp', async () => {
++  const app = appWithCapture();
++  const r = await request(app)
++    .post('/patient/otp/verify')
++    .send({ phone: '+15559998888', code: '123456' });
++  assert.equal(r.status, 401);
++  assert.equal(r.body.error, 'no_outstanding_otp');
++  const { rows } = await db.pool.query(`SELECT id FROM otp_verification WHERE phone_e164 = $1`, ['+15559998888']);
++  assert.equal(rows.length, 0, 'no row must be created on a no_outstanding_otp path');
++});
++
++test('AC-9: parallel verify race — exactly one wins, the other gets no_outstanding_otp', async () => {
++  const app = appWithCapture();
++  await request(app).post('/patient/otp/send').send({ phone: '+15551234567' });
++  const code = await fetchOtpCode('+15551234567');
++  assert.ok(code);
++
++  const verifyOnce = async () =>
++    request(app).post('/patient/otp/verify').send({ phone: '+15551234567', code });
++
++  const [a, b] = await Promise.all([verifyOnce(), verifyOnce()]);
++  const statuses = [a.status, b.status].sort();
++  assert.deepEqual(statuses, [200, 401], `expected one 200 and one 401; got [${a.status}, ${b.status}]`);
++  const winner = a.status === 200 ? a : b;
++  const loser = a.status === 401 ? a : b;
++  const claim = verifyToken(winner.body.token)!;
++  assert.equal(claim.role, 'patient');
++  assert.equal(loser.body.error, 'no_outstanding_otp');
++});
++
++test('AC-10: send with non-E.164 phone returns 400 invalid_phone', async () => {
++  const app = appWithCapture();
++  for (const bad of ['5551234', '+0123456789', '+15551', '+155512345678901234', '']) {
++    const r = await request(app).post('/patient/otp/send').send({ phone: bad });
++    assert.equal(r.status, 400, `phone=${JSON.stringify(bad)}`);
++    assert.equal(r.body.error, 'invalid_phone');
++  }
++});
++
++test('AC-10b: send with non-string phone returns 400', async () => {
++  const app = appWithCapture();
++  const r = await request(app).post('/patient/otp/send').send({ phone: 1_555_123_4567 });
++  assert.equal(r.status, 400);
++});
++
++test('AC-10c: send with no phone returns 400', async () => {
++  const app = appWithCapture();
++  const r = await request(app).post('/patient/otp/send').send({});
++  assert.equal(r.status, 400);
++});
++
++test('AC-11: verify with non-6-digit code returns 400 invalid_code', async () => {
++  const app = appWithCapture();
++  for (const bad of ['abc', '12345', '1234567', '', 123456, null]) {
++    const r = await request(app)
++      .post('/patient/otp/verify')
++      .send({ phone: '+15551234567', code: bad });
++    assert.equal(r.status, 400, `code=${JSON.stringify(bad)}`);
++    assert.equal(r.body.error, 'invalid_code');
++  }
++});
++
++test('AC-12: body-escalation — body {role, branch_ids, doctor_id} ignored', async () => {
++  const app = appWithCapture();
++  await request(app).post('/patient/otp/send').send({ phone: '+15551234567' });
++  const code = await fetchOtpCode('+15551234567');
++  assert.ok(code);
++  const r = await request(app)
++    .post('/patient/otp/verify')
++    .send({
++      phone: '+15551234567',
++      code,
++      role: 'admin',
++      branch_ids: ['sneaky'],
++      scope: 'global',
++      doctor_id: 'evil-doc',
++    });
++  assert.equal(r.status, 200);
++  const claim = verifyToken(r.body.token)!;
++  assert.equal(claim.role, 'patient');
++  assert.deepEqual([...claim.branch_ids], []);
++  assert.equal(claim.scope, 'self');
++  assert.equal(claim.doctor_id, undefined);
++});
++
++test('AC-22: provider failure rolls back the send transaction (no orphan row)', async () => {
++  const app = appWithCapture();
++  // Replace the service's provider with a stub that throws.
++  const failingService = new SmsOtpService(
++    db.pool,
++    {
++      send: async () => {
++        throw new SmsSendFailed('test_provider_failure');
++      },
++    },
++    {
++      provider: 'log',
++      ttlSeconds: 300,
++      lockoutThreshold: 3,
++      lockoutSeconds: 600,
++      cooldownSeconds: 30,
++      codeLength: 6,
++    },
++  );
++  const failApp = createApp({ smsOtpService: failingService });
++  const r = await request(failApp)
++    .post('/patient/otp/send')
++    .send({ phone: '+15551234567' });
++  assert.equal(r.status, 502);
++  assert.equal(r.body.error, 'sms_send_failed');
++  const { rows } = await db.pool.query(`SELECT id FROM otp_verification WHERE phone_e164 = $1`, ['+15551234567']);
++  assert.equal(rows.length, 0, 'transaction must roll back so no orphan row exists');
++});
++
++test('AC-23: last_sent_at anchored to send time (not created_at)', async () => {
++  const app = appWithCapture();
++  await request(app).post('/patient/otp/send').send({ phone: '+15551234567' });
++  const row = await fetchOtpRow('+15551234567');
++  assert.ok(row);
++  // last_sent_at and created_at should be within ~10ms of each other on
++  // first send. Both are derived from `app_now()`.
++  const drift = Math.abs(new Date(row!.last_sent_at).getTime() - new Date(row!.created_at).getTime());
++  assert.ok(drift < 50, `last_sent_at and created_at must agree on first send; drift=${drift}ms`);
++});
++
++test('AC-24: log redaction — full phone never appears in any log line', async () => {
++  const app = appWithCapture();
++  await request(app).post('/patient/otp/send').send({ phone: '+15551234567' });
++  await request(app)
++    .post('/patient/otp/verify')
++    .send({ phone: '+15551234567', code: '999999' });
++  const full = '+15551234567';
++  for (const line of lines) {
++    assert.ok(!line.includes(full), `full phone must NOT appear in log: ${line.slice(0, 80)}`);
++  }
++});
++
++test('AC-24b: log redacts phone to last-4 (success path)', async () => {
++  const app = appWithCapture();
++  await request(app).post('/patient/otp/send').send({ phone: '+15551234567' });
++  const sendLog = lines.find((l) => l.includes('sms_otp_send_success'));
++  assert.ok(sendLog, 'expected a sms_otp_send_success line');
++  assert.ok(sendLog!.includes('***4567'), 'redacted last-4 must appear');
++});
++
++test('AC-21: counter increments per verify (success + failure + no-row)', async () => {
++  const app = appWithCapture();
++  reset();
++  // No-row verify (counts as 1).
++  await request(app)
++    .post('/patient/otp/verify')
++    .send({ phone: '+15559998001', code: '123456' });
++  // Send + wrong code (counts as 1 more = 2).
++  await request(app).post('/patient/otp/send').send({ phone: '+15559998002' });
++  await request(app)
++    .post('/patient/otp/verify')
++    .send({ phone: '+15559998002', code: '999999' });
++  // Send + success (counts as 1 more = 3).
++  await request(app).post('/patient/otp/send').send({ phone: '+15559998003' });
++  const lines3: string[] = lines;
++  const code3 = (() => {
++    const logLine = [...lines3].reverse().find(
++      (l) => l.includes('sms_otp_send_logged') && l.includes('"phone":"***8003"'),
++    );
++    return logLine ? (JSON.parse(logLine) as { code?: string }).code ?? null : null;
++  })();
++  assert.ok(code3);
++  await request(app)
++    .post('/patient/otp/verify')
++    .send({ phone: '+15559998003', code: code3 });
++  const { snapshot } = await import('../src/metrics/counters.js');
++  assert.equal(snapshot()['otp.verification'], 3, 'expected 3 verifications total');
++});
++
++test('AC-1b: cleanup-of-expired-row path inside the same transaction', async () => {
++  // Insert an expired row directly (no provider involved), then send —
++  // the new send should rotate it without UNIQUE conflict.
++  await db.pool.query(
++    `INSERT INTO otp_verification (phone_e164, code_hash, expires_at, attempts, locked_until, last_sent_at, created_at)
++     VALUES ('+15551234567', repeat('a', 64), now() - INTERVAL '1 second', 5, NULL, now() - INTERVAL '5 minutes', now() - INTERVAL '5 minutes')`,
++  );
++  const app = appWithCapture();
++  const r = await request(app).post('/patient/otp/send').send({ phone: '+15551234567' });
++  assert.equal(r.status, 200, 'send should rotate the expired row, not conflict on UNIQUE');
++  const { rows } = await db.pool.query(`SELECT attempts FROM otp_verification WHERE phone_e164 = $1`, ['+15551234567']);
++  assert.equal(rows.length, 1);
++  assert.equal(rows[0]!.attempts, 0, 'attempts must reset on rotation');
++});

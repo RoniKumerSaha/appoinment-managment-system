@@ -10,20 +10,31 @@
  * where SonicBoom writes via the fd-1 path directly). Production callers
  * omit this and get the production `requestLogger`.
  *
+ * `opts.smsOtpService` (optional) lets a test inject the SmsOtpService
+ * with a stub provider. Production callers construct the service in
+ * `server.ts` from the env and pass it in. If omitted, the SMS OTP router
+ * is NOT registered.
+ *
  * Mock-OTP route registration is gated on `NODE_ENV ∈ {development, test}`
- * via `loadAuthConfig().mockOtpAllowed` — see `./auth/config.ts`.
+ * via `loadAuthConfig().mockOtpAllowed`. E0-S4 removes the mock — the
+ * real SMS OTP gateway replaces it. The mock flag stays in `AuthConfig`
+ * for one story to keep the diff visible; it is unused by `createApp()`
+ * and documented as `@deprecated`.
  */
 import express from 'express';
 import type { RequestHandler } from 'express';
 import { healthRouter } from './routes/health.js';
 import { metricsRouter } from './routes/metrics.js';
 import { patientOtpRouter } from './routes/patient-otp.js';
+import { createSmsOtpRouter } from './routes/sms-otp.js';
 import { authMiddleware } from './middleware/auth.js';
 import { getLogger, requestLogger } from './middleware/log.js';
 import { loadAuthConfig } from './auth/config.js';
+import type { SmsOtpService } from './otp/service.js';
 
 export interface CreateAppOptions {
   requestLogger?: RequestHandler;
+  smsOtpService?: SmsOtpService;
 }
 
 export function createApp(opts: CreateAppOptions = {}): express.Express {
@@ -36,10 +47,17 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   app.use(healthRouter);
   app.use(metricsRouter);
 
-  // Mock-OTP router mounts BEFORE authMiddleware so an unauthenticated caller
-  // can hit the login route. The route handler itself is the auth gate for
-  // this surface. Body-parser is also above this point so the route can
-  // read `req.body`.
+  // SMS-OTP router mounts BEFORE authMiddleware so an unauthenticated
+  // caller can hit the login routes. The routes are themselves the auth
+  // gate (the OTP is the credential). Body-parser is also above this
+  // point so the routes can read `req.body`.
+  if (opts.smsOtpService) {
+    app.use('/patient', createSmsOtpRouter({ service: opts.smsOtpService }));
+  }
+
+  // Mock-OTP router mounts BEFORE authMiddleware for backward compatibility
+  // with E0-S3's test suite. The mock stays for one story per the E0-S4
+  // spec; E4-S1 will delete it when the real OTP modal lands.
   let mockOtpAllowed = false;
   try {
     mockOtpAllowed = loadAuthConfig().mockOtpAllowed;
