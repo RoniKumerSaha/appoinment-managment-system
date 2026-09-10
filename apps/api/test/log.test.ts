@@ -47,9 +47,19 @@ function makeAppWithCapture(): { app: ReturnType<typeof createApp>; lines: strin
       cb();
     },
   });
+  // Force the captured logger to emit at info+ regardless of ambient
+  // LOG_LEVEL (CI defaults to 'error' to keep test output clean, but
+  // pino-http emits its request-completion line at info — without forcing
+  // the level here, the assertion below would see an empty `lines` array
+  // and fail with "expected at least one pino-http line; got 0").
+  const prevLevel = process.env['LOG_LEVEL'];
+  process.env['LOG_LEVEL'] = 'info';
   const baseLogger = createBaseLogger(stream);
   const requestLogger = createRequestLogger({ logger: baseLogger });
   const app = createApp({ requestLogger });
+  // Restore ambient LOG_LEVEL so other tests in the same run aren't
+  // affected. The captured Writable continues to receive info lines.
+  process.env['LOG_LEVEL'] = prevLevel;
   return { app, lines, stream };
 }
 

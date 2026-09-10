@@ -9,13 +9,18 @@
  * without depending on stdout interception (which is unreliable on Windows
  * where SonicBoom writes via the fd-1 path directly). Production callers
  * omit this and get the production `requestLogger`.
+ *
+ * Mock-OTP route registration is gated on `NODE_ENV ∈ {development, test}`
+ * via `loadAuthConfig().mockOtpAllowed` — see `./auth/config.ts`.
  */
 import express from 'express';
 import type { RequestHandler } from 'express';
 import { healthRouter } from './routes/health.js';
 import { metricsRouter } from './routes/metrics.js';
+import { patientOtpRouter } from './routes/patient-otp.js';
 import { authMiddleware } from './middleware/auth.js';
-import { logger, requestLogger } from './middleware/log.js';
+import { getLogger, requestLogger } from './middleware/log.js';
+import { loadAuthConfig } from './auth/config.js';
 
 export interface CreateAppOptions {
   requestLogger?: RequestHandler;
@@ -30,6 +35,22 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
 
   app.use(healthRouter);
   app.use(metricsRouter);
+
+  // Mock-OTP router mounts BEFORE authMiddleware so an unauthenticated caller
+  // can hit the login route. The route handler itself is the auth gate for
+  // this surface. Body-parser is also above this point so the route can
+  // read `req.body`.
+  let mockOtpAllowed = false;
+  try {
+    mockOtpAllowed = loadAuthConfig().mockOtpAllowed;
+  } catch {
+    // If config fails to load (missing AUTH_SECRET), skip the mock-OTP
+    // registration. Production boots will still fail-fast via server.ts's
+    // explicit `loadAuthConfig()` call before `createApp()`.
+  }
+  if (mockOtpAllowed) {
+    app.use('/patient', patientOtpRouter);
+  }
 
   app.use(authMiddleware);
 
@@ -48,7 +69,7 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
       _next: express.NextFunction,
     ) => {
       const message = err instanceof Error ? err.message : 'unknown_error';
-      logger.error({ err: message }, 'request_failed');
+      getLogger().error({ err: message }, 'request_failed');
       res.status(500).json({ error: 'internal_error' });
     },
   );

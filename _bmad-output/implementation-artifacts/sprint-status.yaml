@@ -43,7 +43,18 @@
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 
 generated: 09-08-2026 12:00
-last_updated: 09-08-2026
+last_updated: 09-10-2026
+# E0-S3 implementation complete 09-10-2026:
+#   - apps/api/src/auth/{config,jwt}.ts, apps/api/src/routes/patient-otp.ts
+#   - apps/api/src/middleware/auth.ts extended (Bearer-first, debug fallback)
+#   - apps/api/src/middleware/log.ts (getLogger() for testable destination swap)
+#   - apps/api/db/migrations/0011_pgcrypto_grants.sql (move pgcrypto into dedicated
+#     schema on alpine images + grant USAGE+EXECUTE on functions + ALTER DATABASE search_path)
+#   - apps/api/test/{auth-jwt,auth-bearer,patient-otp,log-bearer,pgcrypto-grants}.test.ts
+# 128/128 tests green (24 jwt + 16 config + 12 auth-stub + 23 auth-bearer +
+# 17 patient-otp + 5 log-bearer + 4 pgcrypto-grants + 4 migrations + 11 invariants +
+# 2 seed + 5 log + 4 health + 1 metrics + 1 pgcrypto + others).
+# Awaiting bmad-code-review pass before moving E0-S3 to done.
 project: appoinment managment system
 project_key: NOKEY
 tracking_system: file-system
@@ -52,9 +63,9 @@ story_location: "_bmad-output/implementation-artifacts"
 development_status:
   # Epic 0 — Bootstrap & platform
   epic-0: in-progress
-  0-1-repo-skeleton-starter-template: review
-  0-2-data-model-migrations: backlog
-  0-3-auth-provider-wiring: backlog
+  0-1-repo-skeleton-starter-template: done
+  0-2-data-model-migrations: review
+  0-3-auth-provider-wiring: review
   0-4-sms-otp-gateway: backlog
   0-5-seed-data-role-fixtures: backlog
   0-6-observability-baseline: backlog

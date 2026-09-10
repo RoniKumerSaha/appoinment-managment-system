@@ -49,7 +49,30 @@ export function createBaseLogger(destination?: DestinationStream): pino.Logger {
 
 const baseLogger = createBaseLogger();
 
-export const logger = baseLogger;
+/**
+ * Module-level logger. Reads via `getLogger()` so tests can swap the
+ * destination via `__redirectBaseLoggerForTests(stream)`. Direct exports
+ * of `const logger` would freeze the binding at module-load time and the
+ * swap would not propagate to consumers.
+ */
+let activeLogger: pino.Logger = baseLogger;
+
+export function getLogger(): pino.Logger {
+  return activeLogger;
+}
+
+/**
+ * Test-only: swap the module-level logger's destination. The route handlers
+ * (`patient-otp.ts`, etc.) read via `getLogger()` so this swap propagates.
+ * Pass `undefined` to restore the original stdout-bound logger.
+ *
+ * Production code never calls this.
+ */
+export function __redirectBaseLoggerForTests(
+  stream?: DestinationStream,
+): void {
+  activeLogger = stream === undefined ? baseLogger : createBaseLogger(stream);
+}
 
 /**
  * Build a `pinoHttp()` middleware honouring the production contract:
