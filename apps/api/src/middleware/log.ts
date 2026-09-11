@@ -12,22 +12,31 @@
  * The log middleware also exposes a tiny test-only endpoint behaviour: any
  * handler can call `req.log.info({ appointment_id, ... }, 'msg')` and the four
  * fields will be present in the JSON line.
+ *
+ * The 4 contract fields and 7 redaction paths live in `log-contract.ts` as
+ * the single source of truth; this module imports them so callers (tests,
+ * future handlers) reference the contract by import rather than by
+ * re-declaring literals.
  */
 import type { Request, RequestHandler } from 'express';
 import pino from 'pino';
 import pinoHttp from 'pino-http';
 import type { DestinationStream } from 'pino';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { REDACT_PATHS, CONTRACT_FIELDS } from './log-contract.js';
 
-export const redactPaths = [
-  'req.headers.authorization',
-  'req.headers.cookie',
-  'req.body.password',
-  'req.body.phone_number',
-  'req.body.code',
-  'req.headers["x-auth-claim"]',
-  'res.headers["set-cookie"]',
-];
+/**
+ * Re-export so the existing test (`log.test.ts`) can keep importing
+ * `redactPaths` from this module — the contract module owns the canonical
+ * array, this module owns the wire-up (pino redact config, genReqId,
+ * customProps). Both consumers reference the same array reference.
+ */
+export { REDACT_PATHS as redactPaths } from './log-contract.js';
+/**
+ * Marker re-export so consumers (tests, future modules) can pull the typed
+ * tuple directly from this module without learning a second path.
+ */
+export { CONTRACT_FIELDS } from './log-contract.js';
 
 /**
  * Build the base pino logger. Production code calls this with no arguments;
@@ -39,7 +48,7 @@ export function createBaseLogger(destination?: DestinationStream): pino.Logger {
   return pino(
     {
       level: process.env.LOG_LEVEL ?? 'info',
-      redact: { paths: redactPaths, censor: '[REDACTED]' },
+      redact: { paths: [...REDACT_PATHS], censor: '[REDACTED]' },
       base: { service: 'clinic-api' },
       timestamp: pino.stdTimeFunctions.isoTime,
     },
@@ -107,15 +116,25 @@ export function createRequestLogger(opts: { logger?: pino.Logger } = {}): Reques
       // appointment_id populate when the handler sets them on the request via
       // attachLogContext(); the fields are always present in the JSON
       // envelope (null when unset) so log consumers can rely on shape.
+      //
+      // The four keys emitted here are derived from `CONTRACT_FIELDS` in
+      // `log-contract.ts`, NOT from inline literals: `CONTRACT_FIELDS[0]`
+      // is always `request_id`, and `[1]..[3]` are `actor_role`,
+      // `actor_id`, `appointment_id` respectively. A small mapping fixes
+      // each contract field to its source (req.id for request_id, ctx for
+      // the rest) so the wire shape stays identical while the key NAMES
+      // remain the single source of truth.
       const ctx = (req as Request & { logCtx?: LogContext }).logCtx ?? {};
       const requestId =
         (req as IncomingMessage & { id?: unknown }).id ?? null;
-      return {
-        request_id: typeof requestId === 'string' ? requestId : null,
-        actor_role: ctx.actor_role ?? null,
-        actor_id: ctx.actor_id ?? null,
-        appointment_id: ctx.appointment_id ?? null,
+      const sources: Record<(typeof CONTRACT_FIELDS)[number], unknown> = {
+        [CONTRACT_FIELDS[0]]:
+          typeof requestId === 'string' ? requestId : null,
+        [CONTRACT_FIELDS[1]]: ctx.actor_role ?? null,
+        [CONTRACT_FIELDS[2]]: ctx.actor_id ?? null,
+        [CONTRACT_FIELDS[3]]: ctx.appointment_id ?? null,
       };
+      return sources;
     },
   }) as unknown as RequestHandler;
 }

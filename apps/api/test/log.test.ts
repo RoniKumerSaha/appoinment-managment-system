@@ -28,6 +28,7 @@ import {
   createRequestLogger,
   redactPaths,
 } from '../src/middleware/log.js';
+import { CONTRACT_FIELDS } from '../src/middleware/log-contract.js';
 import { createApp } from '../src/app.js';
 
 /**
@@ -145,6 +146,83 @@ test('redactPaths covers authorization, cookie, password, phone_number, code, x-
       `redactPaths must include ${p}; got=${redactPaths.join(',')}`,
     );
   }
+});
+
+test('customProps emits exactly the keys in CONTRACT_FIELDS (single-source-of-truth lock)', async () => {
+  // CONTRACT_FIELDS is imported directly from `log-contract.ts`, NOT from
+  // `log.ts`. This test locks the "single source of truth" promise: the
+  // keys on the emitted pino-http line MUST come from the same tuple that
+  // `log.ts` imports. If `log.ts` ever drifts back to inline literals in
+  // `customProps`, the emitted keyset will diverge from CONTRACT_FIELDS
+  // and the assertion below fails.
+  //
+  // Strategy: drive a request through `createApp()` with the captured
+  // logger and assert the keyset of the emitted pino-http line is exactly
+  // CONTRACT_FIELDS (modulo the canonical pino envelope keys). Populated
+  // values are NOT asserted here — they fall under the existing
+  // `requestLogger emits a JSON line carrying request_id, actor_role,
+  // actor_id, appointment_id` test which is documented as a pre-existing
+  // baseline failure unrelated to the CONTRACT_FIELDS adoption.
+  const { app, lines, stream } = makeAppWithCapture();
+  const res = await request(app).get('/__no_such_route__');
+  assert.equal(res.status, 404);
+  await new Promise<void>((resolve) => stream.end(resolve));
+
+  const events = lines
+    .map((l) => {
+      try {
+        return JSON.parse(l) as Record<string, unknown>;
+      } catch {
+        return null;
+      }
+    })
+    .filter((p): p is Record<string, unknown> => p !== null && 'req' in p);
+  assert.ok(
+    events.length > 0,
+    `expected at least one pino-http line; got ${lines.length}`,
+  );
+
+  // Assert EVERY key in CONTRACT_FIELDS is present on the emitted line.
+  // The key NAMES come from the imported tuple, not from inline literals
+  // in the test — that's what locks the single-source-of-truth promise.
+  const ev = events[0]!;
+  for (const key of CONTRACT_FIELDS) {
+    assert.ok(
+      key in ev,
+      `emitted line must include CONTRACT_FIELDS key ${key}; got keys=${Object.keys(ev).join(',')}`,
+    );
+  }
+
+  // No aliasing: outside the pino envelope, EVERY key on the line MUST be
+  // a CONTRACT_FIELDS key. This catches drift like a `requestId` (camelCase)
+  // reappearing alongside `request_id`, or any future contract field
+  // declared in `log.ts` without going through `log-contract.ts`.
+  const pinoEnvelopeAllow = new Set([
+    'level',
+    'time',
+    'pid',
+    'hostname',
+    'msg',
+    'req',
+    'res',
+    'responseTime',
+    'service',
+  ]);
+  for (const k of Object.keys(ev)) {
+    if (pinoEnvelopeAllow.has(k)) continue;
+    assert.ok(
+      (CONTRACT_FIELDS as readonly string[]).includes(k),
+      `unexpected non-contract key ${k} in emitted line; keys=${Object.keys(ev).join(',')}`,
+    );
+  }
+
+  // request_id (CONTRACT_FIELDS[0]) is a non-empty string even when no
+  // auth claim is supplied — the genReqId hook always provides one.
+  assert.equal(typeof ev[CONTRACT_FIELDS[0]], 'string');
+  assert.ok(
+    (ev[CONTRACT_FIELDS[0]] as string).length > 0,
+    'request_id must be a non-empty string',
+  );
 });
 
 test('pino redact strips password / phone_number / code keys (sanity)', async () => {

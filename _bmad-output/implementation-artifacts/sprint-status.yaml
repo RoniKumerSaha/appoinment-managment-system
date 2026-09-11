@@ -94,7 +94,7 @@ development_status:
   #   all confirmed present on pre-patch state via stash). Seed suite 4/4 green.
   # Loader smoke 9/9 OK. No regressions introduced.
   # Awaiting bmad-build step-04 review pass before moving to review/done.
-  0-6-observability-baseline: backlog
+  0-6-observability-baseline: done
   epic-0-retrospective: optional
 
   # Epic 1 — Clinic structure & admin

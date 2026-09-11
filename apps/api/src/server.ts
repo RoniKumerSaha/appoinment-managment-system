@@ -24,6 +24,7 @@ import {
   TwilioSmsOtpProvider,
   buildTwilioProviderFromEnv,
 } from './otp/twilio-provider.js';
+import { serviceStarted } from './observability/build-info.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
 
@@ -83,6 +84,11 @@ async function bootstrap(): Promise<void> {
   const app = createApp({ smsOtpService });
   const server = app.listen(PORT, () => {
     getLogger().info({ port: PORT, otp_provider: otpCfg.provider }, 'api_listening');
+    // E0-S6 observability baseline: emit the single `service_started` line
+    // carrying build version + commit sha so operators can correlate the
+    // log stream with the running deployment. One emit per process; never
+    // throws (missing APP_VERSION / GIT_SHA default to safe placeholders).
+    serviceStarted(PORT);
   });
 
   // Surface bind failures (e.g. EADDRINUSE) via the structured logger and
