@@ -2,8 +2,8 @@
 title: 'E0-S4 — SMS OTP gateway'
 type: 'feature'
 created: '2026-09-10'
-status: 'in-progress'
-review_loop_iteration: 1
+status: 'in-review'
+review_loop_iteration: 2
 baseline_commit: 'E0-S3 review'  # current HEAD at spec time
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/epic-0-context.md'
@@ -215,6 +215,15 @@ Matrix: 21 matrix rows covered by 21 sms-otp tests; one row each for provider-fa
 
 - [x] [Review][Decision] F17 — `OTP_PROVIDER` default for `NODE_ENV=staging`. **Resolved:** staging defaults to `log` (matches dev/test posture per user decision). Patch to `isDevelopmentOrTest()` to include `staging`.
 - [x] [Review][Decision] F18 — dual OTP route mount in dev/test (SMS gateway + legacy mock). **Resolved:** dismissed. Spec A1 explicitly chose "keep mock for one story, E4-S1 deletes it." Dual-mount is acceptable for v1.
+
+### Resume review (2026-09-14, iteration 2)
+
+Triggered by `bmad-build step-03` resume after bytea-parser regression surfaced in `sms-otp.test.ts` AC-1/AC-2.
+
+- **Scope of review:** the bytea-fix commit only (`abc5fb6`). The earlier full-implementation commit (`836ad21`) was already reviewed in iteration 1 (F1–F16 patches applied).
+- **Reviewers:** blind-hunter (17 findings), edge-case-hunter (0 findings — empty JSON array), verification-gap ("No verification gaps found").
+- **Triage result:** no patches, no intent_gap, no bad_spec. 3 deferrals (regex guard, helper extraction, spec note) appended to `deferred-work.md`. 14 of 17 blind-hunter findings rejected as opinion / refactor / out-of-scope / pre-existing.
+- **Story status:** E0-S4 → done.
 
 ### Patch (resolved)
 

@@ -75,7 +75,7 @@ development_status:
   0-1-repo-skeleton-starter-template: done
   0-2-data-model-migrations: review
   0-3-auth-provider-wiring: review
-  0-4-sms-otp-gateway: review
+  0-4-sms-otp-gateway: done
   0-5-seed-data-role-fixtures: done
   # 2026-09-10 bmad-build step-03 implementation complete for E0-S5:
   #   - apps/api/db/seeds/01_minimum.ts extended (2 branches, 3 doctors, 2 receptionists,
