@@ -27,7 +27,9 @@ import { healthRouter } from './routes/health.js';
 import { metricsRouter } from './routes/metrics.js';
 import { patientOtpRouter } from './routes/patient-otp.js';
 import { createSmsOtpRouter } from './routes/sms-otp.js';
+import { adminClinicRouter } from './routes/admin-clinic.js';
 import { authMiddleware } from './middleware/auth.js';
+import { adminScope } from './middleware/admin-scope.js';
 import { getLogger, requestLogger } from './middleware/log.js';
 import { loadAuthConfig } from './auth/config.js';
 import type { SmsOtpService } from './otp/service.js';
@@ -71,6 +73,13 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   }
 
   app.use(authMiddleware);
+
+  // Admin routes — mounted AFTER authMiddleware. Chained router-level
+  // middleware means adminScope gates only `/admin/*`, not every path.
+  // The mount order mirrors the E0-S3 convention: authenticated routers
+  // (admin) come after the auth middleware, public routers (health,
+  // metrics, OTP) before it.
+  app.use('/admin', adminScope, adminClinicRouter);
 
   // JSON 404 fallthrough — kept after the routers so a matching route wins;
   // every other path returns a stable JSON error envelope (no HTML default).

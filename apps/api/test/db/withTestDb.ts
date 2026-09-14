@@ -28,6 +28,10 @@ const migrationsDir = resolve(here, '..', '..', 'db', 'migrations');
 
 export interface TestDb {
   pool: pg.Pool;
+  /** Connection URI used to construct `pool`. Useful for tests that need
+   *  to plumb the URI into other subsystems (e.g. `process.env.DATABASE_URL`
+   *  so the production code path `getPool()` picks it up). */
+  connectionUri: string;
   close: () => Promise<void>;
 }
 
@@ -54,6 +58,7 @@ async function fromEnv(): Promise<TestDb> {
   const pool = new Pool({ connectionString: url });
   return {
     pool,
+    connectionUri: url,
     close: async () => {
       await pool.end();
     },
@@ -64,13 +69,27 @@ async function fromTestcontainers(): Promise<TestDb> {
   // Lazy import so dev environments without testcontainers don't fail at parse time.
   const { PostgreSqlContainer } = await import('@testcontainers/postgresql');
   const container = await new PostgreSqlContainer('postgres:16-alpine').start();
-  const pool = new Pool({ connectionString: container.getConnectionUri() });
+  const uri = container.getConnectionUri();
+  const pool = new Pool({ connectionString: uri });
   await applyMigrations(pool);
+  // Side-effect: expose the container URI on `process.env.DATABASE_URL` so
+  // production code paths that read DATABASE_URL (e.g. `getPool()` from
+  // `src/db/pool.ts`) pick up the testcontainer's pool. Without this, HTTP
+  // tests that drive routes through `createApp()` would create a SEPARATE
+  // Pool from a missing DATABASE_URL and fail with `DATABASE_URL is not set`.
+  // The env is reset on `closeShared()` below.
+  process.env['DATABASE_URL'] = uri;
   return {
     pool,
+    connectionUri: uri,
     close: async () => {
       await pool.end();
       await container.stop();
+      // Clear the env hint so a subsequent test file's local DATABASE_URL
+      // (if any) isn't accidentally clobbered by the prior container URI.
+      if (process.env['DATABASE_URL'] === uri) {
+        delete process.env['DATABASE_URL'];
+      }
     },
   };
 }
