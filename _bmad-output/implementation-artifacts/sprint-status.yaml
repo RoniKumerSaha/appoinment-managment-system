@@ -71,10 +71,17 @@ story_location: "_bmad-output/implementation-artifacts"
 
 development_status:
   # Epic 0 — Bootstrap & platform
-  epic-0: in-progress
+  epic-0: done
   0-1-repo-skeleton-starter-template: done
-  0-2-data-model-migrations: review
-  0-3-auth-provider-wiring: review
+  # 2026-09-14 reconciliation: sprint-status drift — spec says done, key said review.
+  # Resolved: spec frontmatter (`status: done`, `review_loop_iteration: 2`, "Re-approved after
+  # 2026-09-10 implementation review (3 decisions resolved, 12 patches applied, 8 deferred,
+  # 3 dismissed)") is the source of truth. Key now matches.
+  0-2-data-model-migrations: done
+  # 2026-09-14 reconciliation: spec says done (`review_loop_iteration: 1`, "Re-approved after
+  # 2026-09-10 code review (5 decisions resolved, 43 patches applied)"), key said review.
+  # Resolved: key now matches spec.
+  0-3-auth-provider-wiring: done
   0-4-sms-otp-gateway: done
   0-5-seed-data-role-fixtures: done
   # 2026-09-10 bmad-build step-03 implementation complete for E0-S5:
@@ -112,9 +119,14 @@ development_status:
   #     `override` on Error.cause, service.ts AuthClaim re-export from
   #     jwt.ts, twilio-provider.ts latent `twilio` types). Not in E0-S4 scope.
   #   - Deferred work: W26 closed; W19–W25 unchanged.
-  #   - Story E0-S4 → review, awaiting bmad-code-review pass to land or
-  #     move to done. The pre-existing F1–F16 review patches from 2026-09-10
-  #     remain in place; this resume only added the bytea fix.
+  #   - Story E0-S4 → done (key already updated 2026-09-14; this comment is
+  #     the audit trail). Re-review in fresh context (2026-09-14) confirmed
+  #     no patches needed for the bytea fix itself: AC-1/AC-2/AC-5/AC-20
+  #     are pinned by existing sms-otp.test.ts; the fix restores canonical
+  #     64-char lowercase hex at both hash sites. Two new deferred items
+  #     appended (see deferred-work.md): W26a (legacy \x... rows will
+  #     auto-clear via 5-min TTL) and W27 (snap verification: this very
+  #     comment-vs-key drift — the key was updated before the comment).
 
   epic-0-retrospective: optional
 

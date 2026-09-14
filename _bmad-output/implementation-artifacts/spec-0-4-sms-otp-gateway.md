@@ -225,6 +225,16 @@ Triggered by `bmad-build step-03` resume after bytea-parser regression surfaced 
 - **Triage result:** no patches, no intent_gap, no bad_spec. 3 deferrals (regex guard, helper extraction, spec note) appended to `deferred-work.md`. 14 of 17 blind-hunter findings rejected as opinion / refactor / out-of-scope / pre-existing.
 - **Story status:** E0-S4 → done.
 
+### Re-review (2026-09-14, iteration 3)
+
+Triggered by user request to run `bmad-code-review` on E0-S4 in a fresh context after iteration 2 had landed the fix but the sprint-status.yaml still showed the story at `review`.
+
+- **Scope of review:** the resume diff `ede4156..HEAD` (3 files, +108/-22): the bytea SQL fix in `apps/api/src/otp/service.ts` (lines 152 + 238), the spec narrative update, and the sprint-status comment block.
+- **Reviewers:** blind-hunter (21 findings), edge-case-hunter (13 findings), verification-gap (0 — "No verification gaps found. AC-1/AC-2/AC-5/AC-20 already covered by existing `sms-otp.test.ts` at lines 166, 179, 237."), acceptance-auditor (7 confirmations + 1 residual-risk flag).
+- **Triage result:** no production-code patches; 3 new deferred items appended (`W26a` legacy `\x...` rows, `W27` rejected `code_hash` CHECK constraint, `W28` sprint-status comment/key drift). One process patch applied: sprint-status.yaml audit comment reconciled with the existing `done` key, plus a `Suggested Review Order` cross-link so future reviewers start at the SQL swap before reading the spec narrative.
+- **Dismissals (representative):** `Buffer.from(code_hash, 'utf8')` → `'hex'` is a false positive (would throw on odd-length input and changes semantics); empty-code and non-ASCII-code guards are already enforced at the route layer per AC-11; concurrent-send race is handled by `ON CONFLICT (phone_e164) DO UPDATE`; provider.send()-before-COMMIT is the AC-22 contract; "no new regression test added" is a false positive (AC-1 length-64 + AC-2 equality-with-Node-hex are direct regression tests for this exact bug).
+- **Story status:** stays `done`. Key was already `done` from iteration 2; this iteration reconciled the audit comment and appended three deferrals. No further review required unless a third regression of this shape appears.
+
 ### Patch (resolved)
 
 - [x] [Review][Patch] F1 — `server.ts` Twilio→Log fallback in production [apps/api/src/server.ts:56-65]
