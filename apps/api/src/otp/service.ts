@@ -143,8 +143,13 @@ export class SmsOtpService {
       // covers the case where a row exists but neither locked nor in
       // cooldown — we rotate the code, attempts, locked_until, and reset
       // created_at / last_sent_at.
+      // F-bytea: `pgcrypto.digest(...)::text` returns the bytea hex-escape
+      // form (e.g. `\xb2e6...`) which is 66 chars and breaks AC-1/AC-2's
+      // "sha-256 hex is exactly 64 chars" invariant. `encode(..., 'hex')`
+      // yields the canonical 64-char lowercase hex string the spec promises
+      // and what `Buffer.from(code_hash, 'utf8')` in verify() expects.
       const codeHashResult = await client.query<{ code_hash: string }>(
-        `SELECT pgcrypto.digest($1, 'sha256')::text AS code_hash`,
+        `SELECT encode(pgcrypto.digest($1, 'sha256'), 'hex') AS code_hash`,
         [code],
       );
       const codeHash = codeHashResult.rows[0]!.code_hash;
@@ -225,8 +230,12 @@ export class SmsOtpService {
       // same digest the service stored. Doing the hash in Node would be
       // equivalent in correctness but loses the SQL-side symmetry that
       // makes the contract self-documenting.
+      // F-bytea: same bytea→hex bug as the `send()` path — see comment above.
+      // Using `encode(..., 'hex')` keeps the verify-side hash in the same
+      // 64-char shape as the stored `code_hash`, so timingSafeEqual on equal
+      // UTF-8 buffers actually compares the same byte representation.
       const inputHashResult = await client.query<{ code_hash: string }>(
-        `SELECT pgcrypto.digest($1, 'sha256')::text AS code_hash`,
+        `SELECT encode(pgcrypto.digest($1, 'sha256'), 'hex') AS code_hash`,
         [code],
       );
       const inputHash = inputHashResult.rows[0]!.code_hash;

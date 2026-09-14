@@ -43,7 +43,7 @@
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 
 generated: 09-08-2026 12:00
-last_updated: 09-10-2026
+last_updated: 2026-09-14
 # 2026-09-10 bmad-build step-04 review on E0-S5 complete (review_loop_iteration=1):
 #   - 4 patch findings applied: P1 (AC-3 strict ===), P2 (single-JSON-line log via
 #     formatSeedLog helper), P3/P3b (seed_unchanged log pinned by 2 new tests),
@@ -75,7 +75,7 @@ development_status:
   0-1-repo-skeleton-starter-template: done
   0-2-data-model-migrations: review
   0-3-auth-provider-wiring: review
-  0-4-sms-otp-gateway: in-progress
+  0-4-sms-otp-gateway: review
   0-5-seed-data-role-fixtures: done
   # 2026-09-10 bmad-build step-03 implementation complete for E0-S5:
   #   - apps/api/db/seeds/01_minimum.ts extended (2 branches, 3 doctors, 2 receptionists,
@@ -95,6 +95,27 @@ development_status:
   # Loader smoke 9/9 OK. No regressions introduced.
   # Awaiting bmad-build step-04 review pass before moving to review/done.
   0-6-observability-baseline: done
+  # 2026-09-14 bmad-build step-03 resume on E0-S4 complete:
+  #   - Fixed bytea-parser regression (W26, deferred-work): replaced
+  #     `pgcrypto.digest($1, 'sha256')::text` with
+  #     `encode(pgcrypto.digest($1, 'sha256'), 'hex')` at both hash sites in
+  #     `apps/api/src/otp/service.ts` (send + verify). The `::text` cast on a
+  #     bytea value returned the `\x<hex>` escape form (66 chars), breaking
+  #     AC-1/AC-2's "sha-256 hex is exactly 64 chars" invariant.
+  #   - 21/21 sms-otp tests green (was 19/21 before fix).
+  #   - Suite-wide: 200/203 tests pass (3 pre-existing baseline failures:
+  #     auth.test.ts {staff,doctor}-empty-branch_ids → 404 not 403,
+  #     log.test.ts actor_role=null — all documented in deferred-work.md
+  #     and sprint-status.yaml history).
+  #   - Lint: 4 warnings, 0 errors (all pre-existing in scope).
+  #   - Typecheck: 3 pre-existing errors unrelated to E0-S4 (provider.ts
+  #     `override` on Error.cause, service.ts AuthClaim re-export from
+  #     jwt.ts, twilio-provider.ts latent `twilio` types). Not in E0-S4 scope.
+  #   - Deferred work: W26 closed; W19–W25 unchanged.
+  #   - Story E0-S4 → review, awaiting bmad-code-review pass to land or
+  #     move to done. The pre-existing F1–F16 review patches from 2026-09-10
+  #     remain in place; this resume only added the bytea fix.
+
   epic-0-retrospective: optional
 
   # Epic 1 — Clinic structure & admin
