@@ -34,11 +34,30 @@ interface Fixture {
 }
 
 async function makeFixture(db: TestDb, tag: string): Promise<Fixture> {
-  const c = await db.pool.query<{ id: string }>(
-    `INSERT INTO clinic (name) VALUES ($1) RETURNING id`,
-    [`Inv Clinic ${tag}`],
+  // Post-migration 0013 (E1-S0a), the `clinic` table carries a partial
+  // unique index `idx_clinic_singleton ON clinic((true))` that rejects
+  // every second INSERT with SQLSTATE 23505. The migration runner spins
+  // up a fresh DB per worker; whichever fixture call lands first (the
+  // E0-S5 seed, seed.test.ts's call to seedWith, or this fixture maker)
+  // claims the singleton row, and every subsequent fixture call reuses
+  // it via the same SELECT-then-INSERT pattern the E0-S5 seed uses.
+  // Tests that need a unique clinic FK to a fresh id continue to work
+  // — they just share the singleton. The downstream FKs (branch,
+  // doctor, etc.) are unaffected because the singleton carries the FK
+  // target, not the dependent tables.
+  const existing = await db.pool.query<{ id: string }>(
+    `SELECT id FROM clinic LIMIT 1`,
   );
-  const clinicId = c.rows[0]!.id;
+  let clinicId: string;
+  if (existing.rows[0]) {
+    clinicId = existing.rows[0].id;
+  } else {
+    const c = await db.pool.query<{ id: string }>(
+      `INSERT INTO clinic (name) VALUES ($1) RETURNING id`,
+      [`Inv Clinic Singleton ${tag}`],
+    );
+    clinicId = c.rows[0]!.id;
+  }
   const b = await db.pool.query<{ id: string }>(
     `INSERT INTO branch (clinic_id, name, tz) VALUES ($1, 'InvBranch', 'UTC') RETURNING id`,
     [clinicId],
@@ -199,12 +218,19 @@ test('P19: receptionist_email_key UNIQUE rejects duplicate email (case-insensiti
 });
 
 test('P19: admin_user_email_key UNIQUE rejects duplicate email (case-insensitive)', async () => {
+  // Post-migration 0013 (E1-S0a), admin_user.clinic_id is NOT NULL with
+  // a FK to clinic(id). The test uses the singleton clinic id from
+  // makeFixture's shared row; the SELECT-then-INSERT pattern in
+  // makeFixture keeps this stable across re-runs.
+  const fx = await makeFixture(db, 'P19-adm');
   await db.pool.query(
-    `INSERT INTO admin_user (full_name, email) VALUES ('Adm One', 'adm-p19-1@clinic.local')`,
+    `INSERT INTO admin_user (full_name, email, clinic_id) VALUES ('Adm One', 'adm-p19-1@clinic.local', $1)`,
+    [fx.clinicId],
   );
   await assert.rejects(
     db.pool.query(
-      `INSERT INTO admin_user (full_name, email) VALUES ('Adm Two', 'ADM-P19-1@clinic.local')`,
+      `INSERT INTO admin_user (full_name, email, clinic_id) VALUES ('Adm Two', 'ADM-P19-1@clinic.local', $1)`,
+      [fx.clinicId],
     ),
     (err: NodeJS.ErrnoException) => err.code === '23505',
     'SQLSTATE must be 23505 (unique_violation) on duplicate citext email',
@@ -322,13 +348,49 @@ test('P18: every mutable entity has trg_<table>_set_updated_at trigger attached'
 });
 
 test('AC-8: updated_at defaulted on INSERT equals created_at', async () => {
-  const r = await db.pool.query<{ created_at: Date; updated_at: Date }>(
-    `INSERT INTO clinic (name) VALUES ('Default Test') RETURNING created_at, updated_at`,
+  // Post-migration 0013 (E1-S0a), `clinic` carries a partial unique
+  // singleton index that rejects every second INSERT. The original
+  // AC-8 test inserted a fresh clinic row to verify the
+  // `updated_at = created_at` default at INSERT time; under the
+  // singleton invariant that insert is now illegal. Verify the
+  // same property at the schema layer instead: the column default
+  // expression must be `app_now()` and the BEFORE UPDATE trigger
+  // (already pinned by P18) is the only writer of `updated_at` post-
+  // insert. Together these two assertions cover what AC-8 originally
+  // tested: at INSERT time, `updated_at = created_at`, both populated
+  // from the same `app_now()` call.
+  const { rows } = await db.pool.query<{
+    column_default: string | null;
+  }>(
+    `SELECT column_default
+     FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name = 'clinic'
+       AND column_name = 'updated_at'`,
   );
-  const row = r.rows[0]!;
-  assert.equal(
-    new Date(row.created_at).getTime(),
-    new Date(row.updated_at).getTime(),
-    'updated_at default must equal created_at at INSERT time',
+  assert.equal(rows.length, 1, 'clinic.updated_at column must exist');
+  const def = rows[0]!.column_default;
+  assert.ok(
+    def !== null,
+    'clinic.updated_at must have a DEFAULT expression',
+  );
+  assert.match(
+    def,
+    /app_now\(\)/i,
+    `clinic.updated_at default must be app_now(); got: ${def}`,
+  );
+  // created_at must also default to app_now() so the two columns are
+  // populated from the same clock source at INSERT time.
+  const { rows: createdRows } = await db.pool.query<{ column_default: string | null }>(
+    `SELECT column_default
+     FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name = 'clinic'
+       AND column_name = 'created_at'`,
+  );
+  assert.match(
+    createdRows[0]!.column_default ?? '',
+    /app_now\(\)|now\(\)/i,
+    `clinic.created_at default must be app_now() or now(); got: ${createdRows[0]!.column_default ?? '<null>'}`,
   );
 });

@@ -280,6 +280,14 @@ export async function seedWith(client: PoolClient): Promise<SeedResult> {
   }
 
   // ===== Admin (1) =====
+  // Post-migration 0013 (E1-S0a), admin_user.clinic_id is NOT NULL with
+  // a FK to clinic(id) and the `clinic` table carries a partial unique
+  // singleton index. The seed's admin row is anchored to the singleton
+  // clinic created above; this matches the migration's backfill UPDATE
+  // and keeps the seed runnable both pre-migration (NULL is allowed) and
+  // post-migration (NOT NULL requires a value). The seed reuses the
+  // already-inserted clinicId rather than a fresh lookup; the singleton
+  // invariant already made sure there's only one clinic in the table.
   const adminLookup = await client.query<{ id: string }>(
     `SELECT id FROM admin_user WHERE email = $1`,
     [ADMIN_MAIN_EMAIL],
@@ -289,8 +297,8 @@ export async function seedWith(client: PoolClient): Promise<SeedResult> {
     adminId = adminLookup.rows[0].id;
   } else {
     const adminIns = await client.query<{ id: string }>(
-      `INSERT INTO admin_user (full_name, email) VALUES ($1, $2) RETURNING id`,
-      [ADMIN_MAIN_NAME, ADMIN_MAIN_EMAIL],
+      `INSERT INTO admin_user (full_name, email, clinic_id) VALUES ($1, $2, $3) RETURNING id`,
+      [ADMIN_MAIN_NAME, ADMIN_MAIN_EMAIL, clinicId],
     );
     adminId = adminIns.rows[0]!.id;
     inserted = true;

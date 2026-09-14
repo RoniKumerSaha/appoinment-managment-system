@@ -44,6 +44,7 @@
 
 generated: 09-08-2026 12:00
 last_updated: 2026-09-14
+# 2026-09-14 E1-S0a code-review pass complete; story moved to done (3 patches, 4 deferrals, 10/10 migrations.test.ts green).
 # 2026-09-10 bmad-build step-04 review on E0-S5 complete (review_loop_iteration=1):
 #   - 4 patch findings applied: P1 (AC-3 strict ===), P2 (single-JSON-line log via
 #     formatSeedLog helper), P3/P3b (seed_unchanged log pinned by 2 new tests),
@@ -131,7 +132,33 @@ development_status:
   epic-0-retrospective: optional
 
   # Epic 1 — Clinic structure & admin
-  epic-1: backlog
+  # 2026-09-14 E1-S0 split into three atomic stories per planning decisions:
+  #   - E1-S0a clinic-singleton-enforcement (DB-layer; this story)
+  #   - E1-S0b admin-clinic-api (middleware + routes + tests)
+  #   - E1-S0-ui-clinic-settings (web: deferred-work.md)
+  epic-1: in-progress
+  1-0a-clinic-singleton-enforcement: done
+  # 2026-09-14 E1-S0a code-review pass complete (review_loop_iteration=1, baseline_commit=3f746c1d):
+  #   - 2 patches applied from verification-gap lens:
+  #     P1: extended migrations.test.ts:147-200 to assert confdeltype='r' on the FK
+  #         (was previously only checking contype='f'; an ON DELETE RESTRICT regression
+  #         would silently fall back to NO ACTION 'a' and go undetected)
+  #     P2: added new test "E1-S0a: backfill UPDATE populates clinic_id on a
+  #         pre-existing NULL admin row" — exercises the WHERE clinic_id IS NULL
+  #         predicate that was never covered on a fresh DB
+  #   - 1 patch from edge-case-hunter: migration comment updated to disambiguate
+  #     "partial unique index" vs "expression unique index" (idx_clinic_singleton
+  #     is expression, idx_appointment_patient_doctor_scheduled is partial)
+  #   - 4 deferrals (W29 explicit FK naming, W30 concurrent INSERT race,
+  #     W31 pre-migration zero-clinic-rows, W32 terminology drift) — see
+  #     deferred-work.md
+  #   - 10/10 migrations.test.ts green; full suite 206/209 (3 pre-existing
+  #     baseline failures in auth.test.ts + log.test.ts unchanged from
+  #     baseline_commit 3f746c1d).
+  #   - Story E1-S0a → done.
+  1-0b-admin-clinic-api: backlog
+  1-0-ui-clinic-settings: backlog
+  # Legacy umbrella key (kept for traceability until retros close):
   1-0-clinic-management-single-clinic-anchor: backlog
   1-1-create-edit-deactivate-branches: backlog
   1-2-change-branch-operating-hours: backlog
