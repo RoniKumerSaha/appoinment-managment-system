@@ -198,7 +198,49 @@ development_status:
   1-0-ui-clinic-settings: backlog
   # Legacy umbrella key (kept for traceability until retros close):
   1-0-clinic-management-single-clinic-anchor: backlog
-  1-1-create-edit-deactivate-branches: backlog
+  1-1-create-edit-deactivate-branches: done
+  # 2026-09-14 E1-S1 code-review pass complete (review_loop_iteration=1,
+  # baseline_commit=4a107a35-3dfe... after Step-03 implementation):
+  #   - 3 reviewer subagents (verification-gap, blind-hunter, edge-case-hunter)
+  #     returned ~50 findings collectively.
+  #   - Triage: 0 intent_gap, 0 bad_spec, 13 patches applied, 4 deferrals,
+  #     remainder rejected as noise.
+  #   - Patches:
+  #     P-A1 (admin-branches.ts): reject unknown PATCH body fields with
+  #       `400 unknown_field + fields[]` (closes privilege-escalation
+  #       gap where `{role, clinic_id}` was silently dropped).
+  #     P-A5 (app.ts): map `entity.parse.failed` → `400 invalid_json`
+  #       (malformed JSON was previously 500).
+  #     P-B2 (admin-branches.ts): refactor dynamic UPDATE placeholder
+  #       indexing to unambiguous `++placeholder` + named bindings.
+  #     P-F1 (0014_branch_active.sql): split into add-then-backfill-then-
+  #       constrain (matches 0004/0013 pattern; closes silent-no-op on
+  #       partially-migrated DBs).
+  #     P9 (admin-branches.test.ts): scope `after()` cleanup to seeded
+  #       branch names.
+  #     P11 (migrations.test.ts): use UUID-based unique branch name.
+  #     P2/P4/P5/P6/P13 (admin-branches.test.ts): DB-pin trim/rename/
+  #       reactivate/combined-atomicity assertions.
+  #     P7 (admin-branches.test.ts): pin `updated_at` unchanged on
+  #       conflict-rollback (full row-state rollback).
+  #     P10 (seed.test.ts): assert seed inserts branches with active=true.
+  #     P14 (admin-branches.test.ts): validation order pinning for
+  #       `{name: '', active: false}` → `invalid_name`.
+  #     P-C3 (admin-branches.test.ts): uppercase UUID case-insensitivity.
+  #     P-#2 (admin-branches.ts file-level comment): honest scope-of-lock
+  #       note for W35 (FOR UPDATE blocks admin-vs-admin but NOT
+  #       booking-vs-deactivate).
+  #   - Deferrals (deferred-work.md):
+  #     W35 — Booking-vs-deactivate TOCTOU race; reopen when E3-S1 lands.
+  #     W36 — Cross-cutting JSON error envelope hardening (413/415).
+  #     W37 — `withTestDb` test-isolation hardening (`--test-concurrency > 1`).
+  #     W38 — `unknown_field` 400 envelope consistency across POST/GET.
+  #   - Suite-wide: 265/268 pass (+7 net new tests vs 258/261 E1-S0b
+  #     baseline; the 3 pre-existing baseline failures in `auth.test.ts`
+  #     × 2 + `log.test.ts` × 1 are unchanged).
+  #   - Typecheck: 0 new errors; 3 pre-existing baseline errors unchanged.
+  #   - Lint: 0 new warnings; 4 pre-existing baseline warnings unchanged.
+  #   - Story E1-S1 → done.
   1-2-change-branch-operating-hours: backlog
   1-3-create-deactivate-assign-branch-doctors: backlog
   1-4-create-deactivate-assign-branch-receptionists: backlog

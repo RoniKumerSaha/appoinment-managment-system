@@ -231,3 +231,25 @@ test('P3b: live seed returns the same event the formatter expects (inserted=fals
   assert.equal(parsed.event, 'seed_unchanged');
   assert.ok(parsed.rowCount > 0);
 });
+
+test('E1-S1: seed inserts 2 branches, both with active=true (column default)', async () => {
+  // The seed file's branch INSERT never names `active`; the 0014 column
+  // default must carry through. This pins the contract that the seed's
+  // silent reliance on the default would survive a future regression
+  // where the default was changed to `false` (P10 from E1-S1 review).
+  const { rows } = await db.pool.query<{ name: string; active: boolean }>(
+    `SELECT name, active FROM branch ORDER BY name`,
+  );
+  // Filter to the seeded names; sibling tests may have added extras.
+  const seeded = rows.filter((r) =>
+    r.name === 'East Branch' || r.name === 'West Branch',
+  );
+  assert.equal(seeded.length, 2, 'seed inserts exactly East + West');
+  for (const r of seeded) {
+    assert.equal(
+      r.active,
+      true,
+      `seeded branch "${r.name}" must carry active=true (column default from 0014)`,
+    );
+  }
+});

@@ -28,6 +28,7 @@ import { metricsRouter } from './routes/metrics.js';
 import { patientOtpRouter } from './routes/patient-otp.js';
 import { createSmsOtpRouter } from './routes/sms-otp.js';
 import { adminClinicRouter } from './routes/admin-clinic.js';
+import { adminBranchesRouter } from './routes/admin-branches.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminScope } from './middleware/admin-scope.js';
 import { getLogger, requestLogger } from './middleware/log.js';
@@ -79,7 +80,7 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // The mount order mirrors the E0-S3 convention: authenticated routers
   // (admin) come after the auth middleware, public routers (health,
   // metrics, OTP) before it.
-  app.use('/admin', adminScope, adminClinicRouter);
+  app.use('/admin', adminScope, adminClinicRouter, adminBranchesRouter);
 
   // JSON 404 fallthrough — kept after the routers so a matching route wins;
   // every other path returns a stable JSON error envelope (no HTML default).
@@ -95,6 +96,18 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       _next: express.NextFunction,
     ) => {
+      // express.json() throws a SyntaxError with `type === 'entity.parse.failed'`
+      // when the request body is malformed JSON. That's a client error
+      // (4xx), not a server error — surface it as 400 invalid_json instead
+      // of the generic 500 (P-A5 from E1-S1 review).
+      const parseErr = err as { type?: string; statusCode?: number };
+      if (
+        err instanceof SyntaxError &&
+        parseErr.type === 'entity.parse.failed'
+      ) {
+        res.status(400).json({ error: 'invalid_json' });
+        return;
+      }
       const message = err instanceof Error ? err.message : 'unknown_error';
       getLogger().error({ err: message }, 'request_failed');
       res.status(500).json({ error: 'internal_error' });

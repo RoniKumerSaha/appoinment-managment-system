@@ -376,3 +376,80 @@ test('E1-S0a: forward migration is idempotent — running 0013 twice exits 0', a
     assert.equal(r.rows[0]!.is_nullable, 'NO', 'idempotent re-run must preserve NOT NULL');
   });
 });
+
+test('E1-S1: branch.active column exists, NOT NULL, DEFAULT true', async () => {
+  await withTestDb(async ({ pool }) => {
+    // Column metadata + default value assertions.
+    const { rows } = await pool.query<{
+      is_nullable: string;
+      column_default: string | null;
+      data_type: string;
+    }>(
+      `SELECT is_nullable, column_default, data_type
+         FROM information_schema.columns
+        WHERE table_name = 'branch' AND column_name = 'active'`,
+    );
+    assert.equal(rows.length, 1, 'branch.active column must exist');
+    const row = rows[0]!;
+    assert.equal(row.is_nullable, 'NO', 'branch.active must be NOT NULL');
+    assert.equal(
+      row.data_type,
+      'boolean',
+      `branch.active must be boolean; got ${row.data_type}`,
+    );
+    // Postgres surfaces the default expression as text. The migration
+    // uses `DEFAULT true`; verify the surfaced default contains `true`
+    // (the catalog sometimes wraps it in a cast function).
+    assert.ok(
+      row.column_default !== null && /true/i.test(row.column_default),
+      `branch.active default must be true; got: ${row.column_default ?? '<none>'}`,
+    );
+
+    // Insert a row to verify the default actually applies at INSERT time.
+    // The migration runner doesn't run the seed (migrations.test.ts is a
+    // bare-schema test); use the existing singleton clinic row that
+    // earlier tests in this file already inserted (cleaned up via the
+    // singleton invariant — there's exactly one clinic row, so we reuse
+    // it). The test then cleans up only the branch row.
+    const { rows: clinicRows } = await pool.query<{ id: string }>(
+      `SELECT id FROM clinic LIMIT 1`,
+    );
+    assert.ok(
+      clinicRows.length === 1,
+      'precondition: exactly one clinic row (idx_clinic_singleton invariant)',
+    );
+    const clinicId = clinicRows[0]!.id;
+    // Use a UUID-based name to avoid collisions with sibling test files
+    // that share the container (P11 from E1-S1 review-loop-1). The branch
+    // id is captured so the cleanup targets the exact row we inserted.
+    const ins = await pool.query<{ id: string; active: boolean }>(
+      `INSERT INTO branch (clinic_id, name) VALUES ($1, 'Active Test ' || gen_random_uuid()::text) RETURNING id, active`,
+      [clinicId],
+    );
+    assert.equal(ins.rows[0]!.active, true, 'INSERT without explicit active must default to true');
+
+    // Cleanup so sibling tests aren't affected by bleed. The clinic row
+    // is left intact (singleton invariant forbids removing it once a
+    // second test would re-INSERT; sibling tests expect exactly one).
+    await pool.query(`DELETE FROM branch WHERE id = $1`, [ins.rows[0]!.id]);
+  });
+});
+
+test('E1-S1: forward migration is idempotent — running 0014 twice exits 0', async () => {
+  await withTestDb(async ({ pool }) => {
+    // Mirror the E1-S0a idempotency pattern: re-run the 0014 SQL file
+    // on the already-migrated DB and assert no error AND that the
+    // column contract is preserved.
+    const sql = readFileSync(
+      join(migrationsRoot, '0014_branch_active.sql'),
+      'utf8',
+    );
+    await pool.query(sql); // MUST NOT throw
+    const r = await pool.query<{ is_nullable: string; data_type: string }>(
+      `SELECT is_nullable, data_type FROM information_schema.columns
+       WHERE table_name = 'branch' AND column_name = 'active'`,
+    );
+    assert.equal(r.rows[0]!.is_nullable, 'NO', 'idempotent re-run must preserve NOT NULL');
+    assert.equal(r.rows[0]!.data_type, 'boolean');
+  });
+});
