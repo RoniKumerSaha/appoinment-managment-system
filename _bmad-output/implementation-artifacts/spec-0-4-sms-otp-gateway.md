@@ -258,3 +258,34 @@ Triggered by `bmad-build step-03` resume after bytea-parser regression surfaced 
 ### F18 follow-up (dismissed but worth noting)
 
 The dual OTP route mount in dev/test (SMS gateway + legacy mock) is a known temporary state per spec A1. E4-S1 will delete the mock route. No patch needed in E0-S4.
+
+## Suggested Review Order
+
+This story's resume cycle was a single targeted SQL swap — two sites in one file — to fix the bytea-parser regression. The review trail below covers the *resume diff* (commit `abc5fb6`); the broader E0-S4 implementation was reviewed in iteration 1 (F1–F16 patches already landed). Start with the production fix, then the covering tests.
+
+**Bytea-parser fix (production)**
+
+- Canonical 64-char hex via `encode(pgcrypto.digest(..., 'sha256'), 'hex')` on the send path.
+  [`service.ts:146`](../../apps/api/src/otp/service.ts#L146)
+
+- Same fix on the verify path; both sides now agree on the same byte representation for `timingSafeEqual`.
+  [`service.ts:233`](../../apps/api/src/otp/service.ts#L233)
+
+**Covering tests**
+
+- AC-1 pins the 64-char length invariant — directly catches a regress to the 66-char bytea-escape form.
+  [`sms-otp.test.ts:152`](../../apps/api/test/sms-otp.test.ts#L152)
+
+- AC-2 pins equality with Node's `createHash('sha256').digest('hex')` — catches any encoding drift (case, prefix, padding).
+  [`sms-otp.test.ts:171`](../../apps/api/test/sms-otp.test.ts#L171)
+
+**Peripherals**
+
+- Spec task list marked complete; review-cycle entry added under "Resume review (2026-09-14, iteration 2)".
+  [`spec-0-4-sms-otp-gateway.md`](#resume-review-2026-09-14-iteration-2)
+
+- Deferred-work entries (W26 closed; 3 new deferrals from this cycle).
+  [`deferred-work.md`](./deferred-work.md)
+
+- Sprint status: E0-S4 in-progress → review → done.
+  [`sprint-status.yaml`](./sprint-status.yaml)
