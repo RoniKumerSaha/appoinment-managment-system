@@ -115,6 +115,15 @@
         <button data-route="">Month</button>
       </div>
 
+      <!-- Patient conflict pre-warning (BR-031 / BR-033) — surfaced here, not at submit -->
+      <div style="background:#fffbeb; border:1px solid #f59e0b; border-radius:10px; padding:12px 14px; margin-top:14px; display:flex; align-items:flex-start; gap:10px;">
+        <div style="width:24px; height:24px; background:#fde68a; color:#92400e; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;">!</div>
+        <div style="flex:1; font-size:13px; color:#422006; line-height:1.5;">
+          <strong>You already have a future appointment with Dr. Ahmed</strong> on Aug 22 at 10:00. You can have only one upcoming appointment per doctor (BR-031).<br>
+          <span style="color:#92400e;">Slots are still shown so you can see what's available — but submitting this booking will be blocked.</span>
+        </div>
+      </div>
+
       <div class="agenda">
 
         <div class="agenda-day today-disabled">

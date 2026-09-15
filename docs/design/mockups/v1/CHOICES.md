@@ -10,9 +10,9 @@
 | **B** | Card Grid / List by Day + Tabs | 3 |
 | **C** | Kanban Queue | 1 |
 | **D** | Card List by Hour / Quick-Action | 3 |
-| **E** | Stacked Vertical Flow | 22 |
+| **E** | Stacked Vertical Flow | 27 |
 
-**Total picks so far: 31 / 31 mockups + 1 / 10 logos** — all UX flows and brand covered. 🎉
+**Total picks so far: 36 / 36 mockups + 1 / 10 logos** — all UX flows and brand covered. 🎉 (Updated 2026-09-15 — 5 new mockups added for Phase 4 alignment: patient branch picker, type picker, confirmation receipt, doctor resolution-saved, admin branch deactivation gate.)
 
 ---
 
@@ -51,6 +51,13 @@
 | Part 29 | UX | All | ConflictModal · 4 variants (showcase) | **E · Stacked Vertical Flow** |
 | Part 30 | UX | Doctor | Audit log drawer | **E · Stacked Vertical Flow (drawer)** |
 | Part 31 | F-18 | Admin | Reassign branches | **E · Stacked Vertical Flow** |
+| Part 32 | F-18 | Admin | Clinic settings | **E · Stacked Vertical Flow** |
+| Part 33 | F-11 | Doctor/Recep | Recurring occurrence cancel | **E · Stacked Vertical Flow** |
+| Part 34 | F-01 | Patient | Branch picker (standalone) | **E · Stacked Vertical Flow** |
+| Part 35 | F-01 | Patient | Appointment type picker (standalone) | **E · Stacked Vertical Flow** |
+| Part 36 | F-01 | Patient | Confirmation receipt (standalone) | **E · Stacked Vertical Flow** |
+| Part 37 | F-09 | Doctor | Resolution saved (all N resolved) | **E · Stacked Vertical Flow** |
+| Part 38 | F-21 | Admin | Branch deactivation gate (PRD §4.6 / BR-059) | **E · Stacked Vertical Flow** |
 
 ---
 

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 34-E — Patient Branch Picker</title>
+<link rel="stylesheet" href="../imports/app/design-system.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 760px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo img { width: 28px; height: 28px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+
+  .progress { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 6px; }
+  .step-mini { padding: 4px 10px; border-radius: 4px; background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
+  .step-mini.done { background: #f0fdfa; color: #0f766e; border-color: #99f6e4; font-weight: 500; }
+  .step-mini.done .n { background: #0f766e; color: white; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; margin-right: 4px; }
+  .step-mini.current { background: #0f766e; color: white; border-color: #0f766e; font-weight: 500; }
+
+  .page { padding: 28px 32px 32px; }
+  .back-link { color: #0f766e; font-size: 13px; cursor: pointer; margin-bottom: 8px; display: inline-block; }
+  .page-header h1 { font-size: 24px; color: #111827; margin-bottom: 4px; font-weight: 600; }
+  .page-header .sub { color: #6b7280; font-size: 14px; }
+
+  .doctor-pill { display: inline-flex; align-items: center; gap: 10px; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 999px; padding: 6px 14px; font-size: 13px; margin-top: 16px; }
+  .doctor-pill .avatar { width: 26px; height: 26px; border-radius: 50%; background: #ccfbf1; color: #0f766e; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 11px; }
+  .doctor-pill strong { color: #111827; }
+  .doctor-pill .x { color: #6b7280; cursor: pointer; margin-left: 4px; }
+
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 28px 0 14px; }
+  .section-head h2 { font-size: 16px; color: #111827; font-weight: 600; }
+  .section-head .hint { color: #6b7280; font-size: 12px; }
+
+  .branch-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .branch-card { background: white; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.15s; font-family: inherit; color: inherit; text-align: left; appearance: none; -webkit-appearance: none; width: 100%; }
+  .branch-card:focus-visible { outline: 3px solid #99f6e4; outline-offset: 2px; }
+  .branch-card:hover { border-color: #99f6e4; transform: translateY(-1px); }
+  .branch-card.selected { border-color: #0f766e; background: #f0fdfa; box-shadow: 0 2px 8px rgba(15,118,110,0.1); }
+  .branch-card .badge-a { background: #ccfbf1; color: #0f766e; padding: 2px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; margin-bottom: 10px; }
+  .branch-card.selected .badge-a { background: #0f766e; color: white; }
+  .branch-card .name { font-weight: 600; color: #111827; font-size: 15px; }
+  .branch-card .addr { color: #6b7280; font-size: 12px; margin-top: 3px; line-height: 1.4; }
+  .branch-card .hours { display: block; font-size: 11px; color: #4b5563; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6; }
+  .branch-card .hours .row { padding: 2px 0; }
+  .branch-card .hours .day { color: #6b7280; display: inline-block; min-width: 36px; }
+  .branch-card .hours .time { color: #111827; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  .footer { border-top: 1px solid #e5e7eb; padding: 16px 32px; display: flex; justify-content: space-between; background: white; position: sticky; bottom: 0; }
+  .footer .summary { color: #6b7280; font-size: 13px; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 9px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="badge">PART 34-E · Patient Branch Picker</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo" data-route="__logo__"><img src="../imports/app/logo.svg" alt="MediSlot"> MediSlot</div>
+    <button class="btn-primary" data-route="/patient/manage">My appointments</button>
+  </nav>
+
+  <div class="progress">
+    <span class="step-mini done"><span class="n">✓</span>Doctor</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini current"><span class="n">2</span>Branch</span>
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini">3</span>Type
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini">4</span>Date & time
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini">5</span>Your details
+    <span style="color:#9ca3af;">›</span>
+    <span class="step-mini">6</span>Confirm
+  </div>
+
+  <div class="page">
+    <div class="page-header">
+      <span class="back-link" data-route="/patient/doctor">← Back to doctors</span>
+      <h1>Pick a branch</h1>
+      <p class="sub">Where would you like to be seen?</p>
+      <div class="doctor-pill">
+        <div class="avatar">DA</div>
+        <span><strong>Dr. Ahmed Al-Rashid</strong> · Cardiology</span>
+        <span class="x">change ×</span>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h2>Dr. Ahmed works at 3 branches</h2>
+      <span class="hint">Tap to pick</span>
+    </div>
+    <div class="branch-cards">
+      <button type="button" class="branch-card selected">
+        <span class="badge-a">A</span>
+        <div class="name">Riyadh Olaya</div>
+        <div class="addr">King Fahd Rd, Tower 2<br>Floor 4</div>
+        <div class="hours">
+          <div class="row"><span class="day">Sun</span> <span class="time">09:00–13:00</span></div>
+          <div class="row"><span class="day">Mon</span> <span class="time">10:00–14:00</span></div>
+          <div class="row"><span class="day">Tue</span> <span class="time">Closed</span></div>
+          <div class="row"><span class="day">Wed</span> <span class="time">09:00–13:00</span></div>
+        </div>
+      </button>
+      <button type="button" class="branch-card">
+        <span class="badge-a">B</span>
+        <div class="name">Riyadh Malqa</div>
+        <div class="addr">Malqa District, Bldg 7<br>Ground Floor</div>
+        <div class="hours">
+          <div class="row"><span class="day">Sun</span> <span class="time">15:00–19:00</span></div>
+          <div class="row"><span class="day">Mon</span> <span class="time">Closed</span></div>
+          <div class="row"><span class="day">Tue</span> <span class="time">09:00–13:00</span></div>
+          <div class="row"><span class="day">Wed</span> <span class="time">15:00–19:00</span></div>
+        </div>
+      </button>
+      <button type="button" class="branch-card">
+        <span class="badge-a">C</span>
+        <div class="name">Jeddah Corniche</div>
+        <div class="addr">Corniche Rd, Villa 22<br>1st Floor</div>
+        <div class="hours">
+          <div class="row"><span class="day">Sun</span> <span class="time">Closed</span></div>
+          <div class="row"><span class="day">Mon</span> <span class="time">16:00–20:00</span></div>
+          <div class="row"><span class="day">Tue</span> <span class="time">16:00–20:00</span></div>
+          <div class="row"><span class="day">Wed</span> <span class="time">Closed</span></div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button class="btn-ghost" data-route="/patient/doctor">← Back</button>
+    <span class="summary">Riyadh Olaya · Dr. Ahmed</span>
+    <button class="btn-primary" data-route="/patient/type">Pick appointment type →</button>
+  </div>
+
+</div>
+  <script src='../imports/app/standalone-router.js'></script>
+<script>
+  document.querySelectorAll('.branch-cards').forEach(function (group) {
+    group.addEventListener('click', function (e) {
+      var card = e.target.closest('.branch-card');
+      if (!card) return;
+      group.querySelectorAll('.branch-card').forEach(function (c) { c.classList.remove('selected'); });
+      card.classList.add('selected');
+    });
+  });
+</script>
+</body>
+</html>

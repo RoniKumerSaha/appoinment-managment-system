@@ -8,7 +8,7 @@ Static HTML/CSS mockups for the Multi-Branch Clinic Appointment Scheduling Syste
 
 **For stakeholder walkthrough:** Open `imports/app/index.html` — a connected application shell that lets you click through every flow as if it were a real app. Role switcher jumps between Patient / Doctor / Receptionist / Admin / Landing.
 
-**For stakeholder review:** Open `mocks.html` — a single scrollable page showing all 31 mockups as thumbnails, with filter + search + grid-size controls.
+**For stakeholder review:** Open `mocks.html` — a single scrollable page showing all 36 mockups as thumbnails, with filter + search + grid-size controls.
 
 ## Conventions
 
@@ -23,10 +23,10 @@ Static HTML/CSS mockups for the Multi-Branch Clinic Appointment Scheduling Syste
 ```
 docs/design/mockups/v1/
 ├── README.md                        ← you are here
-├── mocks.html                       ← stakeholder overview (all 31 mockups as thumbnails)
+├── mocks.html                       ← stakeholder overview (all 36 mockups as thumbnails)
 ├── CHOICES.md                       ← selection state (resume from here)
 │
-├── mockups/                         ← 31 selected mockups
+├── mockups/                         ← 36 selected mockups
 │   ├── 01-layout-direction.html     ← A · Clinical Calm + Sidebar
 │   ├── 02-doctor-picker.html        ← E · Card-First + Sidebar
 │   ├── 03-availability-calendar.html ← E · Agenda Timeline
@@ -34,7 +34,7 @@ docs/design/mockups/v1/
 │   ├── 05-patient-self-service.html ← E · Stacked Vertical Flow
 │   ├── 06-resolve-affected.html     ← C · Kanban Queue
 │   ├── 07-recurring-preview.html    ← E · Stacked Vertical Flow
-│   ├── 08-branch-hours-impact.html  ← E · Stacked Vertical Flow
+│   ├── 08-branch-hours-impact.html  ← E · Stacked Vertical Flow (incl. PRD §4.6 edge case)
 │   ├── 09-doctor-schedule.html      ← B · List by Day + Tabs
 │   ├── 10-doctor-block-time.html    ← E · Stacked Vertical Flow
 │   ├── 11-appointment-types.html    ← E · Stacked Vertical Flow
@@ -57,13 +57,20 @@ docs/design/mockups/v1/
 │   ├── 28-admin-branch-hours-editor.html ← E · Hours editor (F-17 editor)
 │   ├── 29-conflict-modal.html       ← E · ConflictModal showcase
 │   ├── 30-doctor-audit-drawer.html  ← E · Audit drawer (shared primitive)
-│   └── 31-admin-doctors-reassign.html ← E · Doctor branch reassign (F-18 reassign)
+│   ├── 31-admin-doctors-reassign.html ← E · Doctor branch reassign (F-18 reassign)
+│   ├── 32-admin-clinic-settings.html ← E · Stacked Vertical Flow
+│   ├── 33-recurring-occurrence-cancel.html ← E · Stacked Vertical Flow
+│   ├── 34-patient-branch-picker.html ← E · Stacked Vertical Flow (Phase 4)
+│   ├── 35-patient-type-picker.html  ← E · Stacked Vertical Flow (Phase 4)
+│   ├── 36-confirmation-receipt.html ← E · Stacked Vertical Flow (Phase 4)
+│   ├── 37-doctor-resolution-saved.html ← E · Stacked Vertical Flow (Phase 4)
+│   └── 38-admin-branch-deactivate.html ← E · Stacked Vertical Flow (Phase 4, BR-059 gate)
 │
 └── imports/                         ← user-supplied supporting visuals / wiring
     ├── app/                         ← connected app shell
     │   ├── index.html               ← shell entry point
     │   ├── shell.css                ← topbar + responsive styles
-    │   ├── shell.js                 ← hash router + 32 routes + cross-link interception
+    │   ├── shell.js                 ← hash router + 45 routes + cross-link interception
     │   ├── standalone-router.js     ← drop-in fallback so each mockup navigates standalone too
     │   ├── design-system.css        ← shared stylesheet (linked by every mockup)
     │   ├── design-system.html       ← design-system showcase page
@@ -85,7 +92,7 @@ Open `imports/app/index.html` for a clickable walk-through of every flow:
 - Cross-link cues (e.g. "Book another", "← Schedule editor", "+ New appointment") are intercepted and route between mockups
 - The demo `.badge` corner tag is hidden inside the shell — re-shown when you open a mockup standalone
 
-32 routes total: 1 landing + 1 design-system + 8 patient + 9 doctor + 5 receptionist + 8 admin.
+45 routes total: 1 landing + 1 design-system + 12 patient + 11 doctor + 5 receptionist + 15 admin.
 
 **Standalone browsing:** every mockup loads `imports/app/standalone-router.js`, which mirrors the shell's `data-route` interception but navigates by changing `window.location` to the sibling file. So opening any file directly (e.g. `mockups/02-doctor-picker.html`) still lets you click through the same flow — without the topbar or breadcrumb.
 
@@ -137,6 +144,11 @@ The same workspace is mirrored to `_bmad-output/planning-artifacts/ux-designs/ux
 
 ## Resume protocol
 
-All 31 parts + logo complete. 🎉 See `CHOICES.md` for the final pattern picks + pattern tally. App shell at `imports/app/index.html` ties everything together for stakeholder demos.
+All 36 parts + logo complete. 🎉 See `CHOICES.md` for the final pattern picks + pattern tally. App shell at `imports/app/index.html` ties everything together for stakeholder demos.
 
-**Recent additions (12 new mockups, 2026-09):** parts 20-22 (patient reschedule/OTP/cancel modal), 23-25 (recurring confirm/resolve-one/cancel-reason), 26 (walk-in check-in), 27-28 (admin audit + hours editor), 29 (universal ConflictModal showcase), 30 (audit drawer), 31 (doctor branch reassign). Wireframe pages linked into `imports/app/shell.js` and `imports/app/standalone-router.js`.
+**Recent additions (5 new mockups, 2026-09-15 — Phase 4):** parts 34-38 added for WDS Phase 3 alignment. Split the patient booking flow into separate screens (branch picker, type picker, confirmation receipt), added doctor's "all resolved" save confirmation (37), and admin's gated branch deactivation screen (38) defending PRD §4.6 / BR-059 from silent invalidation. Three surgical adjustments to existing mockups:
+- `03-availability-calendar.html` — added patient-conflict pre-warning (BR-031 / BR-033, surfaced before submit).
+- `08-branch-hours-impact.html` — added PRD §4.6 doctor-not-at-branch edge-case acknowledgment section between steps 3 and 4.
+- `13-recep-today.html` — CTA relabeled from "+ New appointment" to "+ Book walk-in" for Phase 3 spec alignment.
+
+Wireframe pages linked into `imports/app/shell.js` and `imports/app/standalone-router.js`.

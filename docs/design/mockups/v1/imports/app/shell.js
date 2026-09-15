@@ -1,6 +1,6 @@
 /* MediSlot app shell — hash router + role switcher + click-to-route wiring
  *
- * 31 winner mockups are loaded into a single iframe.
+ * 36 winner mockups are loaded into a single iframe.
  * Each mockup has data-route attributes on its clickable elements
  * (button / a / .logo). The injection script below reads those
  * attributes and routes accordingly.
@@ -8,7 +8,7 @@
  * SPA feel:
  *  - Iframe fades on every navigation (160ms).
  *  - Breadcrumbs are clickable (click earlier crumb → navigate).
- *  - Quick-jump dropdown in topbar reaches any of the 31 mockups.
+ *  - Quick-jump dropdown in topbar reaches any of the 36 mockups.
  *  - History via location.hash (back/forward buttons work).
  *  - Topbar role select jumps to that role's home route.
  *
@@ -64,6 +64,24 @@
       actor: 'patient',
       title: 'Recurring series preview',
       breadcrumb: ['Patient', 'Recurring series'],
+    },
+    '/patient/branch': {
+      file: '../../mockups/34-patient-branch-picker.html',
+      actor: 'patient',
+      title: 'Choose a branch',
+      breadcrumb: ['Patient', 'Choose a branch'],
+    },
+    '/patient/type': {
+      file: '../../mockups/35-patient-type-picker.html',
+      actor: 'patient',
+      title: 'Choose an appointment type',
+      breadcrumb: ['Patient', 'Choose a type'],
+    },
+    '/patient/receipt': {
+      file: '../../mockups/36-confirmation-receipt.html',
+      actor: 'patient',
+      title: 'Booking confirmed',
+      breadcrumb: ['Patient', 'Booking receipt'],
     },
     '/patient/otp': {
       file: '../../mockups/21-patient-otp-modal.html',
@@ -145,6 +163,12 @@
       actor: 'doctor',
       title: 'Audit log',
       breadcrumb: ['Doctor', 'Audit log'],
+    },
+    '/doctor/resolution-saved': {
+      file: '../../mockups/37-doctor-resolution-saved.html',
+      actor: 'doctor',
+      title: 'All appointments resolved',
+      breadcrumb: ['Doctor', 'Resolve affected', 'Saved'],
     },
 
     // Receptionist
@@ -266,6 +290,12 @@
       title: 'Clinic settings',
       breadcrumb: ['Admin', 'Clinic'],
     },
+    '/admin/branch-deactivate': {
+      file: '../../mockups/38-admin-branch-deactivate.html',
+      actor: 'admin',
+      title: 'Deactivate branch',
+      breadcrumb: ['Admin', 'Branches', 'Deactivate'],
+    },
     '/patient/recurring-cancel': {
       file: '../../mockups/33-recurring-occurrence-cancel.html',
       actor: 'patient',
@@ -288,6 +318,9 @@
     '/patient/confirm':           { num: '04',  flow: 'F-03', group: 'patient' },
     '/patient/manage':            { num: '05',  flow: 'F-04/F-05', group: 'patient' },
     '/patient/recurring':         { num: '07',  flow: 'F-11', group: 'patient' },
+    '/patient/branch':            { num: '34',  flow: 'F-01', group: 'patient' },
+    '/patient/type':              { num: '35',  flow: 'F-01', group: 'patient' },
+    '/patient/receipt':           { num: '36',  flow: 'F-01', group: 'patient' },
     '/patient/otp':               { num: '21',  flow: 'F-03', group: 'patient' },
     '/patient/cancel-confirm':    { num: '22',  flow: 'F-04', group: 'patient' },
     '/patient/reschedule':        { num: '20',  flow: 'F-05', group: 'patient' },
@@ -302,6 +335,7 @@
     '/doctor/resolve-one':        { num: '24',  flow: 'F-09', group: 'doctor' },
     '/doctor/cancel-reason':      { num: '25',  flow: 'F-10', group: 'doctor' },
     '/doctor/audit-drawer':       { num: '30',  flow: 'UX',  group: 'doctor' },
+    '/doctor/resolution-saved':   { num: '37',  flow: 'F-09', group: 'doctor' },
     '/recep/today':               { num: '13',  flow: 'F-12', group: 'recep' },
     '/recep/create':              { num: '14',  flow: 'F-13', group: 'recep' },
     '/recep/cancel':              { num: '15',  flow: 'F-14', group: 'recep' },
@@ -313,6 +347,7 @@
     '/admin/doctors':             { num: '18',  flow: 'F-18', group: 'admin' },
     '/admin/doctor-reassign':     { num: '31',  flow: 'F-18', group: 'admin' },
     '/admin/clinic':              { num: '32',  flow: 'E1-S0', group: 'admin' },
+    '/admin/branch-deactivate':   { num: '38',  flow: 'F-21', group: 'admin' },
     '/admin/receptionists':       { num: '19',  flow: 'F-19', group: 'admin' },
     '/admin/audit':               { num: '27',  flow: 'F-20', group: 'admin' },
     '/admin/branch-new':          { num: '17n', flow: '—',  group: 'admin' },

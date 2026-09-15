@@ -1,0 +1,39 @@
+wds-version: "1.0.0"
+project: "Clinic Scheduling — appointment management system"
+created: "2026-09-15"
+rendering-tool: excalidraw
+
+phases:
+  product-brief: complete
+  trigger-map: complete
+  ux-scenarios: complete
+  ux-design: complete
+  development: not-started
+
+output-folder: docs
+artifact-product-brief: docs/A-Product-Brief/product-brief.md
+artifact-trigger-map: docs/B-Trigger-Map/trigger-map.md
+artifact-personas: docs/B-Trigger-Map/personas
+artifact-feature-impact: docs/B-Trigger-Map/feature-impact-analysis.md
+artifact-scenarios: docs/C-UX-Scenarios
+artifact-scenario-overview: docs/C-UX-Scenarios/scenario-overview.md
+artifact-ux-design-folder: docs/D-UX-Design
+artifact-ux-inventory: docs/D-UX-Design/phase-4-inventory.md
+artifact-mockup-v1: docs/design/mockups/v1
+artifact-design-system: docs/design/DESIGN-SYSTEM.md
+
+phase-4-notes: |
+  36/36 mockups complete (2026-09-15).
+  Strategy: used v1 mockups as source-of-truth, made 3 surgical adjustments,
+  created 5 net-new screens (parts 34-38) for Phase 4 alignment.
+  All screens strictly follow docs/design/DESIGN-SYSTEM.md tokens.
+  Adjustments:
+    - 03-availability-calendar.html : added BR-031/BR-033 patient-conflict pre-warning
+    - 08-branch-hours-impact.html   : added PRD §4.6 doctor-not-at-branch edge case ack
+    - 13-recep-today.html           : relabeled CTA to "+ Book walk-in"
+  New:
+    - 34-patient-branch-picker.html
+    - 35-patient-type-picker.html
+    - 36-confirmation-receipt.html
+    - 37-doctor-resolution-saved.html
+    - 38-admin-branch-deactivate.html (BR-059 gate)
