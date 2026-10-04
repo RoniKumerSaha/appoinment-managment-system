@@ -883,7 +883,63 @@ development_status:
   #     added BR-053/FR-050 probe test + documented fresh-fixture
   #     rationale.
   #   - Story E4-S2 → done.
-  4-3-patient-rescheduling: backlog
+  4-3-patient-rescheduling: done
+  # 2026-10-04 bmad-build step-16 implementation complete for E4-S3
+  #   (patient rescheduling — F-05 + FR-039…043 + BR-041…045):
+  #   - apps/api/src/routes/patient-reschedule.ts (NEW) — POST
+  #     /patient/appointments/:id/reschedule handler. Atomic two-slot
+  #     transaction: SELECT FOR UPDATE existing → in-txn re-check new
+  #     slot (re-uses E3-S1 pipeline: branch hours, doctor schedule,
+  #     doctor blocks, existing (doctor, branch) overlaps, FR-027
+  #     same-doctor future EXCLUDING current row id, FR-029 patient
+  #     time-overlap EXCLUDING current row id) → UPDATE row → INSERT
+  #     audit row → COMMIT. The 0008 GIST exclusion on
+  #     status='Scheduled' is the race-safety net — SQLSTATE 23P01 →
+  #     409 slot_raced.
+  #   - FR-040 / BR-042: doctor LOCKED — body schema never accepts
+  #     `new_doctor_id`. ALLOWED_POST_KEYS omits it; unknown-field
+  #     sweep rejects it as `400 unknown_field`. The doctor comes
+  #     from `appt.doctor_id` (server-trusted).
+  #   - FR-042: new slot reserved BEFORE old slot released (the
+  #     UPDATE itself moves the row off the old tstzrange; the GIST
+  #     exclusion catches any concurrent winner for the new slot).
+  #   - FR-043: any failure (slot_raced, patient_time_conflict,
+  #     patient_has_future_with_doctor, outside_branch_hours,
+  #     doctor_unavailable, inside_doctor_block, duration_mismatch,
+  #     slot_in_past, outside_30d_window, doctor_not_at_branch,
+  #     appointment_type_not_found) → ROLLBACK; original row's
+  #     branch_id / appointment_type_id / start_datetime /
+  #     end_datetime unchanged.
+  #   - Audit row payload carries F-05 metadata `{from, to,
+  #     branch_change, type_change}` so E7-S2 audit drawer can
+  #     surface WHAT changed.
+  #   - apps/api/src/app.ts (MODIFIED) — mounted
+  #     patientRescheduleRouter after authMiddleware, alongside
+  #     patientCancelRouter.
+  #   - apps/api/test/patient-reschedule.test.ts (NEW) — 14 tests:
+  #     401 (no auth), 403 × 3 (doctor / admin / receptionist),
+  #     400 unknown_field (FR-040 `new_doctor_id`), 404 not_found
+  #     (malformed UUID, unknown id, not-your-id), 404
+  #     not_found_appointment_in_terminal_state × 3 (Cancelled /
+  #     Completed / No-Show), happy path with audit payload shape
+  #     pin (branch_change=false, type_change=false), FR-043 + GIST
+  #     (slot_raced), FR-043 + FR-029 (patient_time_conflict),
+  #     409 duration_mismatch, 400 doctor_not_at_branch, 200
+  #     type_change=true.
+  #   - Privacy filter (E7-S3): same 404 envelope for "doesn't
+  #     exist" and "exists but not yours"; terminal states use a
+  #     distinct envelope.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors in
+  #     otp/provider.ts, otp/service.ts, otp/twilio-provider.ts
+  #     unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings
+  #     unchanged).
+  #   - Spec Change Log: SC2 (review-loop-1 patches) recorded —
+  #     added No-Show terminal-state test, FR-029
+  #     patient_time_conflict test, documented WARNINGs about
+  #     doctor_not_found / branch_not_found reachability and the
+  #     pre-check's best-effort nature.
+  #   - Story E4-S3 → done.
   4-4-deep-link-entry-to-cancel-reschedule: backlog
   epic-4-retrospective: optional
 

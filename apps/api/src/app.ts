@@ -40,6 +40,7 @@ import { bookingsRouter } from './routes/bookings.js';
 import { patientProfileRouter } from './routes/patient-profile.js';
 import { patientAppointmentsRouter } from './routes/patient-appointments.js';
 import { patientCancelRouter } from './routes/patient-cancel.js';
+import { patientRescheduleRouter } from './routes/patient-reschedule.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminScope } from './middleware/admin-scope.js';
 import { getLogger, requestLogger } from './middleware/log.js';
@@ -113,6 +114,18 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // a distinct envelope `not_found_appointment_in_terminal_state` so the
   // UI can surface WHY to the patient.
   app.use(patientCancelRouter);
+
+  // Patient self-service reschedule — POST
+  // /patient/appointments/:id/reschedule. Verified patient reschedules
+  // their own Scheduled appointment (F-05, FR-039…043). Doctor is
+  // LOCKED (FR-040, BR-042 — the body schema never accepts
+  // `new_doctor_id`); branch, type, date, time may all change (FR-041).
+  // Atomic two-slot transaction: SELECT FOR UPDATE the existing row,
+  // in-txn re-check the new slot (re-uses the E3-S1 pipeline), UPDATE
+  // the row, INSERT the audit row with `payload={from, to,
+  // branch_change, type_change}` per F-05. On any failure the original
+  // row is untouched (FR-043).
+  app.use(patientRescheduleRouter);
 
   // Admin routes — mounted AFTER authMiddleware. Chained router-level
   // middleware means adminScope gates only `/admin/*`, not every path.
