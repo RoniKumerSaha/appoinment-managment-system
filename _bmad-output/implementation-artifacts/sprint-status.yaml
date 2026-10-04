@@ -1003,8 +1003,8 @@ development_status:
   epic-4-retrospective: done
 
   # Epic 5 — Staff appointment management
-  epic-5: backlog
-  5-1-mark-completed-no-show: backlog
+  epic-5: in-progress
+  5-1-mark-completed-no-show: done
   5-2-doctor-cancellation-with-reason: backlog
   5-3-receptionist-cancellation-with-reason: backlog
   5-4-todays-branch-view-receptionist-dashboard: backlog
