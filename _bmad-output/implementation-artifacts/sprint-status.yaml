@@ -629,7 +629,60 @@ development_status:
   #   - Spec Change Log: SC2 (review-loop-1 patches + D1-D14 deferrals).
   #   - Story E3-S1 → done.
   3-1-availability-engine: done
-  3-2-guest-booking-first-time: backlog
+  # 2026-10-04 bmad-build step-10 implementation complete for E3-S2
+  #   (guest booking — atomic POST /bookings):
+  #   - No new migration. 0008 (appointment + GIST + partial unique) +
+  #     0009 (append-only audit) + 0001 (patient table with phone_number UNIQUE)
+  #     are sufficient.
+  #   - apps/api/src/routes/bookings-helpers.ts (NEW) — pure validators:
+  #     isValidUuid, isValidIsoDateTime (strict — must carry a TZ),
+  #     isValidDurationMinutes (5..480 matching 0005 CHECK), isValidE164Phone,
+  #     isValidPatientName (1..120 trim), validateCreateBookingBody
+  #     (tagged union, deterministic error order), checkBookingWindow.
+  #   - apps/api/src/routes/bookings.ts (NEW) — POST /bookings handler.
+  #     Single-txn combined lookup (doctor + branch + branch_hours + tz),
+  #     patient filter checks (FR-027/FR-029), in-txn slot re-check
+  #     (runs E3-S1's slot math inside the txn), patient row lifecycle
+  #     (INSERT ON CONFLICT DO NOTHING + SELECT fallback), appointment
+  #     INSERT + audit row INSERT + COMMIT. 23P01 catch → 409 slot_raced
+  #     (terminal ConflictModal envelope); 23505 catch → 409
+  #     patient_has_future_with_doctor.
+  #   - apps/api/src/app.ts (MODIFIED) — bookingsRouter mounted after
+  #     authMiddleware, BEFORE /admin chain.
+  #   - apps/api/test/bookings-helpers.test.ts (NEW, 31 tests) — pure
+  #     unit tests for all validators + window helper. 31/31 green.
+  #   - apps/api/test/bookings.test.ts (NEW, 23 tests) — integration
+  #     tests covering happy path + every error envelope. Testcontainer
+  #     runtime not available so suite couldn't be re-run; status
+  #     relies on spec audit trail.
+  #   - Patches from review-loop-1:
+  #     P0-1 (route): combined disambiguation + recheck queries into
+  #       one SELECT_DOCTOR_BRANCH_HOURS_SQL; removed post-COMMIT
+  #       branch.tz SELECT; tz captured in-txn.
+  #     P0-2 (route): collapsed appointment_type_inactive into
+  #       404 appointment_type_not_found (clients don't see inactive).
+  #     P0-3 (route): is_closed=NULL no longer masks doctor_unavailable;
+  #       differentiate is_closed=true (closed → outside_branch_hours)
+  #       from NULL (absent → fall through to schedule check).
+  #     P0-6 (route): removed unused subtractIntervals import + void lie.
+  #     P1-1 (route): slot_in_past / outside_30d_window return 409
+  #       instead of 400 per matrix; tests updated.
+  #     P1-3 (route): end_datetime MUST equal start + slot_duration_minutes;
+  #       otherwise 400 invalid_time_range.
+  #     P1-4 (route): same as P0-1.
+  #     P2-1 (route): RecheckOutcome is now a discriminated union.
+  #   - Deferrals (recorded in spec SC2):
+  #     D1 — slot-math duplication between recheckSlotInTxn and
+  #       computeAvailability; refactor when a third caller appears.
+  #   - New files: 4 (helpers, route, 2 tests).
+  #   - Modified files: 1 (app.ts mount chain).
+  #   - Pure unit tests: 31/31 green; integration tests rely on
+  #     testcontainer runtime (not available in this env).
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
+  #   - Spec Change Log: SC2 (review-loop-1 patches + matrix updates).
+  #   - Story E3-S2 → done.
+  3-2-guest-booking-first-time: done
   3-3-returning-patient-booking-known-phone: backlog
   3-4-receptionist-booking-on-behalf-of-patient: backlog
   3-5-receptionist-reads-doctor-availability: backlog
