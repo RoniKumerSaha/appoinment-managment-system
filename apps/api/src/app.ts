@@ -45,6 +45,7 @@ import { patientDeepLinkRouter } from './routes/patient-deep-link.js';
 import { staffMarkStatusRouter } from './routes/staff-mark-status.js';
 import { staffDoctorCancelRouter } from './routes/staff-doctor-cancel.js';
 import { staffReceptionistCancelRouter } from './routes/staff-receptionist-cancel.js';
+import { receptionistTodayRouter } from './routes/receptionist-today.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminScope } from './middleware/admin-scope.js';
 import { getLogger, requestLogger } from './middleware/log.js';
@@ -164,6 +165,14 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // NOT `/appointments/:id/cancel` to avoid colliding with the
   // doctor route's role gate.
   app.use(staffReceptionistCancelRouter);
+
+  // Receptionist today dashboard — GET /reception/branch/today.
+  // Read-only list of today's appointments for the receptionist's
+  // assigned branch (E5-S4, F-12, BR-063). Branch is locked to
+  // claim.branch_ids[0] server-side; cross-branch URLs return
+  // the receptionist's branch data, never the requested branch
+  // (Scenario 11). Mounted AFTER authMiddleware.
+  app.use(receptionistTodayRouter);
 
   // Admin routes — mounted AFTER authMiddleware. Chained router-level
   // middleware means adminScope gates only `/admin/*`, not every path.

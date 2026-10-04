@@ -1007,7 +1007,7 @@ development_status:
   5-1-mark-completed-no-show: done
   5-2-doctor-cancellation-with-reason: done
   5-3-receptionist-cancellation-with-reason: done
-  5-4-todays-branch-view-receptionist-dashboard: backlog
+  5-4-todays-branch-view-receptionist-dashboard: done
   5-5-no-deletion-negative-test: backlog
   epic-5-retrospective: optional
 
