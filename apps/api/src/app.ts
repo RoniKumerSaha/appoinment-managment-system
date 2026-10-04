@@ -50,6 +50,9 @@ import { recurringPreviewRouter } from './routes/recurring-preview.js';
 import { recurringConfirmRouter } from './routes/recurring-confirm.js';
 import { staffDoctorMoveRouter } from './routes/staff-doctor-move.js';
 import { doctorAffectedRouter } from './routes/doctor-affected.js';
+import { doctorAppointmentAuditRouter } from './routes/doctor-appointment-audit.js';
+import { receptionAppointmentAuditRouter } from './routes/reception-appointment-audit.js';
+import { adminAuditRouter } from './routes/admin-audit.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminScope } from './middleware/admin-scope.js';
 import { getLogger, requestLogger } from './middleware/log.js';
@@ -211,6 +214,30 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // Mounted AFTER authMiddleware; the route is the
   // doctor-only role gate.
   app.use(doctorAffectedRouter);
+
+  // Doctor appointment audit read — GET
+  // /doctor/appointments/:id/audit (E7-S2, FR-051, NFR-005).
+  // Doctor reads audit rows for their OWN appointments (cross-
+  // doctor reads → 403 outside_branch_scope). Mounted AFTER
+  // authMiddleware; the route is the doctor-only role gate.
+  app.use(doctorAppointmentAuditRouter);
+
+  // Receptionist appointment audit read — GET
+  // /reception/appointments/:id/audit (E7-S2, FR-051,
+  // NFR-005). Receptionist reads audit rows for
+  // appointments at THEIR branch (cross-branch reads →
+  // 403 outside_branch_scope). Mounted AFTER
+  // authMiddleware; the route is the receptionist-only
+  // role gate.
+  app.use(receptionAppointmentAuditRouter);
+
+  // Admin audit policy envelope — GET /admin/audit (E7-S2).
+  // Returns the policy envelope documenting WHY the admin
+  // role does not read individual appointment audits (PRD
+  // §2.4 — admin never touches individual appointments).
+  // Mounted AFTER authMiddleware; the route is the
+  // admin-only role gate.
+  app.use(adminAuditRouter);
 
   // Admin routes — mounted AFTER authMiddleware. Chained router-level
   // middleware means adminScope gates only `/admin/*`, not every path.
