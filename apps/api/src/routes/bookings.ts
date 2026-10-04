@@ -170,6 +170,16 @@ const SELECT_PATIENT_ID_SQL = `
   SELECT id::text AS id FROM patient WHERE phone_number = $1;
 `;
 
+// E3-S3 (FR-023): on a returning-patient booking, update the stored
+// `full_name` to whatever the patient typed. The `IS DISTINCT FROM`
+// predicate keeps the UPDATE a no-op when the name is unchanged, so
+// the row's write-amplification stays at zero on the common path.
+const UPDATE_PATIENT_NAME_SQL = `
+  UPDATE patient SET full_name = $1
+   WHERE phone_number = $2
+     AND full_name IS DISTINCT FROM $1;
+`;
+
 const INSERT_APPOINTMENT_SQL = `
   INSERT INTO appointment
     (clinic_id, branch_id, doctor_id, patient_phone, appointment_type_id,
@@ -525,15 +535,26 @@ bookingsRouter.post(
         return;
       }
 
-      // Patient row lifecycle (FR-022): try INSERT, fall back to SELECT.
+      // Patient row lifecycle (FR-022 + FR-023): try INSERT, fall back to SELECT.
+      // When the INSERT path falls through, the row existed before — that's
+      // the "returning patient" case (E3-S3). E3-S3 requires that the stored
+      // `full_name` be updated to whatever the patient typed; FR-023: "Editing
+      // the name updates the patient's stored name." The `IS DISTINCT FROM`
+      // predicate in `UPDATE_PATIENT_NAME_SQL` makes the UPDATE a no-op when
+      // the name is unchanged, so the common path (same name) writes zero
+      // rows. Audit payload is enriched below with `patient_name_after`.
       const patientIns = await client.query<{ id: string }>(
         INSERT_PATIENT_SQL,
         [body.patient_phone, body.patient_name],
       );
       let patientId: string;
+      let patientNameAfter: string;
       if (patientIns.rows[0]) {
+        // First-time path: INSERT succeeded, name is the submitted value.
         patientId = patientIns.rows[0].id;
+        patientNameAfter = body.patient_name;
       } else {
+        // Returning-patient path: SELECT to confirm + UPDATE name if changed.
         const patientSel = await client.query<{ id: string }>(
           SELECT_PATIENT_ID_SQL,
           [body.patient_phone],
@@ -543,6 +564,11 @@ bookingsRouter.post(
           throw new Error('patient_row_missing_after_conflict');
         }
         patientId = patientSel.rows[0]!.id;
+        await client.query(UPDATE_PATIENT_NAME_SQL, [
+          body.patient_name,
+          body.patient_phone,
+        ]);
+        patientNameAfter = body.patient_name;
       }
 
       // INSERT the appointment row. The 0008 GIST exclusion catches any
@@ -593,7 +619,9 @@ bookingsRouter.post(
       }
 
       // Append-only audit row (0009's reject_audit_mutation trigger
-      // enforces INSERT-only).
+      // enforces INSERT-only). E3-S3 enriches the payload with
+      // `patient_name_after` so audit consumers can see the post-update
+      // name on a returning-patient booking.
       const auditPayload = JSON.stringify({
         start_datetime: apptRow.start_datetime.toISOString(),
         end_datetime: apptRow.end_datetime.toISOString(),
@@ -601,6 +629,7 @@ bookingsRouter.post(
         doctor_id: apptRow.doctor_id,
         branch_id: apptRow.branch_id,
         source: 'self_book',
+        patient_name_after: patientNameAfter,
       });
       await client.query(INSERT_AUDIT_SQL, [
         apptRow.id,

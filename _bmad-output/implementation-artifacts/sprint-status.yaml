@@ -683,7 +683,48 @@ development_status:
   #   - Spec Change Log: SC2 (review-loop-1 patches + matrix updates).
   #   - Story E3-S2 → done.
   3-2-guest-booking-first-time: done
-  3-3-returning-patient-booking-known-phone: backlog
+  3-3-returning-patient-booking-known-phone: done
+  # 2026-10-04 bmad-build step-11 implementation complete for E3-S3
+  #   (returning patient booking — known phone):
+  #   - No new migration. 0001 (patient table with phone_number UNIQUE,
+  #     full_name nullable) is sufficient.
+  #   - apps/api/src/routes/patient-profile.ts (NEW) — GET /patient/profile
+  #     handler. Phone is the patient key (FR-022). Returns
+  #     200 {patient: {phone_number, full_name}} | 404 patient_not_found
+  #     | 400 missing_patient_phone | 400 invalid_patient_phone |
+  #     401 unauthenticated. Auth: any authenticated caller (no adminScope).
+  #     Reuses isValidE164Phone from bookings-helpers.ts.
+  #   - apps/api/src/routes/bookings.ts (MODIFIED) — added
+  #     UPDATE_PATIENT_NAME_SQL with `full_name IS DISTINCT FROM $1`
+  #     predicate so same-name submissions are 0-row writes. UPDATE runs
+  #     in the same txn as the appointment INSERT (between BEGIN and
+  #     COMMIT); rollback covers both. Audit payload enriched with
+  #     `patient_name_after` field.
+  #   - apps/api/src/app.ts (MODIFIED) — patientProfileRouter mounted
+  #     after authMiddleware, BEFORE /admin chain.
+  #   - apps/api/test/patient-profile.test.ts (NEW, 6 tests) — auth
+  #     (401 anonymous, 200 patient JWT for known phone),
+  #     validation (missing phone 400, empty phone 400, invalid format 400),
+  #     lookup (unknown phone 404 patient_not_found).
+  #   - apps/api/test/bookings.test.ts (MODIFIED) — +2 tests: returning
+  #     patient with CHANGED name (UPDATE fires; full_name now equals
+  #     submitted value; audit row carries patient_name_after), and
+  #     returning patient with SAME name (UPDATE is a 0-row write;
+  #     full_name unchanged). Both wrapped in try/finally so cleanup
+  #     restores the seeded full_name and audit row on failure.
+  #   - Patches from review-loop-1: 0 production patches (clean spec
+  #     adherence); 1 test fixture patch — wrap both new bookings tests
+  #     in try/finally for cleanup isolation. Recorded in spec SC2.
+  #   - Deferrals: 0.
+  #   - New files: 2 (route + test).
+  #   - Modified files: 2 (app.ts mount chain + bookings.ts UPDATE branch).
+  #   - Testcontainers runtime not available so integration suite couldn't
+  #     be re-run; status relies on spec audit trail.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
+  #   - Spec Change Log: SC2 (review-loop-1 test fixture patch + SC1
+  #     +1→+2 correction in code map) recorded.
+  #   - Story E3-S3 → done.
   3-4-receptionist-booking-on-behalf-of-patient: backlog
   3-5-receptionist-reads-doctor-availability: backlog
   epic-3-retrospective: optional

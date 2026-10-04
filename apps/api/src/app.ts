@@ -37,6 +37,7 @@ import { adminDoctorBlockRouter } from './routes/admin-doctor-block.js';
 import { adminAppointmentTypesRouter } from './routes/admin-appointment-types.js';
 import { availabilityRouter } from './routes/availability.js';
 import { bookingsRouter } from './routes/bookings.js';
+import { patientProfileRouter } from './routes/patient-profile.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminScope } from './middleware/admin-scope.js';
 import { getLogger, requestLogger } from './middleware/log.js';
@@ -90,6 +91,10 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // Bookings route — POST /bookings. Atomic create; GIST-protected.
   // Same auth gate as availability: open to any authenticated caller.
   app.use(bookingsRouter);
+
+  // Patient profile route — GET /patient/profile?phone=<e164>. Read-only
+  // probe for returning-patient detection (E3-S3).
+  app.use(patientProfileRouter);
 
   // Admin routes — mounted AFTER authMiddleware. Chained router-level
   // middleware means adminScope gates only `/admin/*`, not every path.

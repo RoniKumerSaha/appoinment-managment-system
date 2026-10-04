@@ -808,3 +808,116 @@ test('POST /bookings: existing patient phone reuses row → 201', async () => {
     cleanup.release();
   }
 });
+
+test('POST /bookings: returning patient with CHANGED name updates patient.full_name', async () => {
+  // E3-S3 / FR-023: "Editing the name updates the patient's stored name."
+  const doctor = await fetchDoctorByName('Dr. East Lead');
+  const branch = await fetchBranchByName('East Branch');
+  const type = await fetchTypeByName('General Consultation');
+  const date = tomorrowIso();
+  const phone = '+15550000005'; // patient 0005 — seeded as 'Patient Five'
+
+  try {
+    const res = await request(adminApp())
+      .post('/bookings')
+      .set('Authorization', `Bearer ${patientToken()}`)
+      .send({
+        doctor_id: doctor.id,
+        branch_id: branch.id,
+        appointment_type_id: type.id,
+        start_datetime: slotIso(date, 12, 0),
+        end_datetime: slotIso(date, 12, 30),
+        slot_duration_minutes: 30,
+        patient_phone: phone,
+        patient_name: 'Patient Five Renamed',
+      });
+    assert.equal(res.status, 201);
+
+    // DB pin: patient.full_name was updated to the submitted value.
+    const updated = await db.pool.query<{ full_name: string }>(
+      `SELECT full_name FROM patient WHERE phone_number = $1`,
+      [phone],
+    );
+    assert.equal(updated.rows[0]!.full_name, 'Patient Five Renamed');
+
+    // Audit payload carries the post-update name.
+    const audit = await db.pool.query<{ payload: string }>(
+      `SELECT payload::text AS payload FROM appointment_audit
+         WHERE actor_id = $1 AND event = 'created'
+         ORDER BY created_at DESC LIMIT 1`,
+      [`patient:${phone}`],
+    );
+    const payload = JSON.parse(audit.rows[0]!.payload) as Record<string, unknown>;
+    assert.equal(payload['patient_name_after'], 'Patient Five Renamed');
+  } finally {
+    // Always restore so a failed assertion mid-test still leaves the seeded
+    // name intact for sibling tests.
+    const restore = await db.pool.connect();
+    try {
+      await restore.query(
+        `UPDATE patient SET full_name = 'Patient Five' WHERE phone_number = $1`,
+        [phone],
+      );
+      await restore.query(
+        `DELETE FROM appointment WHERE patient_phone = $1 AND start_datetime = $2::timestamptz`,
+        [phone, slotIso(date, 12, 0)],
+      );
+      await restore.query(
+        `DELETE FROM appointment_audit WHERE actor_id = $1 AND event = 'created'`,
+        [`patient:${phone}`],
+      );
+    } finally {
+      restore.release();
+    }
+  }
+});
+
+test('POST /bookings: returning patient with SAME name leaves it unchanged', async () => {
+  // Same-name path: the UPDATE_PATIENT_NAME_SQL has the
+  // `IS DISTINCT FROM` predicate that turns this into a 0-row write.
+  // Direct DB pin: verify the UPDATE did NOT happen.
+  const doctor = await fetchDoctorByName('Dr. East Lead');
+  const branch = await fetchBranchByName('East Branch');
+  const type = await fetchTypeByName('General Consultation');
+  const date = tomorrowIso();
+  const phone = '+15550000002'; // patient 0002 — seeded as 'Patient Two'
+
+  try {
+    // Snapshot the row's identity (we don't have updated_at on patient, so
+    // we verify via the post-condition that the name is exactly 'Patient Two').
+    const res = await request(adminApp())
+      .post('/bookings')
+      .set('Authorization', `Bearer ${patientToken()}`)
+      .send({
+        doctor_id: doctor.id,
+        branch_id: branch.id,
+        appointment_type_id: type.id,
+        start_datetime: slotIso(date, 13, 0),
+        end_datetime: slotIso(date, 13, 30),
+        slot_duration_minutes: 30,
+        patient_phone: phone,
+        patient_name: 'Patient Two', // matches seeded name
+      });
+    assert.equal(res.status, 201);
+
+    const stillSame = await db.pool.query<{ full_name: string }>(
+      `SELECT full_name FROM patient WHERE phone_number = $1`,
+      [phone],
+    );
+    assert.equal(stillSame.rows[0]!.full_name, 'Patient Two');
+  } finally {
+    const cleanup = await db.pool.connect();
+    try {
+      await cleanup.query(
+        `DELETE FROM appointment WHERE patient_phone = $1 AND start_datetime = $2::timestamptz`,
+        [phone, slotIso(date, 13, 0)],
+      );
+      await cleanup.query(
+        `DELETE FROM appointment_audit WHERE actor_id = $1 AND event = 'created'`,
+        [`patient:${phone}`],
+      );
+    } finally {
+      cleanup.release();
+    }
+  }
+});
