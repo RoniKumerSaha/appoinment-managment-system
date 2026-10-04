@@ -39,6 +39,7 @@ import { availabilityRouter } from './routes/availability.js';
 import { bookingsRouter } from './routes/bookings.js';
 import { patientProfileRouter } from './routes/patient-profile.js';
 import { patientAppointmentsRouter } from './routes/patient-appointments.js';
+import { patientCancelRouter } from './routes/patient-cancel.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminScope } from './middleware/admin-scope.js';
 import { getLogger, requestLogger } from './middleware/log.js';
@@ -103,6 +104,15 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // query param (E7-S3 privacy filter). Mounted AFTER authMiddleware
   // since the route requires a verified patient JWT.
   app.use(patientAppointmentsRouter);
+
+  // Patient self-service cancel — POST /patient/appointments/:id/cancel.
+  // Verified patient cancels their own Scheduled appointment (F-04,
+  // FR-033). Atomic: SELECT FOR UPDATE + UPDATE + audit INSERT in a
+  // single transaction. Privacy filter (E7-S3): same 404 envelope for
+  // "doesn't exist" and "exists but not yours". Terminal states return
+  // a distinct envelope `not_found_appointment_in_terminal_state` so the
+  // UI can surface WHY to the patient.
+  app.use(patientCancelRouter);
 
   // Admin routes — mounted AFTER authMiddleware. Chained router-level
   // middleware means adminScope gates only `/admin/*`, not every path.

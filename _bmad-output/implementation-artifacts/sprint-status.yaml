@@ -818,7 +818,7 @@ development_status:
   epic-3-retrospective: done
 
   # Epic 4 — Patient self-service
-  epic-4: backlog
+  epic-4: in-progress
   4-1-patient-otp-verification: done
   # 2026-10-04 bmad-build step-14 implementation complete for E4-S1
   #   (patient OTP verification + upcoming appointments — F-03):
@@ -856,7 +856,33 @@ development_status:
   #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
   #   - Spec Change Log: SC2 (review-loop-1 test patches) recorded.
   #   - Story E4-S1 → done.
-  4-2-patient-cancellation: backlog
+  4-2-patient-cancellation: done
+  # 2026-10-04 bmad-build step-15 implementation complete for E4-S2
+  #   (patient cancellation — F-04 + FR-033 + FR-050 + BR-038 + BR-053):
+  #   - apps/api/src/routes/patient-cancel.ts (NEW) — POST
+  #     /patient/appointments/:id/cancel handler. Atomic:
+  #     SELECT FOR UPDATE → UPDATE status='Cancelled' → INSERT
+  #     appointment_audit (actor_role='patient', actor_id='patient:<phone>',
+  #     event='cancelled', payload='{}') in a single BEGIN/COMMIT.
+  #   - apps/api/src/app.ts (MODIFIED) — mounted patientCancelRouter
+  #     after authMiddleware, alongside patientAppointmentsRouter.
+  #   - apps/api/test/patient-cancel.test.ts (NEW) — 12 tests:
+  #     401 (no auth), 403 × 3 (doctor / admin / receptionist), 404
+  #     not_found (malformed UUID, unknown id, not-your-id), 404
+  #     not_found_appointment_in_terminal_state × 3 (Cancelled /
+  #     Completed / No-Show), happy path (200 + audit row), idempotent
+  #     second cancel, BR-053/FR-050 slot-release probe.
+  #   - Privacy filter (E7-S3): same 404 envelope for "doesn't exist"
+  #     and "exists but not yours"; terminal states use a distinct
+  #     envelope.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors in
+  #     otp/provider.ts, otp/service.ts, otp/twilio-provider.ts
+  #     unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
+  #   - Spec Change Log: SC2 (review-loop-1 patches) recorded —
+  #     added BR-053/FR-050 probe test + documented fresh-fixture
+  #     rationale.
+  #   - Story E4-S2 → done.
   4-3-patient-rescheduling: backlog
   4-4-deep-link-entry-to-cancel-reschedule: backlog
   epic-4-retrospective: optional
