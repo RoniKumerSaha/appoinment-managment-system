@@ -41,6 +41,7 @@ import { patientProfileRouter } from './routes/patient-profile.js';
 import { patientAppointmentsRouter } from './routes/patient-appointments.js';
 import { patientCancelRouter } from './routes/patient-cancel.js';
 import { patientRescheduleRouter } from './routes/patient-reschedule.js';
+import { patientDeepLinkRouter } from './routes/patient-deep-link.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminScope } from './middleware/admin-scope.js';
 import { getLogger, requestLogger } from './middleware/log.js';
@@ -126,6 +127,16 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // branch_change, type_change}` per F-05. On any failure the original
   // row is untouched (FR-043).
   app.use(patientRescheduleRouter);
+
+  // Patient deep-link entry — GET /patient/appointments/:id/deep-link.
+  // Verified patient looks up metadata for a staff-generated deep
+  // link (E4-S4). The route is a routing hint: it confirms the link
+  // target is valid for the verified patient and returns a 404 if not.
+  // Privacy filter (E7-S3 + NFR-007): single-statement lookup keyed
+  // by `(id, patient_phone = claim.sub)` — same 404 envelope for
+  // "doesn't exist" and "exists but not yours". The route is NOT the
+  // cancel or reschedule executor; E4-S2 / E4-S3 do that.
+  app.use(patientDeepLinkRouter);
 
   // Admin routes — mounted AFTER authMiddleware. Chained router-level
   // middleware means adminScope gates only `/admin/*`, not every path.

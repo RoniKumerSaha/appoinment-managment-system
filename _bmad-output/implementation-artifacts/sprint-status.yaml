@@ -940,7 +940,40 @@ development_status:
   #     doctor_not_found / branch_not_found reachability and the
   #     pre-check's best-effort nature.
   #   - Story E4-S3 → done.
-  4-4-deep-link-entry-to-cancel-reschedule: backlog
+  4-4-deep-link-entry-to-cancel-reschedule: done
+  # 2026-10-04 bmad-build step-17 implementation complete for E4-S4
+  #   (patient deep-link entry to cancel/reschedule — UX-FLOWS F-03
+  #   deep-link trigger + E7-S3 privacy filter):
+  #   - apps/api/src/routes/patient-deep-link.ts (NEW) — GET
+  #     /patient/appointments/:id/deep-link handler. Returns metadata
+  #     {appointment_id, can_cancel, can_reschedule, appointment: {...}}
+  #     so the client can route the verified patient into the right
+  #     modal after OTP verification.
+  #   - The route is NOT the cancel/reschedule executor (E4-S2 / E4-S3).
+  #     It is a routing hint. can_cancel and can_reschedule are both
+  #     derived from `status === 'Scheduled'`.
+  #   - Privacy filter (E7-S3 + NFR-007): single-statement SELECT
+  #     WHERE id = $1::uuid AND patient_phone = $2 — 0 rows = 404
+  #     not_found, identical envelope for "doesn't exist" and "exists
+  #     but not yours".
+  #   - apps/api/src/app.ts (MODIFIED) — mounted
+  #     patientDeepLinkRouter after authMiddleware, alongside
+  #     patientRescheduleRouter.
+  #   - apps/api/test/patient-deep-link.test.ts (NEW) — 11 tests:
+  #     401 (no auth), 403 × 3 (doctor / admin / receptionist), 404
+  #     not_found (malformed UUID, unknown id, not-your-id),
+  #     happy path with can_cancel=true / can_reschedule=true,
+  #     terminal-state paths (Cancelled / Completed / No-Show)
+  #     returning can_cancel=false / can_reschedule=false.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors in
+  #     otp/ files unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings
+  #     unchanged).
+  #   - Spec Change Log: SC1 only (no review patches needed; clean
+  #     review).
+  #   - Story E4-S4 → done.
+  #   - Epic 4 — Patient self-service (4/4 stories done).
+  #   - Next: Epic 4 retrospective.
   epic-4-retrospective: optional
 
   # Epic 5 — Staff appointment management
