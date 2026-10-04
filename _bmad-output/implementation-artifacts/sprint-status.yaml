@@ -815,7 +815,7 @@ development_status:
   #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
   #   - Spec Change Log: SC2 (review-loop-1 patches) recorded.
   #   - Story E3-S5 → done.
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
   # Epic 4 — Patient self-service
   epic-4: backlog
