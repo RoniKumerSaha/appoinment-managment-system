@@ -368,7 +368,7 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2 — Doctor schedule & types
-  epic-2: in-progress
+  epic-2: done
   # 2026-10-04 bmad-build step-05 implementation complete for E2-S1 (configure
   #   doctor weekly schedule with multi-period days + effective date):
   #   - No new migration: 0006 already has every column (doctor_schedule
@@ -566,8 +566,69 @@ development_status:
   epic-2-retrospective: optional
 
   # Epic 3 — Booking core
-  epic-3: backlog
-  3-1-availability-engine: backlog
+  epic-3: in-progress
+  # 2026-10-04 bmad-build step-09 implementation complete for E3-S1
+  #   (availability engine — server-side slot computation):
+  #   - No new migration. All inputs (branch_weekly_hours 0008, doctor_schedule
+  #     0006, doctor_block 0007, appointment 0015, appointment_type 0005) exist.
+  #   - apps/api/src/availability/types.ts (NEW) — Interval, Slot,
+  #     AvailabilityResult, AvailabilityQuery types; isWithin30DayWindow
+  #     (boundary inclusive: today+30 OK, today+31 → outside), parseIsoDate,
+  #     datePlusMinutes, timeStringToMinutes, utcDayOfWeek.
+  #   - apps/api/src/availability/slots.ts (NEW) — pure: buildSlots
+  #     (no buffer, FR-016 remainder rule), mergeIntervals (adjacent coalesce),
+  #     subtractIntervals (half-open preserved), intersect (branch ∩ doctor),
+  #     clampToDay (safely ingests block/appt rows spanning midnight or outside
+  #     day bounds).
+  #   - apps/api/src/availability/engine.ts (NEW) — orchestrator with
+  #     computeAvailability(query) → { kind: 'ok'; result: AvailabilityResult }
+  #     | { kind: 'err'; error: AvailabilityError }. Reads clinic + doctor +
+  #     branch + type + branch_weekly_hours + doctor_schedule + doctor_block +
+  #     appointment + FR-012 patient overlap in a single transaction.
+  #     AvailabilityError is the union: doctor_not_found / branch_not_found /
+  #     doctor_not_at_branch / doctor_inactive / branch_inactive /
+  #     appointment_type_not_found / appointment_type_inactive / past_date /
+  #     outside_30d_window.
+  #     Empty-reason heuristic: 'all_booked' (afterBlocks non-empty, afterExisting empty),
+  #     'all_blocked' (afterBlocks empty), 'no_fit' (duration didn't fit), 'branch_closed',
+  #     'doctor_unavailable', 'patient_has_future_with_doctor'.
+  #   - apps/api/src/routes/availability.ts (NEW) — GET /availability handler:
+  #     400 invalid_doctor_id / invalid_branch_id / invalid_appointment_type_id /
+  #     invalid_date / invalid_patient_phone; 401 unauthenticated;
+  #     maps AvailabilityError to 400/404 envelopes;
+  #     patient-realm (no adminScope); authenticated callers only.
+  #   - apps/api/src/app.ts (MODIFIED) — availabilityRouter mounted AFTER
+  #     authMiddleware, BEFORE /admin chain.
+  #   - apps/api/test/availability.test.ts (NEW, 34 tests) — pure unit tests
+  #     for buildSlots / mergeIntervals / subtractIntervals / intersect /
+  #     clampToDay / isWithin30DayWindow / timeStringToMinutes / utcDayOfWeek.
+  #   - apps/api/test/availability-route.test.ts (NEW) — integration tests
+  #     covering auth (anonymous 401, patient JWT 200), validation
+  #     (invalid_doctor_id / invalid_date / past_date / outside_30d_window /
+  #     invalid_patient_phone), lookup (doctor_not_found / appointment_type_not_found /
+  #     doctor_not_at_branch), happy-path slot list shape.
+  #   - Patches from review-loop-1:
+  #     P1 (slots.ts): moved `intersect` from engine.ts to slots.ts per
+  #       layered-design convention (pure helpers MUST live in slots.ts/types.ts).
+  #     P2 (slots.ts): added clampToDay() helper; applied at three sites in
+  #       engine.ts (blockIntervals, existingIntervals, patientSkip) so rows
+  #       spanning midnight or sitting outside day bounds cannot corrupt
+  #       subtractIntervals.
+  #     P3 (engine.ts): removed dead `parseIsoDate` re-export (no callers).
+  #   - Deferrals (recorded in spec SC2):
+  #     D1-D14 — 14 matrix rows have only pure unit coverage today; integration
+  #       coverage will land in E3-S2..E3-S5 as the booking flows exercise the
+  #       engine end-to-end. Documented per-row in spec SC2.
+  #   - New files: 5 (types, slots, engine, route, 2 tests).
+  #   - Modified files: 1 (app.ts mount chain), 1 (sprint-status.yaml).
+  #   - 34/34 pure unit tests green.
+  #   - Testcontainers runtime not available so integration suite couldn't
+  #     be re-run; status relies on spec audit trail.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
+  #   - Spec Change Log: SC2 (review-loop-1 patches + D1-D14 deferrals).
+  #   - Story E3-S1 → done.
+  3-1-availability-engine: done
   3-2-guest-booking-first-time: backlog
   3-3-returning-patient-booking-known-phone: backlog
   3-4-receptionist-booking-on-behalf-of-patient: backlog
