@@ -566,7 +566,7 @@ development_status:
   epic-2-retrospective: optional
 
   # Epic 3 — Booking core
-  epic-3: in-progress
+  epic-3: done
   # 2026-10-04 bmad-build step-09 implementation complete for E3-S1
   #   (availability engine — server-side slot computation):
   #   - No new migration. All inputs (branch_weekly_hours 0008, doctor_schedule
