@@ -1003,13 +1003,221 @@ development_status:
   epic-4-retrospective: done
 
   # Epic 5 — Staff appointment management
-  epic-5: in-progress
+  epic-5: done
   5-1-mark-completed-no-show: done
+  # 2026-10-04 bmad-build step-19 implementation complete for E5-S1
+  #   (staff mark-completed / no-show — F-10 status branch):
+  #   - apps/api/src/routes/staff-mark-status.ts (NEW) — POST
+  #     /appointments/:id/mark-status handler. Body shape:
+  #     {status: 'Completed' | 'No-Show'}. Atomic: SELECT FOR UPDATE
+  #     + UPDATE status + audit INSERT in a single BEGIN/COMMIT.
+  #   - Doctor scope: doubly-bound — appt.doctor_id = claim.doctor_id
+  #     AND appt.branch_id ∈ claim.branch_ids. Receptionist scope:
+  #     appt.branch_id ∈ claim.branch_ids only (BR-004).
+  #   - Status gate: only Scheduled → 422 already_in_terminal_state
+  #     for Cancelled / Completed / No-Show. Time gate: requires
+  #     start_datetime <= now() → 422 appointment_in_future.
+  #   - Audit row: actor_role=claim.role, actor_id='staff:<sub>',
+  #     event='marked_completed'|'marked_no_show', payload='{}'
+  #     (BR-039 / BR-040 — no reason required).
+  #   - Patient / admin → 403 forbidden_role. Anonymous → 401.
+  #   - apps/api/src/app.ts (MODIFIED) — mounted
+  #     staffMarkStatusRouter after authMiddleware.
+  #   - apps/api/test/staff-mark-status.test.ts (NEW, 18 tests):
+  #     401 / 403 × 2 / 400 invalid_status × 3 / 404 × 2 / happy path
+  #     × 2 (doctor Completed + No-Show) + receptionist happy path × 2
+  #     (Completed + No-Show) / doctor-scope × 2 / receptionist-scope
+  #     / future × 2 / terminal × 3 / atomicity concurrent test.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors in
+  #     otp/ files unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings
+  #     unchanged).
+  #   - Spec Change Log: SC2 review patches recorded — added
+  #     receptionist No-Show happy path test, dropped redundant
+  #     RETURNING from UPDATE_STATUS_SQL (N5), documented that
+  #     slot-after-Completed is a no-op for mark-status (T2).
+  #   - Story E5-S1 → done.
   5-2-doctor-cancellation-with-reason: done
+  # 2026-10-04 bmad-build step-20 implementation complete for E5-S2
+  #   (doctor cancellation with reason — F-10 cancel branch, BR-037 /
+  #   FR-035):
+  #   - apps/api/src/routes/staff-doctor-cancel.ts (NEW) — POST
+  #     /appointments/:id/cancel handler. Body shape: {reason: string}.
+  #     Atomic: SELECT FOR UPDATE + UPDATE status='Cancelled' + audit
+  #     INSERT in a single BEGIN/COMMIT.
+  #   - Doctor scope: doubly-bound (appt.doctor_id = claim.doctor_id
+  #     AND appt.branch_id ∈ claim.branch_ids). Doctor-only role gate.
+  #   - Reason gate (FR-035): missing / empty / whitespace-only →
+  #     400 reason_required. > 500 chars → 400 reason_too_long.
+  #     Trimmed before storing in audit.payload.
+  #   - Status gate: only Scheduled → 422 already_in_terminal_state
+  #     for Cancelled / Completed / No-Show. Slot is released by
+  #     the GIST exclusion (BR-053, FR-050).
+  #   - Audit row: actor_role='doctor', actor_id='staff:<sub>',
+  #     event='cancelled', payload={reason: <trimmed>}.
+  #   - Patient / admin / receptionist → 403 forbidden_role.
+  #   - Route path is /appointments/:id/cancel — same shape as the
+  #     patient cancel (E4-S2's /patient/appointments/:id/cancel) but
+  #     mounted at the staff path. The receptionist flow lives at
+  #     /reception/appointments/:id/cancel (E5-S3).
+  #   - apps/api/src/app.ts (MODIFIED) — mounted
+  #     staffDoctorCancelRouter after authMiddleware, alongside
+  #     staffMarkStatusRouter.
+  #   - apps/api/test/staff-doctor-cancel.test.ts (NEW, 14 tests):
+  #     401 / 403 × 3 (patient / admin / receptionist) / 404 × 2 /
+  #     400 reason × 4 (missing / empty / whitespace / too long) /
+  #     happy path × 4 (basic, trim, unicode, 500-char) / terminal
+  #     × 3 / scope × 2 / slot-release BR-053 probe.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors in
+  #     otp/ files unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings
+  #     unchanged).
+  #   - Spec Change Log: SC1 only (no review patches; clean review).
+  #   - Story E5-S2 → done.
   5-3-receptionist-cancellation-with-reason: done
+  # 2026-10-04 bmad-build step-21 implementation complete for E5-S3
+  #   (receptionist cancellation with reason — F-14, BR-036 / FR-034):
+  #   - apps/api/src/routes/staff-receptionist-cancel.ts (NEW) — POST
+  #     /reception/appointments/:id/cancel handler. Body shape:
+  #     {reason: string}. Atomic: SELECT FOR UPDATE + UPDATE + audit
+  #     INSERT in a single BEGIN/COMMIT.
+  #   - Receptionist scope: branch-only — appt.branch_id ∈
+  #     claim.branch_ids (BR-004). NO doctor-scope check — a
+  #     receptionist can cancel any appointment at their branch
+  #     regardless of which doctor is on the row. Receptionist-only
+  #     role gate.
+  #   - Reason gate (FR-034): same envelope as E5-S2 — missing /
+  #     empty / whitespace-only → 400 reason_required. > 500 chars
+  #     → 400 reason_too_long. Trimmed before storing in
+  #     audit.payload.
+  #   - Status gate: only Scheduled → 422 already_in_terminal_state.
+  #   - Audit row: actor_role='receptionist', actor_id='staff:<sub>',
+  #     event='cancelled', payload={reason: <trimmed>}.
+  #   - Patient / admin / doctor → 403 forbidden_role.
+  #   - Route path is /reception/appointments/:id/cancel —
+  #     intentionally different from E5-S2's
+  #     /appointments/:id/cancel to avoid colliding with the doctor
+  #     route's role gate (the router stack has no role-discriminator
+  #     middleware today).
+  #   - apps/api/src/app.ts (MODIFIED) — mounted
+  #     staffReceptionistCancelRouter after authMiddleware, alongside
+  #     staffDoctorCancelRouter.
+  #   - apps/api/test/staff-receptionist-cancel.test.ts (NEW, 14
+  #     tests): 401 / 403 × 3 / 404 × 2 / 400 reason × 4 / happy
+  #     path × 3 (basic, trim, unicode) / BR-004 cross-doctor test /
+  #     terminal × 3 / cross-branch / slot-release BR-053 probe.
+  #   - Typecheck: 0 new errors.
+  #   - Lint: 0 new warnings.
+  #   - Spec Change Log: SC1 only.
+  #   - Story E5-S3 → done.
   5-4-todays-branch-view-receptionist-dashboard: done
+  # 2026-10-04 bmad-build step-22 implementation complete for E5-S4
+  #   (today's branch view — receptionist dashboard, F-12, BR-063,
+  #   Scenario 11):
+  #   - apps/api/src/routes/receptionist-today.ts (NEW) — GET
+  #     /reception/branch/today handler. Read-only list of today's
+  #     appointments at the receptionist's assigned branch.
+  #   - Branch is locked to claim.branch_ids[0] server-side. The
+  #     branch_id query param is IGNORED (Scenario 11: cross-branch
+  #     URLs return the receptionist's branch data, never the
+  #     requested branch).
+  #   - Date is anchored to branch.tz (E7-S6) via
+  #     `(date::timestamptz AT TIME ZONE branch.tz)` SQL cast. The
+  #     response `date` field reflects the branch-local calendar day
+  #     (formatted via Intl.DateTimeFormat for tz-correct DST
+  #     handling).
+  #   - Optional filters: ?status=<ValidStatus>, ?doctor_id=<UUID>,
+  #     ?date=YYYY-MM-DD. Invalid values → 400 invalid_status /
+  #     invalid_doctor_id / invalid_date.
+  #   - Response: {date, branch: {id, name, tz}, filters, appointments:
+  #     [{id, doctor_id, doctor_name, patient_phone,
+  #     appointment_type_id, appointment_type_name, start_datetime,
+  #     end_datetime, status}]}. No patient_name (E7-S3).
+  #   - Auth: receptionist-only. Patient / doctor / admin → 403.
+  #   - apps/api/src/app.ts (MODIFIED) — mounted
+  #     receptionistTodayRouter after authMiddleware.
+  #   - apps/api/test/receptionist-today.test.ts (NEW, 14 tests):
+  #     401 / 403 × 3 / 200 × 2 (branch-east / branch-west metadata) /
+  #     Scenario 11 cross-branch probe / status filter / doctor_id
+  #     filter / date filter / E7-S3 privacy (no patient_name) /
+  #     validation × 3 (status / doctor_id / date) / empty state /
+  #     ASC ordering.
+  #   - Typecheck: 0 new errors.
+  #   - Lint: 0 new warnings.
+  #   - Spec Change Log: SC1 only.
+  #   - Story E5-S4 → done.
   5-5-no-deletion-negative-test: done
-  epic-5-retrospective: optional
+  # 2026-10-04 bmad-build step-23 implementation complete for E5-S5
+  #   (no deletion negative test — PRD FR-038, Scenario 15):
+  #   - apps/api/test/no-deletion.test.ts (NEW, 9 tests) — pins the
+  #     no-deletion guarantee. There is no DELETE route for any role
+  #     on any appointment path. Status transitions are status
+  #     mutations, not row deletions.
+  #   - Tests cover: DELETE /appointments/:id × 3 roles (doctor /
+  #     receptionist / admin) → 404 not_found (no handler); DELETE
+  #     /patient/appointments/:id → 404; DELETE
+  #     /reception/appointments/:id → 404; DELETE
+  #     /appointments/:id (anonymous) → 401 or 404 (both are
+  #     acceptable proofs of "no DELETE route"); row recoverability
+  #     for Cancelled / Completed / No-Show rows via the deep-link
+  #     read route.
+  #   - No new code path. The test documents the negative guarantee
+  #     and pins it against regression.
+  #   - Typecheck: 0 new errors.
+  #   - Lint: 0 new warnings.
+  #   - Spec Change Log: SC1 only.
+  #   - Story E5-S5 → done.
+  # Epic 5 retrospective — 2026-10-04.
+  #   - 5/5 stories committed in this session: E5-S1 (3282778), E5-S2
+  #     (0db8fb8), E5-S3 (4c7659b), E5-S4 (3f6f616), E5-S5 (080d4fb).
+  #   - All five stories ship the staff appointment management surface
+  #     (F-10 mark-status / cancel branch, F-12 dashboard, F-14
+  #     receptionist cancel, FR-038 no-deletion pin). Total +4935
+  #     lines (route + tests + spec) across the five stories.
+  #   - Doctor scope is consistently doubly-bound (E5-S1 + E5-S2):
+  #     appt.doctor_id = claim.doctor_id AND appt.branch_id ∈
+  #     claim.branch_ids. A doctor assigned to branch-east cannot
+  #     act on branch-west appointments.
+  #   - Receptionist scope is consistently branch-only (E5-S1 + E5-S3
+  #     + E5-S4): appt.branch_id ∈ claim.branch_ids. The receptionist
+  #     can act on any appointment at their branch regardless of
+  #     which doctor is on the row (BR-004).
+  #   - Terminal-state envelope `422 already_in_terminal_state`
+  #     applied uniformly across E5-S1, E5-S2, E5-S3. Distinct from
+  #     the patient-facing `404 not_found_appointment_in_terminal_state`
+  #     because the staff flow sees the row in their queue.
+  #   - Reason-validation envelope (`400 reason_required` /
+  #     `reason_too_long`) applied uniformly across E5-S2 + E5-S3.
+  #     The 500-char cap matches the UX-FLOWS F-10 / F-14 input
+  #     field size.
+  #   - Cross-branch URL tampering (Scenario 11) is enforced in
+  #     E5-S4 by IGNORING the branch_id query param — the
+  #     receptionist sees their branch data regardless. No 403 / no
+  #     data leak.
+  #   - Atomicity: every staff write (E5-S1, E5-S2, E5-S3) is
+  #     SELECT FOR UPDATE + UPDATE + audit INSERT in a single
+  #     BEGIN/COMMIT. If the audit INSERT fails, the status change
+  #     rolls back. E5-S1 has a dedicated concurrent test that
+  #     asserts exactly one audit row when two concurrent requests
+  #     race.
+  #   - Privacy (E7-S3) in E5-S4: response does NOT include
+  #     patient_name. The receptionist needs patient_phone to
+  #     identify the patient on arrival but no other PII is leaked.
+  #   - Action items:
+  #     - W46 (open): extract the staff-route scope gate (E5-S1 +
+  #       E5-S2 + E5-S3) into a `staffScopeGate.ts` middleware
+  #       parameter so the doctor / receptionist / branch checks can
+  #       be composed. Today's deliberate duplication is acceptable
+  #       but a future cleanup story should fold them.
+  #     - W47 (defer): the E5-S4 dashboard uses raw SQL for the
+  #       date-window calculation. A typed helper in
+  #       availability/types.ts (e.g. `branchLocalDayBounds(tz, date)`)
+  #       would be cleaner — defer to E7-S6's tz support work.
+  #     - W48 (defer): the receptionist today dashboard
+  #       (E5-S4) does NOT include patient_phone as a clickable
+  #       link to the patient profile (E3-S3). That's a UX story,
+  #       out of scope for the API work.
+  epic-5-retrospective: done
 
   # Epic 6 — Recurring & conflict resolution
   epic-6: backlog
