@@ -1220,12 +1220,58 @@ development_status:
   epic-5-retrospective: done
 
   # Epic 6 — Recurring & conflict resolution
-  epic-6: backlog
-  6-1-recurring-appointment-preview-partial-success-create: backlog
-  6-2-resolve-affected-appointments-doctor: backlog
-  6-3-branch-hours-impact-flag-admin: backlog
-  6-4-per-occurrence-recurring-cancel-reschedule: backlog
-  epic-6-retrospective: optional
+  epic-6: done
+  # 2026-10-04 Epic 6 retrospective complete; all 4 stories shipped.
+  # Summary: E6-S1 (recurring preview + partial-success create,
+  #   F-11, FR-044…050), E6-S2 (doctor conflict move, F-09,
+  #   BR-054…058), E6-S3 (doctor affected queue — read-side
+  #   counterpart of E1-S2's impact preview), E6-S4 (per-occurrence
+  #   audit enrichment for cancel/reschedule, FR-049, FR-050,
+  #   UX-FLOWS §4.7). Migration footprint: 1 new migration
+  #   (0018_recurring_series.sql) adding recurring_series_id +
+  #   partial index.
+  # Highlights:
+  #   - E6-S1 ships a server-stateful preview snapshot (in-process
+  #     Map<id, snapshot>) keyed by uuid; the confirm route looks
+  #     up the snapshot and re-validates inside the txn (race-safety
+  #     net, FR-050). The two routes share helpers via
+  #     recurring-helpers.ts — body validator, occurrence
+  #     expansion, in-txn per-occurrence validator, branch-tz-aware
+  #     date formatting (localToUtcMs converges in ≤3 passes via
+  #     Intl.DateTimeFormat).
+  #   - E6-S2 (doctor move) is a 11-step txn that locks the source
+  #     row, doubly-binds doctor scope, gates status (terminal
+  #     → 422), gates time (past → 422), detects no-op moves
+  #     (422 no_op_move), validates destination (branch scope,
+  #     doctor-at-branch, duration match, FR-046 recheck), and
+  #     writes a moved_by_doctor audit row with
+  #     `payload={reason: 'conflict_resolution', from, to,
+  #     branch_change, type_change}`. GIST exclusion is the
+  #     race-safety net (SQLSTATE 23P01 → 409 slot_raced).
+  #   - E6-S3 re-uses E1-S2's `outside hours` predicate shape (the
+  #     column-ref helper variant) so the admin preview and the
+  #     doctor badge cannot diverge on what counts as "affected".
+  #     Read-only; no state mutation.
+  #   - E6-S4 enriches the audit payload on the four cancel /
+  #     reschedule routes (E4-S2, E4-S3, E5-S2, E5-S3). When the
+  #     source row's recurring_series_id is non-NULL, the audit
+  #     row carries `recurring_origin: {series_id}`. Non-recurring
+  #     rows carry the existing payload shape unchanged. The
+  #     enrichment is purely additive — no migration, no schema
+  #     change, no new column on appointment_audit.
+  # Action items:
+  #   - W49 (defer): the E6-S1 previewStore is an in-process Map;
+  #     future hardening could swap in Redis (cross-instance
+  #     preview state).
+  #   - W50 (defer): enum-ify appointment_audit.event. E6-S1 used
+  #     `recurring_created`, E6-S2 used `moved_by_doctor`, E6-S4
+  #     re-uses the existing `cancelled` / `rescheduled` events.
+  #     A typed enum would catch typos at write-time.
+  6-1-recurring-appointment-preview-partial-success-create: done
+  6-2-resolve-affected-appointments-doctor: done
+  6-3-branch-hours-impact-flag-admin: done
+  6-4-per-occurrence-recurring-cancel-reschedule: done
+  epic-6-retrospective: done
 
   # Epic 7 — Cross-cutting
   epic-7: backlog
