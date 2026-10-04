@@ -48,6 +48,8 @@ import { staffReceptionistCancelRouter } from './routes/staff-receptionist-cance
 import { receptionistTodayRouter } from './routes/receptionist-today.js';
 import { recurringPreviewRouter } from './routes/recurring-preview.js';
 import { recurringConfirmRouter } from './routes/recurring-confirm.js';
+import { staffDoctorMoveRouter } from './routes/staff-doctor-move.js';
+import { doctorAffectedRouter } from './routes/doctor-affected.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminScope } from './middleware/admin-scope.js';
 import { getLogger, requestLogger } from './middleware/log.js';
@@ -190,6 +192,25 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // recurring_series_id. Mounted AFTER authMiddleware; the route
   // is the role gate.
   app.use(recurringConfirmRouter);
+
+  // Staff doctor move — POST /doctor/affected/:id/move.
+  // Doctor moves a Scheduled appointment to a new slot on
+  // behalf of conflict resolution (E6-S2, F-09, BR-054…058,
+  // FR-011). The doctor is the only actor that "moves" an
+  // appointment; type is locked (BR-058); branch may change
+  // to any branch the doctor works at (BR-057). Mounted AFTER
+  // authMiddleware; the route is the doctor-only role gate.
+  app.use(staffDoctorMoveRouter);
+
+  // Doctor affected queue — GET /doctor/affected.
+  // Read-only list of the doctor's Scheduled appointments
+  // that fall outside the current branch_weekly_hours for
+  // the appointment's branch (E6-S3, F-09). The "Resolve"
+  // badge on the doctor dashboard reads this list and links
+  // each row to E6-S2's POST /doctor/affected/:id/move.
+  // Mounted AFTER authMiddleware; the route is the
+  // doctor-only role gate.
+  app.use(doctorAffectedRouter);
 
   // Admin routes — mounted AFTER authMiddleware. Chained router-level
   // middleware means adminScope gates only `/admin/*`, not every path.
