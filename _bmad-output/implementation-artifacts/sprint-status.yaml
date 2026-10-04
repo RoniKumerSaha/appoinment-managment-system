@@ -1274,18 +1274,186 @@ development_status:
   epic-6-retrospective: done
 
   # Epic 7 — Cross-cutting
-  epic-7: backlog
+  # 2026-10-04 Epic 7 partial: E7-S2, E7-S3, E7-S6 shipped in this session.
+  # Remaining stories (E7-S1, S4, S5, S7, S8, S9, S10) are UI / design /
+  # perf / metrics / parking-lot work that has been repeatedly deferred-by-
+  # narrative (e.g., E7-S10 is literally "parking lot") and would require
+  # web-side work outside the API scope of this implementation run.
+  # Epic status reflects the partial completion.
+  epic-7: in-progress
   7-1-design-system-token-wiring: backlog
-  7-2-appointment-audit: backlog
-  7-3-patient-privacy-filter: backlog
+  7-2-appointment-audit: done
+  # 2026-10-04 bmad-build step-25 implementation complete for E7-S2
+  #   (appointment audit reads — FR-051, NFR-005):
+  #   - apps/api/src/routes/doctor-appointment-audit.ts (NEW) —
+  #     GET /doctor/appointments/:id/audit. Doctor-only role gate;
+  #     doubly-bound ownership (appt.doctor_id = claim.doctor_id) →
+  #     403 outside_branch_scope. SELECT_AUDIT_SQL JOINs
+  #     `appointment` for `patient_phone` (the audit table itself
+  #     does NOT have a patient_phone column — must JOIN). UUID
+  #     validation → 404 not_found. Returns
+  #     `{appointment_id, patient_phone, count, audit: [...]}` capped
+  #     at MAX_AUDIT_ROWS=200.
+  #   - apps/api/src/routes/reception-appointment-audit.ts (NEW) —
+  #     GET /reception/appointments/:id/audit. Receptionist-only role
+  #     gate; branch-scope check (appt.branch_id ∈ claim.branch_ids)
+  #     → 403 outside_branch_scope. Same response shape as doctor.
+  #   - apps/api/src/routes/admin-audit.ts (NEW) — GET /admin/audit.
+  #     Returns 200 (NOT 403) with policy envelope documenting PRD
+  #     §2.4's "admin never touches individual appointments" rule.
+  #     Body shape: `{appointments_audit_reads: "rejected_per_role_policy",
+  #     reason, reference, doctor_endpoint, receptionist_endpoint,
+  #     future_work}`. The endpoint exists so the admin surface
+  #     doesn't 404 on the spec's expected path.
+  #   - apps/api/src/app.ts (MODIFIED) — chained all three routers
+  #     after authMiddleware.
+  #   - apps/api/test/appointment-audit-reads.test.ts (NEW, 18 tests):
+  #     doctor auth × 4 / doctor scope × 4 / doctor happy × 1 (with
+  #     E6-S4 recurring_origin enrichment echoed verbatim);
+  #     receptionist auth × 3 / receptionist scope × 3 / happy × 1;
+  #     admin auth × 3 / policy envelope × 1. Tests pin payload
+  #     shape, count semantics, role gates, ownership gates, and
+  #     branch-scope gates.
+  #   - Patches from review-loop-1:
+  #     P-A (admin-audit.ts): return 200 with policy envelope, NOT
+  #       403. The admin is a valid role; the policy rejection is on
+  #       the DATA, not the ROLE. Returning 403 would be misleading.
+  #     P-B (both routes): patient_phone is NOT an audit table column;
+  #       JOIN from `appointment` via `appointment_id` (corrected
+  #       spec wording in SC2).
+  #   - Deferrals: 0.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors
+  #     unchanged in otp/ files).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings
+  #     unchanged).
+  #   - Spec Change Log: SC2 (review-loop-1 patches) recorded.
+  #   - Story E7-S2 → done.
+  7-3-patient-privacy-filter: done
+  # 2026-10-04 bmad-build step-26 implementation complete for E7-S3
+  #   (patient privacy filter cross-cutting test — NFR-007, FR-022,
+  #   FR-031, FR-032):
+  #   - This story ships NO new code. The privacy envelope is already
+  #     enforced across E3-S3 (patient-profile bound to claim.sub),
+  #     E4-S1 (list bound to claim.sub), E4-S2 (cancel with
+  #     patient_phone === claim.sub check), E4-S3 (reschedule same),
+  #     E4-S4 (deep-link single-statement SELECT WHERE
+  #     patient_phone = claim.sub). This story captures the contract
+  #     as a single document + a cross-cutting test file.
+  #   - apps/api/test/privacy-filter.test.ts (NEW, 6 tests):
+  #     a) Patient cancels another patient's Scheduled → 404 not_found
+  #        (NOT 200, NOT 403).
+  #     b) Patient reschedules another's → 404 not_found.
+  #     c) Patient deep-links another's → 404 not_found.
+  #     d) Patient lists upcoming with `?phone=<other>` → 200, response
+  #        contains ONLY current patient's appointments (the param is
+  #        ignored — privacy is bound server-side to claim.sub).
+  #     e) Patient profile lookup with `?phone=<other>` → 200,
+  #        response describes ONLY the current patient.
+  #     f) Duplicate INSERT into `patient (phone_number, ...)` →
+  #        SQLSTATE 23505 (UNIQUE constraint enforces FR-022's
+  #        "phone is the sole patient key").
+  #   - Each test inserts a row owned by `+15550000099` (the "other"
+  #     patient) and attempts to read / cancel / reschedule / deep-link /
+  #     list it with a JWT for `+15550000001` (the "current" patient).
+  #     Every surface MUST return the documented 404 envelope.
+  #   - Patches from review-loop-1: 0 production patches (clean
+  #     spec adherence); SC2 documents the test scope as "cross-
+  #     cutting assertions + UNIQUE constraint pin".
+  #   - Deferrals: 0.
+  #   - Typecheck: 0 new errors.
+  #   - Lint: 0 new warnings.
+  #   - Spec Change Log: SC2 (review-loop-1 documented scope) recorded.
+  #   - Story E7-S3 → done.
   7-4-conflict-modal-global-component: backlog
   7-5-accessibility-baseline-wcag-2-1-aa: backlog
-  7-6-branch-timezone-support: backlog
+  7-6-branch-timezone-support: done
+  # 2026-10-04 E7-S6 documentation-only story complete. The branch
+  #   timezone contract (UX §14, UX-FLOWS §6.4) is already enforced
+  #   across the codebase:
+  #   - branch.tz (IANA name) column on `branch` (E1-S1).
+  #   - branch_weekly_hours.open_time/close_time as `time` (no tz in
+  #     row), interpreted in branch.tz at read time (E1-S2).
+  #   - EXTRACT(dow AT TIME ZONE tz) for impact preview (E1-S2).
+  #   - (date::timestamptz AT TIME ZONE branch.tz) for receptionist-
+  #     today's "today" anchor (E5-S4).
+  #   - localToUtcMs / formatLocalDate via Intl.DateTimeFormat for
+  #     branch-tz-aware date math (E6-S1).
+  #   - outsideBranchHoursPredicate baking the tz column reference
+  #     into the SQL fragment (E6-S3).
+  #   No new code, no new migration, no new test. Story captures the
+  #   cross-cutting contract as a single document so future work
+  #   doesn't accidentally weaken it. Acceptance criteria are
+  #   observational — the existing E1-S2 / E5-S4 / E6-S1 / E6-S3
+  #   tests already exercise the contract.
+  # Spec Change Log: SC2 documents the scope + observational
+  #   acceptance criteria + deferral of a regression grep test to
+  #   W52 hardening.
+  # Story E7-S6 → done.
   7-7-no-tentative-client-side-slot-holds: backlog
   7-8-performance-availability-slas: backlog
   7-9-product-metrics-instrumentation: backlog
   7-10-design-open-questions-parking-lot: backlog
-  epic-7-retrospective: optional
+  epic-7-retrospective: in-progress
+# Epic 7 retrospective — 2026-10-04.
+#   - 3/10 stories committed in this session: E7-S2 (799ce39), E7-S3
+#     (7bfed38), E7-S6 (6a80856).
+#   - The remaining 7 stories (E7-S1, S4, S5, S7, S8, S9, S10) are
+#     web-side / design / perf / metrics / parking-lot work outside
+#     the API surface this implementation run targets:
+#       - E7-S1 (design-system token wiring) — web design-system
+#         work; no API impact.
+#       - E7-S4 (conflict modal global component) — React component
+#         in apps/web; UI work.
+#       - E7-S5 (accessibility baseline WCAG 2.1 AA) — full-app a11y
+#         audit + remediation; no API impact.
+#       - E7-S7 (no tentative client-side slot holds) — web
+#         optimistic-update discipline; spec-only.
+#       - E7-S8 (performance / availability SLAs) — measurement +
+#         budget pinning; no code today.
+#       - E7-S9 (product metrics instrumentation) — telemetry +
+#         dashboard wiring; new instrumentation, not API contract.
+#       - E7-S10 (design open questions parking lot) — explicitly
+#         deferred-by-narrative in the epic file.
+#   - These stories are marked `backlog` rather than `done` because
+#     the work has not been performed. The cross-cutting API contract
+#     (E7-S2 audit reads, E7-S3 privacy filter, E7-S6 tz support)
+#     is complete; the web/UI/design/perf/metrics layers are a
+#     separate workstream.
+#   - Highlights:
+#     - E7-S2 ships the read side of appointment_audit (the table
+#       has been written since E0-S5 but never readable). Three
+#       routes: doctor (own), receptionist (branch), admin
+#       (policy envelope). 18 integration tests pin auth, scope,
+#       shape, count semantics, and the E6-S4 recurring_origin
+#       enrichment round-trip.
+#     - E7-S3 is a cross-cutting test file (privacy-filter.test.ts)
+#       that asserts the same 404 envelope for "doesn't exist" and
+#       "exists but not yours" on every patient surface. The
+#       contract is already enforced; this story pins it against
+#       regression and captures the FR-022 "phone is the sole
+#       patient key" UNIQUE constraint test.
+#     - E7-S6 captures the branch.tz contract as a single document.
+#       No code, no migration, no test — the existing codebase
+#       already enforces it across E1-S1 / E1-S2 / E5-S4 / E6-S1 /
+#       E6-S3. Future work (e.g., E7-S8 perf SLAs touching tz math)
+#       can refer to the single source of truth.
+#   - Action items:
+#     - W51 (defer): E7-S2's admin route returns a policy envelope,
+#       but the underlying configuration_audit table (for doctor /
+#       receptionist / branch / schedule / block / hours mutations)
+#       does not exist. A future E8 hardening story could add the
+#       table + admin reads. Deferred per the epic file's
+#       "parking lot" framing.
+#     - W52 (defer): E7-S6's "never hand-roll a tz offset" rule is
+#       documentary; a regression grep test could be added in a future
+#       hardening story to lock the codebase against hand-rolled
+#       offsets. Cosmetic.
+#     - W53 (open): the remaining 7 E7 stories (S1, S4, S5, S7, S8,
+#       S9, S10) are web-side / design / perf / metrics / parking-
+#       lot work. They require a separate workstream (apps/web or
+#       a design pass) outside the API implementation scope.
+#       Status remains `backlog` until a non-API execution scope
+#       picks them up.
 
 # Action items committed during retrospectives (section created by the retrospective workflow)
 action_items: []
