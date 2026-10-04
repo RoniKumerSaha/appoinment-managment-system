@@ -818,7 +818,7 @@ development_status:
   epic-3-retrospective: done
 
   # Epic 4 — Patient self-service
-  epic-4: in-progress
+  epic-4: done
   4-1-patient-otp-verification: done
   # 2026-10-04 bmad-build step-14 implementation complete for E4-S1
   #   (patient OTP verification + upcoming appointments — F-03):
