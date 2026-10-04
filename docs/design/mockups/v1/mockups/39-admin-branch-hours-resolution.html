@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 39-E — Admin: Branch Hours Resolution Status</title>
+<link rel="stylesheet" href="../imports/app/design-system.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; padding: 0; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 760px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 26px; height: 26px; background: #0f766e; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 8px 15px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 9px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+
+  .page { padding: 28px 24px 60px; }
+  .page-header { margin-bottom: 20px; }
+  .page-header h1 { font-size: 22px; color: #111827; margin-bottom: 4px; font-weight: 600; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+
+  /* Hero summary — counts only, no patient detail */
+  .hero-card { background: white; border: 2px solid #99f6e4; border-radius: 12px; padding: 20px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(15,118,110,0.06); }
+  .hero-card.complete { border-color: #99f6e4; background: #f0fdfa; }
+  .hero-card.in-progress { border-color: #f59e0b; background: #fffbeb; }
+  .hero-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .hero-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px; flex-shrink: 0; }
+  .hero-card.complete .hero-icon { background: #0f766e; color: white; }
+  .hero-card.in-progress .hero-icon { background: #fde68a; color: #92400e; }
+  .hero-title { font-size: 16px; color: #111827; font-weight: 600; flex: 1; }
+  .hero-meta { font-size: 12px; color: #6b7280; font-variant-numeric: tabular-nums; }
+
+  .hero-numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
+  .hero-num { text-align: center; padding: 12px 8px; border-radius: 8px; background: rgba(255,255,255,0.6); }
+  .hero-num .n { font-size: 28px; font-weight: 700; color: #111827; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .hero-num .l { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; margin-top: 4px; }
+  .hero-num.moved .n { color: #065f46; }
+  .hero-num.cancelled .n { color: #991b1b; }
+  .hero-num.deferred .n { color: #92400e; }
+  .hero-num.remaining .n { color: #dc2626; }
+
+  /* Section card primitive (from 08) */
+  .section { background: white; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+  .section-head { padding: 16px 20px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 12px; }
+  .section-num { width: 26px; height: 26px; background: #0f766e; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .section-title { font-size: 15px; color: #111827; font-weight: 600; flex: 1; }
+  .section-sub { font-size: 12px; color: #6b7280; }
+  .section-body { padding: 18px 20px; }
+
+  /* Doctor breakdown rows (counts only — no patient names per BR-065 / E7-S3) */
+  .doc-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 14px 0; border-bottom: 1px solid #f3f4f6; align-items: center; }
+  .doc-row:last-child { border-bottom: none; }
+  .doc-row .who { font-weight: 600; color: #111827; font-size: 13px; }
+  .doc-row .meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .doc-row .progress { display: flex; gap: 6px; align-items: center; }
+  .progress-bar { width: 80px; height: 6px; background: #f3f4f6; border-radius: 999px; overflow: hidden; }
+  .progress-bar .fill { height: 100%; background: #0f766e; }
+  .progress-bar.in-progress .fill { background: #f59e0b; }
+  .progress-text { font-size: 12px; color: #6b7280; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  /* Branch breakdown */
+  .branch-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f3f4f6; align-items: center; font-size: 13px; }
+  .branch-row:last-child { border-bottom: none; }
+  .branch-row .name { font-weight: 600; color: #111827; }
+  .branch-row .count { font-weight: 700; color: #111827; font-variant-numeric: tabular-nums; }
+  .branch-row .pill { font-size: 10px; padding: 3px 9px; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .branch-row .pill.resolved { background: #d1fae5; color: #065f46; }
+  .branch-row .pill.in-progress { background: #fef3c7; color: #92400e; }
+  .branch-row .pill.pending { background: #f3f4f6; color: #4b5563; }
+
+  /* Audit block — configuration events only (no appointment detail) */
+  .audit-block { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; margin-bottom: 18px; }
+  .audit-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .audit-head .label { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .audit-head .ic { color: #0f766e; }
+  .audit-row { font-size: 12px; color: #374151; padding: 6px 0; border-bottom: 1px solid #e5e7eb; font-variant-numeric: tabular-nums; }
+  .audit-row:last-child { border-bottom: none; }
+  .audit-row .actor { color: #111827; font-weight: 600; }
+  .audit-row .when { color: #6b7280; }
+  .audit-row code { background: #f3f4f6; padding: 1px 6px; border-radius: 4px; color: #374151; font-family: "SF Mono", Consolas, monospace; font-size: 11px; }
+
+  /* Privacy callout — surfaces the BR-065 rule explicitly */
+  .privacy-note { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 10px; padding: 14px; margin-top: 18px; font-size: 12px; color: #065f46; line-height: 1.6; display: flex; align-items: flex-start; gap: 10px; }
+  .privacy-note .ic { color: #0f766e; font-size: 16px; flex-shrink: 0; font-weight: 700; }
+  .privacy-note strong { font-weight: 700; }
+
+  .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; padding-top: 16px; border-top: 1px solid #f3f4f6; }
+</style>
+</head>
+<body>
+<div class="badge">PART 39-E · Admin: Branch Hours Resolution Status</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo" data-route="__logo__"><img src="../imports/app/logo.svg" alt="MediSlot" style="width:26px;height:26px;display:block;"> MediSlot</div>
+    <span style="font-size:12px; color:#6b7280;">Admin · Salem Al-Mutairi</span>
+    <button class="btn-ghost" data-route="/admin/branches">← Branches</button>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div class="crumb">Admin → Branches → Branch A → Hours change → Resolution</div>
+      <h1>Resolution status</h1>
+      <p class="sub">Branch A — Downtown · Saturday hours narrowing from 09:00–17:00 to 09:00–13:00 · change saved Aug 18, 14:32</p>
+    </div>
+
+    <!-- Hero summary — counts only, no patient detail -->
+    <div class="hero-card in-progress">
+      <div class="hero-head">
+        <div class="hero-icon">!</div>
+        <div style="flex:1;">
+          <div class="hero-title">3 of 5 appointments resolved</div>
+          <div class="hero-meta">Last update 4 min ago · doctors notified Aug 18, 14:32</div>
+        </div>
+      </div>
+      <div class="hero-numbers">
+        <div class="hero-num moved">
+          <div class="n">2</div>
+          <div class="l">Moved</div>
+        </div>
+        <div class="hero-num cancelled">
+          <div class="n">1</div>
+          <div class="l">Cancelled</div>
+        </div>
+        <div class="hero-num deferred">
+          <div class="n">0</div>
+          <div class="l">Deferred</div>
+        </div>
+        <div class="hero-num remaining">
+          <div class="n">2</div>
+          <div class="l">Remaining</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 1: Per-doctor breakdown (counts only — BR-065) -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-num">1</div>
+        <div style="flex:1;">
+          <div class="section-title">Per-doctor resolution</div>
+          <div class="section-sub">Aggregate counts only. Patient names are not visible to admin (BR-065).</div>
+        </div>
+      </div>
+      <div class="section-body">
+
+        <div class="doc-row">
+          <div>
+            <div class="who">Dr. Ahmed Al-Rashid</div>
+            <div class="meta">3 affected · 2 branches · last action 4 min ago</div>
+          </div>
+          <div class="progress">
+            <div class="progress-bar"><div class="fill" style="width: 100%;"></div></div>
+            <span class="progress-text">2 / 2</span>
+          </div>
+        </div>
+
+        <div class="doc-row">
+          <div>
+            <div class="who">Dr. Sara Khalil</div>
+            <div class="meta">2 affected · 1 branch · last action 6 min ago</div>
+          </div>
+          <div class="progress">
+            <div class="progress-bar in-progress"><div class="fill" style="width: 50%;"></div></div>
+            <span class="progress-text">1 / 2</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Step 2: Per-branch breakdown -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-num">2</div>
+        <div style="flex:1;">
+          <div class="section-title">Per-branch status</div>
+          <div class="section-sub">Where the unresolved appointments live.</div>
+        </div>
+      </div>
+      <div class="section-body">
+
+        <div class="branch-row">
+          <div class="name">Branch A — Downtown</div>
+          <div class="count">2 / 3</div>
+          <span class="pill in-progress">In progress</span>
+        </div>
+        <div class="branch-row">
+          <div class="name">Branch A — Downtown (Dr. Sara reassign)</div>
+          <div class="count">0 / 2</div>
+          <span class="pill resolved">Resolved (reassigned)</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Step 3: Configuration-only audit log (no appointment detail) -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-num">3</div>
+        <div style="flex:1;">
+          <div class="section-title">Audit log (configuration events)</div>
+          <div class="section-sub">Doctors' resolution actions are recorded against their own appointment audit scope, not the admin's.</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="audit-block">
+          <div class="audit-head">
+            <span class="ic">⚙</span>
+            <span class="label">Configuration events · visible to admin</span>
+          </div>
+          <div class="audit-row">
+            <span class="when">2026-09-20 14:32</span> · <span class="actor">admin · salem</span> · saved branch hours change · <code>branch.a.saturday: 09:00-17:00 → 09:00-13:00</code>
+          </div>
+          <div class="audit-row">
+            <span class="when">2026-09-20 14:32</span> · <span class="actor">admin · salem</span> · flagged 5 appointments · <code>reason=branch_hours_change</code>
+          </div>
+          <div class="audit-row">
+            <span class="when">2026-09-20 14:32</span> · <span class="actor">admin · salem</span> · acknowledged PRD §4.6 edge case · 2 appointments to Dr. Sara (no longer at Branch A)
+          </div>
+        </div>
+
+        <div class="audit-block" style="margin-top: 12px; background: #fff7ed; border-color: #fde68a;">
+          <div class="audit-head">
+            <span class="ic" style="color:#92400e;">ⓘ</span>
+            <span class="label" style="color:#92400e;">Out of admin's audit scope</span>
+          </div>
+          <div class="audit-row" style="color:#92400e;">
+            <span class="when" style="color:#92400e;">Doctor resolution actions (moved / cancelled / deferred) live in the doctor's appointment audit scope, not the admin's. See BR-065 and E7-S3.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Privacy defense — surfaces the rule, not a tooltip -->
+    <div class="privacy-note">
+      <span class="ic" aria-hidden="true">ⓘ</span>
+      <div>
+        <strong>Counts only, by design.</strong> Admin sees aggregate resolution progress (per doctor, per branch) but never patient names or appointment detail. The doctors who own the resolution work from their own Kanban (<code>06-resolve-affected</code>); their actions are logged against their appointment audit scope. This is the same privacy rule that defends the impact preview (<code>08-branch-hours-impact</code>).
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn-ghost" data-route="/admin/branches">All branches</button>
+      <button class="btn-secondary" data-route="/admin/branch-hours-editor">Edit hours</button>
+      <button class="btn-primary" data-route="/admin/audit">View full audit log →</button>
+    </div>
+
+  </div>
+</div>
+  <script src='../imports/app/standalone-router.js'></script>
+</body>
+</html>

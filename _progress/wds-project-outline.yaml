@@ -8,7 +8,7 @@ phases:
   trigger-map: complete
   ux-scenarios: complete
   ux-design: complete
-  development: not-started
+  development: in-progress
 
 output-folder: docs
 artifact-product-brief: docs/A-Product-Brief/product-brief.md
@@ -19,6 +19,9 @@ artifact-scenarios: docs/C-UX-Scenarios
 artifact-scenario-overview: docs/C-UX-Scenarios/scenario-overview.md
 artifact-ux-design-folder: docs/D-UX-Design
 artifact-ux-inventory: docs/D-UX-Design/phase-4-inventory.md
+artifact-ux-design-doc: docs/D-UX-Design/DESIGN.md
+artifact-ux-experience-doc: docs/D-UX-Design/EXPERIENCE.md
+artifact-ux-handoff-doc: docs/D-UX-Design/HANDOFF.md
 artifact-mockup-v1: docs/design/mockups/v1
 artifact-design-system: docs/design/DESIGN-SYSTEM.md
 
@@ -37,3 +40,10 @@ phase-4-notes: |
     - 36-confirmation-receipt.html
     - 37-doctor-resolution-saved.html
     - 38-admin-branch-deactivate.html (BR-059 gate)
+
+phase-5-notes: |
+  Development phase is in-flight via BMad sprint-planning workflow.
+  Epic 0 done; Epic 1 mid-flight (E1-S1 done, E1-S2/3/4 backlog).
+  Epic 2-7 backlog.
+  UX handoff (HANDOFF.md) maps all 36 mockups to story-by-story
+  component primitives, tokens, and UX principles for engineers.

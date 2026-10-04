@@ -8,7 +8,7 @@ Static HTML/CSS mockups for the Multi-Branch Clinic Appointment Scheduling Syste
 
 **For stakeholder walkthrough:** Open `imports/app/index.html` — a connected application shell that lets you click through every flow as if it were a real app. Role switcher jumps between Patient / Doctor / Receptionist / Admin / Landing.
 
-**For stakeholder review:** Open `mocks.html` — a single scrollable page showing all 36 mockups as thumbnails, with filter + search + grid-size controls.
+**For stakeholder review:** Open `mocks.html` — a single scrollable page showing all 40 mockups as thumbnails, with filter + search + grid-size controls.
 
 ## Conventions
 
@@ -26,7 +26,7 @@ docs/design/mockups/v1/
 ├── mocks.html                       ← stakeholder overview (all 36 mockups as thumbnails)
 ├── CHOICES.md                       ← selection state (resume from here)
 │
-├── mockups/                         ← 36 selected mockups
+├── mockups/                         ← 40 selected mockups
 │   ├── 01-layout-direction.html     ← A · Clinical Calm + Sidebar
 │   ├── 02-doctor-picker.html        ← E · Card-First + Sidebar
 │   ├── 03-availability-calendar.html ← E · Agenda Timeline
@@ -64,13 +64,17 @@ docs/design/mockups/v1/
 │   ├── 35-patient-type-picker.html  ← E · Stacked Vertical Flow (Phase 4)
 │   ├── 36-confirmation-receipt.html ← E · Stacked Vertical Flow (Phase 4)
 │   ├── 37-doctor-resolution-saved.html ← E · Stacked Vertical Flow (Phase 4)
-│   └── 38-admin-branch-deactivate.html ← E · Stacked Vertical Flow (Phase 4, BR-059 gate)
+│   ├── 38-admin-branch-deactivate.html ← E · Stacked Vertical Flow (Phase 4, BR-059 gate)
+│   └── 39-admin-branch-hours-resolution.html ← E · Stacked Vertical Flow (Q3 · E6-S3, 2026-09-15)
+│   └── 40-recurring-back-out.html  ← E · Stacked Vertical Flow (Q4 · recurring no-undo, 2026-09-15)
+│   └── 41-patient-phone-country-picker.html ← E · Stacked Vertical Flow (Q5 · phone picker open, 2026-09-15)
+│   └── 42-admin-branch-deactivate-danger.html ← E · Stacked Vertical Flow (Q6 · danger state partner to 38, 2026-09-15)
 │
 └── imports/                         ← user-supplied supporting visuals / wiring
     ├── app/                         ← connected app shell
     │   ├── index.html               ← shell entry point
     │   ├── shell.css                ← topbar + responsive styles
-    │   ├── shell.js                 ← hash router + 45 routes + cross-link interception
+    │   ├── shell.js                 ← hash router + 49 routes + cross-link interception
     │   ├── standalone-router.js     ← drop-in fallback so each mockup navigates standalone too
     │   ├── design-system.css        ← shared stylesheet (linked by every mockup)
     │   ├── design-system.html       ← design-system showcase page
@@ -92,7 +96,7 @@ Open `imports/app/index.html` for a clickable walk-through of every flow:
 - Cross-link cues (e.g. "Book another", "← Schedule editor", "+ New appointment") are intercepted and route between mockups
 - The demo `.badge` corner tag is hidden inside the shell — re-shown when you open a mockup standalone
 
-45 routes total: 1 landing + 1 design-system + 12 patient + 11 doctor + 5 receptionist + 15 admin.
+49 routes total: 1 landing + 1 design-system + 13 patient + 12 doctor + 5 receptionist + 17 admin.
 
 **Standalone browsing:** every mockup loads `imports/app/standalone-router.js`, which mirrors the shell's `data-route` interception but navigates by changing `window.location` to the sibling file. So opening any file directly (e.g. `mockups/02-doctor-picker.html`) still lets you click through the same flow — without the topbar or breadcrumb.
 
@@ -144,11 +148,13 @@ The same workspace is mirrored to `_bmad-output/planning-artifacts/ux-designs/ux
 
 ## Resume protocol
 
-All 36 parts + logo complete. 🎉 See `CHOICES.md` for the final pattern picks + pattern tally. App shell at `imports/app/index.html` ties everything together for stakeholder demos.
+All 40 parts + logo complete. 🎉 See `CHOICES.md` for the final pattern picks + pattern tally. App shell at `imports/app/index.html` ties everything together for stakeholder demos.
 
-**Recent additions (5 new mockups, 2026-09-15 — Phase 4):** parts 34-38 added for WDS Phase 3 alignment. Split the patient booking flow into separate screens (branch picker, type picker, confirmation receipt), added doctor's "all resolved" save confirmation (37), and admin's gated branch deactivation screen (38) defending PRD §4.6 / BR-059 from silent invalidation. Three surgical adjustments to existing mockups:
+**Recent additions (9 new mockups, 2026-09-15 — Phase 4 + Q3 + Q4 + Q5 + Q6):** parts 34–42. Split the patient booking flow into separate screens (branch picker, type picker, confirmation receipt), added doctor's "all resolved" save confirmation (37), admin's gated branch deactivation screen (38) defending PRD §4.6 / BR-059 from silent invalidation, admin's branch-hours resolution-status screen (39) — the missing resolution-side surface for E6-S3 that closes the principle-defending loop after doctors work their Kanban — the recurring back-out screen (40) showing the doctor the 9 already-created appointments after partial creation with "no undo" explanation, the phone country picker (41) on the patient confirm screen splitting `+966 5XX XXX 5555` into a tappable country chip + national number input, and the **danger partner** to branch deactivation (42) — the actual gated state when `branch.futureAppointmentCount > 0`, with disabled CTA + jump-to-resolve action. Five surgical adjustments to existing mockups:
 - `03-availability-calendar.html` — added patient-conflict pre-warning (BR-031 / BR-033, surfaced before submit).
+- `04-patient-confirm.html` — phone field split into [country-code chip] + [national-number input]; +966 preselected (Q5).
 - `08-branch-hours-impact.html` — added PRD §4.6 doctor-not-at-branch edge-case acknowledgment section between steps 3 and 4.
 - `13-recep-today.html` — CTA relabeled from "+ New appointment" to "+ Book walk-in" for Phase 3 spec alignment.
+- `38-admin-branch-deactivate.html` — render-flag comment block at top of body documenting the `branch.futureAppointmentCount` branching rule (Q6).
 
 Wireframe pages linked into `imports/app/shell.js` and `imports/app/standalone-router.js`.

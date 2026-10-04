@@ -34,6 +34,7 @@
     '/patient/branch':            '34-patient-branch-picker.html',
     '/patient/type':              '35-patient-type-picker.html',
     '/patient/receipt':           '36-confirmation-receipt.html',
+    '/patient/phone-picker':      '41-patient-phone-country-picker.html',
     '/patient/otp':               '21-patient-otp-modal.html',
     '/patient/cancel-confirm':    '22-patient-cancel-confirm.html',
     '/patient/reschedule':        '20-patient-reschedule.html',
@@ -50,6 +51,7 @@
     '/doctor/cancel-reason':      '25-doctor-cancel-reason.html',
     '/doctor/audit-drawer':       '30-doctor-audit-drawer.html',
     '/doctor/resolution-saved':   '37-doctor-resolution-saved.html',
+    '/doctor/recurring-back-out': '40-recurring-back-out.html',
     '/recep/today':               '13-recep-today.html',
     '/recep/create':              '14-recep-create.html',
     '/recep/cancel':              '15-recep-cancel.html',
@@ -63,6 +65,8 @@
     '/admin/receptionists':       '19-admin-receptionists.html',
     '/admin/audit':               '27-admin-audit-log.html',
     '/admin/branch-deactivate':   '38-admin-branch-deactivate.html',
+    '/admin/branch-deactivate-danger': '42-admin-branch-deactivate-danger.html',
+    '/admin/branch-hours-resolution': '39-admin-branch-hours-resolution.html',
     '/conflict':                  '29-conflict-modal.html'
   };
 

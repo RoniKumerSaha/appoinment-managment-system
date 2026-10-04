@@ -1,6 +1,6 @@
 /* MediSlot app shell — hash router + role switcher + click-to-route wiring
  *
- * 36 winner mockups are loaded into a single iframe.
+ * 39 winner mockups are loaded into a single iframe.
  * Each mockup has data-route attributes on its clickable elements
  * (button / a / .logo). The injection script below reads those
  * attributes and routes accordingly.
@@ -82,6 +82,12 @@
       actor: 'patient',
       title: 'Booking confirmed',
       breadcrumb: ['Patient', 'Booking receipt'],
+    },
+    '/patient/phone-picker': {
+      file: '../../mockups/41-patient-phone-country-picker.html',
+      actor: 'patient',
+      title: 'Phone country code (open)',
+      breadcrumb: ['Patient', 'Book', 'Phone picker'],
     },
     '/patient/otp': {
       file: '../../mockups/21-patient-otp-modal.html',
@@ -293,14 +299,32 @@
     '/admin/branch-deactivate': {
       file: '../../mockups/38-admin-branch-deactivate.html',
       actor: 'admin',
-      title: 'Deactivate branch',
+      title: 'Deactivate branch · safe',
       breadcrumb: ['Admin', 'Branches', 'Deactivate'],
+    },
+    '/admin/branch-deactivate-danger': {
+      file: '../../mockups/42-admin-branch-deactivate-danger.html',
+      actor: 'admin',
+      title: 'Deactivate branch · gated',
+      breadcrumb: ['Admin', 'Branches', 'Deactivate', 'Gated'],
+    },
+    '/admin/branch-hours-resolution': {
+      file: '../../mockups/39-admin-branch-hours-resolution.html',
+      actor: 'admin',
+      title: 'Resolution status',
+      breadcrumb: ['Admin', 'Branches', 'Hours change', 'Resolution'],
     },
     '/patient/recurring-cancel': {
       file: '../../mockups/33-recurring-occurrence-cancel.html',
       actor: 'patient',
       title: 'Cancel one occurrence',
       breadcrumb: ['Patient', 'Manage', 'Cancel one'],
+    },
+    '/doctor/recurring-back-out': {
+      file: '../../mockups/40-recurring-back-out.html',
+      actor: 'doctor',
+      title: 'Back-out after partial creation',
+      breadcrumb: ['Doctor', 'Recurring', 'Back-out'],
     },
     '/conflict': {
       file: '../../mockups/29-conflict-modal.html',
@@ -321,10 +345,12 @@
     '/patient/branch':            { num: '34',  flow: 'F-01', group: 'patient' },
     '/patient/type':              { num: '35',  flow: 'F-01', group: 'patient' },
     '/patient/receipt':           { num: '36',  flow: 'F-01', group: 'patient' },
+    '/patient/phone-picker':      { num: '41',  flow: 'Q5',    group: 'patient' },
     '/patient/otp':               { num: '21',  flow: 'F-03', group: 'patient' },
     '/patient/cancel-confirm':    { num: '22',  flow: 'F-04', group: 'patient' },
     '/patient/reschedule':        { num: '20',  flow: 'F-05', group: 'patient' },
     '/patient/recurring-cancel':  { num: '33',  flow: 'E6-S4', group: 'patient' },
+    '/doctor/recurring-back-out': { num: '40',  flow: 'Q4',    group: 'doctor' },
     '/doctor/schedule':           { num: '09',  flow: 'F-06', group: 'doctor' },
     '/doctor/block':              { num: '10',  flow: 'F-07', group: 'doctor' },
     '/doctor/types':              { num: '11',  flow: 'F-08', group: 'doctor' },
@@ -348,6 +374,8 @@
     '/admin/doctor-reassign':     { num: '31',  flow: 'F-18', group: 'admin' },
     '/admin/clinic':              { num: '32',  flow: 'E1-S0', group: 'admin' },
     '/admin/branch-deactivate':   { num: '38',  flow: 'F-21', group: 'admin' },
+    '/admin/branch-deactivate-danger': { num: '42',  flow: 'Q6',    group: 'admin' },
+    '/admin/branch-hours-resolution': { num: '39',  flow: 'E6-S3', group: 'admin' },
     '/admin/receptionists':       { num: '19',  flow: 'F-19', group: 'admin' },
     '/admin/audit':               { num: '27',  flow: 'F-20', group: 'admin' },
     '/admin/branch-new':          { num: '17n', flow: '—',  group: 'admin' },

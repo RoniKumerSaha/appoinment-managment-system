@@ -10,9 +10,9 @@
 | **B** | Card Grid / List by Day + Tabs | 3 |
 | **C** | Kanban Queue | 1 |
 | **D** | Card List by Hour / Quick-Action | 3 |
-| **E** | Stacked Vertical Flow | 27 |
+| **E** | Stacked Vertical Flow | 31 |
 
-**Total picks so far: 36 / 36 mockups + 1 / 10 logos** — all UX flows and brand covered. 🎉 (Updated 2026-09-15 — 5 new mockups added for Phase 4 alignment: patient branch picker, type picker, confirmation receipt, doctor resolution-saved, admin branch deactivation gate.)
+**Total picks so far: 40 / 40 mockups + 1 / 10 logos** — all UX flows and brand covered. 🎉 (Updated 2026-09-15 — 9 new mockups: 5 Phase 4 alignment + 1 Q3 admin resolution-side + 1 Q4 recurring back-out + 1 Q5 phone country picker + 1 Q6 branch-deactivate danger partner.)
 
 ---
 
@@ -58,6 +58,10 @@
 | Part 36 | F-01 | Patient | Confirmation receipt (standalone) | **E · Stacked Vertical Flow** |
 | Part 37 | F-09 | Doctor | Resolution saved (all N resolved) | **E · Stacked Vertical Flow** |
 | Part 38 | F-21 | Admin | Branch deactivation gate (PRD §4.6 / BR-059) | **E · Stacked Vertical Flow** |
+| Part 39 | E6-S3 | Admin | Branch-hours resolution status (Q3 · E6-S3, post-doctor-resolution side) | **E · Stacked Vertical Flow** |
+| Part 40 | Q4 | Doctor | Recurring back-out after partial creation (Q4 · "no undo", leave them, choose next move) | **E · Stacked Vertical Flow** |
+| Part 41 | Q5 | Patient | Phone country code picker (open) — +966 preselected, GCC + International | **E · Stacked Vertical Flow** |
+| Part 42 | Q6 | Admin | Branch deactivation · DANGER variant (count > 0, gated) — partner to 38's safe variant | **E · Stacked Vertical Flow** |
 
 ---
 

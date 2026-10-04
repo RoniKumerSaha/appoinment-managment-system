@@ -88,8 +88,21 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- VARIANT A: 0 future appointments — SAFE        -->
+    <!-- Q6 RESOLVED — Render-time branching:           -->
+    <!-- Production renders ONE of the two panels below -->
+    <!-- based on `branch.futureAppointmentCount`.     -->
+    <!-- Both panels are documented together so that    -->
+    <!-- designers and engineers share one mental      -->
+    <!-- model of the gate. The branching rule:        -->
+    <!--   count === 0  → render .gate-success panel    -->
+    <!--   count  >  0  → render .gate-danger panel     -->
+    <!-- The .gate-success panel MUST NOT render when   -->
+    <!-- count > 0 (would enable destructive action).   -->
+    <!-- The .gate-danger panel MUST NOT render when    -->
+    <!-- count === 0 (would block a safe action).      -->
     <!-- ============================================ -->
+
+    <!-- VARIANT A: 0 future appointments — SAFE        -->
     <div class="gate-success">
       <div class="head">
         <div class="ic">✓</div>

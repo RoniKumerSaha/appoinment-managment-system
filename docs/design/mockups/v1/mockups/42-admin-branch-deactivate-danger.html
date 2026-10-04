@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 42-E — Admin: Branch Deactivation (Danger · Gated)</title>
+<link rel="stylesheet" href="../imports/app/design-system.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; line-height: 1.5; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #dc2626; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(220,38,38,0.3); }
+  .frame { max-width: 760px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo img { width: 28px; height: 28px; }
+  .actor-chip { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #4b5563; }
+  .actor-chip .avatar { width: 32px; height: 32px; border-radius: 50%; background: #ccfbf1; color: #0f766e; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+
+  .page { padding: 32px; }
+  .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header { margin-bottom: 24px; }
+  .page-header h1 { font-size: 24px; color: #111827; font-weight: 600; margin-bottom: 4px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .branch-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; display: flex; align-items: center; gap: 14px; }
+  .branch-card .ic { width: 40px; height: 40px; background: #f0fdfa; color: #0f766e; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .branch-card .body { flex: 1; }
+  .branch-card .name { font-weight: 600; color: #111827; font-size: 15px; }
+  .branch-card .meta { font-size: 12px; color: #6b7280; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+  /* Danger variant — only renders when count > 0 */
+  .gate-danger { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 12px; padding: 22px; margin-bottom: 14px; }
+  .gate-danger .head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .gate-danger .head .ic { width: 36px; height: 36px; background: #dc2626; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 0 0 4px #fca5a5; }
+  .gate-danger h3 { font-size: 15px; color: #991b1b; font-weight: 600; }
+  .gate-danger .count { font-size: 22px; color: #991b1b; font-weight: 700; font-variant-numeric: tabular-nums; margin-right: 8px; }
+  .gate-danger .body { font-size: 13px; color: #7f1d1d; line-height: 1.55; margin-bottom: 16px; }
+  .gate-danger .rule { background: white; border-left: 3px solid #dc2626; padding: 10px 12px; font-size: 12px; color: #7f1d1d; border-radius: 0 6px 6px 0; margin-bottom: 16px; }
+  .gate-danger .rule strong { color: #991b1b; font-weight: 600; }
+  .gate-danger .actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 10px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .btn-disabled { background: #e5e7eb; color: #9ca3af; border: none; padding: 11px 20px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: not-allowed; }
+  .btn-danger { background: #dc2626; color: white; border: none; padding: 11px 20px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+  .affected-list { background: white; border: 1px solid #fecaca; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+  .affected-list .label { font-size: 11px; color: #991b1b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; margin-bottom: 8px; }
+  .affected-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 12px; color: #7f1d1d; border-bottom: 1px solid #fef2f2; font-variant-numeric: tabular-nums; }
+  .affected-row:last-child { border-bottom: none; }
+  .affected-row .when { color: #6b7280; }
+
+  .legend { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; margin-top: 18px; font-size: 12px; color: #4b5563; line-height: 1.6; }
+  .legend strong { color: #111827; }
+  .legend code { background: #f3f4f6; padding: 1px 6px; border-radius: 4px; color: #374151; font-family: "SF Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+<div class="badge">PART 42-E · Q6 · Branch Deactivate Danger State</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo" data-route="__logo__"><img src="../imports/app/logo.svg" alt="MediSlot"> MediSlot</div>
+    <div class="actor-chip">
+      <span>Salem Al-Mutairi · Admin</span>
+      <span class="avatar">SA</span>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="crumb">Branches · Riyadh Diplomatic Quarter</div>
+    <div class="page-header">
+      <h1>Deactivate branch</h1>
+      <p class="sub">This will mark the branch as inactive. No new bookings can be made here.</p>
+    </div>
+
+    <div class="branch-card">
+      <div class="ic">📍</div>
+      <div class="body">
+        <div class="name">Riyadh Diplomatic Quarter</div>
+        <div class="meta">Diplomatic Quarter, Riyadh · 4 doctors · 1 receptionist · 12 appointments this month</div>
+      </div>
+    </div>
+
+    <!-- Q6 RESOLVED — When branch.futureAppointmentCount > 0, render this panel.
+         When count === 0, render the .gate-success panel from 38-admin-branch-deactivate.html. -->
+    <div class="gate-danger">
+      <div class="head">
+        <div class="ic">!</div>
+        <h3><span class="count">5</span>future appointments must be resolved first.</h3>
+      </div>
+      <div class="body">
+        Deactivating now would silently invalidate these 5 confirmed appointments — patients would show up to a branch that no longer operates. Reassign or cancel each one before deactivating.
+      </div>
+
+      <div class="affected-list">
+        <div class="label">5 appointments to resolve</div>
+        <div class="affected-row"><span>Aug 22, 10:00</span><span>Fatima A. Al-Sayed · Dr. Khalil · 45 min</span><span class="when">→ Routed to doctor</span></div>
+        <div class="affected-row"><span>Aug 24, 11:30</span><span>Mohammed H. · Dr. Khalil · 30 min</span><span class="when">→ Routed to doctor</span></div>
+        <div class="affected-row"><span>Aug 28, 14:00</span><span>Sara K. · Dr. Mansour · 60 min</span><span class="when">→ Routed to doctor</span></div>
+        <div class="affected-row"><span>Sep 02, 09:15</span><span>Yusuf A. · Dr. Khalil · 30 min</span><span class="when">→ Routed to doctor</span></div>
+        <div class="affected-row"><span>Sep 05, 16:00</span><span>Reem F. · Dr. Mansour · 45 min</span><span class="when">→ Routed to doctor</span></div>
+      </div>
+
+      <div class="rule">
+        <strong>BR-059 · Branch deactivation:</strong> A branch can only be deactivated if it has no future appointments. The system refuses — not warns — to protect patients from silent invalidation.
+      </div>
+
+      <div class="actions">
+        <button class="btn-ghost" data-route="/admin/branches">Cancel</button>
+        <button class="btn-disabled" disabled>Confirm deactivation (disabled)</button>
+        <button class="btn-danger" data-route="/doctor/resolve">Resolve the 5 appointments →</button>
+      </div>
+    </div>
+
+    <div class="legend">
+      <strong>Why a gate, not a warning?</strong> Silent invalidation is the failure mode we defend against. A clickable "Deactivate anyway" with a confirm prompt would let a single click break patients' appointments. The "Confirm deactivation" button is disabled and the system routes the admin to the doctor's resolve queue instead. Once the 5 appointments are resolved, return here — the gate will switch to the safe panel and the button will enable (<code>count === 0</code>).
+    </div>
+
+  </div>
+</div>
+
+<script src="../imports/app/standalone-router.js"></script>
+</body>
+</html>

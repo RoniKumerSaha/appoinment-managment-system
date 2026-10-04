@@ -56,6 +56,7 @@ This kept the design system coherent, avoided redundant work, and produced a 36-
 | 4.3 Hours editor | S-04 Admin | `28-admin-branch-hours-editor.html` | E · Stacked |
 | 4.4 Impact preview | S-04 Admin | `08-branch-hours-impact.html` *(adjusted)* | E · Stacked |
 | 4.5 Save + route | S-04 Admin | `08-branch-hours-impact.html` | E · Stacked |
+| 4.6 Resolution status | S-04 Admin | **`39-admin-branch-hours-resolution.html`** *(new · Q3 · E6-S3)* | E · Stacked |
 | 5.1 Deactivate gate | S-05 Admin | **`38-admin-branch-deactivate.html`** *(new)* | E · Stacked |
 
 ## 4 · Surgical adjustments (3)
@@ -103,7 +104,7 @@ All five follow the Stacked Vertical Flow (`E`) pattern, 760px center column, th
 |---|---|
 | Clinical Calm teal `#0f766e` is the only primary color | ✓ |
 | Status pills use semantic colors (info-blue, success, danger, warning) | ✓ |
-| Stacked Vertical Flow (`E`) is the default pattern | ✓ — 27/36 picks |
+| Stacked Vertical Flow (`E`) is the default pattern | ✓ — 28/37 picks |
 | Sidebar `1fr 320px` only when a summary panel matters | ✓ |
 | ConflictModal pattern = 3 parts (what happened / why / what you can do) | ✓ |
 | Audit log row pattern = actor · action · target · time · reason | ✓ |
@@ -136,4 +137,4 @@ The **atomic reservation** pattern (PRD §10) and the **audit-log row** pattern 
 
 ## 9 · Status
 
-✅ **Phase 4 complete.** 36/36 mockups ready for engineering.
+✅ **Phase 4 complete + Q3 resolved.** 37/37 mockups ready for engineering (added `39-admin-branch-hours-resolution.html` on 2026-09-15 to close the E6-S3 admin resolution-side loop).

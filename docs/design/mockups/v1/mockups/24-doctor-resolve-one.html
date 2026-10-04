@@ -32,12 +32,20 @@
   .read-only { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
   .read-only .k { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 3px; }
   .read-only .v { font-size: 13px; color: #111827; font-weight: 500; }
-  .read-only .locked { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 8px 10px; border-radius: 6px; font-size: 11px; color: #422006; grid-column: span 2; }
 
-  .picker-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  /* Q1 resolved: type lock promoted to a full-width banner card so the BR-058
+     rule is impossible to miss. The picker-row below only shows editable fields. */
+  .type-lock { background: #fffbeb; border: 1.5px solid #f59e0b; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
+  .type-lock .lock-icon { width: 36px; height: 36px; background: #fde68a; color: #92400e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .type-lock .lock-body .label { font-size: 10px; color: #92400e; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 3px; }
+  .type-lock .lock-body .value { font-size: 14px; color: #422006; font-weight: 600; }
+  .type-lock .lock-body .reason { font-size: 12px; color: #92400e; margin-top: 3px; }
+  .type-lock .lock-body .reason code { background: #fef3c7; padding: 1px 5px; border-radius: 3px; font-family: "SF Mono", Consolas, monospace; font-size: 11px; }
+  .type-lock .lock-pill { background: #92400e; color: #fef3c7; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .picker-row { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 14px; }
   .picker { background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; cursor: pointer; }
   .picker:hover { border-color: #0f766e; }
-  .picker.locked { background: #f3f4f6; cursor: not-allowed; border-color: #e5e7eb; }
   .picker .label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
   .picker .value { font-size: 14px; color: #111827; font-weight: 500; }
   .picker .lock { font-size: 11px; color: #6b7280; }
@@ -81,7 +89,7 @@
     <div class="page-header">
       <div class="crumb">Resolve affected → Mohammed K.</div>
       <h1>Resolve this appointment</h1>
-      <p class="sub">Move it to another valid slot. Type is locked.</p>
+      <p class="sub">Move it to another valid slot at a branch where you work.</p>
     </div>
 
     <!-- Step 1: read-only current details -->
@@ -98,8 +106,18 @@
         <div><div class="k">Original branch</div><div class="v">Riyadh Olaya</div></div>
         <div><div class="k">Doctor</div><div class="v">Dr. Ahmed Al-Rashid</div></div>
         <div><div class="k">Type</div><div class="v">Cardiology cons. 45m</div></div>
-        <div class="locked">⚠ Appointment type is locked. Only branch and slot may change. (BR-058)</div>
       </div>
+    </div>
+
+    <!-- Q1 resolved (BR-058): type lock promoted to a full-width banner -->
+    <div class="type-lock">
+      <div class="lock-icon">🔒</div>
+      <div class="lock-body">
+        <div class="label">Appointment type · locked</div>
+        <div class="value">Cardiology cons. · 45 min</div>
+        <div class="reason">Type cannot change during resolve. Only branch and slot may change. <code>BR-058</code></div>
+      </div>
+      <span class="lock-pill">Locked</span>
     </div>
 
     <!-- Step 2: pick new slot -->
@@ -115,11 +133,6 @@
           <div class="label">New branch</div>
           <div class="value">Riyadh Malqa</div>
           <div class="lock">You work here</div>
-        </div>
-        <div class="picker locked">
-          <div class="label">Appointment type</div>
-          <div class="value">Cardiology cons. 45m</div>
-          <div class="lock">🔒 Locked during resolve</div>
         </div>
       </div>
 

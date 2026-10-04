@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Part 41-E — Patient: Phone Country Picker (open)</title>
+<link rel="stylesheet" href="../imports/app/design-system.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #f5f6f8; color: #1a1d23; line-height: 1.5; font-variant-numeric: tabular-nums; }
+  .badge { position: fixed; top: 12px; right: 12px; background: #0f766e; color: white; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; z-index: 100; box-shadow: 0 2px 6px rgba(15,118,110,0.3); }
+  .frame { max-width: 760px; margin: 0 auto; background: white; min-height: 100vh; }
+  .nav { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .logo { font-weight: 700; color: #0f766e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo img { width: 28px; height: 28px; }
+  .btn-primary { background: #0f766e; color: white; border: none; padding: 11px 20px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: transparent; color: #4b5563; border: none; padding: 10px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+
+  .page { padding: 40px 32px 32px; max-width: 720px; margin: 0 auto; }
+  .page-header .crumb { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+  .page-header h1 { font-size: 24px; color: #111827; font-weight: 600; margin-bottom: 6px; }
+  .page-header .sub { color: #6b7280; font-size: 13px; }
+
+  .step { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px 24px; margin-bottom: 14px; position: relative; }
+  .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; background: #0f766e; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; }
+  .step-title { font-size: 15px; font-weight: 600; color: #111827; }
+  .step-hint { font-size: 12px; color: #6b7280; margin-left: auto; }
+
+  .field label { display: block; font-size: 12px; color: #374151; font-weight: 600; margin-bottom: 4px; }
+  .field label .req { color: #dc2626; }
+  .field-help { font-size: 11px; color: #6b7280; margin-top: 3px; }
+
+  /* Q5 phone-row: chip + input */
+  .phone-row { display: grid; grid-template-columns: 130px 1fr; gap: 8px; position: relative; }
+  .cc-chip { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border: 1.5px solid #0f766e; border-radius: 8px; background: white; cursor: pointer; font-size: 14px; color: #111827; font-weight: 500; box-shadow: 0 0 0 3px rgba(15,118,110,0.1); }
+  .cc-chip .flag { font-size: 16px; line-height: 1; }
+  .cc-chip .code { font-variant-numeric: tabular-nums; }
+  .cc-chip .caret { color: #0f766e; font-size: 10px; margin-left: auto; transform: rotate(180deg); }
+  .cc-chip:focus { outline: none; }
+  .phone-input { padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 14px; color: #111827; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+
+  /* Dropdown panel — this is the open state of the chip */
+  .cc-dropdown { position: absolute; top: 100%; left: 0; margin-top: 4px; width: 280px; background: white; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 20; overflow: hidden; }
+  .cc-search { width: 100%; padding: 10px 12px; border: none; border-bottom: 1px solid #e5e7eb; font-size: 13px; background: #f9fafb; }
+  .cc-search:focus { outline: none; background: white; }
+  .cc-list { max-height: 280px; overflow-y: auto; }
+  .cc-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
+  .cc-item:last-child { border-bottom: none; }
+  .cc-item:hover { background: #f0fdfa; }
+  .cc-item.selected { background: #ccfbf1; font-weight: 600; }
+  .cc-item .flag { font-size: 16px; }
+  .cc-item .name { color: #111827; flex: 1; }
+  .cc-item .code { color: #6b7280; font-variant-numeric: tabular-nums; }
+  .cc-item .check { color: #0f766e; font-size: 14px; opacity: 0; }
+  .cc-item.selected .check { opacity: 1; }
+
+  /* Section divider inside the dropdown — separates GCC (common, top) from International */
+  .cc-section { padding: 8px 12px 4px; font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; background: #f9fafb; border-top: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6; }
+
+  /* Note card under the dropdown: explains why the picker exists */
+  .note { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #065f46; line-height: 1.55; margin-top: 18px; display: flex; align-items: flex-start; gap: 10px; }
+  .note .ic { color: #0f766e; font-size: 16px; flex-shrink: 0; }
+  .note code { background: #ccfbf1; padding: 1px 5px; border-radius: 3px; font-family: "SF Mono", Consolas, monospace; font-size: 11px; color: #0f766e; }
+</style>
+</head>
+<body>
+<div class="badge">PART 41-E · Q5 · Phone Country Picker · Open</div>
+<div class="frame">
+
+  <nav class="nav">
+    <div class="logo" data-route="__logo__"><img src="../imports/app/logo.svg" alt="MediSlot"> MediSlot</div>
+    <button class="btn-ghost" data-route="/patient/slot">Back</button>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div class="crumb">Book → Your details</div>
+      <h1>Phone number</h1>
+      <p class="sub">We'll text the confirmation + cancel reminders here. We never call to sell anything.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <div class="step-num">3</div>
+        <div class="step-title">Your phone number</div>
+        <div class="step-hint">Required</div>
+      </div>
+      <div class="field">
+        <label>Phone <span class="req">*</span></label>
+        <div class="phone-row">
+          <button type="button" class="cc-chip" aria-haspopup="listbox" aria-expanded="true">
+            <span class="flag">🇸🇦</span><span class="code">+966</span><span class="caret">▾</span>
+          </button>
+          <input type="tel" class="phone-input" value="5XX XXX 5555" style="border-color:#0f766e;box-shadow:0 0 0 3px rgba(15,118,110,0.1);">
+
+          <!-- The open dropdown -->
+          <div class="cc-dropdown" role="listbox">
+            <input class="cc-search" placeholder="Search country or code…" type="search" aria-label="Search country">
+            <div class="cc-section">Gulf · preset</div>
+            <div class="cc-list">
+              <div class="cc-item selected" role="option" aria-selected="true">
+                <span class="flag">🇸🇦</span><span class="name">Saudi Arabia</span><span class="code">+966</span><span class="check">✓</span>
+              </div>
+              <div class="cc-item" role="option">
+                <span class="flag">🇦🇪</span><span class="name">United Arab Emirates</span><span class="code">+971</span><span class="check">✓</span>
+              </div>
+              <div class="cc-item" role="option">
+                <span class="flag">🇰🇼</span><span class="name">Kuwait</span><span class="code">+965</span><span class="check">✓</span>
+              </div>
+              <div class="cc-item" role="option">
+                <span class="flag">🇧🇭</span><span class="name">Bahrain</span><span class="code">+973</span><span class="check">✓</span>
+              </div>
+              <div class="cc-item" role="option">
+                <span class="flag">🇶🇦</span><span class="name">Qatar</span><span class="code">+974</span><span class="check">✓</span>
+              </div>
+              <div class="cc-item" role="option">
+                <span class="flag">🇴🇲</span><span class="name">Oman</span><span class="code">+968</span><span class="check">✓</span>
+              </div>
+            </div>
+            <div class="cc-section">International · dial-out</div>
+            <div class="cc-list">
+              <div class="cc-item" role="option">
+                <span class="flag">🌐</span><span class="name">Other country</span><span class="code">+___</span><span class="check">✓</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="field-help" style="color:#0f766e;">✓ Default is Saudi · tap the chip to change · selected: 🇸🇦 +966</div>
+      </div>
+    </div>
+
+    <div class="note">
+      <span class="ic">🛡</span>
+      <div>
+        <strong>Why is +966 preselected?</strong> All MediSlot branches are in Saudi Arabia today, and 100% of beta users are within KSA numbering. Picking +966 by default keeps the form one-tap simple (<code>P-03</code>). The other GCC codes are one tap away because cross-border appointments are supported (<code>SC-04</code>: a Riyadh-resident patient can book at any branch in Riyadh — phones are validated by country code, not by branch address). If a patient is on roaming, they tap "Other country" and dial their full international number.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="../imports/app/standalone-router.js"></script>
+</body>
+</html>

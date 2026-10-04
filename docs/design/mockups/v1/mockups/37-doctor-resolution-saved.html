@@ -46,6 +46,11 @@
   .audit-row:last-child { border-bottom: none; }
   .audit-row .actor { color: #111827; font-weight: 600; }
   .audit-row .when { color: #6b7280; }
+  /* Q2 resolved: peek row + view-all link to dedicated audit drawer */
+  .audit-row--peek .when { font-style: italic; color: #0f766e; font-weight: 600; margin-left: 4px; }
+  .audit-more { padding-top: 10px; border-top: 1px solid #e5e7eb; margin-top: 4px; }
+  .audit-more a { font-size: 12px; color: #0f766e; text-decoration: none; font-weight: 600; cursor: pointer; }
+  .audit-more a:hover { text-decoration: underline; }
 
   .actions { display: flex; gap: 10px; justify-content: center; margin-top: 22px; }
   .btn-secondary { background: white; color: #0f766e; border: 1px solid #0f766e; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
@@ -105,12 +110,14 @@
 
     <div class="audit-block">
       <div class="audit-head">
-        <span class="label">Audit log</span>
+        <span class="label">Audit log · 4 events written</span>
       </div>
       <div class="audit-row"><span class="actor">Dr. Ahmed Al-Rashid</span> · Schedule change saved · Riyadh Olaya · Aug 18, 14:32 <span class="when">· 3 affected</span></div>
-      <div class="audit-row"><span class="actor">Dr. Ahmed Al-Rashid</span> · Appointment moved · Fatima A. Al-Sayed · Aug 22, 10:00 → 16:00</div>
-      <div class="audit-row"><span class="actor">Dr. Ahmed Al-Rashid</span> · Appointment moved · Mohammed H. · Aug 22, 11:00 → Aug 22, 17:00 (Riyadh Malqa)</div>
-      <div class="audit-row"><span class="actor">Dr. Ahmed Al-Rashid</span> · Appointment cancelled · Sara K. · reason: Doctor unable to see</div>
+      <!-- Q2 resolved: peek + view-all link. The success screen celebrates; the
+           dedicated audit drawer (30-doctor-audit-drawer) is for daily review.
+           Showing all N inline scales poorly beyond ~10 events. -->
+      <div class="audit-row audit-row--peek"><span class="actor">Dr. Ahmed Al-Rashid</span> · Appointment moved · Fatima A. Al-Sayed · Aug 22, 10:00 → 16:00 <span class="when">+ 2 more</span></div>
+      <div class="audit-more"><a data-route="/doctor/audit-drawer">View all 4 events in audit log →</a></div>
     </div>
 
     <div class="actions">
@@ -120,7 +127,7 @@
 
     <div class="principle-note">
       <span class="ic">🛡</span>
-      <div>Every action here is logged. The patients affected will see the change in their next visit — not silently, and not by surprise.</div>
+      <div>Every action here is logged. The patients affected will see the change in their next visit — not silently, and not by surprise. The full audit trail is in your <a data-route="/doctor/audit-drawer" style="color:#0f766e; font-weight:600;">audit drawer</a>.</div>
     </div>
 
   </div>

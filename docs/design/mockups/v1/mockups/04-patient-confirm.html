@@ -53,6 +53,18 @@
   .field-help.success { color: #0f766e; }
   .returning-pill { background: #f0fdfa; color: #0f766e; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
 
+  /* Q5 resolved: phone = [country-code chip] + [national number input]
+     The chip is a button that opens a small picker; +966 is the pre-selected default.
+     Single-tap to switch. Keeps form compact (P-03) while honoring identity hygiene. */
+  .phone-row { display: grid; grid-template-columns: 130px 1fr; gap: 8px; }
+  .cc-chip { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer; font-size: 14px; color: #111827; font-weight: 500; }
+  .cc-chip:hover { border-color: #0f766e; }
+  .cc-chip:focus { outline: none; border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15,118,110,0.1); }
+  .cc-chip .flag { font-size: 16px; line-height: 1; }
+  .cc-chip .code { font-variant-numeric: tabular-nums; }
+  .cc-chip .caret { color: #9ca3af; font-size: 10px; margin-left: auto; }
+  .phone-input { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+
   .done-summary { padding-left: 46px; font-size: 13px; color: #111827; }
   .done-summary .k { color: #6b7280; margin-right: 6px; }
   .done-summary .v { font-weight: 500; }
@@ -157,8 +169,13 @@
               </div>
               <div class="field">
                 <label>Phone number <span class="req">*</span></label>
-                <input type="tel" value="+966 5XX XXX 5555">
-                <div class="field-help success">✓ On file</div>
+                <div class="phone-row">
+                  <button type="button" class="cc-chip" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="flag">🇸🇦</span><span class="code">+966</span><span class="caret">▾</span>
+                  </button>
+                  <input type="tel" class="phone-input" value="5XX XXX 5555">
+                </div>
+                <div class="field-help success">✓ On file · We'll text the confirmation here</div>
               </div>
             </div>
           </div>
