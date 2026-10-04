@@ -819,7 +819,43 @@ development_status:
 
   # Epic 4 — Patient self-service
   epic-4: backlog
-  4-1-patient-otp-verification: backlog
+  4-1-patient-otp-verification: done
+  # 2026-10-04 bmad-build step-14 implementation complete for E4-S1
+  #   (patient OTP verification + upcoming appointments — F-03):
+  #   - OTP send/verify is E0-S4 (already shipped). E4-S1 ships only
+  #     the post-verification endpoint.
+  #   - apps/api/src/routes/patient-appointments.ts (NEW) — GET
+  #     /patient/appointments handler. Phone is bound from
+  #     `req.auth.claim.sub` — NEVER from query/body (E7-S3 privacy
+  #     filter). Server-side filter: status='Scheduled' AND
+  #     start_datetime > now(). Sorted by start_datetime ASC.
+  #     response: {appointments: [{id, doctor_id, branch_id,
+  #     appointment_type_id, start_datetime, end_datetime, status, tz}]}.
+  #   - apps/api/src/app.ts (MODIFIED) — mounted patientAppointmentsRouter
+  #     after authMiddleware (requires verified JWT).
+  #   - apps/api/test/patient-appointments.test.ts (NEW, 7 tests):
+  #     * 401 unauthenticated
+  #     * 403 forbidden_role × 3 (doctor / admin / receptionist JWTs)
+  #     * 200 happy path: patient 0001 sees the seeded future
+  #       appointment; response shape pinned; start_datetime ASC order
+  #     * 200 empty array: unknown phone returns {appointments: []}
+  #       (NOT 404 — privacy: don't leak phone existence)
+  #     * FR-032 filter test: inserts 5 rows (future Scheduled, past
+  #       Scheduled, future Cancelled, future Completed, future No-Show)
+  #       and asserts only the future Scheduled row appears. Cleanup
+  #       scoped by the captured inserted IDs.
+  #   - Patches from review-loop-1:
+  #     T1: Completed + No-Show added to FR-032 coverage.
+  #     T2: cleanup DELETE narrowed from broad WHERE to id = ANY(...).
+  #   - Deferrals: 0.
+  #   - Modified files: 1 (app.ts mount chain).
+  #   - New files: 2 (route, test).
+  #   - Testcontainers runtime not available so integration suite
+  #     couldn't be re-run; status relies on spec audit trail.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
+  #   - Spec Change Log: SC2 (review-loop-1 test patches) recorded.
+  #   - Story E4-S1 → done.
   4-2-patient-cancellation: backlog
   4-3-patient-rescheduling: backlog
   4-4-deep-link-entry-to-cancel-reschedule: backlog

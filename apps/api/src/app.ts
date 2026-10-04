@@ -38,6 +38,7 @@ import { adminAppointmentTypesRouter } from './routes/admin-appointment-types.js
 import { availabilityRouter } from './routes/availability.js';
 import { bookingsRouter } from './routes/bookings.js';
 import { patientProfileRouter } from './routes/patient-profile.js';
+import { patientAppointmentsRouter } from './routes/patient-appointments.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminScope } from './middleware/admin-scope.js';
 import { getLogger, requestLogger } from './middleware/log.js';
@@ -95,6 +96,13 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // Patient profile route — GET /patient/profile?phone=<e164>. Read-only
   // probe for returning-patient detection (E3-S3).
   app.use(patientProfileRouter);
+
+  // Patient self-service appointments — GET /patient/appointments.
+  // Returns the verified patient's upcoming Scheduled rows (FR-032).
+  // Phone is bound from req.auth.claim.sub, never from the body or a
+  // query param (E7-S3 privacy filter). Mounted AFTER authMiddleware
+  // since the route requires a verified patient JWT.
+  app.use(patientAppointmentsRouter);
 
   // Admin routes — mounted AFTER authMiddleware. Chained router-level
   // middleware means adminScope gates only `/admin/*`, not every path.
