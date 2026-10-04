@@ -972,9 +972,35 @@ development_status:
   #   - Spec Change Log: SC1 only (no review patches needed; clean
   #     review).
   #   - Story E4-S4 → done.
-  #   - Epic 4 — Patient self-service (4/4 stories done).
-  #   - Next: Epic 4 retrospective.
-  epic-4-retrospective: optional
+  # Epic 4 retrospective — 2026-10-04.
+  #   - 4/4 stories committed in this session: E4-S1 (be41f1a), E4-S2
+  #     (f23c418), E4-S3 (9ed1f6e), E4-S4 (7f9800f).
+  #   - All four stories ship the patient self-service surface
+  #     (F-03 verify + list, F-04 cancel, F-05 reschedule, F-03
+  #     deep-link trigger). Total +5186 lines (route + tests + spec)
+  #     across the four stories.
+  #   - E7-S3 privacy filter applied uniformly: same 404 envelope for
+  #     "doesn't exist" and "exists but not yours" across E4-S1
+  #     (list scoped to claim.sub), E4-S2 (cancel), E4-S3 (reschedule),
+  #     E4-S4 (deep-link probe). No new PII surface added.
+  #   - Terminal-state envelope `404 not_found_appointment_in_terminal_state`
+  #     applied uniformly across E4-S2, E4-S3, E4-S4. Only Scheduled
+  #     rows are cancellable / reschedulable / deep-link-active.
+  #   - Action items:
+  #     - W43 (open): re-check `recheckNewSlotInTxn` and
+  #       `recheckSlotInTxn` (bookings.ts) for refactor into a shared
+  #       "check-this-slot" mode. Today's deliberate duplication is
+  #       acceptable but a future cleanup story should fold them.
+  #     - W44 (open): add FR-027 "patient already has a 2nd future
+  #       with same doctor" — server's partial unique index is the
+  #       authoritative gate; the in-txn SELECT is a fast-fail
+  #       optimization only. Documented in the patient-reschedule
+  #       code comment.
+  #     - W45 (defer): the FR-027 / FR-029 queries in
+  #       patient-reschedule.ts exclude the current row by id; the
+  #       same exclusion should also live in a future per-row lookup
+  #       helper for staff reschedule flows (E6-S2).
+  epic-4-retrospective: done
 
   # Epic 5 — Staff appointment management
   epic-5: backlog
