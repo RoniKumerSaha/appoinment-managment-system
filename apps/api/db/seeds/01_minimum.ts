@@ -197,7 +197,10 @@ export async function seedWith(client: PoolClient): Promise<SeedResult> {
   }
 
   // ===== Doctors (3) =====
-  // No UNIQUE on `full_name` — SELECT-then-INSERT.
+  // No UNIQUE on `full_name` — SELECT-then-INSERT. (E1-S3 added clinic_id,
+  // email, active — the SELECT matches on full_name, but we also patch the
+  // row's missing columns on first seed-after-migration so pre-existing
+  // doctors get anchored to the singleton clinic + given a derived email.)
   const doctors = [
     { name: DOCTOR_EAST_LEAD_NAME, roleId: DOCTOR_EAST_LEAD_ID },
     { name: DOCTOR_EAST_SUPPORT_NAME, roleId: DOCTOR_EAST_SUPPORT_ID },
@@ -206,16 +209,39 @@ export async function seedWith(client: PoolClient): Promise<SeedResult> {
 
   const doctorIds: Record<string, string> = {};
   for (const d of doctors) {
+    // Derive an email of the form `dr.-east-lead@clinic.local` from the
+    // doctor's full_name (mirrors 0016's `regexp_replace(full_name, '\s+',
+    // '-', 'g')` backfill exactly: lowercase, whitespace → dash, dots
+    // preserved). The migration and seed MUST produce the same email for
+    // the same name shape so a re-seed against a freshly-migrated DB is
+    // idempotent (P-A4 from E1-S3 review-loop-1).
+    const derivedEmail =
+      d.name.toLowerCase().replace(/\s+/g, '-') + '@clinic.local';
     const res = await client.query<{ id: string }>(
       `SELECT id FROM doctor WHERE full_name = $1`,
       [d.name],
     );
     if (res.rows[0]) {
       doctorIds[d.roleId] = res.rows[0].id;
+      // Patch pre-existing rows that were inserted before 0016 ran. The
+      // 0016 backfill covers NULL columns; this is a defense-in-depth so a
+      // regression in the migration's UPDATE doesn't strand a doctor with
+      // NULL clinic_id / NULL email / NULL active.
+      await client.query(
+        `UPDATE doctor
+            SET clinic_id = $1,
+                email = COALESCE(email, $2),
+                active = COALESCE(active, true)
+          WHERE id = $3
+            AND (clinic_id IS NULL OR email IS NULL OR active IS NULL)`,
+        [clinicId, derivedEmail, res.rows[0].id],
+      );
     } else {
       const ins = await client.query<{ id: string }>(
-        `INSERT INTO doctor (full_name) VALUES ($1) RETURNING id`,
-        [d.name],
+        `INSERT INTO doctor (clinic_id, full_name, email, active)
+         VALUES ($1, $2, $3, true)
+         RETURNING id`,
+        [clinicId, d.name, derivedEmail],
       );
       doctorIds[d.roleId] = ins.rows[0]!.id;
       inserted = true;

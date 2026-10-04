@@ -326,3 +326,40 @@ test('E1-S2: seed backfills branch_weekly_hours (2 branches × 7 days = 14 rows;
   assert.equal(mon.rows[0]!.open_time, '09:00:00');
   assert.equal(mon.rows[0]!.close_time, '17:00:00');
 });
+
+test('E1-S3: seed inserts 3 doctors with active=true, clinic_id set, email populated', async () => {
+  // The seed's doctor INSERT now sets clinic_id (singleton clinic), email
+  // (derived from full_name), and active=true. The 0016 migration backfills
+  // pre-existing rows, but new seeds must carry the contract from the
+  // INSERT itself. This pins:
+  //   (a) all 3 seeded doctors carry clinic_id matching the singleton,
+  //   (b) active=true on all of them,
+  //   (c) email is non-null, citext-lowercased, contains '@clinic.local'.
+  const { rows: clinicRows } = await db.pool.query<{ id: string }>(
+    `SELECT id FROM clinic LIMIT 1`,
+  );
+  assert.equal(clinicRows.length, 1, 'precondition: singleton clinic row exists');
+  const singletonClinicId = clinicRows[0]!.id;
+
+  const { rows: docs } = await db.pool.query<{
+    full_name: string;
+    clinic_id: string;
+    active: boolean;
+    email: string;
+  }>(
+    `SELECT full_name, clinic_id, active, email FROM doctor
+      WHERE full_name IN ('Dr. East Lead', 'Dr. East Support', 'Dr. West Lead')
+      ORDER BY full_name`,
+  );
+  assert.equal(docs.length, 3, 'expected 3 seeded doctors');
+  for (const d of docs) {
+    assert.equal(
+      d.clinic_id,
+      singletonClinicId,
+      `seeded doctor "${d.full_name}" must carry the singleton clinic_id`,
+    );
+    assert.equal(d.active, true, `seeded doctor "${d.full_name}" must be active=true`);
+    assert.ok(d.email, `seeded doctor "${d.full_name}" must have a non-null email`);
+    assert.match(d.email, /@clinic\.local/, 'email must be clinic.local');
+  }
+});

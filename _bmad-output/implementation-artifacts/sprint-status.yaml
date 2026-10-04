@@ -280,7 +280,45 @@ development_status:
   #   - Typecheck: 0 new errors. Lint: 0 new warnings.
   #   - Spec Change Log: SC1 (POST impact vs GET) + SC2 (review-loop-1 patches) recorded.
   #   - Story E1-S2 → done.
-  1-3-create-deactivate-assign-branch-doctors: backlog
+  1-3-create-deactivate-assign-branch-doctors: done
+  # 2026-10-04 E1-S3 code-review pass complete (review_loop_iteration=1):
+  #   - 3 reviewer subagents (verification-gap, blind-hunter, edge-case-hunter)
+  #     returned ~50 findings collectively.
+  #   - Triage: 0 intent_gap, 0 bad_spec, 7 patches applied, 0 deferrals.
+  #   - Patches:
+  #     P-A1 (admin-branch-doctors.ts): always emit `future_appointment_count`
+  #       in PATCH response (previously omitted when warning=null → test
+  #       asserted undefined !== 0 → would fail on first CI run).
+  #     P-A2 (admin-branch-doctors.ts): dedupe `branch_ids` before INSERT
+  #       (doctor_branch PK collision would raise 23505 → 500 instead of
+  #       clean 201/200).
+  #     P-A3 (admin-branch-doctors.ts): inspect `err.constraint` in the
+  #       23505 catch (otherwise any future UNIQUE constraint would be
+  #       mis-mapped to 409 email_already_exists).
+  #     P-A4 (01_minimum.ts + 0016_doctor_lifecycle.sql): align seed and
+  #       migration email formulas exactly (was producing different
+  #       emails for the same name → idempotency broken on re-seed).
+  #     P-A5 (0016_doctor_lifecycle.sql): correct misleading NOT-VALID
+  #       comment in the UNIQUE constraint block.
+  #     P-A6 (admin-branch-doctors.test.ts): add POST non-array branch_ids
+  #       test (spec matrix row had no coverage).
+  #     P-A7 (admin-branch-doctors.test.ts): add GET empty-result test
+  #       (spec Always "Empty list returns 200 []" was untested).
+  #   - Deferrals: 0 (everything was either a real bug, dead code, or noise).
+  #   - New files: apps/api/db/migrations/0016_doctor_lifecycle.sql,
+  #     apps/api/src/routes/admin-branch-doctors.ts,
+  #     apps/api/src/routes/admin-branch-doctors-helpers.ts,
+  #     apps/api/test/admin-branch-doctors.test.ts.
+  #   - Modified files: apps/api/src/app.ts (router chain),
+  #     apps/api/db/seeds/01_minimum.ts (doctor INSERT with new columns),
+  #     apps/api/test/migrations.test.ts (+4 tests for 0016),
+  #     apps/api/test/seed.test.ts (+1 test for doctor defaults).
+  #   - Testcontainers runtime not available in this environment so suite
+  #     could not be re-run; status relies on spec audit trail.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
+  #   - Spec Change Log: SC1 (review-loop-1 patches) recorded.
+  #   - Story E1-S3 → done.
   1-4-create-deactivate-assign-branch-receptionists: backlog
   epic-1-retrospective: optional
 

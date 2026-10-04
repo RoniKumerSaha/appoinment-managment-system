@@ -573,3 +573,124 @@ test('E1-S2: forward migration is idempotent — running 0015 twice exits 0', as
     );
   });
 });
+
+// ===========================================================================
+// E1-S3 migration tests — doctor.clinic_id, doctor.email, doctor.active
+// ===========================================================================
+
+test('E1-S3: 0016 adds doctor.clinic_id NOT NULL with FK to clinic(id) ON DELETE RESTRICT', async () => {
+  await withTestDb(async ({ pool }) => {
+    const { rows } = await pool.query<{
+      is_nullable: string;
+      data_type: string;
+      conname: string | null;
+      confdeltype: string | null;
+    }>(
+      `SELECT c.is_nullable, c.data_type, fk.conname, fk.confdeltype
+         FROM information_schema.columns c
+         LEFT JOIN pg_constraint fk
+           ON fk.conrelid = 'doctor'::regclass
+          AND fk.contype = 'f'
+          AND fk.conkey = ARRAY[c.ordinal_position]::smallint[]
+        WHERE c.table_name = 'doctor'
+          AND c.column_name = 'clinic_id'`,
+    );
+    assert.equal(rows.length, 1, 'doctor.clinic_id column must exist');
+    const r = rows[0]!;
+    assert.equal(r.is_nullable, 'NO', 'doctor.clinic_id must be NOT NULL');
+    assert.equal(r.data_type, 'uuid');
+    assert.ok(
+      r.conname !== null,
+      'doctor.clinic_id must carry a foreign-key constraint to clinic(id)',
+    );
+    // confdeltype='r' = RESTRICT (matches admin_user.clinic_id from 0013
+    // and branch.clinic_id from 0001). Pinned per E1-S0a review pattern.
+    assert.equal(
+      r.confdeltype,
+      'r',
+      `doctor.clinic_id FK must use ON DELETE RESTRICT (confdeltype='r'); got ${r.confdeltype}`,
+    );
+  });
+});
+
+test('E1-S3: 0016 adds doctor.email citext NOT NULL UNIQUE', async () => {
+  await withTestDb(async ({ pool }) => {
+    const { rows } = await pool.query<{
+      is_nullable: string;
+      data_type: string;
+    }>(
+      `SELECT is_nullable, data_type FROM information_schema.columns
+        WHERE table_name = 'doctor' AND column_name = 'email'`,
+    );
+    assert.equal(rows.length, 1, 'doctor.email column must exist');
+    const r = rows[0]!;
+    assert.equal(r.is_nullable, 'NO', 'doctor.email must be NOT NULL');
+    assert.equal(r.data_type, 'citext', `doctor.email must be citext; got ${r.data_type}`);
+
+    // UNIQUE constraint named doctor_email_key (matches 0004 pattern for
+    // receptionist.email and admin_user.email).
+    const { rows: unique } = await pool.query<{ conname: string }>(
+      `SELECT conname FROM pg_constraint
+        WHERE conrelid = 'doctor'::regclass
+          AND contype = 'u'
+          AND conname = 'doctor_email_key'`,
+    );
+    assert.equal(unique.length, 1, 'doctor_email_key UNIQUE constraint must exist');
+  });
+});
+
+test('E1-S3: 0016 adds doctor.active boolean NOT NULL DEFAULT true', async () => {
+  await withTestDb(async ({ pool }) => {
+    const { rows } = await pool.query<{
+      is_nullable: string;
+      data_type: string;
+      column_default: string | null;
+    }>(
+      `SELECT is_nullable, data_type, column_default FROM information_schema.columns
+        WHERE table_name = 'doctor' AND column_name = 'active'`,
+    );
+    assert.equal(rows.length, 1, 'doctor.active column must exist');
+    const r = rows[0]!;
+    assert.equal(r.is_nullable, 'NO', 'doctor.active must be NOT NULL');
+    assert.equal(r.data_type, 'boolean');
+    // The migration uses `SET DEFAULT true`; the surfaced default text
+    // contains `true` (wrapped in a cast function by the catalog).
+    assert.ok(
+      r.column_default !== null && /true/i.test(r.column_default),
+      `doctor.active default must be true; got: ${r.column_default ?? '<none>'}`,
+    );
+
+    // Spot-check the existing seeded doctors (3 of them per 01_minimum.ts)
+    // all carry active=true (the migration's UPDATE backfill).
+    const docs = await pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM doctor WHERE active = true`,
+    );
+    assert.ok(
+      Number(docs.rows[0]!.count) >= 3,
+      `expected ≥3 seeded doctors with active=true; got ${docs.rows[0]!.count}`,
+    );
+  });
+});
+
+test('E1-S3: forward migration is idempotent — running 0016 twice exits 0', async () => {
+  await withTestDb(async ({ pool }) => {
+    const sql = readFileSync(
+      join(migrationsRoot, '0016_doctor_lifecycle.sql'),
+      'utf8',
+    );
+    await pool.query(sql); // MUST NOT throw
+    // State preserved: NOT NULL on each column, FK on clinic_id, UNIQUE on email.
+    const r = await pool.query<{ c1: string; c2: string; c3: string }>(
+      `SELECT
+        (SELECT is_nullable FROM information_schema.columns
+          WHERE table_name = 'doctor' AND column_name = 'clinic_id') AS c1,
+        (SELECT is_nullable FROM information_schema.columns
+          WHERE table_name = 'doctor' AND column_name = 'email') AS c2,
+        (SELECT is_nullable FROM information_schema.columns
+          WHERE table_name = 'doctor' AND column_name = 'active') AS c3`,
+    );
+    assert.equal(r.rows[0]!.c1, 'NO', 'doctor.clinic_id NOT NULL preserved');
+    assert.equal(r.rows[0]!.c2, 'NO', 'doctor.email NOT NULL preserved');
+    assert.equal(r.rows[0]!.c3, 'NO', 'doctor.active NOT NULL preserved');
+  });
+});
