@@ -479,6 +479,59 @@ development_status:
   #     disambiguation) recorded.
   #   - Story E2-S2 → done.
   2-2-block-time-single-date-range-multi-day: done
+  # 2026-10-04 bmad-build step-07 implementation complete for E2-S3 (manage
+  #   appointment types — create, edit, deactivate):
+  #   - No new migration: 0005 already has every column (appointment_type
+  #     with name, duration_minutes CHECK BETWEEN 5 AND 480, is_active,
+  #     created_by, created_at, updated_at).
+  #   - apps/api/src/routes/admin-appointment-types-helpers.ts (NEW) —
+  #     pure validators: isValidUuid, isValidName (1..120 trim), isValidDurationMinutes
+  #     (integer 5..480), isValidActive, validateCreateTypeBody (tagged
+  #     union), validatePatchTypeBody (tagged union for name + is_active),
+  #     parseActiveFilter.
+  #   - apps/api/src/routes/admin-appointment-types.ts (NEW) — 4 routes:
+  #     POST /admin/appointment-types (create; is_active defaults to true
+  #       via DB DEFAULT; created_by = 'staff:' + req.auth.claim.sub);
+  #     GET /admin/appointment-types (list with optional ?active=true|false
+  #       filter; 3 seeded types: General Consultation / Follow-up /
+  #       Specialist Consult);
+  #     GET /admin/appointment-types/:id (single; 404 unknown);
+  #     PATCH /admin/appointment-types/:id (rename / activate / deactivate;
+  #       deactivate runs SELECT FOR UPDATE + impact count + dynamic
+  #       UPDATE inside txn; emits warning + count on every response
+  #       following E1-S3 P-A1 pattern).
+  #   - apps/api/src/app.ts (MODIFIED) — chained adminAppointmentTypesRouter
+  #     into the /admin mount.
+  #   - apps/api/test/admin-appointment-types.test.ts (NEW, ~28 tests) —
+  #     full I/O matrix: GET happy/filter/403/401; POST happy/duration
+  #     boundaries/non-integer/name boundaries/missing/unknown/no-auth/
+  #     patient-403; GET-id happy/unknown/non-UUID/no-auth; PATCH rename
+  #     (self-restores)/activate/deactivate-clean (self-restores)/
+  #     deactivate-with-future (pins future appt stays Scheduled;
+  #     self-restores)/duration-immutable/empty-body/unknown-field/
+  #     unknown-UUID/non-UUID/no-auth/patient-403. Cleanup re-activates
+  #     the 3 seeded types + deletes any E2-S3 test-prefixed rows.
+  #   - Patches from review-loop-1:
+  #     P1 (helpers): removed dead `duration_minutes` branch from
+  #       validatePatchTypeBody — unreachable because route's ALLOWED_KEYS
+  #       excludes it (types are immutable). Spec matrix row for
+  #       "PATCH duration<5" amended to reflect `unknown_field` envelope.
+  #     P1 (test): deactivate tests now self-restore via inline PATCH
+  #       so a mid-suite CI crash doesn't poison seed state for sibling
+  #       tests. Rename test already self-restored; deactivate tests
+  #       now mirror that pattern.
+  #   - Deferrals: 0 (everything was either a real bug or noise).
+  #   - New files: 3 (helpers, route, test).
+  #   - Modified files: apps/api/src/app.ts (router chain),
+  #     _bmad-output/.../spec-2-3-manage-appointment-types.md (status +
+  #     SC2 recorded).
+  #   - Testcontainers runtime not available so suite couldn't be re-run.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
+  #   - Spec Change Log: SC2 (review-loop-1 patches + envelope
+  #     clarification) recorded.
+  #   - Story E2-S3 → done.
+  2-3-manage-appointment-types-create-edit-deactivate: done
   2-3-manage-appointment-types-create-edit-deactivate: backlog
   2-4-negative-capability-doctor-cannot-reschedule-ordinary-patient-appointments: backlog
   epic-2-retrospective: optional
