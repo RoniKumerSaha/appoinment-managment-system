@@ -453,3 +453,123 @@ test('E1-S1: forward migration is idempotent — running 0014 twice exits 0', as
     assert.equal(r.rows[0]!.data_type, 'boolean');
   });
 });
+
+// ===========================================================================
+// E1-S2 migration tests — branch.address, branch.tz default, branch_weekly_hours
+// ===========================================================================
+
+test('E1-S2: 0015 adds branch.address column (nullable text)', async () => {
+  await withTestDb(async ({ pool }) => {
+    const { rows } = await pool.query<{
+      is_nullable: string;
+      data_type: string;
+      column_default: string | null;
+    }>(
+      `SELECT is_nullable, data_type, column_default FROM information_schema.columns
+        WHERE table_name = 'branch' AND column_name = 'address'`,
+    );
+    assert.equal(rows.length, 1, 'branch.address column must exist');
+    const r = rows[0]!;
+    assert.equal(r.is_nullable, 'YES', 'branch.address must be nullable');
+    assert.equal(r.data_type, 'text', `branch.address must be text; got ${r.data_type}`);
+    assert.equal(r.column_default, null, 'branch.address must NOT have a DEFAULT');
+  });
+});
+
+test('E1-S2: 0015 updates branch.tz default to Asia/Riyadh', async () => {
+  await withTestDb(async ({ pool }) => {
+    // pg_attrdef holds the raw default expression. The migration sets
+    // `ALTER COLUMN tz SET DEFAULT 'Asia/Riyadh'`. Postgres surfaces the
+    // default as `'Asia/Riyadh'::text` in the catalog (the cast is added
+    // implicitly for text defaults).
+    const { rows } = await pool.query<{ adsrc: string | null }>(
+      `SELECT pg_get_expr(adbin, adrelid) AS adsrc
+         FROM pg_attrdef ad
+         JOIN pg_attribute att
+           ON att.attrelid = ad.adrelid AND att.attnum = ad.adnum
+        WHERE att.attrelid = 'branch'::regclass
+          AND att.attname = 'tz'`,
+    );
+    assert.equal(rows.length, 1, 'branch.tz must have a DEFAULT');
+    const src = rows[0]!.adsrc ?? '';
+    assert.match(
+      src,
+      /Asia\/Riyadh/,
+      `branch.tz default must reference Asia/Riyadh; got: ${src}`,
+    );
+  });
+});
+
+test('E1-S2: 0015 creates branch_weekly_hours table with CHECK constraint on day_of_week', async () => {
+  await withTestDb(async ({ pool }) => {
+    // Table exists with the expected columns.
+    const { rows: cols } = await pool.query<{
+      column_name: string;
+      data_type: string;
+    }>(
+      `SELECT column_name, data_type FROM information_schema.columns
+        WHERE table_name = 'branch_weekly_hours'
+        ORDER BY ordinal_position`,
+    );
+    const names = cols.map((c) => c.column_name);
+    assert.ok(names.includes('id'), 'branch_weekly_hours must have id');
+    assert.ok(names.includes('branch_id'), 'branch_weekly_hours must have branch_id');
+    assert.ok(names.includes('day_of_week'), 'branch_weekly_hours must have day_of_week');
+    assert.ok(names.includes('open_time'), 'branch_weekly_hours must have open_time');
+    assert.ok(names.includes('close_time'), 'branch_weekly_hours must have close_time');
+    assert.ok(names.includes('is_closed'), 'branch_weekly_hours must have is_closed');
+    assert.ok(names.includes('created_at'), 'branch_weekly_hours must have created_at');
+    assert.ok(names.includes('updated_at'), 'branch_weekly_hours must have updated_at');
+
+    // CHECK constraint on day_of_week (0..6).
+    const { rows: constraints } = await pool.query<{
+      conname: string;
+      consrc: string | null;
+    }>(
+      `SELECT conname, pg_get_constraintdef(oid) AS consrc
+         FROM pg_constraint
+        WHERE conrelid = 'branch_weekly_hours'::regclass
+          AND contype = 'c'`,
+    );
+    const check = constraints.find((c) => (c.consrc ?? '').includes('day_of_week'));
+    assert.ok(check !== undefined, 'CHECK constraint on day_of_week must exist');
+    assert.match(
+      check!.consrc ?? '',
+      /BETWEEN 0 AND 6/,
+      `CHECK must enforce 0..6; got: ${check!.consrc}`,
+    );
+
+    // UNIQUE(branch_id, day_of_week).
+    const { rows: idx } = await pool.query<{ indexname: string; indexdef: string }>(
+      `SELECT indexname, indexdef FROM pg_indexes
+        WHERE tablename = 'branch_weekly_hours'`,
+    );
+    const unique = idx.find((i) => i.indexdef.includes('(branch_id, day_of_week)') && i.indexdef.toUpperCase().includes('UNIQUE'));
+    assert.ok(unique !== undefined, 'UNIQUE(branch_id, day_of_week) must exist');
+  });
+});
+
+test('E1-S2: forward migration is idempotent — running 0015 twice exits 0', async () => {
+  await withTestDb(async ({ pool }) => {
+    // Mirror the E1-S0a / E1-S1 idempotency pattern: re-run the 0015
+    // SQL on the already-migrated DB and assert no error AND that the
+    // schema contract is preserved.
+    const sql = readFileSync(
+      join(migrationsRoot, '0015_branch_hours.sql'),
+      'utf8',
+    );
+    await pool.query(sql); // MUST NOT throw
+    // State still correct after re-run.
+    const r = await pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM information_schema.columns
+        WHERE table_name = 'branch_weekly_hours'`,
+    );
+    // 8 columns: id, branch_id, day_of_week, open_time, close_time,
+    // is_closed, created_at, updated_at.
+    assert.equal(
+      Number(r.rows[0]!.count),
+      8,
+      'idempotent re-run must preserve 8 columns in branch_weekly_hours',
+    );
+  });
+});

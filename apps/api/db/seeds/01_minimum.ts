@@ -158,6 +158,44 @@ export async function seedWith(client: PoolClient): Promise<SeedResult> {
     }
   }
 
+  // ===== Branch weekly hours backfill (E1-S2) =====
+  // Default on first save: closed Sun, Mon–Sat 09:00–17:00. Matches the
+  // product brief's typical Saudi clinic hours. ON CONFLICT DO NOTHING
+  // makes the seed idempotent: re-running the seed against an existing
+  // branch whose hours were customized by the admin does NOT overwrite
+  // them. The "first save" semantic is: this seed only inserts rows that
+  // don't exist yet.
+  const weeklyHoursRows: Array<{
+    branchId: string;
+    day: number;
+    isClosed: boolean;
+    openTime: string | null;
+    closeTime: string | null;
+  }> = [];
+  for (const b of branches) {
+    const bid = branchIds[b.roleId]!;
+    for (let day = 0; day < 7; day++) {
+      const isClosed = day === 0; // Sun closed
+      weeklyHoursRows.push({
+        branchId: bid,
+        day,
+        isClosed,
+        openTime: isClosed ? null : '09:00:00',
+        closeTime: isClosed ? null : '17:00:00',
+      });
+    }
+  }
+  for (const h of weeklyHoursRows) {
+    const r = await client.query(
+      `INSERT INTO branch_weekly_hours
+         (branch_id, day_of_week, open_time, close_time, is_closed)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (branch_id, day_of_week) DO NOTHING`,
+      [h.branchId, h.day, h.openTime, h.closeTime, h.isClosed],
+    );
+    if ((r.rowCount ?? 0) > 0) inserted = true;
+  }
+
   // ===== Doctors (3) =====
   // No UNIQUE on `full_name` — SELECT-then-INSERT.
   const doctors = [

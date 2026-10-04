@@ -253,3 +253,76 @@ test('E1-S1: seed inserts 2 branches, both with active=true (column default)', a
     );
   }
 });
+
+test('E1-S2: seed backfills branch_weekly_hours (2 branches × 7 days = 14 rows; idempotent)', async () => {
+  // The seed's E1-S2 backfill inserts 14 rows (2 branches × 7 days):
+  // Sun closed, Mon-Sat 09:00–17:00. ON CONFLICT DO NOTHING makes it
+  // idempotent — re-running the seed against existing rows does NOT
+  // overwrite them. This pins:
+  //   (a) the backfill inserts the right number of rows on a fresh DB,
+  //   (b) the row count is invariant across re-seeds.
+  const branchesRows = await db.pool.query<{ name: string }>(
+    `SELECT name FROM branch WHERE name IN ('East Branch', 'West Branch') ORDER BY name`,
+  );
+  assert.equal(branchesRows.rows.length, 2, 'precondition: East + West seeded');
+
+  const before = await db.pool.query<{ count: string }>(
+    `SELECT COUNT(*)::text AS count
+       FROM branch_weekly_hours
+      WHERE branch_id IN (SELECT id FROM branch WHERE name IN ('East Branch', 'West Branch'))`,
+  );
+  const beforeCount = Number(before.rows[0]!.count);
+  assert.equal(beforeCount, 14, '14 rows expected from E1-S2 backfill');
+
+  // Run the seed again — the row count MUST stay at 14 (ON CONFLICT
+  // DO NOTHING). If a regression removed the ON CONFLICT clause, the
+  // second run would either error (UNIQUE violation) or insert 14 more
+  // rows for a total of 28.
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    await seedWith(client);
+    await client.query('COMMIT');
+  } finally {
+    client.release();
+  }
+
+  const after = await db.pool.query<{ count: string }>(
+    `SELECT COUNT(*)::text AS count
+       FROM branch_weekly_hours
+      WHERE branch_id IN (SELECT id FROM branch WHERE name IN ('East Branch', 'West Branch'))`,
+  );
+  assert.equal(
+    Number(after.rows[0]!.count),
+    14,
+    'idempotent re-seed must preserve 14 branch_weekly_hours rows (ON CONFLICT DO NOTHING)',
+  );
+
+  // Spot-check the default hours: Sun closed, Mon open 09:00–17:00.
+  const sun = await db.pool.query<{
+    is_closed: boolean;
+    open_time: string | null;
+    close_time: string | null;
+  }>(
+    `SELECT bwh.is_closed, bwh.open_time::text AS open_time, bwh.close_time::text AS close_time
+       FROM branch_weekly_hours bwh
+       JOIN branch b ON b.id = bwh.branch_id
+      WHERE b.name = 'East Branch' AND bwh.day_of_week = 0`,
+  );
+  assert.equal(sun.rows[0]!.is_closed, true, 'Sunday must be closed on East Branch');
+  assert.equal(sun.rows[0]!.open_time, null);
+
+  const mon = await db.pool.query<{
+    is_closed: boolean;
+    open_time: string | null;
+    close_time: string | null;
+  }>(
+    `SELECT bwh.is_closed, bwh.open_time::text AS open_time, bwh.close_time::text AS close_time
+       FROM branch_weekly_hours bwh
+       JOIN branch b ON b.id = bwh.branch_id
+      WHERE b.name = 'East Branch' AND bwh.day_of_week = 1`,
+  );
+  assert.equal(mon.rows[0]!.is_closed, false, 'Monday must be open on East Branch');
+  assert.equal(mon.rows[0]!.open_time, '09:00:00');
+  assert.equal(mon.rows[0]!.close_time, '17:00:00');
+});
