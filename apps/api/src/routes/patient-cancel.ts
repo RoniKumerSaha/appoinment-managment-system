@@ -50,9 +50,13 @@ const UUID_RE =
 
 // SELECT FOR UPDATE on the appointment row by id. Scoped by id only;
 // // the route enforces `patient_phone = claim.sub` AFTER the SELECT.
+// E6-S4: also reads `recurring_series_id` so the audit payload can
+// carry `recurring_origin` when the cancelled occurrence was part
+// of a recurring series.
 const SELECT_APPOINTMENT_FOR_UPDATE_SQL = `
   SELECT id::text AS id, patient_phone, status, branch_id::text AS branch_id,
          doctor_id::text AS doctor_id, appointment_type_id::text AS appointment_type_id,
+         recurring_series_id::text AS recurring_series_id,
          start_datetime, end_datetime
     FROM appointment
    WHERE id = $1::uuid
@@ -63,10 +67,14 @@ const UPDATE_CANCEL_APPOINTMENT_SQL = `
   UPDATE appointment SET status = 'Cancelled' WHERE id = $1::uuid;
 `;
 
+// E6-S4: payload is built dynamically so the recurring_origin key
+// can be added when the source row has a recurring_series_id.
+// When the source row is non-recurring the payload is the empty
+// object (matches the pre-E6-S4 contract).
 const INSERT_AUDIT_SQL = `
   INSERT INTO appointment_audit
     (appointment_id, actor_role, actor_id, event, payload)
-  VALUES ($1::uuid, 'patient', $2, 'cancelled', '{}'::jsonb);
+  VALUES ($1::uuid, 'patient', $2, 'cancelled', $3::jsonb);
 `;
 
 interface AppointmentRow {
@@ -76,6 +84,7 @@ interface AppointmentRow {
   branch_id: string;
   doctor_id: string;
   appointment_type_id: string;
+  recurring_series_id: string | null;
   start_datetime: Date;
   end_datetime: Date;
 }
@@ -144,9 +153,17 @@ patientCancelRouter.post(
 
       // FR-033: no cancellation reason required (receptionist flow FR-034
       // is the one that requires a reason; that's E5-S3).
+      // E6-S4: enrich the audit payload with `recurring_origin` when
+      // the cancelled occurrence was part of a recurring series.
+      const auditPayload = appt.recurring_series_id
+        ? JSON.stringify({
+            recurring_origin: { series_id: appt.recurring_series_id },
+          })
+        : '{}';
       await client.query(INSERT_AUDIT_SQL, [
         appt.id,
         `patient:${claim.sub}`,
+        auditPayload,
       ]);
 
       await client.query('COMMIT');

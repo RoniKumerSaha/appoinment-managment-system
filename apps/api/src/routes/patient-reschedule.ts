@@ -79,6 +79,7 @@ const ALLOWED_POST_KEYS = new Set([
 const SELECT_APPOINTMENT_FOR_UPDATE_SQL = `
   SELECT id::text AS id, patient_phone, status, branch_id::text AS branch_id,
          doctor_id::text AS doctor_id, appointment_type_id::text AS appointment_type_id,
+         recurring_series_id::text AS recurring_series_id,
          start_datetime, end_datetime
     FROM appointment
    WHERE id = $1::uuid
@@ -224,6 +225,7 @@ interface AppointmentRow {
   branch_id: string;
   doctor_id: string;
   appointment_type_id: string;
+  recurring_series_id: string | null;
   start_datetime: Date;
   end_datetime: Date;
 }
@@ -683,9 +685,12 @@ patientRescheduleRouter.post(
       // 6. Audit row. Payload mirrors F-05's
       //    `metadata = {from, to, branch_change, type_change}` so E7-S2
       //    can surface WHAT changed in the audit drawer.
+      // E6-S4: when the source row is part of a recurring series,
+      // append `recurring_origin` so the audit row can be
+      // reconstructed later via `payload ? 'recurring_origin'`.
       const branchChange = appt.branch_id !== body.new_branch_id;
       const typeChange = appt.appointment_type_id !== body.new_appointment_type_id;
-      const auditPayload = JSON.stringify({
+      const basePayload: Record<string, unknown> = {
         from: {
           branch_id: appt.branch_id,
           appointment_type_id: appt.appointment_type_id,
@@ -700,7 +705,13 @@ patientRescheduleRouter.post(
         },
         branch_change: branchChange,
         type_change: typeChange,
-      });
+      };
+      if (appt.recurring_series_id) {
+        basePayload['recurring_origin'] = {
+          series_id: appt.recurring_series_id,
+        };
+      }
+      const auditPayload = JSON.stringify(basePayload);
       await client.query(INSERT_AUDIT_SQL, [
         appt.id,
         'patient',

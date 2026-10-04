@@ -52,9 +52,13 @@ const UUID_RE =
 
 const REASON_MAX = 500;
 
+// E6-S4: also reads `recurring_series_id` so the audit payload can
+// carry `recurring_origin` when the cancelled occurrence was part
+// of a recurring series.
 const SELECT_APPOINTMENT_FOR_UPDATE_SQL = `
   SELECT id::text AS id, patient_phone, status, branch_id::text AS branch_id,
          doctor_id::text AS doctor_id, appointment_type_id::text AS appointment_type_id,
+         recurring_series_id::text AS recurring_series_id,
          start_datetime, end_datetime
     FROM appointment
    WHERE id = $1::uuid
@@ -78,6 +82,7 @@ interface AppointmentRow {
   branch_id: string;
   doctor_id: string;
   appointment_type_id: string;
+  recurring_series_id: string | null;
   start_datetime: Date;
   end_datetime: Date;
 }
@@ -127,7 +132,11 @@ staffReceptionistCancelRouter.post(
       res.status(400).json({ error: 'reason_too_long' });
       return;
     }
-    const auditPayload = JSON.stringify({ reason: trimmedReason });
+    // NOTE: the audit payload is finalized INSIDE the txn (after
+    // the SELECT FOR UPDATE returns recurring_series_id), so the
+    // E6-S4 enrichment can be applied conditionally. The trimmed
+    // reason is captured here; the JSON.stringify happens at audit
+    // time.
 
     const pool = await getPool();
     let client: PoolClient;
@@ -178,7 +187,15 @@ staffReceptionistCancelRouter.post(
       await client.query(UPDATE_CANCEL_APPOINTMENT_SQL, [appt.id]);
 
       // 5. Audit row with payload={reason}. FR-034: receptionist
-      //    must provide one.
+      //    must provide one. E6-S4: enrich with `recurring_origin`
+      //    when the cancelled occurrence was part of a recurring
+      //    series (so the audit row can be reconstructed later).
+      const auditPayload = appt.recurring_series_id
+        ? JSON.stringify({
+            reason: trimmedReason,
+            recurring_origin: { series_id: appt.recurring_series_id },
+          })
+        : JSON.stringify({ reason: trimmedReason });
       await client.query(INSERT_AUDIT_SQL, [
         appt.id,
         `staff:${claim.sub}`,
