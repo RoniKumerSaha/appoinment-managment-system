@@ -46,6 +46,8 @@ import { staffMarkStatusRouter } from './routes/staff-mark-status.js';
 import { staffDoctorCancelRouter } from './routes/staff-doctor-cancel.js';
 import { staffReceptionistCancelRouter } from './routes/staff-receptionist-cancel.js';
 import { receptionistTodayRouter } from './routes/receptionist-today.js';
+import { recurringPreviewRouter } from './routes/recurring-preview.js';
+import { recurringConfirmRouter } from './routes/recurring-confirm.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminScope } from './middleware/admin-scope.js';
 import { getLogger, requestLogger } from './middleware/log.js';
@@ -173,6 +175,21 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // the receptionist's branch data, never the requested branch
   // (Scenario 11). Mounted AFTER authMiddleware.
   app.use(receptionistTodayRouter);
+
+  // Recurring preview — POST /recurring/preview. Doctor or
+  // receptionist previews a recurring series (E6-S1, F-11,
+  // BR-047…053, FR-044…050). Read-only: validates every
+  // occurrence in isolation and returns {will_create,
+  // skipped_with_reason}. Patient / admin → 403 (FR-045).
+  // Mounted AFTER authMiddleware.
+  app.use(recurringPreviewRouter);
+
+  // Recurring confirm — POST /recurring/confirm. Atomic batch
+  // insert of the preview's valid occurrences (E6-S1, FR-047,
+  // FR-050). All occurrences of a single confirm share the same
+  // recurring_series_id. Mounted AFTER authMiddleware; the route
+  // is the role gate.
+  app.use(recurringConfirmRouter);
 
   // Admin routes — mounted AFTER authMiddleware. Chained router-level
   // middleware means adminScope gates only `/admin/*`, not every path.
