@@ -368,8 +368,63 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2 — Doctor schedule & types
-  epic-2: backlog
-  2-1-configure-weekly-schedule-multi-period-days: backlog
+  epic-2: in-progress
+  # 2026-10-04 bmad-build step-05 implementation complete for E2-S1 (configure
+  #   doctor weekly schedule with multi-period days + effective date):
+  #   - No new migration: 0006 already has every column (doctor_schedule
+  #     with effective_to nullable, multi-period days via absence of
+  #     (doctor, branch, day) UNIQUE, CHECK constraints for time ordering).
+  #   - apps/api/src/routes/admin-doctor-schedule-helpers.ts (NEW) — pure
+  #     validators: isValidUuid, isValidDayOfWeek, isValidTimeString,
+  #     isValidDateString, compareTimeStrings, timeRangesOverlap (half-open
+  #     [a,b) semantics matching 0008 GIST exclusion), maskPhone
+  #     (+1XXXXXXXXXX privacy floor matching E1-S2 invariant),
+  #     validateScheduleRow (tagged union), findOverlappingRowIndices,
+  #     tomorrowIsoUtc.
+  #   - apps/api/src/routes/admin-doctor-schedule.ts (NEW) — 3 routes:
+  #     GET /admin/doctors/:id/schedule (read);
+  #     POST /admin/doctors/:id/schedule-impact (preview, no DB write;
+  #       masked patient_phone in affected_appointments);
+  #     POST /admin/doctors/:id/schedule (full-set replace inside txn with
+  #       SELECT FOR UPDATE on the doctor row; impact check runs inside
+  #       the txn for TOCTOU safety; 409 with masked list on conflict;
+  #       created_by = 'staff:' + req.auth.claim.sub).
+  #   - apps/api/src/app.ts (MODIFIED) — chained adminDoctorScheduleRouter
+  #     into the /admin mount.
+  #   - apps/api/test/admin-doctor-schedule.test.ts (NEW, 19 tests) —
+  #     full I/O matrix: GET happy/empty/unknown/non-UUID/401/403; POST
+  #     impact clean/with-affected/invalid-row/past-effective_from/
+  #     overlap/branch-not-in-doctor/no-auth; POST clean/with-future-impact
+  #     409/empty-rows/past-effective_from/overlap/branch-not-in-doctor/
+  #     unknown-doctor/non-UUID/no-auth/patient-403. Cleanup re-deletes
+  #     schedule rows for the 3 seeded doctors.
+  #   - P-A1 (admin-doctor-schedule.ts): removed LIMIT 200 from impact
+  #     query — the count MUST reflect the true total (truncating at 200
+  #     would silently understate the impact). P0-4 from review-loop-1.
+  #   - P-A2 (admin-doctor-schedule.ts): wired created_by to
+  #     'staff:${req.auth?.claim?.sub ?? 'admin-main'}' instead of
+  #     hardcoded literal; added DB-side pin in test. P0-5 from
+  #     review-loop-1.
+  #   - P-A3 (admin-doctor-schedule.ts): strengthened in-code comment on
+  #     SELECT_AFFECTED_APPOINTMENTS_SQL framing the deferral correctly
+  #     (UTC-as-working-plane over-reports for non-UTC branches; E3-S1
+  #     will join branch.tz and compute day-of-week + time-of-day in
+  #     branch-local TZ).
+  #   - Deferrals: 3 — D1 (PATCH route out of scope per spec Always §31);
+  #     D2 (TZ resolution deferred to E3-S1 availability engine — the
+  #     spec's pinned query uses AT TIME ZONE 'UTC' explicitly;
+  #     switching now would diverge from spec; closed via P-A3 comment
+  #     + SC entry rather than code change); D3 (spec coverage gap on
+  #     impact route missing schedule_rows_overlap envelope — code
+  #     returns it, spec touched up).
+  #   - New files: 3 (helpers, route, test).
+  #   - Modified files: apps/api/src/app.ts (router chain).
+  #   - Testcontainers runtime not available so suite couldn't be re-run.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
+  #   - Spec Change Log: SC2 (review-loop-1 patches + D1/D2/D3 deferrals).
+  #   - Story E2-S1 → done.
+  2-1-configure-weekly-schedule-multi-period-days: done
   2-2-block-time-single-date-range-multi-day: backlog
   2-3-manage-appointment-types-create-edit-deactivate: backlog
   2-4-negative-capability-doctor-cannot-reschedule-ordinary-patient-appointments: backlog
