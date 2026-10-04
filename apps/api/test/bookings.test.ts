@@ -69,6 +69,18 @@ function patientToken(): string {
   });
 }
 
+// E3-S4: receptionist JWT factory. `sub` is the receptionist's user
+// identifier (matches the seeded receptionist.email), `branchIds` is the
+// receptionist's assigned branch (BR-004: exactly one branch).
+function receptionistToken(sub: string, branchIds: readonly string[]): string {
+  return signClaim({
+    sub,
+    role: 'receptionist',
+    branch_ids: branchIds,
+    scope: 'branch',
+  });
+}
+
 async function fetchDoctorByName(name: string): Promise<{ id: string }> {
   const { rows } = await db.pool.query<{ id: string }>(
     `SELECT id FROM doctor WHERE full_name = $1`,
@@ -920,4 +932,248 @@ test('POST /bookings: returning patient with SAME name leaves it unchanged', asy
       cleanup.release();
     }
   }
+});
+
+// ===========================================================================
+// E3-S4 — Receptionist booking on behalf of patient
+// ===========================================================================
+
+async function fetchBranchIdByName(name: string): Promise<{ id: string }> {
+  const { rows } = await db.pool.query<{ id: string }>(
+    `SELECT id FROM branch WHERE name = $1`,
+    [name],
+  );
+  return rows[0]!;
+}
+
+test('POST /bookings: receptionist at branch-east books at branch-east → 201', async () => {
+  // E3-S4 / F-13 happy path. Receptionist JWT with branch_ids=[east]
+  // submits branch_id=east, gets 201 + receptionist-attributed audit.
+  const sub = 'receptionist-east-happy';
+  const doctor = await fetchDoctorByName('Dr. East Lead');
+  const branch = await fetchBranchByName('East Branch');
+  const type = await fetchTypeByName('General Consultation');
+  const date = tomorrowIso();
+  const phone = '+15559990004'; // new phone for this test
+
+  const res = await request(adminApp())
+    .post('/bookings')
+    .set('Authorization', `Bearer ${receptionistToken(sub, [branch.id])}`)
+    .send({
+      doctor_id: doctor.id,
+      branch_id: branch.id,
+      appointment_type_id: type.id,
+      start_datetime: slotIso(date, 9, 30),
+      end_datetime: slotIso(date, 10, 0),
+      slot_duration_minutes: 30,
+      patient_phone: phone,
+      patient_name: 'Walkin Four',
+    });
+  assert.equal(res.status, 201);
+  const appointmentId = res.body['appointment']['id'] as string;
+
+  // Audit row column-level pin (covers SC acceptance criterion: actor_role
+  // + actor_id on the audit row, plus payload.source/actor_sub).
+  const audit = await db.pool.query<{ actor_role: string; actor_id: string; payload: string }>(
+    `SELECT actor_role, actor_id, payload::text AS payload FROM appointment_audit
+       WHERE appointment_id = $1 AND event = 'created'`,
+    [appointmentId],
+  );
+  assert.equal(audit.rows.length, 1);
+  assert.equal(audit.rows[0]!.actor_role, 'receptionist');
+  assert.equal(audit.rows[0]!.actor_id, `staff:${sub}`);
+  const payload = JSON.parse(audit.rows[0]!.payload) as Record<string, unknown>;
+  assert.equal(payload['source'], 'receptionist_book');
+  assert.equal(payload['actor_sub'], sub);
+  assert.equal(payload['patient_name_after'], 'Walkin Four');
+
+  // appointment.created_by is the staff: token.
+  const createdBy = await db.pool.query<{ created_by: string }>(
+    `SELECT created_by FROM appointment WHERE id = $1`,
+    [appointmentId],
+  );
+  assert.equal(createdBy.rows[0]!.created_by, `staff:${sub}`);
+
+  // Cleanup — scoped by appointment_id (test-order independent).
+  const cleanup = await db.pool.connect();
+  try {
+    await cleanup.query(`DELETE FROM appointment WHERE id = $1`, [appointmentId]);
+    await cleanup.query(
+      `DELETE FROM appointment_audit WHERE appointment_id = $1`,
+      [appointmentId],
+    );
+    await cleanup.query(
+      `DELETE FROM patient WHERE phone_number = $1`,
+      [phone],
+    );
+  } finally {
+    cleanup.release();
+  }
+});
+
+test('POST /bookings: receptionist at branch-east cannot book at branch-west → 403', async () => {
+  // E3-S4 branch-scope gate: BR-004 says a receptionist is assigned to
+  // exactly one branch. Submitting the wrong branch must 403, not silently
+  // retarget, and must NOT write any rows.
+  const sub = 'receptionist-east-403';
+  const doctor = await fetchDoctorByName('Dr. West Lead');
+  const branchWest = await fetchBranchIdByName('West Branch');
+  const branchEast = await fetchBranchByName('East Branch');
+  const type = await fetchTypeByName('General Consultation');
+  const date = tomorrowIso();
+
+  const res = await request(adminApp())
+    .post('/bookings')
+    .set('Authorization', `Bearer ${receptionistToken(sub, [branchEast.id])}`)
+    .send({
+      doctor_id: doctor.id,
+      branch_id: branchWest.id,
+      appointment_type_id: type.id,
+      start_datetime: slotIso(date, 11, 0),
+      end_datetime: slotIso(date, 11, 30),
+      slot_duration_minutes: 30,
+      patient_phone: '+15559990005',
+      patient_name: 'Should Not Exist',
+    });
+  assert.equal(res.status, 403);
+  assert.deepEqual(res.body, { error: 'outside_branch_scope' });
+
+  // No appointment or audit row created.
+  const appts = await db.pool.query<{ exists: boolean }>(
+    `SELECT 1 AS exists FROM appointment WHERE patient_phone = $1`,
+    ['+15559990005'],
+  );
+  assert.equal(appts.rows.length, 0);
+  const audits = await db.pool.query<{ exists: boolean }>(
+    `SELECT 1 AS exists FROM appointment_audit
+       WHERE actor_id = $1 AND event = 'created'`,
+    [`staff:${sub}`],
+  );
+  assert.equal(audits.rows.length, 0);
+});
+
+test('POST /bookings: patient JWT bypasses branch-scope gate → 201', async () => {
+  // Control test for E3-S4: the branch gate only fires for role='receptionist'.
+  // A patient JWT with empty branch_ids can submit any branch.
+  const doctor = await fetchDoctorByName('Dr. West Lead');
+  const branchWest = await fetchBranchIdByName('West Branch');
+  const type = await fetchTypeByName('General Consultation');
+  const date = tomorrowIso();
+
+  const res = await request(adminApp())
+    .post('/bookings')
+    .set('Authorization', `Bearer ${patientToken()}`)
+    .send({
+      doctor_id: doctor.id,
+      branch_id: branchWest.id,
+      appointment_type_id: type.id,
+      start_datetime: slotIso(date, 14, 0),
+      end_datetime: slotIso(date, 14, 30),
+      slot_duration_minutes: 30,
+      patient_phone: '+15559990006',
+      patient_name: 'Patient West',
+    });
+  assert.equal(res.status, 201);
+
+  // Cleanup.
+  const cleanup = await db.pool.connect();
+  try {
+    await cleanup.query(
+      `DELETE FROM appointment WHERE patient_phone = $1`,
+      ['+15559990006'],
+    );
+    await cleanup.query(
+      `DELETE FROM appointment_audit WHERE actor_id = $1 AND event = 'created'`,
+      ['patient:+15550000099'],
+    );
+  } finally {
+    cleanup.release();
+  }
+});
+
+test('POST /bookings: receptionist booking a RETURNING patient updates full_name and audit source', async () => {
+  // E3-S4 + E3-S3 interplay: receptionist books an existing seeded patient
+  // with a different name. The UPDATE fires; the audit payload's
+  // `source` is `receptionist_book` (not `self_book`).
+  const sub = 'receptionist-east-returning';
+  const doctor = await fetchDoctorByName('Dr. East Lead');
+  const branch = await fetchBranchByName('East Branch');
+  const type = await fetchTypeByName('General Consultation');
+  const date = tomorrowIso();
+  const phone = '+15550000001'; // seeded as 'Patient One'
+  let appointmentId: string | null = null;
+
+  try {
+    const res = await request(adminApp())
+      .post('/bookings')
+      .set('Authorization', `Bearer ${receptionistToken(sub, [branch.id])}`)
+      .send({
+        doctor_id: doctor.id,
+        branch_id: branch.id,
+        appointment_type_id: type.id,
+        start_datetime: slotIso(date, 10, 0),
+        end_datetime: slotIso(date, 10, 30),
+        slot_duration_minutes: 30,
+        patient_phone: phone,
+        patient_name: 'Patient One Receptionist Rename',
+      });
+    assert.equal(res.status, 201);
+    appointmentId = res.body['appointment']['id'] as string;
+
+    const updated = await db.pool.query<{ full_name: string }>(
+      `SELECT full_name FROM patient WHERE phone_number = $1`,
+      [phone],
+    );
+    assert.equal(updated.rows[0]!.full_name, 'Patient One Receptionist Rename');
+
+    const audit = await db.pool.query<{ actor_role: string; payload: string }>(
+      `SELECT actor_role, payload::text AS payload FROM appointment_audit
+         WHERE appointment_id = $1 AND event = 'created'`,
+      [appointmentId],
+    );
+    assert.equal(audit.rows[0]!.actor_role, 'receptionist');
+    const payload = JSON.parse(audit.rows[0]!.payload) as Record<string, unknown>;
+    assert.equal(payload['source'], 'receptionist_book');
+    assert.equal(payload['patient_name_after'], 'Patient One Receptionist Rename');
+  } finally {
+    const cleanup = await db.pool.connect();
+    try {
+      await cleanup.query(
+        `UPDATE patient SET full_name = 'Patient One' WHERE phone_number = $1`,
+        [phone],
+      );
+      if (appointmentId) {
+        await cleanup.query(`DELETE FROM appointment WHERE id = $1`, [appointmentId]);
+        await cleanup.query(
+          `DELETE FROM appointment_audit WHERE appointment_id = $1`,
+          [appointmentId],
+        );
+      }
+    } finally {
+      cleanup.release();
+    }
+  }
+});
+
+test('POST /bookings: receptionist same-day booking → 409 slot_in_past', async () => {
+  // E3-S4: FR-019 same-day rule still applies to the receptionist flow.
+  const doctor = await fetchDoctorByName('Dr. East Lead');
+  const branch = await fetchBranchByName('East Branch');
+  const type = await fetchTypeByName('General Consultation');
+
+  const res = await request(adminApp())
+    .post('/bookings')
+    .set('Authorization', `Bearer ${receptionistToken('receptionist-east', [branch.id])}`)
+    .send({
+      doctor_id: doctor.id,
+      branch_id: branch.id,
+      appointment_type_id: type.id,
+      start_datetime: slotIso(todayIso(), 12, 0),
+      end_datetime: slotIso(todayIso(), 12, 30),
+      slot_duration_minutes: 30,
+      patient_phone: '+15559990007',
+      patient_name: 'Should Fail Same Day',
+    });
+  assert.equal(res.status, 409);
+  assert.deepEqual(res.body, { error: 'slot_in_past' });
 });

@@ -35,9 +35,17 @@
  * reuse it.
  *
  * Audit (per AD-7 / 0009): a single `created` audit row in the same
- * transaction. `actor_role='patient'` and `actor_id='patient:<phone>'`
- * per FR-024 (the patient is self-booking; the receptionist-on-behalf
- * variant is E3-S4's job). The audit row is INSERT-only — 0009's
+ * transaction. The actor depends on the JWT role:
+ *   - `patient` → `actor_role='patient'`, `actor_id='patient:<phone>'`,
+ *     `payload.source='self_book'` (FR-024; patient is self-booking).
+ *   - `receptionist` → `actor_role='receptionist'`,
+ *     `actor_id='staff:<sub>'`, `payload.source='receptionist_book'`
+ *     (E3-S4 / F-13 / BR-004). The receptionist's branch_ids must
+ *     include `body.branch_id` (403 outside_branch_scope otherwise).
+ *   - `doctor` / `admin` → fall through as `patient` (out of scope for
+ *     E3-S2..E3-S4).
+ * `appointment.created_by` carries the same `staff:<sub>` or
+ * `patient:<phone>` token. The audit row is INSERT-only — 0009's
  * `reject_audit_mutation` trigger raises on UPDATE/DELETE.
  *
  * Implementation note: SC2 documents a deliberate duplication of the
@@ -377,6 +385,22 @@ bookingsRouter.post(
     const body = validated.value;
     const nowMs = Date.now();
 
+    // E3-S4 / F-13 / BR-004: receptionist flow locks branch to the
+    // receptionist's assigned branch (single-branch invariant). The
+    // branch picker is server-trusted here: if the body says branch-west
+    // but the receptionist is at branch-east, we 403 — we do NOT retarget.
+    // Other roles (patient, doctor, admin) bypass this gate; their
+    // branch-scope semantics are out of scope for E3-S4.
+    if (
+      claim.role === 'receptionist' &&
+      !claim.branch_ids.includes(body.branch_id)
+    ) {
+      res.status(403).json({ error: 'outside_branch_scope' });
+      return;
+    }
+    const isReceptionist = claim.role === 'receptionist';
+    const actorSub = claim.sub;
+
     const startMs = Date.parse(body.start_datetime);
     const endMs = Date.parse(body.end_datetime);
     // P1-3: end_datetime MUST equal start_datetime + slot_duration_minutes.
@@ -574,7 +598,16 @@ bookingsRouter.post(
       // INSERT the appointment row. The 0008 GIST exclusion catches any
       // concurrent winner that slipped past the in-txn re-check; the
       // SQLSTATE 23P01 path returns 409 slot_raced.
-      const createdBy = `patient:${body.patient_phone}`;
+      //
+      // E3-S4: the `created_by` column carries the actor of record:
+      //   - patient self-book → `patient:<phone>` (FR-024).
+      //   - receptionist booking on behalf → `staff:<sub>`.
+      // The actor role + actor_id on the audit row below are derived
+      // from the same predicate, so an audit consumer can reconstruct
+      // who pressed the button without joining to the JWT.
+      const createdBy = isReceptionist
+        ? `staff:${actorSub}`
+        : `patient:${body.patient_phone}`;
       let apptRow: {
         id: string;
         clinic_id: string;
@@ -621,19 +654,24 @@ bookingsRouter.post(
       // Append-only audit row (0009's reject_audit_mutation trigger
       // enforces INSERT-only). E3-S3 enriches the payload with
       // `patient_name_after` so audit consumers can see the post-update
-      // name on a returning-patient booking.
+      // name on a returning-patient booking. E3-S4 switches the actor
+      // attribution when the caller is a receptionist.
+      const auditActorRole = isReceptionist ? 'receptionist' : 'patient';
       const auditPayload = JSON.stringify({
         start_datetime: apptRow.start_datetime.toISOString(),
         end_datetime: apptRow.end_datetime.toISOString(),
         appointment_type_id: apptRow.appointment_type_id,
         doctor_id: apptRow.doctor_id,
         branch_id: apptRow.branch_id,
-        source: 'self_book',
+        source: isReceptionist ? 'receptionist_book' : 'self_book',
         patient_name_after: patientNameAfter,
+        // Receptionist-only field; helps audit consumers identify the
+        // human who pressed the button without re-parsing the JWT.
+        ...(isReceptionist ? { actor_sub: actorSub } : {}),
       });
       await client.query(INSERT_AUDIT_SQL, [
         apptRow.id,
-        'patient',
+        auditActorRole,
         createdBy,
         'created',
         auditPayload,

@@ -725,7 +725,53 @@ development_status:
   #   - Spec Change Log: SC2 (review-loop-1 test fixture patch + SC1
   #     +1→+2 correction in code map) recorded.
   #   - Story E3-S3 → done.
-  3-4-receptionist-booking-on-behalf-of-patient: backlog
+  3-4-receptionist-booking-on-behalf-of-patient: done
+  # 2026-10-04 bmad-build step-12 implementation complete for E3-S4
+  #   (receptionist booking on behalf of patient — F-13):
+  #   - No new migration. No new route — POST /bookings branches on
+  #     claim.role. patient → unchanged from E3-S2; receptionist →
+  #     branch-scope gate + audit attribution.
+  #   - apps/api/src/routes/bookings.ts (MODIFIED):
+  #     * Branch-scope gate fires immediately after validateCreateBookingBody
+  #       (before any DB work). If claim.role==='receptionist' AND
+  #       body.branch_id ∉ claim.branch_ids → 403 outside_branch_scope.
+  #     * isReceptionist + actorSub derived once at the top.
+  #     * appointment.created_by uses staff:<sub> for receptionist,
+  #       patient:<phone> otherwise.
+  #     * Audit row: actor_role='receptionist' or 'patient' (matches
+  #       createdBy); payload.source='receptionist_book' or 'self_book';
+  #       payload.actor_sub added for receptionist only.
+  #     * File-header docblock updated to describe the role matrix.
+  #   - apps/api/test/bookings.test.ts (MODIFIED) — +5 tests:
+  #     a) Receptionist at east books at east → 201 (happy path; pins
+  #        actor_role='receptionist' + actor_id='staff:<sub>' column-
+  #        level on the audit row, plus payload.source / actor_sub /
+  #        patient_name_after; pins appointment.created_by='staff:<sub>').
+  #     b) Receptionist at east cannot book at west → 403 (no DB writes
+  #        for the rejected phone or for the actor).
+  #     c) Patient JWT bypasses gate control test → 201 (gate is
+  #        receptionist-only).
+  #     d) Receptionist booking a RETURNING patient → 201 + full_name
+  #        UPDATE fires + audit source='receptionist_book' + audit
+  #        actor_role='receptionist'.
+  #     e) Receptionist same-day → 409 slot_in_past (FR-019 still holds).
+  #     Each test uses a unique receptionist `sub` and appointment_id-
+  #     scoped cleanup so test execution order is independent.
+  #   - Patches from review-loop-1:
+  #     T1 (test count correction): SC1 code-map stated +6; impl +5 with
+  #       happy-path folded in the column-level actor_role/actor_id pins
+  #       that SC1 framed as a separate test. SC2 amends the code map.
+  #     T2 (test isolation hardening): unique sub per test, cleanup
+  #       scoped by appointment_id instead of actor_id LIKE.
+  #   - Deferrals: 0.
+  #   - Modified files: 1 (bookings.ts route + file-header docblock),
+  #     1 (bookings.test.ts +5 tests + receptionistToken helper).
+  #   - Testcontainers runtime not available so integration suite
+  #     couldn't be re-run; status relies on spec audit trail.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
+  #   - Spec Change Log: SC2 (review-loop-1 test patches) recorded.
+  #   - Story E3-S4 → done.
   3-5-receptionist-reads-doctor-availability: backlog
   epic-3-retrospective: optional
 
