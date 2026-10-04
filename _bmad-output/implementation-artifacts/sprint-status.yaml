@@ -532,6 +532,35 @@ development_status:
   #     clarification) recorded.
   #   - Story E2-S3 → done.
   2-3-manage-appointment-types-create-edit-deactivate: done
+  # 2026-10-04 bmad-build step-08 implementation complete for E2-S4
+  #   (negative-capability: doctor cannot reschedule ordinary patient
+  #   appointments):
+  #   - No new source files. No new migration.
+  #   - apps/api/test/doctor-reschedule-negative.test.ts (NEW) — 7 tests:
+  #     dynamic + static assertions of the negative invariant.
+  #     Dynamic tests:
+  #       - Doctor JWT → POST /admin/appointments/:id/reschedule → 403
+  #         (adminScope gate, role !== 'admin').
+  #       - Doctor JWT → POST /admin/appointments/:id (any admin path) → 403.
+  #       - Doctor JWT → PATCH /admin/doctors/:id → 403.
+  #       - Doctor JWT → GET /admin/clinic → 403.
+  #       - Doctor JWT → POST /patient/appointments/:id/reschedule →
+  #         404 today (path absent). Test accepts 403 too, so it
+  #         remains green when E4-S3 ships the patient-reschedule
+  #         route with a role check.
+  #       - Anonymous → POST /admin/appointments/:id/reschedule → 401.
+  #       - Sanity control: admin JWT → GET /admin/clinic → NOT 403.
+  #     Static tests:
+  #       - grep apps/api/src/routes/ for `/doctor/appointments/...
+  #         reschedule` or `/move` → 0 matches. Locks the negative
+  #         capability at the source level: adding such a route in
+  #         the future would fail this test in CI.
+  #   - Deferrals: 0 (no code changes; the adminScope middleware
+  #     already enforces the role gate).
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
+  #   - Story E2-S4 → done.
+  2-4-negative-capability-doctor-cannot-reschedule: done
   2-3-manage-appointment-types-create-edit-deactivate: backlog
   2-4-negative-capability-doctor-cannot-reschedule-ordinary-patient-appointments: backlog
   epic-2-retrospective: optional
