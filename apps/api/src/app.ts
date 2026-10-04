@@ -43,6 +43,7 @@ import { patientCancelRouter } from './routes/patient-cancel.js';
 import { patientRescheduleRouter } from './routes/patient-reschedule.js';
 import { patientDeepLinkRouter } from './routes/patient-deep-link.js';
 import { staffMarkStatusRouter } from './routes/staff-mark-status.js';
+import { staffDoctorCancelRouter } from './routes/staff-doctor-cancel.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminScope } from './middleware/admin-scope.js';
 import { getLogger, requestLogger } from './middleware/log.js';
@@ -144,6 +145,15 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // No-Show (E5-S1, F-10). Mounted AFTER authMiddleware; the route
   // is the role gate. Body schema is the only input.
   app.use(staffMarkStatusRouter);
+
+  // Staff doctor cancel — POST /appointments/:id/cancel.
+  // Doctor cancels a Scheduled appointment on behalf of a patient
+  // (E5-S2, F-10 Cancel branch). Reason is required (BR-037 /
+  // FR-035). Mounted AFTER authMiddleware; the route is the
+  // doctor-only role gate. The patient flow lives under
+  // /patient/appointments/:id/cancel (E4-S2); the receptionist
+  // flow lives at E5-S3.
+  app.use(staffDoctorCancelRouter);
 
   // Admin routes — mounted AFTER authMiddleware. Chained router-level
   // middleware means adminScope gates only `/admin/*`, not every path.
