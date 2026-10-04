@@ -319,7 +319,52 @@ development_status:
   #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
   #   - Spec Change Log: SC1 (review-loop-1 patches) recorded.
   #   - Story E1-S3 → done.
-  1-4-create-deactivate-assign-branch-receptionists: backlog
+  1-4-create-deactivate-assign-branch-receptionists: done
+  # 2026-10-04 bmad-build step-04 implementation complete for E1-S4 (receptionist
+  #   lifecycle — exactly one branch per BR-004):
+  #   - apps/api/db/migrations/0017_receptionist_lifecycle.sql (NEW) — adds
+  #     receptionist.active boolean NOT NULL DEFAULT true via the defensive
+  #     add-then-backfill-then-constrain pattern; idempotent.
+  #   - apps/api/src/routes/admin-branch-receptionists-helpers.ts (NEW) —
+  #     pure validators: isValidFullName, isValidEmail, isValidUuid,
+  #     isValidActive; tagged-union validateCreateReceptionistBody /
+  #     validatePatchReceptionistBody / parseActiveFilter.
+  #   - apps/api/src/routes/admin-branch-receptionists.ts (NEW) — 4 routes
+  #     (POST, GET list with ?active=/?branch_id= filters, GET single, PATCH
+  #     rename / deactivate-with-warning / reassign-branch); PATCH runs in a
+  #     transaction with SELECT FOR UPDATE on the receptionist row; the
+  #     23505 catch inspects err.constraint === 'receptionist_email_key';
+  #     GET list batch-loads branches via id = ANY($1::uuid[]) (N+1 mit).
+  #   - apps/api/src/app.ts (MODIFIED) — chained
+  #     adminBranchReceptionistsRouter into app.use('/admin', ...).
+  #   - apps/api/test/admin-branch-receptionists.test.ts (NEW, 28 tests) —
+  #     full I/O matrix: POST happy/validation/duplicate/branch/auth paths;
+  #     GET list filters (?active=true|false|banana, ?branch_id=); GET single
+  #     happy/unknown/non-UUID/no-auth; PATCH rename / reassign-branch /
+  #     deactivate-clean (warning:null + future_appointment_count:0) /
+  #     deactivate-WITH-future (warning:receptionist_has_future_appointments
+  #     + count≥1, NOT 409) / reactivate / validation / unknown-id; cleanup
+  #     restores seeded Receptionist East/West branch assignments.
+  #   - apps/api/test/migrations.test.ts (MODIFIED) — +2 tests for 0017
+  #     (active NOT NULL DEFAULT true; idempotent re-run preserves schema).
+  #   - P-A1 (admin-branch-receptionists.ts): always emit warning (even null)
+  #     on PATCH response — the route previously omitted it when null, which
+  #     caused the deactivate-clean test's assert.equal(undefined, null) to
+  #     fail under strict-equal. Fix: body2['warning'] = warning;
+  #     unconditional. Future PATCH routes should follow the always-emit
+  #     convention (P0-1 from review-loop-1).
+  #   - Deferrals: 2 — D1 (3 missing patient-JWT 403 tests for GET/GET-id/
+  #     PATCH — spec matrix only pins POST; below ship-blocker);
+  #     D2 (no DB-write pins on POST validation tests — route design
+  #     guarantees no write on 400; cosmetic).
+  #   - New files: 4 (0017 migration, helpers, route, test).
+  #   - Modified files: apps/api/src/app.ts (router chain),
+  #     apps/api/test/migrations.test.ts (+2 tests).
+  #   - Testcontainers runtime not available so suite couldn't be re-run.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
+  #   - Spec Change Log: SC2 (review-loop-1 patches) recorded.
+  #   - Story E1-S4 → done.
   epic-1-retrospective: optional
 
   # Epic 2 — Doctor schedule & types

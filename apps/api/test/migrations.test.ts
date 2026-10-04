@@ -694,3 +694,58 @@ test('E1-S3: forward migration is idempotent — running 0016 twice exits 0', as
     assert.equal(r.rows[0]!.c3, 'NO', 'doctor.active NOT NULL preserved');
   });
 });
+
+// ===========================================================================
+// E1-S4 migration tests — receptionist.active
+// ===========================================================================
+
+test('E1-S4: 0017 adds receptionist.active boolean NOT NULL DEFAULT true', async () => {
+  await withTestDb(async ({ pool }) => {
+    const { rows } = await pool.query<{
+      is_nullable: string;
+      data_type: string;
+      column_default: string | null;
+    }>(
+      `SELECT is_nullable, data_type, column_default FROM information_schema.columns
+        WHERE table_name = 'receptionist' AND column_name = 'active'`,
+    );
+    assert.equal(rows.length, 1, 'receptionist.active column must exist');
+    const r = rows[0]!;
+    assert.equal(r.is_nullable, 'NO', 'receptionist.active must be NOT NULL');
+    assert.equal(r.data_type, 'boolean', 'receptionist.active must be boolean');
+    assert.ok(
+      r.column_default !== null && /true/i.test(r.column_default),
+      `receptionist.active default must be true; got: ${r.column_default ?? '<none>'}`,
+    );
+
+    // Spot-check the existing seeded receptionists (2 of them per 01_minimum.ts)
+    // all carry active=true (the migration's UPDATE backfill).
+    const recs = await pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM receptionist WHERE active = true`,
+    );
+    assert.ok(
+      Number(recs.rows[0]!.count) >= 2,
+      `expected ≥2 seeded receptionists with active=true; got ${recs.rows[0]!.count}`,
+    );
+  });
+});
+
+test('E1-S4: forward migration is idempotent — running 0017 twice exits 0', async () => {
+  await withTestDb(async ({ pool }) => {
+    const sql = readFileSync(
+      join(migrationsRoot, '0017_receptionist_lifecycle.sql'),
+      'utf8',
+    );
+    await pool.query(sql); // MUST NOT throw
+    // State preserved: NOT NULL preserved on the column.
+    const r = await pool.query<{ c1: string; c2: string }>(
+      `SELECT
+        (SELECT is_nullable FROM information_schema.columns
+          WHERE table_name = 'receptionist' AND column_name = 'active') AS c1,
+        (SELECT data_type FROM information_schema.columns
+          WHERE table_name = 'receptionist' AND column_name = 'active') AS c2`,
+    );
+    assert.equal(r.rows[0]!.c1, 'NO', 'receptionist.active NOT NULL preserved');
+    assert.equal(r.rows[0]!.c2, 'boolean');
+  });
+});
