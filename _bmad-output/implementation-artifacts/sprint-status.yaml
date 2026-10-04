@@ -425,7 +425,60 @@ development_status:
   #   - Spec Change Log: SC2 (review-loop-1 patches + D1/D2/D3 deferrals).
   #   - Story E2-S1 → done.
   2-1-configure-weekly-schedule-multi-period-days: done
-  2-2-block-time-single-date-range-multi-day: backlog
+  # 2026-10-04 bmad-build step-06 implementation complete for E2-S2 (block
+  #   time — single date / range / multi-day time-off windows):
+  #   - No new migration: 0007 already has every column
+  #     (doctor_block with start_datetime, end_datetime, reason,
+  #     created_by, created_at, updated_at). Blocks are immutable —
+  #     no PATCH; to "edit" a block the admin deletes + re-creates.
+  #   - apps/api/src/routes/admin-doctor-block-helpers.ts (NEW) — pure
+  #     validators: isValidUuid, isValidDateTimeString (ISO 8601 with TZ),
+  #     maskPhone (+1XXXXXXXXXX matching E1-S2/E2-S1 invariant),
+  #     normalizeReason (trim, clamp 500 chars, NULL passthrough),
+  #     validateCreateBlockBody (tagged union with start_in_past as
+  #     distinct code per SC2).
+  #   - apps/api/src/routes/admin-doctor-block.ts (NEW) — 4 routes:
+  #     GET /admin/doctors/:id/blocks (list with optional ?from=/?to=
+  #     query filters applied to start_datetime);
+  #     POST /admin/doctors/:id/blocks-impact (preview, NO DB write;
+  #     masked patient_phone in affected_appointments);
+  #     POST /admin/doctors/:id/blocks (create inside txn with
+  #       SELECT FOR UPDATE on the doctor row; impact check runs inside
+  #       the txn for TOCTOU safety; 409 with masked list on conflict;
+  #       created_by = 'staff:' + req.auth.claim.sub);
+  #     DELETE /admin/doctors/:id/blocks/:block_id (filters by both
+  #       id AND doctor_id to prevent cross-doctor DELETE).
+  #   - apps/api/src/app.ts (MODIFIED) — chained adminDoctorBlockRouter
+  #     into the /admin mount.
+  #   - apps/api/test/admin-doctor-block.test.ts (NEW, ~17 tests) —
+  #     full I/O matrix: GET happy/unknown/non-UUID/401/403-patient;
+  #     POST-impact clean/with-overlap/invalid-time-range/past/
+  #     branch-not-in-doctor/unknown-doctor; POST clean/with-overlap
+  #     409 (with DB pin: 0 rows after rollback)/past/invalid-time/
+  #     branch-not-in-doctor/unknown-doctor/no-auth;
+  #     DELETE happy/unknown/non-UUID-doctor/non-UUID-block/no-auth.
+  #     Cleanup deletes block rows for the 3 seeded doctors.
+  #   - Review-loop-1 patches (reviewer: verification-gap lens):
+  #     P0-1 (spec matrix vs impl): past start envelope changed from
+  #       invalid_time_range → start_in_past. More specific envelope
+  #       for admin UI; matches E2-S1's invalid_effective_from pattern.
+  #       Spec matrix row 58 + acceptance criterion line 115 amended.
+  #     P0-2 (test fixture): isoOffsetDays now pins midnight UTC via
+  #       setUTCHours(0,0,0,0). Without the floor, callers' .replace
+  #       trick was a no-op mid-day UTC and end_datetime equaled
+  #       start_datetime → invalid_time_range. Fix is pure test
+  #       fixture, no production change.
+  #   - Deferrals: 0 (everything was either a real bug or noise).
+  #   - New files: 3 (helpers, route, test).
+  #   - Modified files: apps/api/src/app.ts (router chain),
+  #     _bmad-output/.../spec-2-2-block-time.md (status: done + SC2).
+  #   - Testcontainers runtime not available so suite couldn't be re-run.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
+  #   - Spec Change Log: SC2 (review-loop-1 patches + envelope
+  #     disambiguation) recorded.
+  #   - Story E2-S2 → done.
+  2-2-block-time-single-date-range-multi-day: done
   2-3-manage-appointment-types-create-edit-deactivate: backlog
   2-4-negative-capability-doctor-cannot-reschedule-ordinary-patient-appointments: backlog
   epic-2-retrospective: optional
