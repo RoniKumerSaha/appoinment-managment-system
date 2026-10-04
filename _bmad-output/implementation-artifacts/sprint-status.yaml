@@ -1008,7 +1008,7 @@ development_status:
   5-2-doctor-cancellation-with-reason: done
   5-3-receptionist-cancellation-with-reason: done
   5-4-todays-branch-view-receptionist-dashboard: done
-  5-5-no-deletion-negative-test: backlog
+  5-5-no-deletion-negative-test: done
   epic-5-retrospective: optional
 
   # Epic 6 — Recurring & conflict resolution
