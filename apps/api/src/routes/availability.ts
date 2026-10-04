@@ -16,6 +16,12 @@
  * unauthenticated browsing is NOT supported; the OTP login gate runs
  * first. The route does NOT enforce a specific role — every role
  * needs to read availability for the booking flow.
+ *
+ * E3-S5 / F-15: when `claim.role === 'receptionist'`, the route locks
+ * the `branch_id` query param to the receptionist's `branch_ids`
+ * (BR-004 single-branch invariant). Same gate as E3-S4's POST
+ * /bookings. The doctor-at-branch rule is the engine's existing
+ * `doctor_not_at_branch` 400 envelope (E3-S1).
  */
 import { Router, type Request, type Response } from 'express';
 import {
@@ -81,6 +87,20 @@ availabilityRouter.get(
     }
     if (patientPhone !== null && !E164_PHONE_RE.test(patientPhone)) {
       res.status(400).json({ error: 'invalid_patient_phone' });
+      return;
+    }
+
+    // E3-S5 / F-15 / BR-004: receptionist flow locks branch to the
+    // receptionist's assigned branch (single-branch invariant). The
+    // branch picker is server-trusted here: if the query says branch-west
+    // but the receptionist is at branch-east, we 403 — we do NOT retarget.
+    // Other roles (patient, doctor, admin) bypass this gate; their
+    // branch-scope semantics are out of scope for E3-S5.
+    if (
+      claim.role === 'receptionist' &&
+      !claim.branch_ids.includes(branchId)
+    ) {
+      res.status(403).json({ error: 'outside_branch_scope' });
       return;
     }
 

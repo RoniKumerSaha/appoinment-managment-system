@@ -260,3 +260,89 @@ test('GET /availability: happy path returns valid slot list', async () => {
     assert.ok(s.end_datetime > s.start_datetime);
   }
 });
+
+// ===========================================================================
+// E3-S5 — Receptionist reads doctor availability (F-15)
+// ===========================================================================
+
+function receptionistToken(sub: string, branchIds: readonly string[]): string {
+  return signClaim({
+    sub,
+    role: 'receptionist',
+    branch_ids: branchIds,
+    scope: 'branch',
+  });
+}
+
+test('GET /availability: receptionist at branch-east reads branch-east → 200', async () => {
+  // E3-S5 happy path. Receptionist with branch_ids=[east] queries east;
+  // gets the same slot list a patient would.
+  const doctor = await fetchDoctorByName('Dr. East Lead');
+  const branch = await fetchBranchByName('East Branch');
+  const type = await fetchTypeByName('General Consultation');
+  const res = await request(adminApp())
+    .get(
+      `/availability?doctor_id=${doctor.id}&branch_id=${branch.id}&date=${tomorrowIso()}&appointment_type_id=${type.id}`,
+    )
+    .set('Authorization', `Bearer ${receptionistToken('receptionist-east', [branch.id])}`);
+  assert.equal(res.status, 200);
+  assert.ok(Array.isArray(res.body.slots));
+  assert.ok(res.body.slots.length > 0);
+  // Response shape must match E3-S1: each slot has start/end ISO
+  // timestamps; no PII (no patient fields).
+  for (const s of res.body.slots) {
+    assert.ok(typeof s.start_datetime === 'string');
+    assert.ok(typeof s.end_datetime === 'string');
+    assert.ok(s.end_datetime > s.start_datetime);
+    assert.equal(s['patient_name'], undefined);
+    assert.equal(s['patient_phone'], undefined);
+  }
+});
+
+test('GET /availability: receptionist queries doctor NOT at their branch → 400 doctor_not_at_branch', async () => {
+  // E3-S5 AC: receptionist at east queries west-lead with branch_id=east
+  // → engine's doctor_not_at_branch (receptionist branch gate is
+  // satisfied — they ARE querying their own branch — but the doctor
+  // isn't at their branch).
+  const doctor = await fetchDoctorByName('Dr. West Lead');
+  const branchEast = await fetchBranchByName('East Branch');
+  const type = await fetchTypeByName('General Consultation');
+  const res = await request(adminApp())
+    .get(
+      `/availability?doctor_id=${doctor.id}&branch_id=${branchEast.id}&date=${tomorrowIso()}&appointment_type_id=${type.id}`,
+    )
+    .set('Authorization', `Bearer ${receptionistToken('receptionist-east', [branchEast.id])}`);
+  assert.equal(res.status, 400);
+  assert.deepEqual(res.body, { error: 'doctor_not_at_branch' });
+});
+
+test('GET /availability: receptionist at branch-east reads branch-west → 403 outside_branch_scope', async () => {
+  // E3-S5 branch-scope gate mirrors E3-S4. Receptionist cannot probe
+  // another branch's availability; the request 403s before any DB work.
+  const doctor = await fetchDoctorByName('Dr. West Lead');
+  const branchEast = await fetchBranchByName('East Branch');
+  const branchWest = await fetchBranchByName('West Branch');
+  const type = await fetchTypeByName('General Consultation');
+  const res = await request(adminApp())
+    .get(
+      `/availability?doctor_id=${doctor.id}&branch_id=${branchWest.id}&date=${tomorrowIso()}&appointment_type_id=${type.id}`,
+    )
+    .set('Authorization', `Bearer ${receptionistToken('receptionist-east', [branchEast.id])}`);
+  assert.equal(res.status, 403);
+  assert.deepEqual(res.body, { error: 'outside_branch_scope' });
+});
+
+test('GET /availability: patient JWT bypasses receptionist branch gate → 200', async () => {
+  // Control test: branch gate is receptionist-only. A patient JWT can
+  // query any branch's availability (the patient picker is upstream-side).
+  const doctor = await fetchDoctorByName('Dr. West Lead');
+  const branchWest = await fetchBranchByName('West Branch');
+  const type = await fetchTypeByName('General Consultation');
+  const res = await request(adminApp())
+    .get(
+      `/availability?doctor_id=${doctor.id}&branch_id=${branchWest.id}&date=${tomorrowIso()}&appointment_type_id=${type.id}`,
+    )
+    .set('Authorization', `Bearer ${patientToken()}`);
+  assert.equal(res.status, 200);
+  assert.ok(Array.isArray(res.body.slots));
+});

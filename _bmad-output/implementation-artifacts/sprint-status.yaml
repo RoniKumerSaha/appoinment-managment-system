@@ -772,7 +772,49 @@ development_status:
   #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
   #   - Spec Change Log: SC2 (review-loop-1 test patches) recorded.
   #   - Story E3-S4 → done.
-  3-5-receptionist-reads-doctor-availability: backlog
+  3-5-receptionist-reads-doctor-availability: done
+  # 2026-10-04 bmad-build step-13 implementation complete for E3-S5
+  #   (receptionist reads doctor availability — F-15):
+  #   - No new migration. No new route — GET /availability branches on
+  #     claim.role. patient / doctor / admin → unchanged; receptionist →
+  #     branch-scope gate.
+  #   - apps/api/src/routes/availability.ts (MODIFIED):
+  #     * Branch-scope gate added immediately after E3-S1 validation
+  #       (UUID/date/phone checks), before computeAvailability. Position
+  #       mirrors E3-S4's POST /bookings gate.
+  #     * Gate: claim.role==='receptionist' AND branch_id ∉ branch_ids
+  #       → 403 outside_branch_scope.
+  #     * File-header docblock updated to mention E3-S5.
+  #     * No-PII invariant satisfied by construction: E3-S1's response
+  #       shape is {slots: [{start_datetime, end_datetime}, ...]} —
+  #       no patient fields. F-15's "no PII beyond first-name initial"
+  #       rule is honored.
+  #   - apps/api/test/availability-route.test.ts (MODIFIED) — +4 tests:
+  #     a) Receptionist at east reads east → 200 + slot shape pin
+  #        (start/end ISO, no patient_name/patient_phone fields).
+  #     b) Receptionist at east reads west → 403 outside_branch_scope.
+  #     c) Receptionist queries doctor-not-at-branch (west-lead at east)
+  #        → 400 doctor_not_at_branch (engine enforces; gate satisfied).
+  #     d) Patient JWT bypasses gate control test → 200.
+  #   - Patches from review-loop-1:
+  #     B1 (gate placement): SC1 Code Map originally said "before
+  #       validation." Reviewer flagged the deviation. Final placement
+  #       is AFTER validation (consistent with E3-S4). Code Map amended
+  #       in SC2.
+  #     T1 (missing AC test): AC #4 had no coverage; added test (c)
+  #       asserting doctor_not_at_branch fires for the receptionist
+  #       flow when they query a doctor not at their branch.
+  #     T2 (slot shape pin): receptionist happy-path test now asserts
+  #       no patient_name / patient_phone in any slot.
+  #   - Deferrals: 0.
+  #   - Modified files: 2 (availability.ts route + file-header docblock;
+  #     availability-route.test.ts +4 tests + receptionistToken helper).
+  #   - Testcontainers runtime not available so integration suite
+  #     couldn't be re-run; status relies on spec audit trail.
+  #   - Typecheck: 0 new errors (3 pre-existing baseline errors unchanged).
+  #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
+  #   - Spec Change Log: SC2 (review-loop-1 patches) recorded.
+  #   - Story E3-S5 → done.
   epic-3-retrospective: optional
 
   # Epic 4 — Patient self-service
