@@ -288,6 +288,22 @@ development_status:
   # ClinicSettings.tsx unchanged). E7-S1 invariant: 0 hex literals outside
   # tokens.css. Story E1-S2-ui → done.
   1-2-ui-admin-branch-hours: done
+  # 2026-10-06 E1-S4-ui implementation complete; spec-1-4-ui-admin-receptionists.md
+  # recorded. Pixel-perfect mockup 19-B card-grid port (1300px frame with
+  # filter bar + auto-fill 310px card grid). Each card has head (initials
+  # avatar + name-block + Active/Inactive pill), branch-locked tile
+  # (📍 ic + "Assigned branch" + 🔒 for BR-004 single-branch invariant),
+  # stats placeholder grid, and Edit / (Deactivate|Reactivate) actions.
+  # "+ Add" card at end of grid opens create modal. F-19 non-blocking
+  # deactivate surfaces the API's `warning: 'receptionist_has_future_appointments'`
+  # + `future_appointment_count` as a yellow warning banner (no 409 here,
+  # unlike branches). Edit modal also exposes branch reassignment +
+  # status toggle. AppShell's `isImplemented()` now returns true for
+  # `'receptionists'`. New --container-grid: 1300px token added. 8 deferrals
+  # (E1-S4-ui-defer-a through -h). typecheck: 0 errors. lint: 0 new errors
+  # (2 pre-existing baseline in ClinicSettings.tsx unchanged). E7-S1
+  # invariant: 0 hex literals outside tokens.css. Story E1-S4-ui → done.
+  1-4-ui-admin-receptionists: done
   # 2026-09-14 E1-S1 code-review pass complete (review_loop_iteration=1,
   # baseline_commit=4a107a35-3dfe... after Step-03 implementation):
   #   - 3 reviewer subagents (verification-gap, blind-hunter, edge-case-hunter)

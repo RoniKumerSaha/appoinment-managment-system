@@ -316,3 +316,73 @@ export function patchBranchHours(
     },
   );
 }
+
+// ─── Receptionists (E1-S4) ─────────────────────────────────────
+
+export interface ReceptionistBranchDto {
+  id: string;
+  name: string;
+  tz: string;
+  active: boolean;
+}
+
+export interface ReceptionistWithBranchDto {
+  id: string;
+  branch_id: string;
+  full_name: string;
+  email: string;
+  active: boolean;
+  branch: ReceptionistBranchDto;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReceptionistPatchResponse extends ReceptionistWithBranchDto {
+  warning: string | null;
+  future_appointment_count: number;
+}
+
+export function listReceptionists(filter?: {
+  active?: boolean;
+  branch_id?: string;
+}): Promise<ReceptionistWithBranchDto[]> {
+  const params: string[] = [];
+  if (typeof filter?.active === 'boolean') {
+    params.push(`active=${filter.active ? 'true' : 'false'}`);
+  }
+  if (filter?.branch_id) {
+    params.push(`branch_id=${encodeURIComponent(filter.branch_id)}`);
+  }
+  const qs = params.length > 0 ? `?${params.join('&')}` : '';
+  return request<ReceptionistWithBranchDto[]>(`/admin/receptionists${qs}`, {
+    method: 'GET',
+  });
+}
+
+export function getReceptionist(id: string): Promise<ReceptionistWithBranchDto> {
+  return request<ReceptionistWithBranchDto>(
+    `/admin/receptionists/${id}`,
+    { method: 'GET' },
+  );
+}
+
+export function createReceptionist(input: {
+  full_name: string;
+  email: string;
+  branch_id: string;
+}): Promise<ReceptionistWithBranchDto> {
+  return request<ReceptionistWithBranchDto>('/admin/receptionists', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function patchReceptionist(
+  id: string,
+  body: { full_name?: string; active?: boolean; branch_id?: string },
+): Promise<ReceptionistPatchResponse> {
+  return request<ReceptionistPatchResponse>(`/admin/receptionists/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}

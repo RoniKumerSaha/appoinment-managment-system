@@ -98,6 +98,7 @@
   /* ── Container widths (§4.1) ───────────────────────────────────── */
   --container-stacked: 760px;
   --container-wide: 1080px;
+  --container-grid: 1300px;
 
   /* ── Radius (§5) ───────────────────────────────────────────────── */
   --radius-xs: 4px;

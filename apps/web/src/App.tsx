@@ -15,6 +15,7 @@ import { AppShell, type AdminSection, type AdminSubPage } from './AppShell';
 import { ClinicSettings } from './pages/ClinicSettings';
 import { AdminBranches } from './pages/AdminBranches';
 import { AdminBranchHours } from './pages/AdminBranchHours';
+import { AdminReceptionists } from './pages/AdminReceptionists';
 import { LoginPage } from './pages/LoginPage';
 import { useAuth, clearAuth } from './auth/store';
 import { setOnUnauthorized, getMe, ApiError } from './api/client';
@@ -115,6 +116,7 @@ export function App() {
       {!sub && active === 'branches' && (
         <AdminBranches onOpenBranchHours={onOpenBranchHours} />
       )}
+      {!sub && active === 'receptionists' && <AdminReceptionists />}
     </AppShell>
   );
 }

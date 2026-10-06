@@ -63,7 +63,7 @@ export function AppShell({ active, onNavigate, children }: AppShellProps) {
   };
 
   const isImplemented = (key: AdminSection): boolean =>
-    key === 'clinic' || key === 'branches';
+    key === 'clinic' || key === 'branches' || key === 'receptionists';
 
   return (
     <div className="shell">
