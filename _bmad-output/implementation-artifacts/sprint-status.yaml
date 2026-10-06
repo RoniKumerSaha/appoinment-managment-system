@@ -44,6 +44,11 @@
 
 generated: 09-08-2026 12:00
 last_updated: 2026-10-06
+# 2026-10-06 E5-S1/S2-ui implementation complete (doctor mark-status
+# + cancel-with-reason — mockups 12 right-detail condensed, 25
+# stacked-vertical condensed); spec-5-1-2-ui-doctor-mark-cancel.md
+# recorded; 4 deferrals (D-E5-S1-UI-1..4); no tests in this pass;
+# token-only CSS verified (0 hex literals in 2 new files).
 # 2026-10-06 E7-S2-ui implementation complete (doctor audit drawer —
 # mock 30 right-side slide-in); spec-7-2-ui-audit-drawers.md recorded;
 # 5 deferrals (D-E7-S-UI-1..5); no tests in this pass; token-only
@@ -1605,6 +1610,56 @@ development_status:
   #   - Hex literal scan: 0 matches in any new file (E7-S1
   #     invariant holds).
   #   - Story E5-S3/S4-ui → done.
+  5-1-2-ui-doctor-mark-cancel: done
+  # 2026-10-06 E5-S1/S2-ui implementation complete (doctor mark-status
+  #   + cancel-with-reason — F-10 subset, BR-037/039/040, FR-035/037;
+  #   mockups 12 right-detail condensed as 480px modal, 25
+  #   stacked-vertical condensed as 560px modal):
+  #   - apps/web/src/api/client.ts (EDIT) — added MarkStatus union
+  #     ('Completed' | 'No-Show') + MarkStatusInput /
+  #     MarkStatusAppointment / MarkStatusResponse + markAppointmentStatus.
+  #     Added DoctorCancelInput / DoctorCancelAppointment /
+  #     DoctorCancelResponse + doctorCancel.
+  #   - apps/web/src/pages/DoctorMarkStatus.tsx (NEW, ~190 lines) +
+  #     DoctorMarkStatus.module.css (NEW) — 480px modal centered on
+  #     var(--scrim). Two-button grid (Completed ✓ / No-Show ⚠); the
+  #     Completed button uses var(--success-text) with
+  #     var(--success-badge-bg) hover; No-Show uses var(--on-warning)
+  #     with var(--warning-soft) hover. Audit-note footer explains
+  #     "marked_<status> · actor=you · doctor · payload={}" (BR-039/040).
+  #     Map all 422 / 403 / 404 / 401 / 400 envelopes to friendly
+  #     strings; pop animation respects prefers-reduced-motion.
+  #   - apps/web/src/pages/DoctorCancel.tsx (NEW, ~280 lines) +
+  #     DoctorCancel.module.css (NEW) — 560px modal. Reason presets
+  #     (Patient requested / Doctor unavailable / Scheduling conflict /
+  #     Other — last requires the freeform note). Textarea max 500
+  #     chars (matches server REASON_MAX). Impact banner
+  #     (var(--danger-bg)) explains the slot-release semantics. Red
+  #     "Confirm cancel + release slot" CTA. Audit-row footer shows
+  #     payload={reason, recurring_origin?}. Maps 400 reason_required,
+  #     400 reason_too_long, 422 already_in_terminal_state, 401, 403,
+  #     404 to friendly strings.
+  #   - apps/web/src/pages/DoctorAffected.tsx (EDIT) — new state
+  #     cancelId + markId; new handlers onOpenCancel / onCloseCancel /
+  #     onCancelled / onOpenMark / onCloseMark / onMarked; new helpers
+  #     rowById / isPastRow. Every non-resolved kanban card now
+  #     renders Cancel (red outline) + Mark status (ghost, only when
+  #     the row is in the past — defense-in-depth against 422
+  #     appointment_in_future). The new modals render at the bottom
+  #     of the page in the same overlay pattern as DoctorResolve /
+  #     DoctorAuditDrawer.
+  #   - apps/web/src/pages/DoctorAffected.module.css (EDIT) — added
+  #     .doc-aff__card-btn--danger (red outline) variant; added
+  #     flex-wrap: wrap on .doc-aff__card-actions so 4 buttons
+  #     (Move/Continue + Audit log + Cancel + Mark status) wrap
+  #     cleanly on narrow kanban columns.
+  #   - Deferrals: 4 (D-E5-S1-UI-1..4). The big one is
+  #     D-E5-S1-UI-1: the mock 12 "Today" queue (left list + right
+  #     detail) is a separate surface. The right-detail content is
+  #     what ships here as the standalone modal.
+  #   - No tests in this pass (per user instruction).
+  #   - Token-only CSS verified (0 hex literals in 2 new files).
+  #   - Spec: spec-5-1-2-ui-doctor-mark-cancel.md recorded.
   epic-5-retrospective: done
 
   # Epic 6 — Recurring & conflict resolution

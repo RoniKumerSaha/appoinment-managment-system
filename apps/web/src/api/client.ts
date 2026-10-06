@@ -1101,6 +1101,78 @@ export function doctorMove(
   );
 }
 
+// E5-S1 — staff mark-status (Completed | No-Show). The body
+// schema accepts `{status: 'Completed' | 'No-Show'}` only.
+// Atomic + GIST-protected (E5-S1 spec). Returns the updated
+// appointment row.
+export type MarkStatus = 'Completed' | 'No-Show';
+
+export interface MarkStatusInput {
+  status: MarkStatus;
+}
+
+export interface MarkStatusAppointment {
+  id: string;
+  branch_id: string;
+  doctor_id: string;
+  appointment_type_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  status: MarkStatus;
+}
+
+export interface MarkStatusResponse {
+  appointment: MarkStatusAppointment;
+}
+
+export function markAppointmentStatus(
+  appointmentId: string,
+  input: MarkStatusInput,
+): Promise<MarkStatusResponse> {
+  return request<MarkStatusResponse>(
+    `/appointments/${encodeURIComponent(appointmentId)}/mark-status`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+// E5-S2 — staff doctor cancel. Reason required (FR-035 /
+// BR-037). The body schema accepts `{reason: string}`. The
+// server trims + caps at 500 chars. The doctor is the actor
+// (claim.role === 'doctor', doubly-bound scope).
+export interface DoctorCancelInput {
+  reason: string;
+}
+
+export interface DoctorCancelAppointment {
+  id: string;
+  branch_id: string;
+  doctor_id: string;
+  appointment_type_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  status: 'Cancelled';
+}
+
+export interface DoctorCancelResponse {
+  appointment: DoctorCancelAppointment;
+}
+
+export function doctorCancel(
+  appointmentId: string,
+  input: DoctorCancelInput,
+): Promise<DoctorCancelResponse> {
+  return request<DoctorCancelResponse>(
+    `/appointments/${encodeURIComponent(appointmentId)}/cancel`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+}
+
 // ─── Appointment audit reads (E7-S2) ───────────────────────
 
 // E7-S2 — doctor audit drawer (mock 30). Per-appointment

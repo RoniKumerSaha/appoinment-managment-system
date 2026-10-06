@@ -247,6 +247,7 @@
 .doc-aff__card-actions {
   display: flex;
   gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .doc-aff__card-btn {
@@ -281,6 +282,18 @@
   background: var(--brand-primary-hover);
   border-color: var(--brand-primary-hover);
   color: var(--on-brand);
+}
+
+/* Danger "Cancel" button — red outline. */
+.doc-aff__card-btn--danger {
+  color: var(--danger-strong);
+  border-color: var(--danger-border);
+}
+
+.doc-aff__card-btn--danger:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger-strong);
+  color: var(--danger-strong);
 }
 
 .doc-aff__empty {

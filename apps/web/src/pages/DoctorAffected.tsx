@@ -35,7 +35,9 @@ import {
   type PublicBranchDto,
 } from '../api/client';
 import { useAuth } from '../auth/store';
+import { DoctorCancel } from './DoctorCancel';
 import { DoctorFrame } from './DoctorFrame';
+import { DoctorMarkStatus } from './DoctorMarkStatus';
 import { DoctorResolve } from './DoctorResolve';
 import { DoctorResolutionSaved } from './DoctorResolutionSaved';
 import {
@@ -82,6 +84,62 @@ function describeError(err: unknown): string {
     return 'Connection failed. Is the API running on :3001?';
   }
   return 'Could not load the affected queue.';
+}
+
+function describeCancelError(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 401) return 'Session expired. Please sign in again.';
+    if (err.status === 422 && err.code === 'already_in_terminal_state') {
+      return 'This appointment is no longer Scheduled.';
+    }
+    if (err.status === 403) {
+      return 'You do not have access to this appointment.';
+    }
+    if (err.status === 404) {
+      return 'That appointment no longer exists.';
+    }
+    if (err.status === 400) {
+      if (err.code === 'reason_required') {
+        return 'A reason is required.';
+      }
+      if (err.code === 'reason_too_long') {
+        return 'Reason is too long (500 char max).';
+      }
+    }
+    return `Could not cancel (${err.code}).`;
+  }
+  if (err instanceof TypeError) {
+    return 'Connection failed. Is the API running on :3001?';
+  }
+  return 'Could not cancel the appointment.';
+}
+
+function describeMarkError(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 401) return 'Session expired. Please sign in again.';
+    if (err.status === 422) {
+      if (err.code === 'already_in_terminal_state') {
+        return 'This appointment is no longer Scheduled.';
+      }
+      if (err.code === 'appointment_in_future') {
+        return 'You can only mark past appointments.';
+      }
+    }
+    if (err.status === 403) {
+      return 'You do not have access to this appointment.';
+    }
+    if (err.status === 404) {
+      return 'That appointment no longer exists.';
+    }
+    if (err.status === 400 && err.code === 'invalid_status') {
+      return 'Pick Completed or No-Show.';
+    }
+    return `Could not mark status (${err.code}).`;
+  }
+  if (err instanceof TypeError) {
+    return 'Connection failed. Is the API running on :3001?';
+  }
+  return 'Could not update the status.';
 }
 
 function describeMoveError(err: unknown): string {
@@ -182,6 +240,10 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
     null,
   );
 
+  // Cancel + mark-status flow state (E5-S1, E5-S2).
+  const [cancelId, setCancelId] = useState<string | null>(null);
+  const [markId, setMarkId] = useState<string | null>(null);
+
   const refresh = useCallback(async (): Promise<void> => {
     setLoading(true);
     setErr(null);
@@ -244,6 +306,40 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
     await refresh();
   }, [refresh]);
 
+  const onOpenCancel = useCallback((id: string): void => {
+    setCancelId(id);
+  }, []);
+
+  const onCloseCancel = useCallback((): void => {
+    setCancelId(null);
+  }, []);
+
+  const onCancelled = useCallback(
+    async (reason: string): Promise<void> => {
+      setCancelId(null);
+      setToast(`Appointment cancelled · ${reason}`);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const onOpenMark = useCallback((id: string): void => {
+    setMarkId(id);
+  }, []);
+
+  const onCloseMark = useCallback((): void => {
+    setMarkId(null);
+  }, []);
+
+  const onMarked = useCallback(
+    async (status: 'Completed' | 'No-Show'): Promise<void> => {
+      setMarkId(null);
+      setToast(`Marked as ${status}.`);
+      await refresh();
+    },
+    [refresh],
+  );
+
   // Masked branch id fallback.
   const maskedBranch = (id: string): string => {
     const b = branches.get(id);
@@ -255,6 +351,23 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
     const b = branches.get(row.branch_id);
     return b?.tz ?? 'UTC';
   };
+
+  // Look up a row by id (the cancel / mark-status modals need the
+  // full appointment payload).
+  const rowById = useCallback(
+    (id: string): DoctorAffectedAppointment | null => {
+      if (rows === null) return null;
+      return rows.find((r) => r.appointment_id === id) ?? null;
+    },
+    [rows],
+  );
+
+  // Was the row's start_datetime in the past (mark-status precond)?
+  // Past rows are markable; future rows surface
+  // appointment_in_future. E5-S1's time gate.
+  const isPastRow = useCallback((r: DoctorAffectedAppointment): boolean => {
+    return new Date(r.start_datetime).getTime() <= Date.now();
+  }, []);
 
   // Display rows that should appear in "To do" / "In progress" /
   // "Awaiting slot choice" / "Resolved". Resolved rows are
@@ -351,6 +464,25 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                     Audit log
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="doc-aff__card-btn doc-aff__card-btn--danger"
+                  onClick={() => onOpenCancel(row.id)}
+                >
+                  Cancel
+                </button>
+                {(() => {
+                  const r = rowById(row.id);
+                  return r !== null && isPastRow(r) ? (
+                    <button
+                      type="button"
+                      className="doc-aff__card-btn"
+                      onClick={() => onOpenMark(row.id)}
+                    >
+                      Mark status
+                    </button>
+                  ) : null;
+                })()}
               </>
             )}
           />
@@ -389,7 +521,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                 {onOpenAudit && (
                   <button
                     type="button"
-                    className="doc-aff__card-btn doc-aff__card-btn--ghost"
+                    className="doc-aff__card-btn"
                     onClick={() =>
                       onOpenAudit({
                         appointmentId: row.id,
@@ -402,6 +534,25 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                     Audit log
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="doc-aff__card-btn doc-aff__card-btn--danger"
+                  onClick={() => onOpenCancel(row.id)}
+                >
+                  Cancel
+                </button>
+                {(() => {
+                  const r = rowById(row.id);
+                  return r !== null && isPastRow(r) ? (
+                    <button
+                      type="button"
+                      className="doc-aff__card-btn"
+                      onClick={() => onOpenMark(row.id)}
+                    >
+                      Mark status
+                    </button>
+                  ) : null;
+                })()}
               </>
             )}
             active
@@ -503,6 +654,48 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
           }}
         />
       )}
+
+      {cancelId !== null && rowById(cancelId) !== null && (() => {
+        const target = rowById(cancelId);
+        if (target === null) return null;
+        return (
+          <DoctorCancel
+            appointment={{
+              id: target.appointment_id,
+              branchTz: tzForRow(target),
+              start_datetime: target.start_datetime,
+              end_datetime: target.end_datetime,
+              patientLabel: patientLabelFromPhone(target.patient_phone),
+              maskedPhone: maskPhone(target.patient_phone),
+              branchName: maskedBranch(target.branch_id),
+            }}
+            onCancel={onCloseCancel}
+            onCancelled={onCancelled}
+            describeError={describeCancelError}
+          />
+        );
+      })()}
+
+      {markId !== null && rowById(markId) !== null && (() => {
+        const target = rowById(markId);
+        if (target === null) return null;
+        return (
+          <DoctorMarkStatus
+            appointment={{
+              id: target.appointment_id,
+              branchTz: tzForRow(target),
+              start_datetime: target.start_datetime,
+              end_datetime: target.end_datetime,
+              patientLabel: patientLabelFromPhone(target.patient_phone),
+              maskedPhone: maskPhone(target.patient_phone),
+              branchName: maskedBranch(target.branch_id),
+            }}
+            onCancel={onCloseMark}
+            onMarked={onMarked}
+            describeError={describeMarkError}
+          />
+        );
+      })()}
     </DoctorFrame>
   );
 }
