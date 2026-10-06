@@ -75,7 +75,8 @@ export function AppShell({ active, onNavigate, children }: AppShellProps) {
     key === 'branches' ||
     key === 'doctors' ||
     key === 'receptionists' ||
-    key === 'types';
+    key === 'types' ||
+    key === 'audit';
 
   return (
     <div className="shell">

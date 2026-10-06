@@ -1,0 +1,233 @@
+/*
+ * AdminAuditPage styles — surface for `GET /admin/audit`.
+ *
+ * Token-only CSS (E7-S1 invariant): no hex literals.
+ *
+ * Layout pattern follows ClinicSettings (1100px, breadcrumb, page
+ * header with action buttons, card stacks). Each row inside a card
+ * uses the same `card-row` grid as the ClinicSettings readonly rows
+ * so the two surfaces are visually consistent.
+ */
+
+.page {
+  padding: var(--space-12);
+}
+
+/* ── Breadcrumb ─────────────────────────────────────────────────── */
+.crumb {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.crumb__sep {
+  color: var(--border-strong);
+}
+
+.crumb__here {
+  color: var(--text-heading);
+  font-weight: 600;
+}
+
+/* ── Page header ────────────────────────────────────────────────── */
+.page-header {
+  margin-bottom: var(--space-10);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-7);
+}
+
+.page-header__title h1 {
+  font-size: var(--text-4xl);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin: 0 0 var(--space-2) 0;
+  line-height: 1.4;
+}
+
+.page-header__sub {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.page-header__actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+.btn-secondary {
+  background: var(--surface-card);
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
+  padding: var(--space-4) var(--space-7);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.btn-secondary:hover {
+  background: var(--brand-light-50);
+}
+
+.btn-secondary:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+/* ── Status / error ─────────────────────────────────────────────── */
+.status {
+  padding: var(--space-12);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.status--error {
+  color: var(--danger-strong);
+}
+
+.status__retry {
+  margin-top: var(--space-5);
+}
+
+/* ── Card ───────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  margin-bottom: var(--space-7);
+}
+
+.card--policy {
+  border-color: var(--brand-border);
+  background: var(--brand-light-50);
+}
+
+.card-head {
+  padding: var(--space-8) var(--space-10);
+  border-bottom: 1px solid var(--surface-divider);
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.card-head__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-md);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.card-head__title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text-heading);
+  flex: 1;
+}
+
+.card-head__hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.card-body {
+  padding: var(--space-9) var(--space-10);
+}
+
+/* ── Card rows (label / value) ──────────────────────────────────── */
+.card-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--space-10);
+  align-items: center;
+  padding: var(--space-6) 0;
+}
+
+.card-row + .card-row {
+  border-top: 1px solid var(--surface-divider);
+}
+
+.card-row__label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.card-row__value {
+  font-size: var(--text-md);
+  color: var(--text-heading);
+}
+
+.card-row__value code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--neutral-bg);
+  padding: 1px 8px;
+  border-radius: var(--radius-xs);
+  color: var(--text-strong);
+}
+
+/* ── Pill (rejected) ─────────────────────────────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px var(--space-4);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  border: 1px solid transparent;
+  font-family: var(--font-mono);
+}
+
+.pill--rejected {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-color: var(--danger-border);
+}
+
+/* ── List ───────────────────────────────────────────────────────── */
+.list {
+  margin: 0;
+  padding-left: var(--space-7);
+  font-size: var(--text-sm);
+  color: var(--text-body);
+  line-height: 1.6;
+}
+
+.list li {
+  margin-bottom: var(--space-4);
+}
+
+.list li:last-child {
+  margin-bottom: 0;
+}
+
+.list strong {
+  color: var(--text-heading);
+}
+
+.list code {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  background: var(--neutral-bg);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  color: var(--text-strong);
+}

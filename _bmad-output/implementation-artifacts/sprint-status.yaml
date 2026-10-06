@@ -44,6 +44,15 @@
 
 generated: 09-08-2026 12:00
 last_updated: 2026-10-06
+# 2026-10-06 E1-S0-ui-router implementation complete (W59 from
+# E1-S0-ui): hash-based router + AdminAuditPage; URL hash is the
+# source of truth, <Link> intercepts anchor clicks, no external
+# dep. App.tsx uses usePathRoute instead of useState<AdminSection>.
+# ClinicSettings uses <Link> for nav; deep-link from audit-card
+# foot to /admin/audit. spec-1-0-ui-router.md recorded; 5
+# deferrals (D-W59-1..5); no tests in this pass; token-only CSS
+# verified (0 hex literals in AdminAuditPage.module.css); 0 new
+# typecheck or lint errors.
 # 2026-10-06 E1-S0-ui-remaining implementation complete (three
 # placeholders from the E1-S0-ui ClinicSettings mockup-32 port:
 # Discard changes / View audit log / Deactivate-clinic flow);
@@ -313,6 +322,36 @@ development_status:
   #   - 0 new typecheck errors. 0 new lint errors (2 pre-existing
   #     baseline on ClinicSettings.tsx unchanged).
   #   - Story E1-S0-ui-remaining → done.
+  1-0-ui-router: done
+  # 2026-10-06 E1-S0-ui-router implementation complete (W59 deferral
+  #   from E1-S0-ui):
+  #   - apps/web/src/router/usePathRoute.tsx (NEW) — hash-based
+  #     router with parsePath/buildPath/usePathRoute + <Link>
+  #     (~150 lines, no external dep). Reads window.location.hash;
+  #     listens to hashchange; exposes {route, navigate}.
+  #   - apps/web/src/App.tsx (EDIT) — replaced local useState<AdminSection>
+  #     + useState<AdminSubPage> with usePathRoute; navigation
+  #     callbacks all wrap navigate(buildPath(...)). Renders the new
+  #     AdminAuditPage when route is /admin/audit.
+  #   - apps/web/src/AppShell.tsx (EDIT) — isImplemented returns true
+  #     for 'audit' (no longer disabled).
+  #   - apps/web/src/pages/AdminAuditPage.tsx (NEW) — /admin/audit page
+  #     rendering GET /admin/audit envelope (policy pill +
+  #     reason + reference + doctor / receptionist endpoints + future
+  #     work + "what you can see" resource-level audit endpoints).
+  #   - apps/web/src/pages/AdminAuditPage.module.css (NEW) — token-only
+  #     CSS (~140 lines).
+  #   - apps/web/src/pages/ClinicSettings.tsx (EDIT) — StatTile
+  #     href prop renamed to to (uses <Link> not <a>); the four
+  #     quicklinks + stat tiles + crumb + audit-card foot now use
+  #     <Link to="#/admin/...">.
+  #   - apps/web/src/pages/ClinicSettings.module.css (EDIT) — new
+  #     .audit-card__foot-link style.
+  #   - 5 deferrals (D-W59-1..5) — see spec-1-0-ui-router.md.
+  #   - 0 new typecheck errors. 0 new lint errors (4 pre-existing
+  #     baseline: 2 ClinicSettings.tsx apostrophes + 2 .module.css
+  #     parser errors unchanged).
+  #   - Story E1-S0-ui-router → done; W59 closed.
   # Legacy umbrella key (kept for traceability until retros close):
   1-0-clinic-management-single-clinic-anchor: backlog
   1-1-create-edit-deactivate-branches: done

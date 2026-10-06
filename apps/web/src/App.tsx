@@ -1,17 +1,25 @@
 /**
- * App entry — E1-S0-ui + W10.
+ * App entry — E1-S0-ui + W10 + W59.
  *
- * W10 update: the shell is now only rendered when there is a valid
+ * W59 update: the AppShell now reads its `active` section + sub-page
+ * from the URL (via `usePathRoute`) instead of a local useState. The
+ * URL is the source of truth. Anchor tags inside admin pages can use
+ * `<Link to="/admin/branches">` for client-side navigation; bare
+ * `<a href="/admin/...">` tags still work — the page loader on first
+ * mount parses the URL the same way.
+ *
+ * W10 update: the shell is only rendered when there is a valid
  * authenticated session. Otherwise the LoginPage takes over. On app boot
  * we POST `/auth/me` once with the token from localStorage to confirm it
  * hasn't been invalidated since the last visit; on 401 the auth store is
  * cleared and the LoginPage renders.
- *
- * The page rendered inside the shell today is the Clinic Settings page
- * (E1-S0-ui). The router lands with the next admin page (deferral W59).
  */
-import { useCallback, useEffect, useState } from 'react';
-import { AppShell, type AdminSection, type AdminSubPage } from './AppShell';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  AppShell,
+  type AdminSection,
+  type AdminSubPage,
+} from './AppShell';
 import { ClinicSettings } from './pages/ClinicSettings';
 import { AdminBranches } from './pages/AdminBranches';
 import { AdminBranchHours } from './pages/AdminBranchHours';
@@ -21,12 +29,18 @@ import { AdminDoctorAssign } from './pages/AdminDoctorAssign';
 import { AdminDoctorSchedule } from './pages/AdminDoctorSchedule';
 import { AdminDoctorBlocks } from './pages/AdminDoctorBlocks';
 import { AdminAppointmentTypes } from './pages/AdminAppointmentTypes';
+import { AdminAuditPage } from './pages/AdminAuditPage';
 import { PatientApp } from './pages/PatientApp';
 import { ReceptionistApp } from './pages/ReceptionistApp';
 import { DoctorApp } from './pages/DoctorApp';
 import { LoginPage } from './pages/LoginPage';
 import { useAuth, clearAuth } from './auth/store';
 import { setOnUnauthorized, getMe, ApiError } from './api/client';
+import {
+  buildPath,
+  usePathRoute,
+  DEFAULT_PATH,
+} from './router/usePathRoute';
 
 export function App() {
   const { stored, isAuthenticated, expired } = useAuth();
@@ -34,14 +48,7 @@ export function App() {
   const [bootStatus, setBootStatus] = useState<'checking' | 'ok' | 'fail'>(
     'checking',
   );
-  // Local router stand-in until W59 ships a real router (#22). The
-  // nav-state lives here so the AppShell's `onNavigate` callback can
-  // flip the page without a full page reload. `sub` is non-null when
-  // we're one level below a top-level section (e.g. branch-hours under
-  // branches); the AppShell keeps `active='branches'` so the nav still
-  // highlights Branches.
-  const [active, setActive] = useState<AdminSection>('clinic');
-  const [sub, setSub] = useState<AdminSubPage | null>(null);
+  const { route, navigate } = usePathRoute();
 
   // Wire the 401-triggered auth-clear at app boot. The store is the
   // single source of truth; the client just publishes events.
@@ -78,34 +85,72 @@ export function App() {
       });
   }, [stored, expired]);
 
-  const onNavigate = useCallback((section: AdminSection) => {
-    setActive(section);
-    setSub(null); // back to a top-level page when nav changes
-  }, []);
+  // On first admin mount, if the URL is empty/root or doesn't match
+  // any known admin route, redirect to the default.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (role !== null && role !== 'admin') return;
+    if (route.kind === 'unknown') {
+      navigate(DEFAULT_PATH);
+    }
+  }, [isAuthenticated, role, route.kind, navigate]);
 
-  const onOpenBranchHours = useCallback((branchId: string) => {
-    setSub({ key: 'branch-hours', branchId });
-  }, []);
+  // Derive the active section + sub from the parsed route.
+  const { active, sub } = useMemo(() => {
+    if (route.kind === 'admin-top') {
+      return { active: route.section, sub: null as AdminSubPage | null };
+    }
+    if (route.kind === 'admin-sub') {
+      return { active: route.section, sub: route.sub };
+    }
+    return {
+      active: 'clinic' as AdminSection,
+      sub: null as AdminSubPage | null,
+    };
+  }, [route]);
 
-  const onOpenDoctorAssign = useCallback((doctorId: string) => {
-    setSub({ key: 'doctor-assign', doctorId });
-  }, []);
+  const onNavigate = useCallback(
+    (section: AdminSection) => {
+      navigate(buildPath(section));
+    },
+    [navigate],
+  );
 
-  const onOpenDoctorSchedule = useCallback((doctorId: string) => {
-    setSub({ key: 'doctor-schedule', doctorId });
-  }, []);
+  const onOpenBranchHours = useCallback(
+    (branchId: string) => {
+      navigate(buildPath('branches', { key: 'branch-hours', branchId }));
+    },
+    [navigate],
+  );
 
-  const onOpenDoctorBlocks = useCallback((doctorId: string) => {
-    setSub({ key: 'doctor-blocks', doctorId });
-  }, []);
+  const onOpenDoctorAssign = useCallback(
+    (doctorId: string) => {
+      navigate(buildPath('doctors', { key: 'doctor-assign', doctorId }));
+    },
+    [navigate],
+  );
+
+  const onOpenDoctorSchedule = useCallback(
+    (doctorId: string) => {
+      navigate(buildPath('doctors', { key: 'doctor-schedule', doctorId }));
+    },
+    [navigate],
+  );
+
+  const onOpenDoctorBlocks = useCallback(
+    (doctorId: string) => {
+      navigate(buildPath('doctors', { key: 'doctor-blocks', doctorId }));
+    },
+    [navigate],
+  );
 
   const onBackToBranches = useCallback(() => {
-    setSub(null);
-  }, []);
+    navigate(buildPath('branches'));
+  }, [navigate]);
 
   const onBackToDoctors = useCallback(() => {
-    setSub(null);
-  }, []);
+    navigate(buildPath('doctors'));
+  }, [navigate]);
 
   if (bootStatus === 'checking') {
     return (
@@ -182,6 +227,7 @@ export function App() {
       )}
       {!sub && active === 'receptionists' && <AdminReceptionists />}
       {!sub && active === 'types' && <AdminAppointmentTypes />}
+      {!sub && active === 'audit' && <AdminAuditPage />}
     </AppShell>
   );
 }

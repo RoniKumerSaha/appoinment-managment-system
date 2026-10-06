@@ -619,3 +619,13 @@
   border-radius: var(--radius-xs);
   color: var(--text-strong);
 }
+
+.audit-card__foot-link {
+  color: var(--brand-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.audit-card__foot-link:hover {
+  text-decoration: underline;
+}

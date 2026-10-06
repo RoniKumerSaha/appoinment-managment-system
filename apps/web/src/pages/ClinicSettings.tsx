@@ -30,6 +30,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { ApiError, getClinic, patchClinic, type ClinicDto } from '../api/client';
 import type { AdminSection } from '../AppShell';
+import { Link } from '../router/usePathRoute';
 import styles from './ClinicSettings.module.css';
 
 const NAME_MAX = 120;
@@ -87,20 +88,20 @@ function StatTile({
   label,
   num,
   sub,
-  href,
+  to,
 }: {
   label: string;
   num: number;
   sub: React.ReactNode;
-  href?: string;
+  to?: string;
 }) {
-  if (href) {
+  if (to) {
     return (
-      <a className={styles.stat} href={href}>
+      <Link className={styles.stat} to={to}>
         <div className={styles['stat__label']}>{label}</div>
         <div className={styles['stat__num']}>{num.toLocaleString()}</div>
         <div className={styles['stat__sub']}>{sub}</div>
-      </a>
+      </Link>
     );
   }
   return (
@@ -245,7 +246,7 @@ export function ClinicSettings({
     <div className={styles.page}>
       {/* Breadcrumb */}
       <div className={styles.crumb}>
-        <a href="/admin/clinic">Admin</a>
+        <Link to="#/admin/clinic">Admin</Link>
         <span className={styles['crumb__sep']}>›</span>
         <span className={styles['crumb__here']}>Clinic settings</span>
       </div>
@@ -346,9 +347,11 @@ export function ClinicSettings({
               </li>
             </ul>
             <p className={styles['audit-card__foot']}>
-              Hardening pass: a dedicated <code>GET /admin/audit/policy</code>{' '}
-              endpoint returns this prose from the API. Today it&apos;s
-              documented in the spec and rendered as a static card.
+              The full policy envelope is on the{' '}
+              <Link className={styles['audit-card__foot-link']} to="#/admin/audit">
+                Audit log
+              </Link>{' '}
+              page (renders <code>GET /admin/audit</code>).
             </p>
           </div>
         </section>
@@ -483,7 +486,7 @@ export function ClinicSettings({
           <StatTile
             label="Branches"
             num={vm.branches.total}
-            href="/admin/branches"
+            to="#/admin/branches"
             sub={
               <>
                 <span className={styles.ok}>{pluralActive(vm.branches.active)}</span>
@@ -496,7 +499,7 @@ export function ClinicSettings({
           <StatTile
             label="Doctors"
             num={vm.doctors.total}
-            href="/admin/doctors"
+            to="#/admin/doctors"
             sub={
               <>
                 <span className={styles.ok}>{pluralActive(vm.doctors.active)}</span>
@@ -509,7 +512,7 @@ export function ClinicSettings({
           <StatTile
             label="Receptionists"
             num={vm.receptionists.total}
-            href="/admin/receptionists"
+            to="#/admin/receptionists"
             sub={
               <>
                 <span className={styles.ok}>
@@ -529,7 +532,7 @@ export function ClinicSettings({
         </div>
 
         <div className={styles.quicklinks}>
-          <a className={styles.qlink} href="/admin/branches">
+          <Link className={styles.qlink} to="#/admin/branches">
             <div className={styles['qlink__ic']} aria-hidden="true">⌂</div>
             <div className={styles['qlink__body']}>
               <div className={styles['qlink__t']}>Manage branches</div>
@@ -538,8 +541,8 @@ export function ClinicSettings({
               </div>
             </div>
             <div className={styles['qlink__arr']} aria-hidden="true">›</div>
-          </a>
-          <a className={styles.qlink} href="/admin/doctors">
+          </Link>
+          <Link className={styles.qlink} to="#/admin/doctors">
             <div className={styles['qlink__ic']} aria-hidden="true">✚</div>
             <div className={styles['qlink__body']}>
               <div className={styles['qlink__t']}>Manage doctors</div>
@@ -548,15 +551,15 @@ export function ClinicSettings({
               </div>
             </div>
             <div className={styles['qlink__arr']} aria-hidden="true">›</div>
-          </a>
-          <a className={styles.qlink} href="/admin/receptionists">
+          </Link>
+          <Link className={styles.qlink} to="#/admin/receptionists">
             <div className={styles['qlink__ic']} aria-hidden="true">☎</div>
             <div className={styles['qlink__body']}>
               <div className={styles['qlink__t']}>Manage receptionists</div>
               <div className={styles['qlink__s']}>One branch per receptionist</div>
             </div>
             <div className={styles['qlink__arr']} aria-hidden="true">›</div>
-          </a>
+          </Link>
         </div>
       </section>
 
