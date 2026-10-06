@@ -802,3 +802,99 @@ export function patchAppointmentType(
     },
   );
 }
+
+// ─── Receptionist today (E5-S4) ─────────────────────────────────
+
+export type ReceptionistAppointmentStatus =
+  | 'Scheduled'
+  | 'Cancelled'
+  | 'Completed'
+  | 'No-Show';
+
+export interface ReceptionistTodayAppointment {
+  id: string;
+  doctor_id: string;
+  doctor_name: string;
+  // E7-S3 — the API returns `patient_phone` but NOT `patient_name`.
+  // The receptionist identifies the patient on arrival by phone.
+  patient_phone: string;
+  appointment_type_id: string;
+  appointment_type_name: string;
+  start_datetime: string; // ISO UTC
+  end_datetime: string; // ISO UTC
+  status: ReceptionistAppointmentStatus;
+}
+
+export interface ReceptionistTodayBranch {
+  id: string;
+  name: string;
+  tz: string;
+}
+
+export interface ReceptionistTodayFilters {
+  doctor_id: string | null;
+  status: ReceptionistAppointmentStatus | null;
+  date: string | null;
+}
+
+export interface ReceptionistTodayResponse {
+  date: string; // YYYY-MM-DD in branch.tz
+  branch: ReceptionistTodayBranch;
+  filters: ReceptionistTodayFilters;
+  appointments: ReceptionistTodayAppointment[];
+}
+
+export interface ReceptionistTodayInput {
+  status?: ReceptionistAppointmentStatus;
+  doctor_id?: string;
+  date?: string; // YYYY-MM-DD in branch.tz
+}
+
+export function getReceptionistToday(
+  input: ReceptionistTodayInput = {},
+): Promise<ReceptionistTodayResponse> {
+  const params: string[] = [];
+  if (input.status) params.push(`status=${encodeURIComponent(input.status)}`);
+  if (input.doctor_id) {
+    params.push(`doctor_id=${encodeURIComponent(input.doctor_id)}`);
+  }
+  if (input.date) params.push(`date=${encodeURIComponent(input.date)}`);
+  const qs = params.length > 0 ? `?${params.join('&')}` : '';
+  return request<ReceptionistTodayResponse>(
+    `/reception/branch/today${qs}`,
+    { method: 'GET' },
+  );
+}
+
+// ─── Receptionist cancel (E5-S3) ─────────────────────────────────
+
+export interface ReceptionistCancelInput {
+  appointment_id: string;
+  reason: string;
+}
+
+export interface ReceptionistCancelAppointment {
+  id: string;
+  branch_id: string;
+  doctor_id: string;
+  appointment_type_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  status: 'Cancelled';
+}
+
+export interface ReceptionistCancelResponse {
+  appointment: ReceptionistCancelAppointment;
+}
+
+export function receptionistCancel(
+  input: ReceptionistCancelInput,
+): Promise<ReceptionistCancelResponse> {
+  return request<ReceptionistCancelResponse>(
+    `/reception/appointments/${encodeURIComponent(input.appointment_id)}/cancel`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ reason: input.reason }),
+    },
+  );
+}

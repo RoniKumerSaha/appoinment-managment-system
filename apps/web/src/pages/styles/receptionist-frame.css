@@ -1,0 +1,98 @@
+/*
+ * Receptionist frame styles — pixel-perfect ports of mockups 13 / 15 / 26.
+ * Token-only CSS (E7-S1 invariant): no hex literals.
+ *
+ * Layout: 1100px max body width.
+ */
+
+.recep-frame__root {
+  background: var(--surface-page);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Nav ───────────────────────────────────────────────────────── */
+
+.recep-frame__nav {
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border-default);
+  padding: var(--space-6) var(--space-12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: var(--space-7);
+}
+
+.recep-frame__brand {
+  font-weight: 700;
+  color: var(--brand-primary);
+  font-size: var(--text-3xl);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.recep-frame__brand-logo {
+  width: 28px;
+  height: 28px;
+  background: var(--brand-primary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-brand);
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.recep-frame__user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.recep-frame__user-name {
+  font-size: var(--text-sm);
+  color: var(--text-default);
+}
+
+.recep-frame__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--brand-light);
+  color: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: var(--text-xs);
+}
+
+.recep-frame__signout {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-default);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 120ms ease;
+}
+
+.recep-frame__signout:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  background: var(--brand-light-50);
+}
+
+/* ── Body ──────────────────────────────────────────────────────── */
+
+.recep-frame__body {
+  flex: 1;
+}

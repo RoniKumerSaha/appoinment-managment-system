@@ -44,6 +44,15 @@
 
 generated: 09-08-2026 12:00
 last_updated: 2026-10-06
+# 2026-10-06 E5-S3/S4-ui implementation complete (receptionist today
+# dashboard + cancel appointment — mockups 13, 15; mock 26 deferred);
+# spec-5-3-5-4-ui-receptionist-today-cancel.md recorded; 5 deferrals
+# (D-E5-S-UI-1..5); no tests in this pass; token-only CSS verified
+# (0 hex literals in new files).
+# 2026-10-06 E3-S1/S2/S3-ui implementation complete (patient booking
+# flow — F-01, F-02, F-03, mockups 02/03/04/36):
+# spec-3-ui-patient-booking.md recorded; 5 deferrals (D-E3-1..5); no
+# tests in this pass; 0 new typecheck or lint errors.
 # 2026-10-06 E1-S0-ui implementation complete; spec-1-0-ui-clinic-settings.md
 # recorded (SC1 counts field re-intro, SC2 dev-mode x-auth-claim auth); 6
 # deferrals (W54-W59); no tests in this pass; Epic 1 → done.
@@ -1427,6 +1436,73 @@ development_status:
   #       (E5-S4) does NOT include patient_phone as a clickable
   #       link to the patient profile (E3-S3). That's a UX story,
   #       out of scope for the API work.
+  5-3-5-4-ui-receptionist-today-cancel: done
+  # 2026-10-06 E5-S3/S4-ui implementation complete (receptionist
+  #   today dashboard + cancel appointment — F-12, F-14, mockups
+  #   13, 15; mock 26 walk-in deferred):
+  #   - apps/web/src/api/client.ts (MODIFIED) — added
+  #     ReceptionistAppointmentStatus union + ReceptionistTodayAppointment /
+  #     ReceptionistTodayBranch / ReceptionistTodayFilters /
+  #     ReceptionistTodayResponse / ReceptionistTodayInput types +
+  #     getReceptionistToday(input); added ReceptionistCancelInput /
+  #     ReceptionistCancelAppointment / ReceptionistCancelResponse +
+  #     receptionistCancel(input).
+  #   - apps/web/src/styles/tokens.css (MODIFIED) — added
+  #     --danger-badge-bg: #fecaca for the Cancelled / No-Show
+  #     status pills (no existing token covered the saturated-red
+  #     pill background).
+  #   - apps/web/src/pages/recep-utils.ts (NEW) — tz-aware formatters:
+  #     todayIsoLocalIn(tz), formatTimeLocal(iso, tz),
+  #     formatMonthDay(isoDate), formatDateHeader(isoDate),
+  #     initialsOf(fullName, fallback), maskPhone(e164),
+  #     lastNameOf(fullName).
+  #   - apps/web/src/pages/ReceptionistFrame.tsx (NEW) — receptionist
+  #     frame with sticky nav (logo + actor chip + Sign out),
+  #     1100px body. Distinct from PatientFrame (1200px + progress
+  #     bar) and AppShell (admin section nav).
+  #   - apps/web/src/pages/styles/receptionist-frame.css (NEW) —
+  #     token-only CSS.
+  #   - apps/web/src/pages/ReceptionistToday.tsx (NEW) — today list
+  #     with hour grouping, toolbar (search/date/doctor/status
+  #     filters), 250ms-debounced filter refetches, "now" highlight
+  #     on the row containing the current branch-local time,
+  #     status pills, View + (Scheduled-only) Check in buttons.
+  #   - apps/web/src/pages/ReceptionistToday.module.css (NEW) —
+  #     token-only CSS.
+  #   - apps/web/src/pages/ReceptionistCancel.tsx (NEW) — two-step
+  #     cancel flow (pick appointment → reason + confirm). Curated
+  #     reason enum + optional notes (Other = notes required).
+  #     On success: auto-dismiss toast + refetch picker.
+  #   - apps/web/src/pages/ReceptionistCancel.module.css (NEW) —
+  #     token-only CSS.
+  #   - apps/web/src/pages/ReceptionistApp.tsx (NEW) — internal
+  #     router between today and cancel (W59 deferral; no real
+  #     router yet).
+  #   - apps/web/src/App.tsx (MODIFIED) — receptionist-role bypass;
+  #     when stored.claim.role === 'receptionist', render
+  #     <ReceptionistApp /> and skip the admin AppShell. Patient
+  #     bypass (E3-ui) unchanged.
+  #   - Privacy (E7-S3): the today response carries patient_phone
+  #     but NOT patient_name. The "patient" cell on the today
+  #     list shows the full + masked phone only.
+  #   - Deferrals: 5 — D-E5-S-UI-1 (walk-in book surface = mock 26,
+  #     needs a back-end "receptionist books on behalf" POST),
+  #     D-E5-S-UI-2 (doctor availability for the receptionist),
+  #     D-E5-S-UI-3 (per-row check-in state machine = E5-S1/S2
+  #     surface), D-E5-S-UI-4 (edit affordances on completed
+  #     sections, deferred to W59 router), D-E5-S-UI-5 (server-
+  #     driven reason enum).
+  #   - Modified files: 4 (client.ts + 8 endpoints/types, App.tsx +
+  #     tokens.css, ReceptionistFrame.tsx + ReceptionistToday.tsx +
+  #     ReceptionistCancel.tsx + ReceptionistApp.tsx + recep-utils.ts
+  #     + 4 CSS files are NEW).
+  #   - Typecheck: 0 new errors in new code (3 pre-existing
+  #     baseline errors in otp/* unchanged).
+  #   - Lint: 0 new warnings in new code (2 pre-existing errors
+  #     in ClinicSettings.tsx unchanged).
+  #   - Hex literal scan: 0 matches in any new file (E7-S1
+  #     invariant holds).
+  #   - Story E5-S3/S4-ui → done.
   epic-5-retrospective: done
 
   # Epic 6 — Recurring & conflict resolution

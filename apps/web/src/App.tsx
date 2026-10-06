@@ -22,6 +22,7 @@ import { AdminDoctorSchedule } from './pages/AdminDoctorSchedule';
 import { AdminDoctorBlocks } from './pages/AdminDoctorBlocks';
 import { AdminAppointmentTypes } from './pages/AdminAppointmentTypes';
 import { PatientBooking } from './pages/PatientBooking';
+import { ReceptionistApp } from './pages/ReceptionistApp';
 import { LoginPage } from './pages/LoginPage';
 import { useAuth, clearAuth } from './auth/store';
 import { setOnUnauthorized, getMe, ApiError } from './api/client';
@@ -128,10 +129,14 @@ export function App() {
   }
 
   // Patient session bypasses the admin shell and renders the patient
-  // booking flow directly (E3-ui). Staff (admin/doctor/receptionist)
-  // continue to use the admin AppShell.
+  // booking flow directly (E3-ui). Receptionist sessions bypass
+  // the admin shell and render the receptionist dashboard (E5-S4 /
+  // E5-S3). Staff (admin/doctor) continue to use the admin AppShell.
   if (role === 'patient') {
     return <PatientBooking />;
+  }
+  if (role === 'receptionist') {
+    return <ReceptionistApp />;
   }
 
   return (
