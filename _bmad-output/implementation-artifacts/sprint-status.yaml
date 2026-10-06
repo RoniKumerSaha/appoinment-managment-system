@@ -1324,6 +1324,37 @@ development_status:
   epic-6-retrospective: done
 
   # Epic 7 — Cross-cutting
+  # 2026-10-06 W10 (cross-cutting web auth) shipped in this run.
+  #    - apps/api/src/routes/auth-staff.ts (NEW) — POST /auth/login/staff
+  #      + GET /auth/me. Email-only staff login (W10a password/SSO
+  #      deferred to a future hardening pass). Mints the existing
+  #      AuthClaim shape — no new claim fields. Admin's branch_ids is
+  #      [<seeded east branch UUID>] with scope: 'clinic' (A1). Mounted
+  #      in apps/api/src/app.ts BEFORE authMiddleware (login is its own
+  #      auth gate) and AFTER (me-route needs the claim).
+  #    - apps/web/src/api/client.ts (REWRITE) — Token store reads
+  #      localStorage['medislot.auth'], 60s early-expiry cushion,
+  #      Bearer header with x-auth-claim fallback for no-backend dev.
+  #      setOnUnauthorized(cb) fires clearAuth on 401. New endpoints:
+  #      loginStaff, verifyPatientOtp, getMe.
+  #    - apps/web/src/auth/store.ts (NEW) — useAuth() (useSyncExternalStore),
+  #      loginAsStaff / verifyPatientOtp / logout / clearAuth.
+  #    - apps/web/src/pages/LoginPage.{tsx,module.css} (NEW) — Two cards
+  #      on 760px-stacked frame. Staff card (role + email). Patient card
+  #      (phone E.164 + 6 OTP cells with auto-advance + paste, backspace-
+  #    navigates-previous). Mock 21 visual reference.
+  #    - apps/web/src/App.tsx (REWRITE) — Gates AppShell behind auth.
+  #    - apps/web/src/AppShell.tsx (REWRITE) — Dynamic user chip + Sign-out.
+  #    - apps/web/src/styles/shell.css (EDIT) — .nav__signout rules.
+  #    - Spec: spec-w10-staff-login-patient-otp.md (Amelia 2026-10-06).
+  #    - Deferrals: W10a (password/SSO), W10b (refresh/denylist), W10c
+  #      (rate-limit), W10d (rip dev x-auth-claim), W10e (lockout),
+  #      W10f (router).
+  #    - typecheck: web 0 errors (api 0 new errors; 3 pre-existing baseline
+  #      in src/otp/{provider,service,twilio-provider}.ts unchanged).
+  #    - lint: web 0 new errors (2 pre-existing baseline in
+  #      ClinicSettings.tsx unchanged). E7-S1 invariant: 0 hex literals
+  #      outside tokens.css.
   # 2026-10-04 Epic 7 partial: E7-S2, E7-S3, E7-S6 shipped in this session.
   # Remaining stories (E7-S1, S4, S5, S7, S8, S9, S10) are UI / design /
   # perf / metrics / parking-lot work that has been repeatedly deferred-by-
@@ -1332,6 +1363,7 @@ development_status:
   # Epic status reflects the partial completion.
   epic-7: in-progress
   7-1-design-system-token-wiring: backlog
+  w10-staff-login-patient-otp: done
   7-2-appointment-audit: done
   # 2026-10-04 bmad-build step-25 implementation complete for E7-S2
   #   (appointment audit reads — FR-051, NFR-005):

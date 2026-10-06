@@ -26,6 +26,7 @@ import type { RequestHandler } from 'express';
 import { healthRouter } from './routes/health.js';
 import { metricsRouter } from './routes/metrics.js';
 import { patientOtpRouter } from './routes/patient-otp.js';
+import { authStaffRouter, authMeRouter } from './routes/auth-staff.js';
 import { createSmsOtpRouter } from './routes/sms-otp.js';
 import { adminClinicRouter } from './routes/admin-clinic.js';
 import { adminBranchesRouter } from './routes/admin-branches.js';
@@ -97,7 +98,19 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
     app.use('/patient', patientOtpRouter);
   }
 
+  // Staff login — `POST /auth/login/staff`. Mounted BEFORE authMiddleware
+  // so the login route is its own auth gate. There is no credential check
+  // today (deferred W10a — password/SSO); the route gates on the caller's
+  // knowledge of the seeded email. A future hardening story adds a real
+  // credential check before this endpoint is exposed in production.
+  app.use('/auth', authStaffRouter);
+
   app.use(authMiddleware);
+
+  // `GET /auth/me` — rehydrate the session from the JWT. Mounted AFTER
+  // authMiddleware so req.auth.claim is populated. Used by the web client
+  // on boot to confirm a token in localStorage is still valid.
+  app.use('/auth', authMeRouter);
 
   // Availability route — mounted AFTER authMiddleware so req.auth.claim
   // is populated. Open to any authenticated caller (no adminScope).

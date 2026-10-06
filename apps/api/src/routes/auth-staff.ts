@@ -1,0 +1,298 @@
+/**
+ * Staff login — `POST /auth/login/staff` + `GET /auth/me`.
+ *
+ * W10 (the staff login surface that E0-S3 deferred). Today the route is an
+ * **email-based stub login**: the caller supplies `{role, email}` and if a
+ * staff row matches, the route mints a JWT. There is no password column on
+ * `admin_user` / `doctor` / `receptionist` today; adding one is deferred
+ * to a future hardening story (deferral W10a — password / SSO choice).
+ *
+ * The endpoint is gated only by the caller's knowledge of the seeded
+ * email; this is acceptable for the dev web app where the user picks
+ * from the seed list. A production deploy MUST swap in a real credential
+ * check before this endpoint is exposed.
+ *
+ * Response shape mirrors `patient-otp.ts` (`/patient/otp/verify-now`):
+ *   {
+ *     token:      <jwt>,
+ *     claim:      AuthClaim,           // sub = email for staff
+ *     expires_at: <iso>,
+ *     profile:    { full_name, email, branch_id, branch_name, tz }
+ *   }
+ *
+ * For `GET /auth/me`, the same shape is returned derived from the
+ * existing `req.auth.claim` (no DB write, no audit).
+ *
+ * Mount order: this file mounts BEFORE `authMiddleware` so the login
+ * endpoint itself is the auth gate. The `me` route is the one route in
+ * this file that is mounted AFTER `authMiddleware` — see `app.ts`.
+ */
+import { Router, type Request, type Response } from 'express';
+import { getPool } from '../db/pool.js';
+import { getLogger } from '../middleware/log.js';
+import { signClaim, verifyToken } from '../auth/jwt.js';
+
+const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
+const STAFF_ROLES = new Set(['admin', 'doctor', 'receptionist'] as const);
+type StaffRole = 'admin' | 'doctor' | 'receptionist';
+
+interface StaffProfile {
+  full_name: string;
+  email: string;
+  branch_id: string | null;
+  branch_name: string | null;
+  tz: string | null;
+}
+
+interface StaffRow extends StaffProfile {
+  /** Set when the role is `doctor`. The store may override for multi-branch doctors. */
+  doctor_id: string | null;
+}
+
+function redactEmail(email: string): string {
+  const at = email.indexOf('@');
+  if (at <= 1) return '***';
+  return `${email[0]}***${email.slice(at)}`;
+}
+
+async function lookupStaff(
+  role: StaffRole,
+  email: string,
+): Promise<StaffRow | null> {
+  const pool = await getPool();
+  if (role === 'admin') {
+    // Admin has no `branch_id` column on `admin_user` (per architecture AD-8
+    // the admin scope is the clinic, not a branch). We attach the seeded
+    // east branch as a placeholder so the E0-S3 empty-branch_ids guard is
+    // satisfied. The admin route never reads branch_ids from the claim.
+    const r = await pool.query<{
+      full_name: string;
+      email: string;
+      branch_id: string;
+      branch_name: string;
+      tz: string;
+    }>(
+      `SELECT a.full_name,
+              a.email,
+              b.id::text AS branch_id,
+              b.name    AS branch_name,
+              b.tz      AS tz
+         FROM admin_user a
+         JOIN branch b
+           ON b.clinic_id = a.clinic_id
+        WHERE a.email = $1::citext
+        ORDER BY b.created_at ASC
+        LIMIT 1`,
+      [email],
+    );
+    const row = r.rows[0];
+    if (!row) return null;
+    return { ...row, doctor_id: null };
+  }
+  if (role === 'doctor') {
+    const r = await pool.query<{
+      full_name: string;
+      email: string;
+      doctor_id: string;
+      branch_id: string;
+      branch_name: string;
+      tz: string;
+    }>(
+      `SELECT d.full_name,
+              d.email,
+              d.id::text AS doctor_id,
+              b.id::text AS branch_id,
+              b.name    AS branch_name,
+              b.tz      AS tz
+         FROM doctor d
+         JOIN doctor_branch db ON db.doctor_id = d.id
+         JOIN branch b          ON b.id = db.branch_id
+        WHERE d.email = $1::citext
+        ORDER BY db.created_at ASC
+        LIMIT 1`,
+      [email],
+    );
+    const row = r.rows[0];
+    if (!row) return null;
+    return { ...row };
+  }
+  // role === 'receptionist'
+  const r = await pool.query<{
+    full_name: string;
+    email: string;
+    branch_id: string;
+    branch_name: string;
+    tz: string;
+  }>(
+    `SELECT r.full_name,
+            r.email,
+            b.id::text AS branch_id,
+            b.name    AS branch_name,
+            b.tz      AS tz
+       FROM receptionist r
+       JOIN branch b ON b.id = r.branch_id
+      WHERE r.email = $1::citext
+      LIMIT 1`,
+    [email],
+  );
+  const row = r.rows[0];
+  if (!row) return null;
+  return { ...row, doctor_id: null };
+}
+
+export const authStaffRouter: Router = Router();
+export const authMeRouter: Router = Router();
+
+// Mounted BEFORE authMiddleware — the login route IS its own auth gate.
+authStaffRouter.post('/login/staff', (req: Request, res: Response): void => {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const role = body['role'];
+  const email = body['email'];
+
+  if (typeof role !== 'string' || !STAFF_ROLES.has(role as StaffRole)) {
+    res.status(400).json({ error: 'invalid_role' });
+    return;
+  }
+  if (typeof email !== 'string' || !EMAIL_RE.test(email)) {
+    getLogger().info(
+      { event: 'staff_login_attempt', outcome: 'invalid_email' },
+      'staff_login_rejected',
+    );
+    res.status(400).json({ error: 'invalid_email' });
+    return;
+  }
+
+  lookupStaff(role as StaffRole, email)
+    .then((row) => {
+      if (!row || row.branch_id === null) {
+        getLogger().info(
+          {
+            event: 'staff_login_attempt',
+            outcome: 'not_found',
+            role,
+            email: redactEmail(email),
+          },
+          'staff_login_rejected',
+        );
+        res.status(401).json({ error: 'staff_not_found' });
+        return;
+      }
+
+      const branchIds = [row.branch_id];
+      const input = {
+        sub: email,
+        role: role as StaffRole,
+        branch_ids: branchIds,
+        scope: role === 'admin' ? ('clinic' as const) : ('branch' as const),
+        ...(role === 'doctor' && row.doctor_id
+          ? { doctor_id: row.doctor_id }
+          : {}),
+      };
+      const token = signClaim(input);
+      const claim = verifyToken(token);
+      if (!claim) {
+        // Should be unreachable — we just signed it with our own rules.
+        getLogger().error({ event: 'staff_login_mint_failed' }, 'staff_login_internal_error');
+        res.status(500).json({ error: 'internal_error' });
+        return;
+      }
+      const expiresAt = new Date(claim.expires_at * 1000).toISOString();
+
+      getLogger().info(
+        {
+          event: 'staff_login_attempt',
+          outcome: 'success',
+          role,
+          email: redactEmail(email),
+        },
+        'staff_login_success',
+      );
+      res.status(200).json({
+        token,
+        claim,
+        expires_at: expiresAt,
+        profile: {
+          full_name: row.full_name,
+          email: row.email,
+          branch_id: row.branch_id,
+          branch_name: row.branch_name,
+          tz: row.tz,
+        },
+      });
+    })
+    .catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : 'unknown_error';
+      getLogger().error(
+        { event: 'staff_login_db_error', err: message },
+        'staff_login_internal_error',
+      );
+      res.status(500).json({ error: 'internal_error' });
+    });
+});
+
+// `GET /auth/me` — rehydrate the session from the existing JWT. Mounted
+// AFTER authMiddleware (see `app.ts`). Reads `req.auth.claim` and looks
+// up the same profile shape as the login route. Used by the web client on
+// boot to confirm the token in localStorage is still valid.
+authMeRouter.get('/me', async (req: Request, res: Response): Promise<void> => {
+  const claim = req.auth?.claim ?? null;
+  if (!claim) {
+    res.status(401).json({ error: 'unauthenticated' });
+    return;
+  }
+
+  // Patient tokens carry the phone as `sub`. We don't surface a profile
+  // for patients (the web client already knows who the patient is). The
+  // /patient/appointments route returns the data the UI needs.
+  if (claim.role === 'patient') {
+    const expiresAt = new Date(claim.expires_at * 1000).toISOString();
+    res.status(200).json({
+      claim,
+      expires_at: expiresAt,
+      profile: {
+        full_name: null,
+        email: claim.sub,
+        branch_id: null,
+        branch_name: null,
+        tz: null,
+      },
+    });
+    return;
+  }
+
+  // Staff — `sub` is the email. Look up the row by email + role and
+  // rehydrate the profile.
+  const role = claim.role as StaffRole;
+  if (!STAFF_ROLES.has(role)) {
+    res.status(401).json({ error: 'unauthenticated' });
+    return;
+  }
+  try {
+    const row = await lookupStaff(role, claim.sub);
+    if (!row || row.branch_id === null) {
+      // Token references a row that no longer matches; clear and force re-login.
+      res.status(401).json({ error: 'staff_not_found' });
+      return;
+    }
+    const expiresAt = new Date(claim.expires_at * 1000).toISOString();
+    res.status(200).json({
+      claim,
+      expires_at: expiresAt,
+      profile: {
+        full_name: row.full_name,
+        email: row.email,
+        branch_id: row.branch_id,
+        branch_name: row.branch_name,
+        tz: row.tz,
+      },
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'unknown_error';
+    getLogger().error(
+      { event: 'auth_me_db_error', err: message },
+      'auth_me_internal_error',
+    );
+    res.status(500).json({ error: 'internal_error' });
+  }
+});

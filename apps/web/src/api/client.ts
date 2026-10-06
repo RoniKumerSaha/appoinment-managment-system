@@ -1,36 +1,49 @@
 /**
  * API client for apps/web.
  *
- * E1-S0-ui is the first story to consume the admin API. Until a real staff
- * login lands (deferred per W10), the web app authenticates as the seeded
- * admin via the dev-mode `x-auth-claim` debug header (see
- * `apps/api/src/middleware/auth.ts`). The header is silently dropped by
- * the API when `NODE_ENV === 'production'`, so the dev affordance cannot
- * leak to production.
+ * E1-S0-ui is the first story to consume the admin API. W10 (this story)
+ * adds real staff login + patient OTP + session rehydration. The dev-mode
+ * `x-auth-claim` header from E1-S0-ui is preserved as a fallback for
+ * offline development with no backend; the preferred path is a real
+ * `Authorization: Bearer <jwt>` whose token lives in `localStorage` under
+ * the `medislot.auth` key.
  *
- * `__clinic_anchor__` is the sentinel branch_id used by every admin caller
- * — admin routes ignore branch_ids (admin scope lives at `scope: 'clinic'`
- * per AD-8). The sentinel is also used by the test helper
- * `apps/api/test/__helpers__/admin-token.ts`.
- *
- * Every request throws an `ApiError` on non-2xx; the caller decides how to
- * render the envelope. The `code` is the API's `{error: <string>}` value.
+ * The session store is the React-y wrapper at `apps/web/src/auth/store.ts`.
+ * This file is the low-level transport: it knows how to attach the right
+ * header, surface API errors as `ApiError(status, code)`, and dispatch a
+ * 401 to the store so the UI can re-route to the login screen.
  */
-
 const API_BASE = ''; // same origin via Vite proxy in dev
 
-/**
- * The exact claim shape the API's `parseClaimHeader` expects (see
- * `apps/api/src/middleware/auth.ts:37-70`).
- */
-const ADMIN_CLAIM = {
-  sub: 'admin-main',
-  role: 'admin',
-  branch_ids: ['__clinic_anchor__'],
-  scope: 'clinic',
-} as const;
+// ─── Public types ──────────────────────────────────────────────────────
 
-const ADMIN_CLAIM_HEADER = JSON.stringify(ADMIN_CLAIM);
+export type AuthRole = 'patient' | 'receptionist' | 'doctor' | 'admin';
+export type AuthScope = 'self' | 'branch' | 'clinic' | 'global';
+
+export interface AuthClaim {
+  sub: string;
+  role: AuthRole;
+  branch_ids: string[];
+  scope: AuthScope;
+  doctor_id?: string;
+  expires_at: number;
+  jti: string;
+}
+
+export interface Profile {
+  full_name: string | null;
+  email: string;
+  branch_id: string | null;
+  branch_name: string | null;
+  tz: string | null;
+}
+
+export interface LoginResponse {
+  token: string;
+  claim: AuthClaim;
+  expires_at: string;
+  profile: Profile;
+}
 
 export interface ClinicCounts {
   branches_total: number;
@@ -53,6 +66,8 @@ export interface ClinicDto {
   counts: ClinicCounts;
 }
 
+// ─── Error envelope ────────────────────────────────────────────────────
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -63,33 +78,90 @@ export class ApiError extends Error {
   }
 }
 
-const authHeaders: HeadersInit = {
-  'x-auth-claim': ADMIN_CLAIM_HEADER,
-  'content-type': 'application/json',
-};
+// ─── Dev fallback header (E1-S0-ui) ────────────────────────────────────
+
+const ADMIN_CLAIM = {
+  sub: 'admin-main',
+  role: 'admin',
+  branch_ids: ['__clinic_anchor__'],
+  scope: 'clinic',
+} as const;
+const ADMIN_CLAIM_HEADER = JSON.stringify(ADMIN_CLAIM);
+
+// ─── Token store (private; auth/store.ts reads / writes) ───────────────
+
+const TOKEN_KEY = 'medislot.auth';
+
+function readTokenFromStorage(): string | null {
+  try {
+    const raw = localStorage.getItem(TOKEN_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { token?: unknown; expires_at?: unknown };
+    if (typeof parsed.token !== 'string' || typeof parsed.expires_at !== 'string') {
+      return null;
+    }
+    // Drop tokens 60s before they expire so a request in flight doesn't get
+    // 401'd mid-call.
+    if (Date.parse(parsed.expires_at) - 60_000 < Date.now()) {
+      return null;
+    }
+    return parsed.token;
+  } catch {
+    return null;
+  }
+}
+
+let onUnauthorized: (() => void) | null = null;
+
+/** Register a callback that fires when the API returns 401. The auth
+ *  store uses this to clear localStorage and re-route to the login page. */
+export function setOnUnauthorized(cb: (() => void) | null): void {
+  onUnauthorized = cb;
+}
+
+// ─── request() ─────────────────────────────────────────────────────────
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const bearer = readTokenFromStorage();
+  const authHeader: HeadersInit = bearer
+    ? { authorization: `Bearer ${bearer}` }
+    : { 'x-auth-claim': ADMIN_CLAIM_HEADER };
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
-      ...authHeaders,
+      ...authHeader,
+      'content-type': 'application/json',
       ...(init.headers ?? {}),
     },
   });
+
+  if (res.status === 401) {
+    onUnauthorized?.();
+    let code = 'unauthenticated';
+    try {
+      const body = (await res.json()) as { error?: unknown };
+      if (typeof body.error === 'string') code = body.error;
+    } catch {
+      // Body wasn't JSON — keep the default.
+    }
+    throw new ApiError(401, code);
+  }
+
   if (!res.ok) {
-    // The API always returns `{error: <code>}` on non-2xx. Fall back to
-    // a stable code if the body is unexpectedly empty.
     let code = 'unknown_error';
     try {
       const body = (await res.json()) as { error?: unknown };
       if (typeof body.error === 'string') code = body.error;
     } catch {
-      // body wasn't JSON — keep `unknown_error`.
+      // Body wasn't JSON — keep `unknown_error`.
     }
     throw new ApiError(res.status, code);
   }
   return (await res.json()) as T;
 }
+
+// ─── Endpoints ─────────────────────────────────────────────────────────
 
 export function getClinic(): Promise<ClinicDto> {
   return request<ClinicDto>('/admin/clinic', { method: 'GET' });
@@ -100,4 +172,28 @@ export function patchClinic(name: string): Promise<ClinicDto> {
     method: 'PATCH',
     body: JSON.stringify({ name }),
   });
+}
+
+export function loginStaff(input: {
+  role: 'admin' | 'doctor' | 'receptionist';
+  email: string;
+}): Promise<LoginResponse> {
+  return request<LoginResponse>('/auth/login/staff', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function verifyPatientOtp(input: {
+  phone: string;
+  code: string;
+}): Promise<LoginResponse> {
+  return request<LoginResponse>('/patient/otp/verify-now', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function getMe(): Promise<LoginResponse> {
+  return request<LoginResponse>('/auth/me', { method: 'GET' });
 }
