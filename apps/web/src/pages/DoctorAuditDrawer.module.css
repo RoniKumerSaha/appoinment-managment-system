@@ -1,0 +1,313 @@
+/*
+ * DoctorAuditDrawer styles — pixel-perfect port of mock 30
+ * (right-side slide-in, 480px). Token-only CSS (E7-S1 invariant):
+ * no hex literals. All values reference var(--…).
+ */
+
+.doc-audit__backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: 60;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.doc-audit__drawer {
+  position: relative;
+  width: 480px;
+  max-width: 100vw;
+  background: var(--surface-card);
+  box-shadow: var(--elev-3);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  animation: doc-audit__slide 180ms ease-out;
+}
+
+@keyframes doc-audit__slide {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.doc-audit__head {
+  padding: var(--space-8) var(--space-10);
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.doc-audit__head-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.doc-audit__crumb {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.doc-audit__title {
+  font-size: var(--text-xl);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin: 0;
+}
+
+.doc-audit__sub {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.doc-audit__close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--neutral-bg);
+  color: var(--text-default);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: var(--text-xl);
+  line-height: 1;
+  font-family: inherit;
+}
+
+.doc-audit__close:hover {
+  background: var(--border-default);
+}
+
+.doc-audit__summary {
+  padding: var(--space-6) var(--space-10);
+  background: var(--brand-light-50);
+  border-bottom: 1px solid var(--brand-border);
+  display: flex;
+  gap: var(--space-7);
+  font-size: var(--text-xs);
+  color: var(--success-text);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.doc-audit__summary strong {
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.doc-audit__filter {
+  padding: var(--space-5) var(--space-10);
+  border-bottom: 1px solid var(--surface-divider);
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.doc-audit__chip {
+  padding: var(--space-1) var(--space-4);
+  background: var(--surface-card);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  color: var(--text-default);
+  cursor: pointer;
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.doc-audit__chip:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.doc-audit__chip--active {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  border-color: var(--brand-primary);
+}
+
+.doc-audit__chip--active:hover {
+  background: var(--brand-primary-hover);
+  color: var(--on-brand);
+}
+
+.doc-audit__body {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--surface-card);
+}
+
+.doc-audit__row {
+  display: grid;
+  grid-template-columns: 110px 1fr 80px;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-10);
+  border-bottom: 1px solid var(--surface-divider);
+  font-size: var(--text-xs);
+  align-items: start;
+}
+
+.doc-audit__row:hover {
+  background: var(--surface-soft);
+}
+
+.doc-audit__time {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+}
+
+.doc-audit__time-today {
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.doc-audit__action {
+  color: var(--text-heading);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.doc-audit__action-target {
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.doc-audit__actor {
+  font-size: var(--text-3xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-top: 3px;
+  letter-spacing: 0.04em;
+}
+
+.doc-audit__meta {
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.doc-audit__pill {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-3xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.doc-audit__pill--status {
+  background: var(--info-bg);
+  color: var(--info-text);
+}
+
+.doc-audit__pill--block {
+  background: var(--warning-soft);
+  color: var(--on-warning);
+}
+
+.doc-audit__pill--resolve {
+  background: var(--success-badge-bg);
+  color: var(--success-text);
+}
+
+.doc-audit__pill--cancel {
+  background: var(--danger-badge-bg);
+  color: var(--danger-dark);
+}
+
+.doc-audit__pill--create {
+  background: var(--brand-light);
+  color: var(--brand-primary);
+}
+
+.doc-audit__pill-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+.doc-audit__empty {
+  padding: var(--space-12) var(--space-10);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.doc-audit__err {
+  padding: var(--space-10);
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-bottom: 1px solid var(--danger-border);
+  font-size: var(--text-sm);
+}
+
+.doc-audit__foot {
+  padding: var(--space-6) var(--space-10);
+  border-top: 1px solid var(--border-default);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  flex-shrink: 0;
+  background: var(--surface-card);
+}
+
+.doc-audit__export {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--text-strong);
+  cursor: pointer;
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.doc-audit__export:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.doc-audit__export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.doc-audit__privacy {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-6);
+  margin: var(--space-6) var(--space-10) var(--space-10);
+  font-size: var(--text-2xs);
+  color: var(--warning-text);
+  line-height: 1.5;
+}
+
+.doc-audit__privacy strong {
+  font-weight: 700;
+}

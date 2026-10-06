@@ -44,6 +44,10 @@
 
 generated: 09-08-2026 12:00
 last_updated: 2026-10-06
+# 2026-10-06 E7-S2-ui implementation complete (doctor audit drawer —
+# mock 30 right-side slide-in); spec-7-2-ui-audit-drawers.md recorded;
+# 5 deferrals (D-E7-S-UI-1..5); no tests in this pass; token-only
+# CSS verified (0 hex literals in new files).
 # 2026-10-06 E6-S2-ui implementation complete (doctor conflict
 # move + affected queue + resolve flow + success modal — F-09,
 # BR-054…058; mockups 06, 24, 37); spec-6-2-ui-doctor-conflict-move.md
@@ -1884,6 +1888,42 @@ development_status:
   #   acceptance criteria + deferral of a regression grep test to
   #   W52 hardening.
   # Story E7-S6 → done.
+  7-2-ui-audit-drawers: done
+  # 2026-10-06 E7-S2-ui implementation complete (doctor audit drawer —
+  #   per-appointment read; mock 30 right-side slide-in):
+  #   - apps/web/src/pages/DoctorAuditDrawer.tsx (NEW) — 480px right-side
+  #     slide-in dialog (role=dialog, aria-modal=true, aria-pressed on
+  #     filter chips, Escape closes, click-on-backdrop closes). Maps
+  #     server audit events to friendly action lines + pill tone:
+  #     cancelled/rescheduled/moved_by_doctor/status_marked/
+  #     recurring_created/blocked/created. Filter chips (All / Status
+  #     changes / Cancellations / Block / Resolve) are client-side
+  #     over the loaded rows (server returns the full 200-row window).
+  #   - apps/web/src/pages/DoctorAuditDrawer.module.css (NEW) —
+  #     token-only CSS (E7-S1 invariant verified: 0 hex literals).
+  #     slide-in animation respects prefers-reduced-motion.
+  #   - apps/web/src/pages/DoctorApp.tsx (EDIT) — wires the drawer
+  #     overlay; <DoctorAffected onOpenAudit={…} /> is the only
+  #     trigger today.
+  #   - apps/web/src/pages/DoctorAffected.tsx (EDIT) — every kanban
+  #     card (To do / In progress / Resolved) has a "View audit log →
+  #     / "Audit log" button next to the Move/Continue primary button.
+  #     Bug fix: the card-actions block was previously gated on
+  #     !r.resolved; removed the gate so the resolved column can
+  #     render its "View audit log →" affordance.
+  #   - apps/web/src/pages/DoctorAffected.module.css (EDIT) — added
+  #     .doc-aff__card-btn--primary (filled teal) variant for the
+  #     Move / Continue button; the default .doc-aff__card-btn stays
+  #     a ghost outline for secondary actions.
+  #   - Deferrals (5): D-E7-S-UI-1 admin audit log (mock 27);
+  #     D-E7-S-UI-2 CSV export (button present, disabled);
+  #     D-E7-S-UI-3 receptionist audit drawer UI (back-end wired, no
+  #     trigger); D-E7-S-UI-4 pagination (server caps at 200, future
+  #     cursor-based pass); D-E7-S-UI-5 E7-S5 a11y baseline (basic
+  #     aria attrs present, broader a11y deferred).
+  #   - No tests in this pass (per user instruction).
+  #   - Token-only CSS verified (0 hex literals in new files).
+  #   - Spec: spec-7-2-ui-audit-drawers.md recorded.
   7-7-no-tentative-client-side-slot-holds: backlog
   7-8-performance-availability-slas: backlog
   7-9-product-metrics-instrumentation: backlog

@@ -49,6 +49,16 @@ import './DoctorAffected.module.css';
 
 interface DoctorAffectedProps {
   onGoSchedule?: () => void;
+  /**
+   * E7-S2 — invoked when the doctor clicks "View audit log" on a
+   * kanban card. The doctor surface wires this to DoctorApp which
+   * renders the DoctorAuditDrawer modal.
+   */
+  onOpenAudit?: (t: {
+    appointmentId: string;
+    appointmentLabel: string;
+    branchTz: string;
+  }) => void;
 }
 
 interface CompletedMove {
@@ -153,7 +163,7 @@ interface ResolvedRow {
   toEnd: string;
 }
 
-export function DoctorAffected({ onGoSchedule }: DoctorAffectedProps) {
+export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProps) {
   const { stored } = useAuth();
   const doctorId = stored?.claim.doctor_id ?? null;
   const [rows, setRows] = useState<DoctorAffectedAppointment[] | null>(null);
@@ -317,13 +327,31 @@ export function DoctorAffected({ onGoSchedule }: DoctorAffectedProps) {
               maskedPhone: maskPhone(r.patient_phone),
             }))}
             renderAction={(row) => (
-              <button
-                type="button"
-                className="doc-aff__card-btn"
-                onClick={() => onMove(row.id)}
-              >
-                Move →
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="doc-aff__card-btn doc-aff__card-btn--primary"
+                  onClick={() => onMove(row.id)}
+                >
+                  Move →
+                </button>
+                {onOpenAudit && (
+                  <button
+                    type="button"
+                    className="doc-aff__card-btn"
+                    onClick={() =>
+                      onOpenAudit({
+                        appointmentId: row.id,
+                        appointmentLabel:
+                          row.patientLabel ?? 'Appointment',
+                        branchTz: row.tz,
+                      })
+                    }
+                  >
+                    Audit log
+                  </button>
+                )}
+              </>
             )}
           />
           <Column
@@ -350,13 +378,31 @@ export function DoctorAffected({ onGoSchedule }: DoctorAffectedProps) {
               ];
             })()}
             renderAction={(row) => (
-              <button
-                type="button"
-                className="doc-aff__card-btn"
-                onClick={() => onMove(row.id)}
-              >
-                Continue →
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="doc-aff__card-btn doc-aff__card-btn--primary"
+                  onClick={() => onMove(row.id)}
+                >
+                  Continue →
+                </button>
+                {onOpenAudit && (
+                  <button
+                    type="button"
+                    className="doc-aff__card-btn doc-aff__card-btn--ghost"
+                    onClick={() =>
+                      onOpenAudit({
+                        appointmentId: row.id,
+                        appointmentLabel:
+                          row.patientLabel ?? 'Appointment',
+                        branchTz: row.tz,
+                      })
+                    }
+                  >
+                    Audit log
+                  </button>
+                )}
+              </>
             )}
             active
           />
@@ -381,10 +427,28 @@ export function DoctorAffected({ onGoSchedule }: DoctorAffectedProps) {
               start: r.toStart,
               end: r.toEnd,
               fromStart: r.fromStart,
+              patientLabel: patientLabelFromPhone(r.patient_phone),
               maskedPhone: maskPhone(r.patient_phone),
               resolved: true,
             }))}
-            renderAction={() => null}
+            renderAction={(row) => (
+              onOpenAudit ? (
+                <button
+                  type="button"
+                  className="doc-aff__card-btn"
+                  onClick={() =>
+                    onOpenAudit({
+                      appointmentId: row.id,
+                      appointmentLabel:
+                        row.patientLabel ?? 'Appointment',
+                      branchTz: row.tz,
+                    })
+                  }
+                >
+                  View audit log →
+                </button>
+              ) : null
+            )}
           />
         </div>
 
@@ -529,7 +593,7 @@ function Column({
               >
                 {issue}
               </div>
-              {!r.resolved && renderAction && (
+              {renderAction && (
                 <div className="doc-aff__card-actions">
                   {renderAction(r)}
                 </div>

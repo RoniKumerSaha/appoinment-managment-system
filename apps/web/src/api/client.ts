@@ -1100,3 +1100,79 @@ export function doctorMove(
     },
   );
 }
+
+// ─── Appointment audit reads (E7-S2) ───────────────────────
+
+// E7-S2 — doctor audit drawer (mock 30). Per-appointment
+// audit log keyed by appointment_id. Doubly-bound scope:
+// claim.role === 'doctor' AND appointment.doctor_id ===
+// claim.doctor_id. Same envelope for "doesn't exist" and
+// "exists but not yours" (E7-S3 privacy filter).
+export interface DoctorAuditRow {
+  id: string;
+  appointment_id: string | null;
+  actor_role: string;
+  actor_id: string;
+  event: string;
+  payload: Record<string, unknown> | null;
+  created_at: string; // ISO UTC
+}
+
+export interface DoctorAuditResponse {
+  appointment_id: string;
+  patient_phone: string;
+  count: number;
+  audit: DoctorAuditRow[];
+}
+
+export function getDoctorAppointmentAudit(
+  appointmentId: string,
+): Promise<DoctorAuditResponse> {
+  return request<DoctorAuditResponse>(
+    `/doctor/appointments/${encodeURIComponent(appointmentId)}/audit`,
+    { method: 'GET' },
+  );
+}
+
+// E7-S2 — receptionist audit drawer. Receptionist branch-scope.
+export interface ReceptionAuditRow {
+  id: string;
+  appointment_id: string | null;
+  actor_role: string;
+  actor_id: string;
+  event: string;
+  payload: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface ReceptionAuditResponse {
+  appointment_id: string;
+  patient_phone: string;
+  count: number;
+  audit: ReceptionAuditRow[];
+}
+
+export function getReceptionistAppointmentAudit(
+  appointmentId: string,
+): Promise<ReceptionAuditResponse> {
+  return request<ReceptionAuditResponse>(
+    `/reception/appointments/${encodeURIComponent(appointmentId)}/audit`,
+    { method: 'GET' },
+  );
+}
+
+// E7-S2 — admin policy envelope (the admin never sees
+// appointment-audit per PRD §2.4). The endpoint exists so the
+// admin surface doesn't 404 on the spec's expected path.
+export interface AdminAuditEnvelope {
+  appointments_audit_reads: 'rejected_per_role_policy';
+  reason: string;
+  reference: string;
+  doctor_endpoint: string;
+  receptionist_endpoint: string;
+  future_work: string;
+}
+
+export function getAdminAudit(): Promise<AdminAuditEnvelope> {
+  return request<AdminAuditEnvelope>('/admin/audit', { method: 'GET' });
+}

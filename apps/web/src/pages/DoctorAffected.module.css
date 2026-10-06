@@ -268,6 +268,21 @@
   color: var(--brand-primary);
 }
 
+/* Primary "Move →" button — filled teal. The default `.doc-aff__card-btn`
+ * is a ghost outline used for secondary actions ("Audit log",
+ * "View audit log"). */
+.doc-aff__card-btn--primary {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  border-color: var(--brand-primary);
+}
+
+.doc-aff__card-btn--primary:hover {
+  background: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
+  color: var(--on-brand);
+}
+
 .doc-aff__empty {
   text-align: center;
   padding: var(--space-9) var(--space-3);
