@@ -197,3 +197,42 @@ export function verifyPatientOtp(input: {
 export function getMe(): Promise<LoginResponse> {
   return request<LoginResponse>('/auth/me', { method: 'GET' });
 }
+
+// ─── Branches (E1-S1) ────────────────────────────────────────────────
+
+export interface BranchDto {
+  id: string;
+  clinic_id: string;
+  name: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export function listBranches(
+  filter?: 'active' | 'inactive',
+): Promise<BranchDto[]> {
+  const qs = filter ? `?active=${filter === 'active' ? 'true' : 'false'}` : '';
+  return request<BranchDto[]>(`/admin/branches${qs}`, { method: 'GET' });
+}
+
+export function getBranch(id: string): Promise<BranchDto> {
+  return request<BranchDto>(`/admin/branches/${id}`, { method: 'GET' });
+}
+
+export function createBranch(name: string): Promise<BranchDto> {
+  return request<BranchDto>('/admin/branches', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function patchBranch(
+  id: string,
+  body: { name?: string; active?: boolean },
+): Promise<BranchDto> {
+  return request<BranchDto>(`/admin/branches/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}

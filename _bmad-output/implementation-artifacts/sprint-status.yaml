@@ -260,6 +260,20 @@ development_status:
   # Legacy umbrella key (kept for traceability until retros close):
   1-0-clinic-management-single-clinic-anchor: backlog
   1-1-create-edit-deactivate-branches: done
+  # 2026-10-06 E1-S1-ui implementation complete; spec-1-1-ui-admin-branches.md
+  # recorded. Pixel-perfect mockup 17 port (two-step stacked flow); Step 1
+  # list + radio select, Step 2 edit form with status toggle, BR-059
+  # inline ConflictModal for 409 branch_has_future_appointments. Placeholder
+  # rows for address + operating hours + impact banner (E1-S2 #29). 7
+  # deferrals (E1-S1-ui-defer-a through -g). App.tsx switched from a
+  # hard-coded ClinicSettings render to a local useState<AdminSection>
+  # router stand-in (W59 / #22 is the real router story). New --scrim
+  # token added for the modal backdrop. typecheck: 0 new errors (api 3
+  # pre-existing baseline in src/otp/{provider,service,twilio-provider}.ts
+  # unchanged; web 0 errors). lint: 0 new errors (2 pre-existing baseline
+  # in ClinicSettings.tsx unchanged). E7-S1 invariant: 0 hex literals
+  # outside tokens.css. Story E1-S1-ui → done.
+  1-1-ui-admin-branches: done
   # 2026-09-14 E1-S1 code-review pass complete (review_loop_iteration=1,
   # baseline_commit=4a107a35-3dfe... after Step-03 implementation):
   #   - 3 reviewer subagents (verification-gap, blind-hunter, edge-case-hunter)

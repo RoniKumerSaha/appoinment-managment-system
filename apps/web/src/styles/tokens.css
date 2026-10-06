@@ -123,6 +123,9 @@
   --font-mono:
     ui-monospace, "SF Mono", "Cascadia Mono", Consolas, "Liberation Mono",
     Menlo, monospace;
+
+  /* ── Scrim (§2.4) — modal backdrop tint ───────────────────────── */
+  --scrim: rgba(15, 29, 35, 0.45);
 }
 
 html,

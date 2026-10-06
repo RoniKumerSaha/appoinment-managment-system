@@ -11,8 +11,9 @@
  * (E1-S0-ui). The router lands with the next admin page (deferral W59).
  */
 import { useEffect, useState } from 'react';
-import { AppShell } from './AppShell';
+import { AppShell, type AdminSection } from './AppShell';
 import { ClinicSettings } from './pages/ClinicSettings';
+import { AdminBranches } from './pages/AdminBranches';
 import { LoginPage } from './pages/LoginPage';
 import { useAuth, clearAuth } from './auth/store';
 import { setOnUnauthorized, getMe, ApiError } from './api/client';
@@ -22,6 +23,10 @@ export function App() {
   const [bootStatus, setBootStatus] = useState<'checking' | 'ok' | 'fail'>(
     'checking',
   );
+  // Local router stand-in until W59 ships a real router (#22). The
+  // nav-state lives here so the AppShell's `onNavigate` callback can
+  // flip the page without a full page reload.
+  const [active, setActive] = useState<AdminSection>('clinic');
 
   // Wire the 401-triggered auth-clear at app boot. The store is the
   // single source of truth; the client just publishes events.
@@ -81,8 +86,9 @@ export function App() {
   }
 
   return (
-    <AppShell active="clinic">
-      <ClinicSettings />
+    <AppShell active={active} onNavigate={setActive}>
+      {active === 'clinic' && <ClinicSettings />}
+      {active === 'branches' && <AdminBranches />}
     </AppShell>
   );
 }

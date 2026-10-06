@@ -41,10 +41,11 @@ function initialsOf(name: string | null, email: string): string {
 
 interface AppShellProps {
   active: AdminSection;
+  onNavigate?: (section: AdminSection) => void;
   children: ReactNode;
 }
 
-export function AppShell({ active, children }: AppShellProps) {
+export function AppShell({ active, onNavigate, children }: AppShellProps) {
   const { stored } = useAuth();
   const profile = stored?.profile ?? null;
   const role = stored?.claim.role ?? 'admin';
@@ -56,6 +57,9 @@ export function AppShell({ active, children }: AppShellProps) {
     logout();
   };
 
+  const isImplemented = (key: AdminSection): boolean =>
+    key === 'clinic' || key === 'branches';
+
   return (
     <div className="shell">
       <nav className="nav">
@@ -64,27 +68,34 @@ export function AppShell({ active, children }: AppShellProps) {
           MediSlot · Admin
         </div>
         <div className="nav__links">
-          {SECTIONS.map((s) =>
-            s.key === active ? (
-              <span
-                key={s.key}
-                className="nav__link nav__link--active"
-                aria-current="page"
-              >
-                {s.label}
-              </span>
-            ) : (
+          {SECTIONS.map((s) => {
+            if (s.key === active) {
+              return (
+                <span
+                  key={s.key}
+                  className="nav__link nav__link--active"
+                  aria-current="page"
+                >
+                  {s.label}
+                </span>
+              );
+            }
+            const ready = isImplemented(s.key);
+            return (
               <button
                 key={s.key}
                 type="button"
                 className="nav__link"
-                disabled
-                title="Not yet implemented"
+                disabled={!ready}
+                onClick={() => {
+                  if (ready && onNavigate) onNavigate(s.key);
+                }}
+                title={ready ? s.label : 'Not yet implemented'}
               >
                 {s.label}
               </button>
-            ),
-          )}
+            );
+          })}
         </div>
         <div className="nav__user">
           <div className="nav__user-meta">
