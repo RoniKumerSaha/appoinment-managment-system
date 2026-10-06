@@ -616,7 +616,134 @@ export function deleteDoctorBlock(
   );
 }
 
-// ─── Appointment types (E2-S3) ─────────────────────────────
+// ─── Public catalog (E3-ui) ───────────────────────────────
+
+export interface PublicDoctorDto {
+  id: string;
+  full_name: string;
+}
+
+export interface PublicBranchDto {
+  id: string;
+  name: string;
+  tz: string;
+}
+
+export interface PublicAppointmentTypeDto {
+  id: string;
+  name: string;
+  duration_minutes: number;
+}
+
+export function listPublicDoctors(): Promise<{ doctors: PublicDoctorDto[] }> {
+  return request<{ doctors: PublicDoctorDto[] }>('/public/doctors', {
+    method: 'GET',
+  });
+}
+
+export function listPublicBranches(doctorId?: string): Promise<{ branches: PublicBranchDto[] }> {
+  const qs = doctorId ? `?doctor_id=${encodeURIComponent(doctorId)}` : '';
+  return request<{ branches: PublicBranchDto[] }>(`/public/branches${qs}`, {
+    method: 'GET',
+  });
+}
+
+export function listPublicAppointmentTypes(): Promise<{
+  appointment_types: PublicAppointmentTypeDto[];
+}> {
+  return request<{ appointment_types: PublicAppointmentTypeDto[] }>(
+    '/public/appointment-types',
+    { method: 'GET' },
+  );
+}
+
+// ─── Availability + bookings (E3-S1 / E3-S2) ───────────────────
+
+export interface AvailabilitySlot {
+  start_datetime: string;
+  end_datetime: string;
+}
+
+export interface AvailabilityResponse {
+  slots: AvailabilitySlot[];
+  reason?:
+    | 'past_date'
+    | 'outside_30d_window'
+    | 'branch_closed'
+    | 'doctor_unavailable'
+    | 'no_fit'
+    | 'all_booked'
+    | 'all_blocked'
+    | null;
+}
+
+export function getAvailability(input: {
+  doctor_id: string;
+  branch_id: string;
+  date: string; // YYYY-MM-DD UTC
+  appointment_type_id: string;
+  patient_phone?: string;
+}): Promise<AvailabilityResponse> {
+  const params: string[] = [
+    `doctor_id=${encodeURIComponent(input.doctor_id)}`,
+    `branch_id=${encodeURIComponent(input.branch_id)}`,
+    `date=${encodeURIComponent(input.date)}`,
+    `appointment_type_id=${encodeURIComponent(input.appointment_type_id)}`,
+  ];
+  if (input.patient_phone) {
+    params.push(`patient_phone=${encodeURIComponent(input.patient_phone)}`);
+  }
+  return request<AvailabilityResponse>(
+    `/availability?${params.join('&')}`,
+    { method: 'GET' },
+  );
+}
+
+export interface CreatedAppointment {
+  id: string;
+  doctor_id: string;
+  branch_id: string;
+  appointment_type_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  status: 'Scheduled';
+  tz: string;
+  patient_id: string;
+}
+
+export interface CreatedBookingResponse {
+  appointment: CreatedAppointment;
+}
+
+export function createBooking(input: {
+  doctor_id: string;
+  branch_id: string;
+  appointment_type_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  slot_duration_minutes: number;
+  patient_phone: string;
+  patient_name: string;
+}): Promise<CreatedBookingResponse> {
+  return request<CreatedBookingResponse>('/bookings', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+// ─── Patient profile (E3-S3) ─────────────────────────────────
+
+export interface PatientProfileDto {
+  phone_number: string;
+  full_name: string | null;
+}
+
+export function getPatientProfile(phone: string): Promise<{ patient: PatientProfileDto }> {
+  return request<{ patient: PatientProfileDto }>(
+    `/patient/profile?phone=${encodeURIComponent(phone)}`,
+    { method: 'GET' },
+  );
+}
 
 export interface AppointmentTypeDto {
   id: string;

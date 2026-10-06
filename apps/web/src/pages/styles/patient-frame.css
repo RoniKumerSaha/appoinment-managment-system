@@ -1,0 +1,157 @@
+/*
+ * Patient frame styles — pixel-perfect port of mockups 02/03/04 nav +
+ * progress bar. Token-only (E7-S1 invariant): no hex literals.
+ */
+
+.patient-frame__root {
+  background: var(--surface-page);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Nav ───────────────────────────────────────────────────────── */
+
+.patient-frame__nav {
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border-default);
+  padding: var(--space-7) var(--space-12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: var(--space-7);
+}
+
+.patient-frame__brand {
+  font-weight: 700;
+  color: var(--brand-primary);
+  font-size: var(--text-3xl);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.patient-frame__brand-logo {
+  width: 28px;
+  height: 28px;
+  background: var(--brand-primary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-brand);
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.patient-frame__links {
+  display: flex;
+  gap: var(--space-10);
+  font-size: var(--text-md);
+  color: var(--text-default);
+}
+
+.patient-frame__link {
+  cursor: pointer;
+}
+
+.patient-frame__link--active {
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.patient-frame__link--muted {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.patient-frame__cta {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  border: none;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 120ms ease;
+}
+
+.patient-frame__cta:hover {
+  background: var(--brand-primary-hover);
+}
+
+/* ── Progress bar ──────────────────────────────────────────────── */
+
+.patient-frame__progress {
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border-default);
+  padding: var(--space-7) var(--space-12);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.patient-frame__step {
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-soft);
+  color: var(--text-muted);
+  border: 1px solid var(--border-default);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.patient-frame__step-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-3xs);
+  font-weight: 600;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  color: var(--on-brand);
+}
+
+.patient-frame__step--done {
+  background: var(--brand-light-50);
+  color: var(--brand-primary);
+  border-color: var(--brand-border);
+  font-weight: 500;
+}
+
+.patient-frame__step--done .patient-frame__step-n {
+  background: var(--brand-primary);
+}
+
+.patient-frame__step--current {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  border-color: var(--brand-primary);
+  font-weight: 500;
+}
+
+.patient-frame__step--current .patient-frame__step-n {
+  background: var(--scrim);
+  color: var(--on-brand);
+}
+
+.patient-frame__progress-sep {
+  color: var(--text-faint);
+}
+
+/* ── Body ──────────────────────────────────────────────────────── */
+
+.patient-frame__body {
+  flex: 1;
+}

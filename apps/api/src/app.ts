@@ -37,6 +37,7 @@ import { adminDoctorScheduleRouter } from './routes/admin-doctor-schedule.js';
 import { adminDoctorBlockRouter } from './routes/admin-doctor-block.js';
 import { adminAppointmentTypesRouter } from './routes/admin-appointment-types.js';
 import { availabilityRouter } from './routes/availability.js';
+import { publicCatalogRouter } from './routes/public-catalog.js';
 import { bookingsRouter } from './routes/bookings.js';
 import { patientProfileRouter } from './routes/patient-profile.js';
 import { patientAppointmentsRouter } from './routes/patient-appointments.js';
@@ -111,6 +112,12 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // authMiddleware so req.auth.claim is populated. Used by the web client
   // on boot to confirm a token in localStorage is still valid.
   app.use('/auth', authMeRouter);
+
+  // Public catalog routes — `GET /public/{doctors,branches,appointment-types}`.
+  // Mounted AFTER authMiddleware so req.auth.claim is populated. Used by
+  // the patient booking flow (E3-ui). Open to any authenticated caller;
+  // no adminScope. Returns only active rows.
+  app.use(publicCatalogRouter);
 
   // Availability route — mounted AFTER authMiddleware so req.auth.claim
   // is populated. Open to any authenticated caller (no adminScope).

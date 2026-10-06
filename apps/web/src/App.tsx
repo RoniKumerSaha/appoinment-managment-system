@@ -21,12 +21,14 @@ import { AdminDoctorAssign } from './pages/AdminDoctorAssign';
 import { AdminDoctorSchedule } from './pages/AdminDoctorSchedule';
 import { AdminDoctorBlocks } from './pages/AdminDoctorBlocks';
 import { AdminAppointmentTypes } from './pages/AdminAppointmentTypes';
+import { PatientBooking } from './pages/PatientBooking';
 import { LoginPage } from './pages/LoginPage';
 import { useAuth, clearAuth } from './auth/store';
 import { setOnUnauthorized, getMe, ApiError } from './api/client';
 
 export function App() {
   const { stored, isAuthenticated, expired } = useAuth();
+  const role = stored?.claim.role ?? null;
   const [bootStatus, setBootStatus] = useState<'checking' | 'ok' | 'fail'>(
     'checking',
   );
@@ -123,6 +125,13 @@ export function App() {
 
   if (!isAuthenticated) {
     return <LoginPage />;
+  }
+
+  // Patient session bypasses the admin shell and renders the patient
+  // booking flow directly (E3-ui). Staff (admin/doctor/receptionist)
+  // continue to use the admin AppShell.
+  if (role === 'patient') {
+    return <PatientBooking />;
   }
 
   return (

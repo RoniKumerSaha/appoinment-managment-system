@@ -978,6 +978,53 @@ development_status:
   #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
   #   - Spec Change Log: SC2 (review-loop-1 patches) recorded.
   #   - Story E3-S5 → done.
+  3-ui-patient-booking: done
+  # 2026-10-06 E3-S1/S2/S3-ui implementation complete (patient booking
+  #   flow — F-01, F-02, F-03, mockups 02/03/04/36):
+  #   - apps/api/src/routes/public-catalog.ts (NEW) — three lightweight
+  #     public-catalog routes (GET /public/{doctors,branches,appointment-types})
+  #     that return only active rows; auth-gated, no adminScope. The
+  #     branches route accepts ?doctor_id= and filters to the doctor's
+  #     branches server-side so the picker never offers a branch the
+  #     doctor isn't at.
+  #   - apps/api/src/app.ts (MODIFIED) — publicCatalogRouter mounted
+  #     after authMiddleware, before availabilityRouter.
+  #   - apps/web/src/api/client.ts (MODIFIED) — added PublicDoctorDto /
+  #     PublicBranchDto / PublicAppointmentTypeDto types; added
+  #     listPublicDoctors / listPublicBranches / listPublicAppointmentTypes;
+  #     added AvailabilitySlot / AvailabilityResponse + getAvailability;
+  #     added CreatedAppointment / CreatedBookingResponse + createBooking;
+  #     added PatientProfileDto + getPatientProfile.
+  #   - apps/web/src/pages/PatientFrame.tsx (NEW) — patient frame with
+  #     thin nav (logo + 4 links + Sign out), sticky 5-step progress bar,
+  #     1200px body. Distinct from the admin AppShell.
+  #   - apps/web/src/pages/styles/patient-frame.css (NEW) — token-only CSS.
+  #   - apps/web/src/pages/booking-utils.ts (NEW) — date math (UTC working
+  #     plane per spec-3-1 D2 deferral), E.164 + name + OTP validators,
+  #     init/format helpers.
+  #   - apps/web/src/pages/PatientBooking.tsx (NEW) — 5-step state
+  #     machine (doctor → branch+type → date+time → details → confirm →
+  #     receipt). E3-S3 returning-patient detection via 350ms-debounced
+  #     /patient/profile probe. Returns a phone on the availability
+  #     query so FR-027/FR-029 filtering happens server-side.
+  #   - apps/web/src/pages/PatientBooking.module.css (NEW) — token-only CSS.
+  #   - apps/web/src/App.tsx (MODIFIED) — patient-role bypass; when
+  #     stored.claim.role === 'patient', render <PatientBooking /> and
+  #     skip the admin AppShell. Staff (admin/doctor/receptionist) keep
+  #     the existing admin routing.
+  #   - Deferrals: 5 — D-E3-1 (my-appointments surface = E4-S1), D-E3-2
+  #     (receptionist onboarding branch = E5-*), D-E3-3 (country-code
+  #     chip cosmetic = mock 41), D-E3-4 (week/month view toggles),
+  #     D-E3-5 (router-driven Edit links on done summary cards = W59).
+  #   - Modified files: 4 (client.ts + 8 endpoints/types, App.tsx +
+  #     app.ts mount, public-catalog.ts is NEW, PatientFrame.tsx +
+  #     PatientBooking.tsx + booking-utils.ts + 2 CSS files are NEW).
+  #   - Typecheck: 0 new errors in new code (3 pre-existing baseline
+  #     errors in otp/* unchanged).
+  #   - Lint: 0 new warnings in new code (2 pre-existing errors in
+  #     ClinicSettings.tsx unchanged; 1 pre-existing warning in
+  #     server.ts unchanged).
+  #   - Story E3-S1/S2/S3-ui → done.
   epic-3-retrospective: done
 
   # Epic 4 — Patient self-service
