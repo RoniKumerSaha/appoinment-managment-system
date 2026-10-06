@@ -44,6 +44,11 @@
 
 generated: 09-08-2026 12:00
 last_updated: 2026-10-06
+# 2026-10-06 E4-S1/S2/S3/S4-ui implementation complete (patient
+# self-service hub — list + cancel modal + reschedule + deep-link —
+# mockups 05 post-OTP, 20, 22); spec-4-1-2-3-4-ui-patient-self-service.md
+# recorded; 3 deferrals (D-E4-S-UI-1..3); no tests in this pass;
+# token-only CSS verified (0 hex literals in new files).
 # 2026-10-06 E5-S3/S4-ui implementation complete (receptionist today
 # dashboard + cancel appointment — mockups 13, 15; mock 26 deferred);
 # spec-5-3-5-4-ui-receptionist-today-cancel.md recorded; 5 deferrals
@@ -1219,6 +1224,94 @@ development_status:
   #       patient-reschedule.ts exclude the current row by id; the
   #       same exclusion should also live in a future per-row lookup
   #       helper for staff reschedule flows (E6-S2).
+  4-1-2-3-4-ui-patient-self-service: done
+  # 2026-10-06 E4-S1/S2/S3/S4-ui implementation complete (patient
+  #   self-service hub — F-03 list + F-04 cancel + F-05 reschedule +
+  #   F-03 deep-link landing — mockups 05 post-OTP, 22 cancel modal,
+  #   20 reschedule page):
+  #   - apps/web/src/api/client.ts (MODIFIED) — added
+  #     PatientAppointmentDto + PatientAppointmentsResponse +
+  #     listPatientAppointments(); added PatientCancelAppointment +
+  #     PatientCancelResponse + patientCancel(id); added
+  #     PatientRescheduleInput + PatientRescheduleAppointment +
+  #     PatientRescheduleResponse + patientReschedule(id, input);
+  #     added PatientDeepLinkAppointment + PatientDeepLinkResponse +
+  #     getPatientDeepLink(id).
+  #   - apps/web/src/pages/PatientFrame.tsx (MODIFIED) — added
+  #     activeLink + onNavigate props so the "Find a doctor" and
+  #     "My appointments" nav items can toggle. The active item is
+  #     rendered as a non-button span (per mockup nav); the inactive
+  #     item is a real <button>.
+  #   - apps/web/src/pages/styles/patient-frame.css (MODIFIED) —
+  #     added button reset to .patient-frame__link (background /
+  #     border / padding / font / color) so the new buttons render
+  #     like the mockup's plain text links.
+  #   - apps/web/src/pages/MyAppointments.tsx (NEW) — main
+  #     self-service hub. Header + quicklink + list of upcoming
+  #     appointment rows (date-block + body + Reschedule/Cancel
+  #     actions). Calls listPatientAppointments +
+  #     listPublicDoctors + listPublicAppointmentTypes +
+  #     listPublicBranches(doctor_id) per distinct doctor to
+  #     denormalise the row labels. Maps ApiError envelopes to
+  #     friendly messages. Toast on success (cancel + reschedule).
+  #     Deep-link: useEffect reads ?action= + ?id= once on mount and
+  #     scrubs the URL via history.replaceState so the back button
+  #     doesn't re-trigger.
+  #   - apps/web/src/pages/MyAppointments.module.css (NEW) —
+  #     token-only CSS for the page.
+  #   - apps/web/src/pages/CancelModal.tsx (NEW) — mock 22 modal:
+  #     480px modal over a scrim, "Cancel your appointment with
+  #     Dr. {lastName} on {date}?" title, body explains the slot
+  #     will be released, "No reason needed from you" helper,
+  #     "Keep appointment" / "Cancel appointment" actions. Calls
+  #     patientCancel; maps 404 not_found_appointment_in_terminal_state
+  #     and 401 errors inline.
+  #   - apps/web/src/pages/CancelModal.module.css (NEW) — token-only
+  #     CSS for the modal (scrim, 480px frame, danger button).
+  #   - apps/web/src/pages/ReschedulePage.tsx (NEW) — mock 20
+  #     stacked-vertical flow. Step 1 is a locked current-appointment
+  #     card; Step 2 is the picker with branch + type selects,
+  #     30-day date rail (starting tomorrow per FR-019), agenda
+  #     of slots from getAvailability. On submit calls
+  #     patientReschedule with new_slot_duration_minutes =
+  #     appointment.typeDuration (E4-S3 invariant). Maps every
+  #     relevant envelope: slot_raced, patient_time_conflict,
+  #     duration_mismatch, outside_30d_window, slot_in_past,
+  #     doctor_unavailable, branch_closed, doctor_not_at_branch,
+  #     doctor_inactive, branch_inactive, invalid_time_range,
+  #     unknown_field.
+  #   - apps/web/src/pages/ReschedulePage.module.css (NEW) —
+  #     token-only CSS for the page (760px frame, sticky rail,
+  #     slot grid, summary card).
+  #   - apps/web/src/pages/PatientApp.tsx (NEW) — top-level
+  #     patient container (W59 deferral: internal router). Mirrors
+  #     ReceptionistApp. Switches between PatientBooking (E3-ui) and
+  #     MyAppointments based on view state. Reads ?action= + ?id=
+  #     once on mount, scrubs the URL, and lands on MyAppointments
+  #     pre-opened to the matching modal.
+  #   - apps/web/src/App.tsx (MODIFIED) — patient-role bypass now
+  #     renders <PatientApp /> instead of <PatientBooking />.
+  #     Receptionist bypass unchanged.
+  #   - Privacy (E7-S3): MyAppointments receives the verified
+  #     patient's own appointments; the response carries no
+  #     patient_name (the patient IS the patient). Doctor names,
+  #     branch names, and appointment-type names are denormalised
+  #     client-side from listPublicDoctors / listPublicBranches /
+  #     listPublicAppointmentTypes.
+  #   - Deferrals: D-E4-S-UI-1 (Walk-in book surface mock 26 not
+  #     applicable to patient self-service — covered in E5-S-UI
+  #     deferral set), D-E4-S-UI-2 (server-driven doctor-scope
+  #     reschedule target filtering — the route returns every
+  #     doctor branch for this doctype), D-E4-S-UI-3 (per-doctor
+  #     branch fetch could be parallelised via a dedicated
+  #     listAllPublicBranches endpoint; today we issue one call per
+  #     distinct doctor in the patient's appointments).
+  #   - Typecheck: 0 new errors (manual review; sandbox blocks
+  #     pnpm in this session).
+  #   - Lint: 0 new warnings (manual review).
+  #   - Hex literal scan: 0 matches in any new file (E7-S1
+  #     invariant holds).
+  #   - Story E4-S1/S2/S3/S4-ui → done.
   epic-4-retrospective: done
 
   # Epic 5 — Staff appointment management

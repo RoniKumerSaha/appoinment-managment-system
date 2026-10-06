@@ -898,3 +898,118 @@ export function receptionistCancel(
     },
   );
 }
+
+// ─── Patient self-service (E4-S1 / E4-S2 / E4-S3 / E4-S4) ─────
+
+export interface PatientAppointmentDto {
+  id: string;
+  doctor_id: string;
+  branch_id: string;
+  appointment_type_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  status: 'Scheduled';
+  tz: string;
+}
+
+export interface PatientAppointmentsResponse {
+  appointments: PatientAppointmentDto[];
+}
+
+export function listPatientAppointments(): Promise<PatientAppointmentsResponse> {
+  return request<PatientAppointmentsResponse>('/patient/appointments', {
+    method: 'GET',
+  });
+}
+
+// E4-S2 — patient cancel. Server returns 404 with a typed envelope
+// for terminal-state rows; the route is the executor (atomic, audited).
+export interface PatientCancelAppointment {
+  id: string;
+  branch_id: string;
+  doctor_id: string;
+  appointment_type_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  status: 'Cancelled';
+}
+
+export interface PatientCancelResponse {
+  appointment: PatientCancelAppointment;
+}
+
+export function patientCancel(
+  appointmentId: string,
+): Promise<PatientCancelResponse> {
+  return request<PatientCancelResponse>(
+    `/patient/appointments/${encodeURIComponent(appointmentId)}/cancel`,
+    { method: 'POST' },
+  );
+}
+
+// E4-S3 — patient reschedule. Doctor is locked (FR-040). The body
+// carries (new_branch_id, new_appointment_type_id, new_start_datetime,
+// new_end_datetime, new_slot_duration_minutes).
+export interface PatientRescheduleInput {
+  new_branch_id: string;
+  new_appointment_type_id: string;
+  new_start_datetime: string; // ISO UTC
+  new_end_datetime: string; // ISO UTC
+  new_slot_duration_minutes: number;
+}
+
+export interface PatientRescheduleAppointment {
+  id: string;
+  branch_id: string;
+  doctor_id: string;
+  appointment_type_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  status: 'Scheduled';
+}
+
+export interface PatientRescheduleResponse {
+  appointment: PatientRescheduleAppointment;
+}
+
+export function patientReschedule(
+  appointmentId: string,
+  input: PatientRescheduleInput,
+): Promise<PatientRescheduleResponse> {
+  return request<PatientRescheduleResponse>(
+    `/patient/appointments/${encodeURIComponent(appointmentId)}/reschedule`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+// E4-S4 — deep-link lookup. Returns `can_cancel` / `can_reschedule`
+// so the client can render a "manage your appointment" landing
+// after a deep-link redirect.
+export interface PatientDeepLinkAppointment {
+  id: string;
+  branch_id: string;
+  doctor_id: string;
+  appointment_type_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  status: string;
+}
+
+export interface PatientDeepLinkResponse {
+  appointment_id: string;
+  can_cancel: boolean;
+  can_reschedule: boolean;
+  appointment: PatientDeepLinkAppointment;
+}
+
+export function getPatientDeepLink(
+  appointmentId: string,
+): Promise<PatientDeepLinkResponse> {
+  return request<PatientDeepLinkResponse>(
+    `/patient/appointments/${encodeURIComponent(appointmentId)}/deep-link`,
+    { method: 'GET' },
+  );
+}

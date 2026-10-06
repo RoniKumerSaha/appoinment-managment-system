@@ -1,0 +1,165 @@
+/*
+ * CancelModal styles — pixel-perfect port of mockup 22 (patient cancel).
+ * Token-only CSS (E7-S1 invariant): no hex literals.
+ *
+ * The mockup centers a 480px modal over a faded page (page opacity 0.35).
+ * We render the modal in a portal-style backdrop that covers the viewport
+ * and tints the rest of the page with the standard scrim.
+ */
+
+.cancel-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-7);
+}
+
+.cancel-modal__modal {
+  background: var(--surface-card);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--elev-4);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Head ───────────────────────────────────────────────────────── */
+
+.cancel-modal__head {
+  padding: var(--space-7) var(--space-7) var(--space-5);
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.cancel-modal__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.cancel-modal__title {
+  font-size: var(--text-lg);
+  color: var(--text-heading);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ── Body ───────────────────────────────────────────────────────── */
+
+.cancel-modal__body {
+  padding: var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.cancel-modal__why {
+  color: var(--text-default);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.cancel-modal__appt-meta {
+  background: var(--surface-soft);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-5);
+  color: var(--text-default);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.cancel-modal__rule {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.cancel-modal__helper {
+  font-size: var(--text-xs);
+  color: var(--brand-primary);
+  background: var(--brand-light-50);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-5);
+}
+
+.cancel-modal__error {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-xs);
+}
+
+/* ── Actions ────────────────────────────────────────────────────── */
+
+.cancel-modal__actions {
+  padding: var(--space-5) var(--space-7) var(--space-7);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  border-top: 1px solid var(--border-default);
+}
+
+.cancel-modal__btn-secondary {
+  padding: var(--space-3) var(--space-7);
+  background: var(--surface-card);
+  color: var(--text-default);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 120ms ease;
+}
+
+.cancel-modal__btn-secondary:hover:not(:disabled) {
+  border-color: var(--text-default);
+  color: var(--text-heading);
+}
+
+.cancel-modal__btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancel-modal__btn-primary {
+  padding: var(--space-3) var(--space-7);
+  background: var(--danger-strong);
+  color: var(--on-danger);
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 120ms ease;
+}
+
+.cancel-modal__btn-primary:hover:not(:disabled) {
+  background: var(--danger-dark);
+}
+
+.cancel-modal__btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

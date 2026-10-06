@@ -22,6 +22,8 @@ import './styles/patient-frame.css';
 interface PatientFrameProps {
   children: ReactNode;
   step?: 1 | 2 | 3 | 4 | 5;
+  activeLink?: 'find-doctor' | 'my-appointments';
+  onNavigate?: (link: 'find-doctor' | 'my-appointments') => void;
   onSignOut?: () => void;
 }
 
@@ -33,11 +35,23 @@ const STEP_LABELS: Array<{ num: number; label: string }> = [
   { num: 5, label: 'Confirm' },
 ];
 
-export function PatientFrame({ children, step, onSignOut }: PatientFrameProps) {
+export function PatientFrame({
+  children,
+  step,
+  activeLink = 'find-doctor',
+  onNavigate,
+  onSignOut,
+}: PatientFrameProps) {
   const { stored } = useAuth();
   const onClickSignOut = (): void => {
     if (onSignOut) onSignOut();
     logout();
+  };
+  const goFindDoctor = (): void => {
+    if (onNavigate) onNavigate('find-doctor');
+  };
+  const goMyAppointments = (): void => {
+    if (onNavigate) onNavigate('my-appointments');
   };
   return (
     <div className="patient-frame__root">
@@ -49,15 +63,32 @@ export function PatientFrame({ children, step, onSignOut }: PatientFrameProps) {
           MediSlot
         </div>
         <div className="patient-frame__links">
-          <span className="patient-frame__link patient-frame__link--active">
-            Find a doctor
-          </span>
-          <span
-            className="patient-frame__link patient-frame__link--muted"
-            title="My appointments — coming in E4-S1"
-          >
-            My appointments
-          </span>
+          {activeLink === 'find-doctor' ? (
+            <span className="patient-frame__link patient-frame__link--active">
+              Find a doctor
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="patient-frame__link"
+              onClick={goFindDoctor}
+            >
+              Find a doctor
+            </button>
+          )}
+          {activeLink === 'my-appointments' ? (
+            <span className="patient-frame__link patient-frame__link--active">
+              My appointments
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="patient-frame__link"
+              onClick={goMyAppointments}
+            >
+              My appointments
+            </button>
+          )}
           <span
             className="patient-frame__link patient-frame__link--muted"
             title="Branches — not yet implemented"

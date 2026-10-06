@@ -21,7 +21,7 @@ import { AdminDoctorAssign } from './pages/AdminDoctorAssign';
 import { AdminDoctorSchedule } from './pages/AdminDoctorSchedule';
 import { AdminDoctorBlocks } from './pages/AdminDoctorBlocks';
 import { AdminAppointmentTypes } from './pages/AdminAppointmentTypes';
-import { PatientBooking } from './pages/PatientBooking';
+import { PatientApp } from './pages/PatientApp';
 import { ReceptionistApp } from './pages/ReceptionistApp';
 import { LoginPage } from './pages/LoginPage';
 import { useAuth, clearAuth } from './auth/store';
@@ -133,7 +133,7 @@ export function App() {
   // the admin shell and render the receptionist dashboard (E5-S4 /
   // E5-S3). Staff (admin/doctor) continue to use the admin AppShell.
   if (role === 'patient') {
-    return <PatientBooking />;
+    return <PatientApp />;
   }
   if (role === 'receptionist') {
     return <ReceptionistApp />;
