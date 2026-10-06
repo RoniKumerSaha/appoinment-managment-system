@@ -1,0 +1,471 @@
+/*
+ * Admin Doctor Assign (Reassign branches) sub-page — pixel-perfect
+ * port of mockup 31
+ * (docs/design/mockups/v1/mockups/31-admin-doctors-reassign.html).
+ *
+ * 980px-wide frame; three step cards (doctor context, multi-select
+ * branch editor, save & audit). Token-only: no hex literals.
+ */
+
+/* ─── Page chrome ──────────────────────────────────────────────── */
+
+.page {
+  padding: var(--space-12);
+}
+
+.page-header {
+  margin-bottom: var(--space-5);
+}
+
+.crumb {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.page-header h1 {
+  font-size: var(--text-3xl);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.sub {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.page-header__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.btn-back {
+  background: transparent;
+  border: 0;
+  color: var(--text-default);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.btn-back:hover {
+  background: var(--surface-soft);
+  color: var(--text-heading);
+}
+
+.btn-back:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+/* ─── Step card ────────────────────────────────────────────────── */
+
+.step {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-9) var(--space-10);
+  margin-bottom: var(--space-3);
+  max-width: 980px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.step-num {
+  width: 26px;
+  height: 26px;
+  background: var(--brand-light-50);
+  color: var(--brand-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: var(--text-sm);
+  flex-shrink: 0;
+}
+
+.step-num--current {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  box-shadow: 0 0 0 4px var(--brand-border);
+}
+
+.step-num--done {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+}
+
+.step-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.step-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* ─── Doctor card (step 1) ─────────────────────────────────────── */
+
+.doctor-card {
+  background: var(--surface-soft);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  gap: var(--space-5);
+  align-items: center;
+}
+
+.av {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--brand-light);
+  color: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: var(--text-md);
+  flex-shrink: 0;
+}
+
+.doctor-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.doctor-card__name {
+  font-weight: 600;
+  color: var(--text-heading);
+  font-size: var(--text-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pill-active,
+.pill-inactive {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-3xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pill-active {
+  background: var(--success-badge-bg);
+  color: var(--success-text);
+}
+
+.pill-inactive {
+  background: var(--surface-divider);
+  color: var(--text-muted);
+}
+
+.doctor-card__meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ─── Picker row (clinic + effective) ──────────────────────────── */
+
+.picker-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.picker {
+  background: var(--surface-card);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+}
+
+.picker--locked {
+  background: var(--surface-soft);
+}
+
+.picker__label {
+  font-size: var(--text-3xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.picker__value {
+  font-size: var(--text-md);
+  color: var(--text-heading);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.picker__lock {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ─── Branch multi-select grid ─────────────────────────────────── */
+
+.branches {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.branch-empty {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  padding: var(--space-3) 0;
+}
+
+.branch-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.branch-row:hover {
+  border-color: var(--brand-primary);
+  background: var(--brand-light-50);
+}
+
+.branch-row--selected {
+  border-color: var(--brand-primary);
+  background: var(--brand-light-50);
+}
+
+.branch-row input[type='checkbox'] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.branch-row__check {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--on-brand);
+  background: var(--surface-card);
+}
+
+.branch-row--selected .branch-row__check {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+}
+
+.branch-row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.branch-row__name {
+  font-weight: 500;
+  color: var(--text-heading);
+  font-size: var(--text-sm);
+}
+
+.branch-row__meta {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ─── Summary + impact banner ──────────────────────────────────── */
+
+.summary {
+  background: var(--brand-light-50);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-5);
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--success-text);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.summary__item strong {
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.summary__sep {
+  color: var(--text-muted);
+}
+
+.impact {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-5);
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--warning-text);
+  display: flex;
+  gap: var(--space-3);
+}
+
+.impact__icon {
+  font-size: var(--text-lg);
+}
+
+.impact strong {
+  font-weight: 700;
+}
+
+/* ─── Step 3 (save & audit) ────────────────────────────────────── */
+
+.lead {
+  font-size: var(--text-sm);
+  color: var(--text-strong);
+  margin-bottom: var(--space-3);
+  line-height: 1.5;
+}
+
+.lead code {
+  background: var(--surface-soft);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.step-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--surface-divider);
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.audit {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
+}
+
+.audit code {
+  background: var(--surface-soft);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  word-break: break-word;
+}
+
+.btn-group {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.btn-primary,
+.btn-ghost {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-sm);
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.btn-primary {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-default);
+  border: 1px solid var(--border-default);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-soft);
+  border-color: var(--border-strong);
+  color: var(--text-heading);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+/* ─── Inline form error ────────────────────────────────────────── */
+
+.error-banner {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-xs);
+  color: var(--danger-text);
+  margin-top: var(--space-3);
+}
+
+.error-banner strong {
+  font-weight: 700;
+}

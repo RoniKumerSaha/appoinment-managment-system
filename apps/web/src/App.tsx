@@ -16,6 +16,8 @@ import { ClinicSettings } from './pages/ClinicSettings';
 import { AdminBranches } from './pages/AdminBranches';
 import { AdminBranchHours } from './pages/AdminBranchHours';
 import { AdminReceptionists } from './pages/AdminReceptionists';
+import { AdminDoctors } from './pages/AdminDoctors';
+import { AdminDoctorAssign } from './pages/AdminDoctorAssign';
 import { LoginPage } from './pages/LoginPage';
 import { useAuth, clearAuth } from './auth/store';
 import { setOnUnauthorized, getMe, ApiError } from './api/client';
@@ -78,7 +80,15 @@ export function App() {
     setSub({ key: 'branch-hours', branchId });
   }, []);
 
+  const onOpenDoctorAssign = useCallback((doctorId: string) => {
+    setSub({ key: 'doctor-assign', doctorId });
+  }, []);
+
   const onBackToBranches = useCallback(() => {
+    setSub(null);
+  }, []);
+
+  const onBackToDoctors = useCallback(() => {
     setSub(null);
   }, []);
 
@@ -112,9 +122,18 @@ export function App() {
           onBackToBranches={onBackToBranches}
         />
       )}
+      {sub?.key === 'doctor-assign' && (
+        <AdminDoctorAssign
+          doctorId={sub.doctorId}
+          onBackToDoctors={onBackToDoctors}
+        />
+      )}
       {!sub && active === 'clinic' && <ClinicSettings />}
       {!sub && active === 'branches' && (
         <AdminBranches onOpenBranchHours={onOpenBranchHours} />
+      )}
+      {!sub && active === 'doctors' && (
+        <AdminDoctors onOpenDoctorAssign={onOpenDoctorAssign} />
       )}
       {!sub && active === 'receptionists' && <AdminReceptionists />}
     </AppShell>

@@ -386,3 +386,90 @@ export function patchReceptionist(
     body: JSON.stringify(body),
   });
 }
+
+// ─── Doctors (E1-S3) ────────────────────────────────────────
+
+export interface DoctorBranchDto {
+  id: string;
+  name: string;
+  tz: string;
+  active: boolean;
+}
+
+export interface DoctorWithBranchesDto {
+  id: string;
+  clinic_id: string;
+  full_name: string;
+  email: string;
+  active: boolean;
+  branches: DoctorBranchDto[];
+  created_at: string;
+  updated_at: string;
+}
+
+// The PATCH response shape carries `warning` + `future_appointment_count`
+// when the deactivate hit future-appointment territory. The route only
+// emits `warning` when non-null (admin-branch-doctors.ts:586-588), so the
+// client treats it as optional.
+export interface DoctorPatchResponse extends DoctorWithBranchesDto {
+  warning?: string | null;
+  future_appointment_count?: number;
+}
+
+export function listDoctors(filter?: {
+  active?: boolean;
+  branch_id?: string;
+}): Promise<DoctorWithBranchesDto[]> {
+  const params: string[] = [];
+  if (typeof filter?.active === 'boolean') {
+    params.push(`active=${filter.active ? 'true' : 'false'}`);
+  }
+  if (filter?.branch_id) {
+    params.push(`branch_id=${encodeURIComponent(filter.branch_id)}`);
+  }
+  const qs = params.length > 0 ? `?${params.join('&')}` : '';
+  return request<DoctorWithBranchesDto[]>(`/admin/doctors${qs}`, {
+    method: 'GET',
+  });
+}
+
+export function getDoctor(id: string): Promise<DoctorWithBranchesDto> {
+  return request<DoctorWithBranchesDto>(
+    `/admin/doctors/${id}`,
+    { method: 'GET' },
+  );
+}
+
+export function createDoctor(input: {
+  full_name: string;
+  email: string;
+  branch_ids: string[];
+}): Promise<DoctorWithBranchesDto> {
+  return request<DoctorWithBranchesDto>('/admin/doctors', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function patchDoctor(
+  id: string,
+  body: { full_name?: string; active?: boolean },
+): Promise<DoctorPatchResponse> {
+  return request<DoctorPatchResponse>(`/admin/doctors/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export function putDoctorBranches(
+  id: string,
+  branchIds: string[],
+): Promise<DoctorWithBranchesDto> {
+  return request<DoctorWithBranchesDto>(
+    `/admin/doctors/${id}/branches`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ branch_ids: branchIds }),
+    },
+  );
+}

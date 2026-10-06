@@ -14,10 +14,9 @@ import './styles/shell.css';
 
 export type AdminSection = 'clinic' | 'branches' | 'doctors' | 'receptionists' | 'audit';
 
-export interface AdminSubPage {
-  key: 'branch-hours';
-  branchId: string;
-}
+export type AdminSubPage =
+  | { key: 'branch-hours'; branchId: string }
+  | { key: 'doctor-assign'; doctorId: string };
 
 const SECTIONS: { key: AdminSection; label: string; href: string }[] = [
   { key: 'clinic', label: 'Clinic', href: '/admin/clinic' },
@@ -63,7 +62,7 @@ export function AppShell({ active, onNavigate, children }: AppShellProps) {
   };
 
   const isImplemented = (key: AdminSection): boolean =>
-    key === 'clinic' || key === 'branches' || key === 'receptionists';
+    key === 'clinic' || key === 'branches' || key === 'doctors' || key === 'receptionists';
 
   return (
     <div className="shell">
