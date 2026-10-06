@@ -44,6 +44,11 @@
 
 generated: 09-08-2026 12:00
 last_updated: 2026-10-06
+# 2026-10-06 E7-S1 design-system token discipline audit complete;
+# spec-7-1-design-system-tokens.md recorded; closes straggler hex
+# in AdminDoctorSchedule.tsx JSDoc + 5 inline marginTop pixel
+# values in PatientBooking.tsx (replaced with var(--space-N)
+# tokens); 4 deferrals (D-E7-S-1..4); no tests in this pass.
 # 2026-10-06 E1-S0-ui-router implementation complete (W59 from
 # E1-S0-ui): hash-based router + AdminAuditPage; URL hash is the
 # source of truth, <Link> intercepts anchor clicks, no external
@@ -2010,6 +2015,12 @@ development_status:
   #   acceptance criteria + deferral of a regression grep test to
   #   W52 hardening.
   # Story E7-S6 → done.
+  7-1-design-system-tokens: done
+  # 2026-10-06 E7-S1 design-system token discipline audit complete.
+  # Closes 1 JSDoc straggler (#f9fafb in AdminDoctorSchedule) +
+  # 5 inline marginTop pixel values in PatientBooking; all replaced
+  # with var(--space-N) tokens. 4 deferrals (D-E7-S-1..4) — see
+  # spec-7-1-design-system-tokens.md. No tests in this pass.
   7-2-ui-audit-drawers: done
   # 2026-10-06 E7-S2-ui implementation complete (doctor audit drawer —
   #   per-appointment read; mock 30 right-side slide-in):

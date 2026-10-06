@@ -15,7 +15,7 @@
  * Layout (mockup 09):
  *   - 1200px frame
  *   - 2-column grid: 320px form-col + 1fr edit-col
- *   - Left "form-col" (#f9fafb surface-soft background):
+ *   - Left "form-col" (var(--surface-soft) background):
  *     - Page header "Schedule" + subline "Set when the doctor works at
  *       this branch."
  *     - Cross-links row (Today / Block time / Appointment types /

@@ -528,7 +528,7 @@ function DoctorStep({
           <li>A date and time in the next 30 days</li>
           <li>Your phone number + name</li>
         </ul>
-        <h3 className={styles['side__title']} style={{ marginTop: 24 }}>
+        <h3 className={styles['side__title']} style={{ marginTop: 'var(--space-10)' }}>
           Good to know
         </h3>
         <div className={styles['side__small']}>
@@ -694,7 +694,7 @@ function BranchTypeStep({
           <SummaryRow k="Date & time" v={null} />
         </div>
 
-        <h3 className={styles['side__title']} style={{ marginTop: 24 }}>
+        <h3 className={styles['side__title']} style={{ marginTop: 'var(--space-10)' }}>
           What&rsquo;s next
         </h3>
         <div className={styles['next-steps']}>
@@ -835,7 +835,7 @@ function DateTimeStep({
         {availErr && (
           <div
             className={styles['warn-card']}
-            style={{ marginTop: 14 }}
+            style={{ marginTop: 'var(--space-6)' }}
             role="alert"
           >
             <strong>{availErr.code}:</strong> {availErr.message}
@@ -966,7 +966,7 @@ function DateTimeStep({
           />
         </div>
 
-        <h3 className={styles['side__title']} style={{ marginTop: 24 }}>
+        <h3 className={styles['side__title']} style={{ marginTop: 'var(--space-10)' }}>
           Quick facts
         </h3>
         <div className={styles['side__small']}>
@@ -1252,7 +1252,7 @@ function ConfirmStep({
         </div>
 
         {submitErr && (
-          <div className={styles['error-banner']} style={{ marginTop: 16 }} role="alert">
+          <div className={styles['error-banner']} style={{ marginTop: 'var(--space-7)' }} role="alert">
             <strong>{submitErr.code}:</strong> {submitErr.message}
           </div>
         )}
