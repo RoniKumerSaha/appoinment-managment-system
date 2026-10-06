@@ -1,17 +1,22 @@
 /**
- * E0-S1 placeholder.
+ * App entry — E1-S0-ui.
  *
- * The only UX obligation is to consume design tokens by name — no literal hex.
- * `prefers-reduced-motion` is honored in tokens.css (transitions disabled when
- * the user opts out). No web fonts are loaded; the system stack only.
+ * Renders the admin shell + the Clinic Settings page. The web app has no
+ * router today; the active admin section is hard-coded to `clinic` until
+ * the next admin page lands. Other admin sections are visible in the
+ * shell as disabled buttons (per mockup 32).
+ *
+ * The page is fully wired to `GET /admin/clinic` and `PATCH /admin/clinic`
+ * via the dev-mode `x-auth-claim` header. The Vite dev server proxies
+ * `/admin/*` to the API on :3001 (see vite.config.ts).
  */
+import { AppShell } from './AppShell';
+import { ClinicSettings } from './pages/ClinicSettings';
+
 export function App() {
   return (
-    <main className="placeholder">
-      <h1 className="placeholder__heading">Clinic Scheduling — E0-S1</h1>
-      <p className="placeholder__body">
-        Repo skeleton. Real flows ship from E1 onward.
-      </p>
-    </main>
+    <AppShell active="clinic">
+      <ClinicSettings />
+    </AppShell>
   );
 }

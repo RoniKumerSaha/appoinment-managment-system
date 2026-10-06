@@ -7,22 +7,20 @@
  * `scope: 'clinic'` per AD-8). The route consults ONLY the JWT claim;
  * it NEVER reads `req.body.role` / `req.body.branch_ids` / `req.body.clinic_id`.
  *
- * `GET` runs ONE SQL with 4 correlated subqueries for the totals:
- *   - `branches_total`   — `SELECT COUNT(*) FROM branch WHERE clinic_id = c.id`
- *   - `doctors_total`    — `SELECT COUNT(DISTINCT d.id) FROM doctor d
- *                            JOIN doctor_branch db ON db.doctor_id = d.id
- *                            JOIN branch b ON b.id = db.branch_id
- *                            WHERE b.clinic_id = c.id`
- *   - `receptionists_total` — `SELECT COUNT(*) FROM receptionist r
- *                               JOIN branch b ON b.id = r.branch_id
- *                               WHERE b.clinic_id = c.id`
- *   - `patients_total`   — global `SELECT COUNT(*) FROM patient`
- *                          (no per-clinic linkage exists — see SC1)
+ * `GET` runs ONE SQL with 10 correlated subqueries for the counts:
+ *   - `branches_total` / `_active` / `_inactive` — branch counts scoped
+ *     to the clinic, split by `branch.active` (active column added in
+ *     E1-S1, migration `0014_branch_active.sql`)
+ *   - `doctors_total` / `_active` / `_inactive` — distinct doctor counts
+ *     via `doctor_branch`, split by `doctor.active` (added E1-S3)
+ *   - `receptionists_total` / `_active` / `_inactive` — receptionist
+ *     counts via branch, split by `receptionist.active` (added E1-S4)
+ *   - `patients_total` — global `SELECT COUNT(*) FROM patient`
+ *     (no per-clinic linkage exists — see SC1)
  *
- * The `branch` / `doctor` / `receptionist` tables do NOT carry an `active`
- * column at the schema level today; per Spec Change Log SC1, the spec
- * deliberately drops the `*_active` / `*_inactive` field set until the
- * `branch.active` column lands in E1-S1. The route returns totals only.
+ * `*_inactive` covers both `active = FALSE` and `active IS NULL` so the
+ * UI can render the mockup's "N inactive" tile correctly even for legacy
+ * rows that pre-date the `active` column.
  *
  * `PATCH` validates the body BEFORE any DB call (length 1–120, type
  * checked). The `updated_at` advance is automatic via
@@ -41,8 +39,14 @@ interface ClinicRow {
   created_at: Date;
   updated_at: Date;
   branches_total: string;
+  branches_active: string;
+  branches_inactive: string;
   doctors_total: string;
+  doctors_active: string;
+  doctors_inactive: string;
   receptionists_total: string;
+  receptionists_active: string;
+  receptionists_inactive: string;
   patients_total: string;
 }
 
@@ -69,15 +73,36 @@ function normalizeName(name: string): string {
 
 const SELECT_CLINIC_SQL = `
   SELECT c.id, c.name, c.created_at, c.updated_at,
-    (SELECT COUNT(*) FROM branch      WHERE clinic_id = c.id) AS branches_total,
+    (SELECT COUNT(*) FROM branch
+       WHERE clinic_id = c.id) AS branches_total,
+    (SELECT COUNT(*) FROM branch
+       WHERE clinic_id = c.id AND active = TRUE) AS branches_active,
+    (SELECT COUNT(*) FROM branch
+       WHERE clinic_id = c.id AND (active = FALSE OR active IS NULL)) AS branches_inactive,
     (SELECT COUNT(DISTINCT d.id)
        FROM doctor d
        JOIN doctor_branch db ON db.doctor_id = d.id
        JOIN branch b ON b.id = db.branch_id
        WHERE b.clinic_id = c.id) AS doctors_total,
+    (SELECT COUNT(DISTINCT d.id)
+       FROM doctor d
+       JOIN doctor_branch db ON db.doctor_id = d.id
+       JOIN branch b ON b.id = db.branch_id
+       WHERE b.clinic_id = c.id AND d.active = TRUE) AS doctors_active,
+    (SELECT COUNT(DISTINCT d.id)
+       FROM doctor d
+       JOIN doctor_branch db ON db.doctor_id = d.id
+       JOIN branch b ON b.id = db.branch_id
+       WHERE b.clinic_id = c.id AND (d.active = FALSE OR d.active IS NULL)) AS doctors_inactive,
     (SELECT COUNT(*) FROM receptionist r
        JOIN branch b ON b.id = r.branch_id
        WHERE b.clinic_id = c.id) AS receptionists_total,
+    (SELECT COUNT(*) FROM receptionist r
+       JOIN branch b ON b.id = r.branch_id
+       WHERE b.clinic_id = c.id AND r.active = TRUE) AS receptionists_active,
+    (SELECT COUNT(*) FROM receptionist r
+       JOIN branch b ON b.id = r.branch_id
+       WHERE b.clinic_id = c.id AND (r.active = FALSE OR r.active IS NULL)) AS receptionists_inactive,
     (SELECT COUNT(*) FROM patient) AS patients_total
   FROM clinic c
   LIMIT 1;
@@ -112,8 +137,14 @@ adminClinicRouter.get('/clinic', async (_req: Request, res: Response): Promise<v
       updated_at: r.updated_at,
       counts: {
         branches_total: Number(r.branches_total),
+        branches_active: Number(r.branches_active),
+        branches_inactive: Number(r.branches_inactive),
         doctors_total: Number(r.doctors_total),
+        doctors_active: Number(r.doctors_active),
+        doctors_inactive: Number(r.doctors_inactive),
         receptionists_total: Number(r.receptionists_total),
+        receptionists_active: Number(r.receptionists_active),
+        receptionists_inactive: Number(r.receptionists_inactive),
         patients_total: Number(r.patients_total),
       },
     });

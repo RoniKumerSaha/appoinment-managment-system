@@ -1,0 +1,136 @@
+/*
+ * App shell — the top nav shared by every admin page.
+ *
+ * Pixel-perfect port of mockup 32's `.nav` + `.frame` (see
+ * docs/design/mockups/v1/mockups/32-admin-clinic-settings.html:14-22,99-118).
+ * Every color / spacing / radius references a token in tokens.css.
+ *
+ * Other admin pages will reuse the same shell — the page-specific
+ * styles live alongside each page component.
+ */
+
+.shell {
+  max-width: var(--container-wide);
+  margin: 0 auto;
+  background: var(--surface-card);
+  min-height: 100vh;
+  border-left: 1px solid var(--border-default);
+  border-right: 1px solid var(--border-default);
+}
+
+.nav {
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border-default);
+  padding: var(--space-6) var(--space-12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.nav__brand {
+  font-weight: 700;
+  color: var(--brand-primary);
+  font-size: var(--text-3xl);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.nav__brand-logo {
+  width: 28px;
+  height: 28px;
+  display: block;
+  background: var(--brand-primary);
+  border-radius: var(--radius-sm);
+  position: relative;
+}
+/* The logo glyph — a stylised calendar tick rendered in pure CSS so the
+ * UI does not need a real SVG asset. */
+.nav__brand-logo::before {
+  content: '';
+  position: absolute;
+  inset: 6px 6px 8px 6px;
+  background: var(--surface-card);
+  border-radius: 2px;
+}
+.nav__brand-logo::after {
+  content: '';
+  position: absolute;
+  top: 11px;
+  left: 11px;
+  width: 6px;
+  height: 3px;
+  background: var(--brand-primary);
+  border-radius: 1px;
+  box-shadow:
+    6px 0 0 var(--brand-primary),
+    0 5px 0 var(--brand-primary),
+    6px 5px 0 var(--brand-primary);
+}
+
+.nav__links {
+  display: flex;
+  gap: 22px;
+  font-size: var(--text-sm);
+  color: var(--text-default);
+}
+
+.nav__link {
+  cursor: pointer;
+  padding: var(--space-2) var(--space-1);
+  border-bottom: 2px solid transparent;
+  background: none;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  font: inherit;
+  color: inherit;
+  font-size: var(--text-sm);
+}
+
+.nav__link--active {
+  color: var(--brand-primary);
+  border-bottom-color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.nav__user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-strong);
+}
+
+.nav__avatar {
+  width: 30px;
+  height: 30px;
+  background: var(--brand-light);
+  color: var(--brand-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.nav__user-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.nav__user-name {
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.nav__user-role {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}

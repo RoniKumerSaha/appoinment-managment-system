@@ -1,33 +1,87 @@
 /*
  * Design tokens.
  *
- * This file is the single source of truth for color, spacing, radius, and
- * typography. E7-S1 enforces the discipline (no literal hex anywhere else
- * in apps/web/src). E0-S1 follows it as a discipline of habit — the
- * placeholder references var(--brand-primary) by name.
+ * Single source of truth for color, spacing, radius, elevation, and typography
+ * in apps/web. E7-S1 enforces the discipline: no literal hex anywhere else in
+ * apps/web/src — every visual value references var(--…) by name.
  *
- * System font stack only; no @font-face. Reduced-motion media query strips
- * any non-essential transitions.
+ * System font stack only; no @font-face. `prefers-reduced-motion` strips any
+ * non-essential transitions globally.
+ *
+ * Source: docs/design/DESIGN-SYSTEM.md §2-6. Mockup 32 (admin-clinic-settings)
+ * is the first screen to fully consume these tokens.
  */
+
 :root {
-  /* Brand */
+  /* ── Brand (DESIGN-SYSTEM.md §2.1) ─────────────────────────────── */
   --brand-primary: #0f766e;
   --brand-primary-hover: #0d6660;
   --brand-primary-dark: #2dd4bf;
+  --brand-light: #ccfbf1;
+  --brand-light-50: #f0fdfa;
+  --brand-border: #99f6e4;
 
-  /* Surfaces */
-  --surface-page: #ffffff;
+  /* ── Surface (§2.2) ────────────────────────────────────────────── */
+  --surface-page: #f5f6f8;
   --surface-card: #ffffff;
-  --surface-muted: #f5f5f5;
-
-  /* Text */
-  --text-default: #111827;
-  --text-muted: #6b7280;
-
-  /* Borders */
+  --surface-soft: #f9fafb;
+  --surface-divider: #f3f4f6;
   --border-default: #e5e7eb;
+  --border-strong: #d1d5db;
 
-  /* Spacing */
+  /* ── Text (§2.3) ───────────────────────────────────────────────── */
+  --text-heading: #111827;
+  --text-body: #1a1d23;
+  --text-strong: #374151;
+  --text-default: #4b5563;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+
+  /* ── Semantic (§2.4) ───────────────────────────────────────────── */
+  --success-bg: #f0fdfa;
+  --success-border: #99f6e4;
+  --success-text: #065f46;
+  --success-badge-bg: #d1fae5;
+  --warning-bg: #fffbeb;
+  --warning-border: #f59e0b;
+  --warning-soft: #fef3c7;
+  --warning-text: #422006;
+  --danger-bg: #fef2f2;
+  --danger-border: #fca5a5;
+  --danger-strong: #dc2626;
+  --danger-text: #7f1d1d;
+  --danger-dark: #991b1b;
+  --info-bg: #dbeafe;
+  --info-text: #1e40af;
+  --neutral-bg: #f3f4f6;
+
+  /* Foreground tokens for the semantic surfaces (used for button text
+   * on filled backgrounds). The DESIGN-SYSTEM.md section 2.4 doesn't
+   * name these explicitly; they're the implied "white-on-teal" / "white-
+   * on-red" pairings from section 7.1 (Buttons) and 7.2 (Status pill). */
+  --on-brand: #ffffff;
+  --on-danger: #ffffff;
+  --on-warning: #92400e;
+
+  /* ── Dark-mode reserved (§2.5) — unused in v1, names stable for later ── */
+  --surface-page-dark: #0f1419;
+  --surface-card-dark: #1a1d23;
+
+  /* ── Typography scale (§3.1) ───────────────────────────────────── */
+  --text-3xs: 10px;
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 15px;
+  --text-xl: 16px;
+  --text-2xl: 17px;
+  --text-3xl: 18px;
+  --text-4xl: 22px;
+  --text-5xl: 32px;
+  --text-display: 36px;
+
+  /* ── Spacing (§4) — 4px base ───────────────────────────────────── */
   --space-1: 4px;
   --space-2: 6px;
   --space-3: 8px;
@@ -41,7 +95,11 @@
   --space-11: 28px;
   --space-12: 32px;
 
-  /* Radius */
+  /* ── Container widths (§4.1) ───────────────────────────────────── */
+  --container-stacked: 760px;
+  --container-wide: 1080px;
+
+  /* ── Radius (§5) ───────────────────────────────────────────────── */
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -49,21 +107,22 @@
   --radius-xl: 12px;
   --radius-pill: 999px;
 
-  /* Elevation */
+  /* ── Elevation (§6) — clinical calm, flat by default ──────────── */
   --elev-1: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --elev-2: 0 2px 6px rgba(15, 118, 110, 0.3);
+  --elev-3: 0 2px 8px rgba(15, 118, 110, 0.1);
+  --elev-4: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --ring-focus: 0 0 0 3px rgba(15, 118, 110, 0.1);
+  --ring-danger: 0 0 0 4px #fca5a5;
+  --ring-success: 0 0 0 4px #99f6e4;
 
-  /* Focus */
-  --ring-focus: 0 0 0 3px rgba(15, 118, 110, 0.35);
-
-  /* Typography (system stack) */
+  /* ── Font stack (§3) — system only, no web font load ──────────── */
   --font-sans:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    ui-monospace, "SF Mono", "Cascadia Mono", Consolas, "Liberation Mono",
+    Menlo, monospace;
 }
 
 html,
@@ -71,34 +130,27 @@ body {
   margin: 0;
   padding: 0;
   background: var(--surface-page);
-  color: var(--text-default);
+  color: var(--text-body);
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: var(--text-md);
+  font-weight: 500;
   line-height: 1.5;
 }
 
-.placeholder {
-  padding: var(--space-12);
-  max-width: 720px;
-  margin: 0 auto;
+* {
+  box-sizing: border-box;
 }
 
-.placeholder__heading {
-  color: var(--brand-primary);
-  margin: 0 0 var(--space-7) 0;
-  font-size: 2rem;
-  font-weight: 600;
-  transition: color 120ms ease;
-}
-
-.placeholder__body {
-  color: var(--text-muted);
-  margin: 0;
-  font-size: 1rem;
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .placeholder__heading {
-    transition: none;
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
   }
 }
