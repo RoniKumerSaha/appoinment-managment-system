@@ -493,3 +493,129 @@
 .status__retry {
   margin-top: var(--space-5);
 }
+
+/* ── Audit policy card (E7-S2 D-E7-S-UI-1) ──────────────────────── */
+
+.audit-card {
+  background: var(--brand-light-50);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-7);
+  overflow: hidden;
+  animation: audit-card__in 180ms ease-out;
+}
+
+@keyframes audit-card__in {
+  from {
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.audit-card__head {
+  padding: var(--space-6) var(--space-8);
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  border-bottom: 1px solid var(--brand-border);
+  background: var(--surface-card);
+}
+
+.audit-card__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-md);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.audit-card__title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.audit-card__hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.audit-card__close {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font-size: var(--text-2xl);
+  line-height: 1;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+}
+
+.audit-card__close:hover {
+  color: var(--text-strong);
+  background: var(--surface-soft);
+}
+
+.audit-card__body {
+  padding: var(--space-7) var(--space-8);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+.audit-card__lead {
+  margin: 0 0 var(--space-5) 0;
+}
+
+.audit-card__list {
+  margin: 0 0 var(--space-5) 0;
+  padding-left: var(--space-7);
+}
+
+.audit-card__list li {
+  margin-bottom: var(--space-3);
+}
+
+.audit-card__list li:last-child {
+  margin-bottom: 0;
+}
+
+.audit-card__list strong {
+  color: var(--text-heading);
+}
+
+.audit-card__list code {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  background: var(--neutral-bg);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  color: var(--text-strong);
+}
+
+.audit-card__foot {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.audit-card__foot code {
+  font-family: var(--font-mono);
+  background: var(--neutral-bg);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  color: var(--text-strong);
+}

@@ -299,7 +299,8 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
       setResolved((prev) => [info, ...prev]);
       setToast('Appointment moved.');
       setCompletionModal(info);
-    }
+    },
+    [],
   );
 
   const refreshAfter = useCallback(async (): Promise<void> => {

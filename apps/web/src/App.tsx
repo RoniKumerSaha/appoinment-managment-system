@@ -169,7 +169,7 @@ export function App() {
           onBackToDoctors={onBackToDoctors}
         />
       )}
-      {!sub && active === 'clinic' && <ClinicSettings />}
+      {!sub && active === 'clinic' && <ClinicSettings onNavigate={onNavigate} />}
       {!sub && active === 'branches' && (
         <AdminBranches onOpenBranchHours={onOpenBranchHours} />
       )}

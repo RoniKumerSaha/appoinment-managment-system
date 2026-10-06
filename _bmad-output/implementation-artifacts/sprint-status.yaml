@@ -44,6 +44,14 @@
 
 generated: 09-08-2026 12:00
 last_updated: 2026-10-06
+# 2026-10-06 E1-S0-ui-remaining implementation complete (three
+# placeholders from the E1-S0-ui ClinicSettings mockup-32 port:
+# Discard changes / View audit log / Deactivate-clinic flow);
+# spec-1-0-ui-remaining.md recorded; 5 deferrals
+# (D-E1-S0-UI-R-1..5); no tests in this pass; token-only CSS
+# verified (0 hex literals in ClinicSettings.module.css);
+# pre-existing DoctorAffected useCallback-deps bug fixed in
+# the same commit.
 # 2026-10-06 E5-S1/S2-ui implementation complete (doctor mark-status
 # + cancel-with-reason — mockups 12 right-detail condensed, 25
 # stacked-vertical condensed); spec-5-1-2-ui-doctor-mark-cancel.md
@@ -285,6 +293,26 @@ development_status:
   #   - Spec Change Log: SC1 (counts field set re-introduced) + SC2
   #     (dev-mode x-auth-claim auth path) recorded.
   #   - Story E1-S0-ui → done; Epic 1 → done.
+  1-0-ui-remaining: done
+  # 2026-10-06 E1-S0-ui-remaining implementation complete (the three
+  #   placeholders that survived the E1-S0-ui mockup-32 port):
+  #   - apps/web/src/pages/ClinicSettings.tsx (EDIT) — accept
+  #     onNavigate prop; wire onDeactivateClinic to navigate to
+  #     /admin/branches (the actual branch-deactivate surface, mocks
+  #     38/42); wire onViewAuditLog to toggle the inline Audit access
+  #     policy card (D-E7-S-UI-1: admin doesn't see appointment audit
+  #     per PRD §2.4).
+  #   - apps/web/src/pages/ClinicSettings.module.css (EDIT) — new
+  #     .audit-card* block (~80 lines, token-only CSS).
+  #   - apps/web/src/App.tsx (EDIT) — pass onNavigate down to
+  #     ClinicSettings.
+  #   - apps/web/src/pages/DoctorAffected.tsx (EDIT) — fix pre-existing
+  #     missing-deps bug on onResolved useCallback (was blocking
+  #     typecheck).
+  #   - 5 deferrals (D-E1-S0-UI-R-1..5) — see spec-1-0-ui-remaining.md.
+  #   - 0 new typecheck errors. 0 new lint errors (2 pre-existing
+  #     baseline on ClinicSettings.tsx unchanged).
+  #   - Story E1-S0-ui-remaining → done.
   # Legacy umbrella key (kept for traceability until retros close):
   1-0-clinic-management-single-clinic-anchor: backlog
   1-1-create-edit-deactivate-branches: done

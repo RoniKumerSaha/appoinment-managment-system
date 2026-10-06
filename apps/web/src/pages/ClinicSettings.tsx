@@ -13,14 +13,23 @@
  *   - `Save clinic name` fires PATCH /admin/clinic; on 200 the input is
  *     replaced with the API response and `getClinic()` is re-fetched to
  *     pick up the bumped `updated_at`. `Cancel` discards the dirty edit.
- *   - `Discard changes` / `View audit log` are present for layout
- *     parity with the mockup but are no-ops (deferred).
- *   - Stat tiles link to the deeper admin sections.
- *   - "Deactivate clinic…" is wired to a window.alert because the
- *     actual deactivate flow is a future story.
+ *   - `Discard changes` resets `draftName` to the API's `name`.
+ *   - `View audit log` opens the inline "Audit access policy" card
+ *     (per the E7-S2 D-E7-S-UI-1 deferral: admins do not see
+ *     appointment audit rows per PRD §2.4; the card documents what
+ *     they don't see and why). No back-end call.
+ *   - Stat tiles link to the deeper admin sections via the parent
+ *     router's `onNavigate`.
+ *   - "Deactivate clinic…" navigates to `/admin/branches` where the
+ *     actual branch-deactivate flow (mocks 38/42) lives today.
+ *     Clinic-level deactivation is a separate future story (E1-S5 or
+ *     later) — no clinic-level endpoint exists yet. The button is
+ *     preserved for mockup parity; the navigation is the closest
+ *     working affordance today.
  */
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { ApiError, getClinic, patchClinic, type ClinicDto } from '../api/client';
+import type { AdminSection } from '../AppShell';
 import styles from './ClinicSettings.module.css';
 
 const NAME_MAX = 120;
@@ -103,7 +112,11 @@ function StatTile({
   );
 }
 
-export function ClinicSettings() {
+export function ClinicSettings({
+  onNavigate,
+}: {
+  onNavigate?: (section: AdminSection) => void;
+} = {}) {
   const [data, setData] = useState<ClinicDto | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,6 +124,8 @@ export function ClinicSettings() {
   const [draftName, setDraftName] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const [auditCardOpen, setAuditCardOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -174,12 +189,25 @@ export function ClinicSettings() {
     setSaveError(null);
   }
 
+  function onViewAuditLog() {
+    // E7-S2 D-E7-S-UI-1: admins don't see appointment audit (PRD §2.4).
+    // The "View audit log" button opens a static policy card explaining
+    // what they don't see and why. No back-end call.
+    setAuditCardOpen((v) => !v);
+  }
+
   function onDeactivateClinic() {
-    // E1-S5 or later will land the real deactivate flow. Today the
-    // button is visible (mockup parity) but is a no-op.
-    window.alert(
-      'Deactivate clinic — not implemented yet. This is a future story.',
-    );
+    // Clinic-level deactivation is a future story (E1-S5+). The
+    // closest working affordance today is the branch-deactivate flow
+    // on `/admin/branches` (mocks 38/42, with the BR-059 ConflictModal
+    // when a branch has future appointments). Navigate the admin to
+    // that surface; if the parent didn't pass `onNavigate` (e.g. in
+    // isolation), fall back to a hash-route for development.
+    if (onNavigate) {
+      onNavigate('branches');
+    } else {
+      window.location.hash = '#branches';
+    }
   }
 
   if (loading && !data) {
@@ -231,7 +259,13 @@ export function ClinicSettings() {
           </div>
         </div>
         <div className={styles['page-header__actions']}>
-          <button type="button" className={styles['btn-ghost']}>
+          <button
+            type="button"
+            className={styles['btn-ghost']}
+            onClick={onViewAuditLog}
+            aria-expanded={auditCardOpen}
+            aria-controls="audit-policy-card"
+          >
             View audit log
           </button>
           <button
@@ -253,6 +287,72 @@ export function ClinicSettings() {
           </button>
         </div>
       </div>
+
+      {/* Single-clinic note */}
+      {auditCardOpen && (
+        <section
+          id="audit-policy-card"
+          className={styles['audit-card']}
+          role="region"
+          aria-label="Audit access policy"
+        >
+          <div className={styles['audit-card__head']}>
+            <div className={styles['audit-card__icon']} aria-hidden="true">
+              ⓘ
+            </div>
+            <div>
+              <div className={styles['audit-card__title']}>
+                Audit access policy
+              </div>
+              <div className={styles['audit-card__hint']}>
+                Why you don&apos;t see appointment audit rows here.
+              </div>
+            </div>
+            <button
+              type="button"
+              className={styles['audit-card__close']}
+              onClick={onViewAuditLog}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+          <div className={styles['audit-card__body']}>
+            <p className={styles['audit-card__lead']}>
+              Per PRD §2.4 (Privacy boundaries), admins do{' '}
+              <strong>not</strong> see appointment-level audit rows.
+              Appointment audit captures patient identifiers and clinical
+              reasoning — surfacing it on the admin role would re-introduce
+              a clinician-grade read into the operator seat, which the
+              product&apos;s privacy posture explicitly forbids.
+            </p>
+            <ul className={styles['audit-card__list']}>
+              <li>
+                <strong>What you can see:</strong> branch / doctor /
+                receptionist / appointment-type change events (the
+                actor&apos;s audit log on each resource).
+              </li>
+              <li>
+                <strong>What you can&apos;t see:</strong> appointment create /
+                cancel / reschedule / status-marked / recurring-created
+                audit rows. Those live on the doctor&apos;s per-appointment
+                drawer and the patient&apos;s appointment detail.
+              </li>
+              <li>
+                <strong>Who can see them:</strong> the assigned doctor
+                (via <code>GET /doctor/audit</code> on the affected
+                appointment or the per-appointment drawer) and the
+                patient (via <code>GET /patient/appointments/:id/audit</code>).
+              </li>
+            </ul>
+            <p className={styles['audit-card__foot']}>
+              Hardening pass: a dedicated <code>GET /admin/audit/policy</code>{' '}
+              endpoint returns this prose from the API. Today it&apos;s
+              documented in the spec and rendered as a static card.
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* Single-clinic note */}
       <div className={styles['info-banner']}>
