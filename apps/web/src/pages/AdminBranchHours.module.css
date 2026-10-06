@@ -1,0 +1,583 @@
+/*
+ * Admin Branch Hours page — pixel-perfect port of mockup 28
+ * (docs/design/mockups/v1/mockups/28-admin-branch-hours-editor.html).
+ *
+ * The page is reached from AdminBranches via an "Edit hours" link on
+ * the step-2 foot. It mirrors the mockup's three-step stacked flow:
+ *   - Step 1: branch context (read-only summary card)
+ *   - Step 2: weekly hours editor (7 rows × open/close/toggle)
+ *   - Step 3: save & preview impact
+ *   - Step 4: inline impact preview (replaces mockup 39's resolution
+ *     page — live resolution tracking ships with E6-S2 #16).
+ *
+ * Mockup 28 line 11 sets the frame to 980px (slightly wider than the
+ * 760px "stacked" frame used by mockup 17 / 21). The 980px width
+ * gives the picker-row + hours-table room to breathe. We keep the
+ * AppShell's container-wide token (1080px) and pad inside.
+ *
+ * Token-only: no hex literals.
+ */
+
+/* ─── Page chrome ──────────────────────────────────────────────── */
+
+.page {
+  padding: var(--space-12);
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-5);
+  gap: var(--space-4);
+}
+
+.page-header__left {
+  flex: 1;
+  min-width: 0;
+}
+
+.crumb {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.page-header h1 {
+  font-size: var(--text-3xl);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.sub {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.back-link {
+  background: transparent;
+  border: 0;
+  color: var(--text-default);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.back-link:hover:not(:disabled) {
+  background: var(--surface-soft);
+  color: var(--text-heading);
+}
+
+.back-link:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+/* ─── Step card ────────────────────────────────────────────────── */
+
+.step {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-9) var(--space-10);
+  margin-bottom: var(--space-3);
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.step-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: var(--text-xs);
+  flex-shrink: 0;
+}
+
+.step-num--current {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  box-shadow: 0 0 0 4px var(--brand-border);
+}
+
+.step-num--done {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+}
+
+.step-num--future {
+  background: var(--brand-light);
+  color: var(--brand-primary);
+}
+
+.step-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.step-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* ─── Picker cards (Step 1) ────────────────────────────────────── */
+
+.picker-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.picker {
+  background: var(--surface-card);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.picker__label {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.picker__value {
+  font-size: var(--text-md);
+  color: var(--text-heading);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.picker__lock {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.picker__input {
+  width: 100%;
+  margin-top: 2px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--text-md);
+  color: var(--text-heading);
+  background: var(--surface-card);
+}
+
+.picker__input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: var(--ring-focus);
+}
+
+/* ─── Hours table (Step 2) ─────────────────────────────────────── */
+
+.hours-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.hours-table th {
+  text-align: left;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-bottom: 1.5px solid var(--border-default);
+}
+
+.hours-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--surface-divider);
+  vertical-align: middle;
+}
+
+.hours-table tr:last-child td {
+  border-bottom: none;
+}
+
+.hours-table tr.off td {
+  color: var(--text-faint);
+  background: var(--surface-soft);
+}
+
+.hours-table .day {
+  font-weight: 600;
+  color: var(--text-heading);
+  width: 110px;
+}
+
+.hours-table tr.off .day {
+  color: var(--text-muted);
+}
+
+.hours-table input[type='time'] {
+  padding: 5px 8px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  background: var(--surface-card);
+  color: var(--text-heading);
+}
+
+.hours-table input[type='time']:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: var(--ring-focus);
+}
+
+.hours-table input[type='time']:disabled {
+  background: var(--surface-soft);
+  color: var(--text-faint);
+}
+
+.hours-table .sep {
+  color: var(--text-muted);
+  padding: 0 6px;
+}
+
+.hours-table tr.changed {
+  background: var(--warning-bg);
+}
+
+.hours-table tr.changed .day::before {
+  content: '● ';
+  color: var(--warning-border);
+}
+
+.closed-label {
+  text-align: center;
+  font-style: italic;
+  color: var(--text-faint);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-xs);
+  color: var(--text-default);
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toggle .switch {
+  width: 32px;
+  height: 18px;
+  background: var(--border-default);
+  border-radius: var(--radius-pill);
+  position: relative;
+  transition: background 120ms ease;
+  flex-shrink: 0;
+}
+
+.toggle .switch::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  background: var(--on-brand);
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: left 120ms ease;
+  box-shadow: var(--elev-1);
+}
+
+.toggle--on .switch {
+  background: var(--brand-primary);
+}
+
+.toggle--on .switch::after {
+  left: 16px;
+}
+
+.toggle:focus-within .switch {
+  box-shadow: var(--ring-focus);
+}
+
+/* ─── Summary bar (Step 2) ─────────────────────────────────────── */
+
+.summary-bar {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--brand-light-50);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--success-text);
+  flex-wrap: wrap;
+}
+
+.summary-bar .item strong {
+  font-weight: 700;
+}
+
+.summary-bar .sep {
+  color: var(--brand-border);
+}
+
+/* ─── Step 3 lead + foot ───────────────────────────────────────── */
+
+.lead {
+  font-size: var(--text-sm);
+  color: var(--text-default);
+  margin-bottom: var(--space-3);
+  line-height: 1.5;
+}
+
+.step-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--surface-divider);
+  gap: var(--space-3);
+}
+
+.audit {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.audit code {
+  background: var(--surface-soft);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+}
+
+.btn-group {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-ghost {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-sm);
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.btn-primary {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--surface-card);
+  color: var(--text-default);
+  border: 1px solid var(--border-default);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--surface-soft);
+  border-color: var(--border-strong);
+  color: var(--text-heading);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-default);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-soft);
+  color: var(--text-heading);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+/* ─── Inline form error ───────────────────────────────────────── */
+
+.error-banner {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-xs);
+  color: var(--danger-text);
+  margin-top: var(--space-2);
+}
+
+.error-banner strong {
+  font-weight: 700;
+}
+
+/* ─── Impact preview (Step 4) ─────────────────────────────────── */
+
+.impact-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.impact-tile {
+  background: var(--surface-soft);
+  border: 1px solid var(--surface-divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.impact-tile__label {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.impact-tile__value {
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  color: var(--text-heading);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.impact-tile--warn {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+}
+
+.impact-tile--warn .impact-tile__value {
+  color: var(--warning-text);
+}
+
+.impact-doctors {
+  margin-top: var(--space-3);
+}
+
+.impact-doctors__head {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.impact-doctors__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.impact-doctors__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-card);
+  border: 1px solid var(--surface-divider);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.impact-doctors__row .name {
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.impact-doctors__row .count {
+  color: var(--warning-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.impact-affected {
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.impact-affected ul {
+  margin-top: var(--space-2);
+  padding-left: 18px;
+  list-style: disc;
+  color: var(--text-default);
+}
+
+.impact-affected li {
+  padding: 2px 0;
+}
+
+.privacy-note {
+  background: var(--brand-light-50);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-top: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--success-text);
+  line-height: 1.6;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.privacy-note strong {
+  font-weight: 700;
+}

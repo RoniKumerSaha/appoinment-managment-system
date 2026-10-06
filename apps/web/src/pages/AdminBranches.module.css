@@ -379,6 +379,29 @@
   font-family: var(--font-mono);
 }
 
+.audit-link {
+  background: transparent;
+  border: 0;
+  color: var(--brand-primary);
+  font: inherit;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.audit-link:hover:not(:disabled) {
+  color: var(--brand-primary-hover);
+}
+
+.audit-link:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+  border-radius: var(--radius-xs);
+}
+
 .btn-group {
   display: flex;
   gap: var(--space-2);

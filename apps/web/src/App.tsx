@@ -10,10 +10,11 @@
  * The page rendered inside the shell today is the Clinic Settings page
  * (E1-S0-ui). The router lands with the next admin page (deferral W59).
  */
-import { useEffect, useState } from 'react';
-import { AppShell, type AdminSection } from './AppShell';
+import { useCallback, useEffect, useState } from 'react';
+import { AppShell, type AdminSection, type AdminSubPage } from './AppShell';
 import { ClinicSettings } from './pages/ClinicSettings';
 import { AdminBranches } from './pages/AdminBranches';
+import { AdminBranchHours } from './pages/AdminBranchHours';
 import { LoginPage } from './pages/LoginPage';
 import { useAuth, clearAuth } from './auth/store';
 import { setOnUnauthorized, getMe, ApiError } from './api/client';
@@ -25,8 +26,12 @@ export function App() {
   );
   // Local router stand-in until W59 ships a real router (#22). The
   // nav-state lives here so the AppShell's `onNavigate` callback can
-  // flip the page without a full page reload.
+  // flip the page without a full page reload. `sub` is non-null when
+  // we're one level below a top-level section (e.g. branch-hours under
+  // branches); the AppShell keeps `active='branches'` so the nav still
+  // highlights Branches.
   const [active, setActive] = useState<AdminSection>('clinic');
+  const [sub, setSub] = useState<AdminSubPage | null>(null);
 
   // Wire the 401-triggered auth-clear at app boot. The store is the
   // single source of truth; the client just publishes events.
@@ -63,6 +68,19 @@ export function App() {
       });
   }, [stored, expired]);
 
+  const onNavigate = useCallback((section: AdminSection) => {
+    setActive(section);
+    setSub(null); // back to a top-level page when nav changes
+  }, []);
+
+  const onOpenBranchHours = useCallback((branchId: string) => {
+    setSub({ key: 'branch-hours', branchId });
+  }, []);
+
+  const onBackToBranches = useCallback(() => {
+    setSub(null);
+  }, []);
+
   if (bootStatus === 'checking') {
     return (
       <div
@@ -86,9 +104,17 @@ export function App() {
   }
 
   return (
-    <AppShell active={active} onNavigate={setActive}>
-      {active === 'clinic' && <ClinicSettings />}
-      {active === 'branches' && <AdminBranches />}
+    <AppShell active={active} onNavigate={onNavigate}>
+      {sub?.key === 'branch-hours' && (
+        <AdminBranchHours
+          branchId={sub.branchId}
+          onBackToBranches={onBackToBranches}
+        />
+      )}
+      {!sub && active === 'clinic' && <ClinicSettings />}
+      {!sub && active === 'branches' && (
+        <AdminBranches onOpenBranchHours={onOpenBranchHours} />
+      )}
     </AppShell>
   );
 }

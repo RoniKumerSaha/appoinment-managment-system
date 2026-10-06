@@ -14,6 +14,11 @@ import './styles/shell.css';
 
 export type AdminSection = 'clinic' | 'branches' | 'doctors' | 'receptionists' | 'audit';
 
+export interface AdminSubPage {
+  key: 'branch-hours';
+  branchId: string;
+}
+
 const SECTIONS: { key: AdminSection; label: string; href: string }[] = [
   { key: 'clinic', label: 'Clinic', href: '/admin/clinic' },
   { key: 'branches', label: 'Branches', href: '/admin/branches' },

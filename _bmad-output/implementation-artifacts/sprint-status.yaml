@@ -274,6 +274,20 @@ development_status:
   # in ClinicSettings.tsx unchanged). E7-S1 invariant: 0 hex literals
   # outside tokens.css. Story E1-S1-ui → done.
   1-1-ui-admin-branches: done
+  # 2026-10-06 E1-S2-ui implementation complete; spec-1-2-ui-admin-branch-hours.md
+  # recorded. Pixel-perfect mockup 28 port (three-step stacked flow);
+  # Step 1 branch context (address + tz pickers), Step 2 weekly hours
+  # editor (7 rows × open/close/toggle with dirty-tint highlight),
+  # Step 3 save & preview impact, Step 4 inline impact preview
+  # (replaces mockup 39's resolution page — ships with E6-S2 #16).
+  # Doctor-ack path wires ?acknowledge_doctor_impact=true to the PATCH.
+  # AdminBranches step-2 foot exposes an "Edit hours →" link. App.tsx
+  # carries an AdminSubPage state for sub-page navigation (W59 / #22
+  # is the real router story). 8 deferrals (E1-S2-ui-defer-a through -h).
+  # typecheck: 0 errors. lint: 0 new errors (2 pre-existing baseline in
+  # ClinicSettings.tsx unchanged). E7-S1 invariant: 0 hex literals outside
+  # tokens.css. Story E1-S2-ui → done.
+  1-2-ui-admin-branch-hours: done
   # 2026-09-14 E1-S1 code-review pass complete (review_loop_iteration=1,
   # baseline_commit=4a107a35-3dfe... after Step-03 implementation):
   #   - 3 reviewer subagents (verification-gap, blind-hunter, edge-case-hunter)

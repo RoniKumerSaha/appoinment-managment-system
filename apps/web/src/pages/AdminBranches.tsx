@@ -80,7 +80,11 @@ function formatCreated(iso: string): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export function AdminBranches() {
+export function AdminBranches({
+  onOpenBranchHours,
+}: {
+  onOpenBranchHours?: (branchId: string) => void;
+} = {}) {
   const [branches, setBranches] = useState<BranchDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadErr, setLoadErr] = useState<FormError | null>(null);
@@ -520,6 +524,18 @@ export function AdminBranches() {
           <div className={styles['audit']}>
             Atomic: <code>Branch.update</code> · audit:{' '}
             <code>branch.changed</code>
+            {mode === 'edit' && onOpenBranchHours && activeBranch && (
+              <>
+                {' · '}
+                <button
+                  type="button"
+                  className={styles['audit-link']}
+                  onClick={() => onOpenBranchHours(activeBranch.id)}
+                >
+                  Edit hours →
+                </button>
+              </>
+            )}
           </div>
           <div className={styles['btn-group']}>
             <button

@@ -236,3 +236,83 @@ export function patchBranch(
     body: JSON.stringify(body),
   });
 }
+
+// ─── Branch hours (E1-S2) ─────────────────────────────────────────
+
+export interface HoursRow {
+  day_of_week: number; // 0..6 (Sun..Sat)
+  open_time: string | null; // HH:MM (24h)
+  close_time: string | null; // HH:MM (24h)
+  is_closed: boolean;
+}
+
+export interface BranchHoursDto {
+  branch_id: string;
+  tz: string;
+  address: string | null;
+  hours: HoursRow[];
+}
+
+export interface AffectedDoctor {
+  doctor_id: string;
+  doctor_name: string;
+  count: number;
+}
+
+export interface AffectedAppointment {
+  appointment_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  doctor_id: string;
+  appointment_type_id: string;
+  reason: 'closed_day' | 'before_open_or_after_close';
+}
+
+export interface HoursImpactSummary {
+  count_affected: number;
+  affected?: AffectedAppointment[];
+  affected_doctors: AffectedDoctor[];
+  requires_doctor_acknowledgement: boolean;
+}
+
+export interface BranchHoursCommitResponse {
+  branch: { id: string; tz: string; address: string | null; updated_at: string };
+  hours: HoursRow[];
+  impact: { count_affected: number; requires_doctor_acknowledgement: boolean };
+}
+
+export function getBranchHours(branchId: string): Promise<BranchHoursDto> {
+  return request<BranchHoursDto>(`/admin/branches/${branchId}/hours`, {
+    method: 'GET',
+  });
+}
+
+export function previewBranchHoursImpact(
+  branchId: string,
+  hours: HoursRow[],
+  includeAffected = false,
+): Promise<HoursImpactSummary> {
+  const qs = includeAffected ? '?include_affected=true' : '';
+  return request<HoursImpactSummary>(
+    `/admin/branches/${branchId}/hours-impact${qs}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ hours }),
+    },
+  );
+}
+
+export function patchBranchHours(
+  branchId: string,
+  body: { hours?: HoursRow[]; address?: string | null; tz?: string },
+  acknowledgeDoctorImpact = false,
+): Promise<BranchHoursCommitResponse> {
+  const qs = acknowledgeDoctorImpact ? '?acknowledge_doctor_impact=true' : '';
+  return request<BranchHoursCommitResponse>(
+    `/admin/branches/${branchId}/hours${qs}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    },
+  );
+}
