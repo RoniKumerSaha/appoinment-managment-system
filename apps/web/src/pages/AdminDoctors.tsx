@@ -149,8 +149,12 @@ function isValidUuidClient(s: string): boolean {
 
 export function AdminDoctors({
   onOpenDoctorAssign,
+  onOpenDoctorSchedule,
+  onOpenDoctorBlocks,
 }: {
   onOpenDoctorAssign?: (doctorId: string) => void;
+  onOpenDoctorSchedule?: (doctorId: string) => void;
+  onOpenDoctorBlocks?: (doctorId: string) => void;
 }) {
   const [doctors, setDoctors] = useState<DoctorWithBranchesDto[]>([]);
   const [branches, setBranches] = useState<BranchDto[]>([]);
@@ -679,6 +683,36 @@ export function AdminDoctors({
                   }
                 >
                   Assign
+                </button>
+                <button
+                  type="button"
+                  className={styles['action-btn']}
+                  onClick={() => {
+                    if (onOpenDoctorSchedule) onOpenDoctorSchedule(d.id);
+                  }}
+                  disabled={busy || !onOpenDoctorSchedule}
+                  title={
+                    onOpenDoctorSchedule
+                      ? 'Edit weekly schedule'
+                      : 'Not yet implemented'
+                  }
+                >
+                  Schedule
+                </button>
+                <button
+                  type="button"
+                  className={styles['action-btn']}
+                  onClick={() => {
+                    if (onOpenDoctorBlocks) onOpenDoctorBlocks(d.id);
+                  }}
+                  disabled={busy || !onOpenDoctorBlocks}
+                  title={
+                    onOpenDoctorBlocks
+                      ? 'Block time off'
+                      : 'Not yet implemented'
+                  }
+                >
+                  Block time
                 </button>
                 {d.active ? (
                   <button

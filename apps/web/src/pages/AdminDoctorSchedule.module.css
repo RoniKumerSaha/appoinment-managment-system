@@ -1,0 +1,752 @@
+/*
+ * Admin Doctor Schedule (Weekly schedule editor) sub-page — pixel-perfect
+ * port of mockup 09
+ * (docs/design/mockups/v1/mockups/09-doctor-schedule.html).
+ *
+ * 1200px-wide frame; 2-column grid (320px form-col + 1fr edit-col).
+ * Token-only: no hex literals.
+ */
+
+/* ─── Page chrome ──────────────────────────────────────────────── */
+
+.page {
+  padding: var(--space-12) var(--space-10);
+  max-width: var(--container-wide);
+  margin: 0 auto;
+  position: relative;
+}
+
+.page-header {
+  margin-bottom: var(--space-5);
+}
+
+.crumb {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.page-header h1 {
+  font-size: var(--text-3xl);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.sub {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.page-header__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.btn-back {
+  background: transparent;
+  border: 0;
+  color: var(--text-default);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.btn-back:hover {
+  background: var(--surface-soft);
+  color: var(--text-heading);
+}
+
+.btn-back:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+/* ─── Layout: 2-col grid ──────────────────────────────────────── */
+
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: 600px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+/* ─── Left form-col ───────────────────────────────────────────── */
+
+.form-col {
+  background: var(--surface-soft);
+  border-right: 1px solid var(--border-default);
+  padding: var(--space-7) var(--space-6);
+}
+
+.form-head {
+  margin-bottom: var(--space-4);
+}
+
+.form-h2 {
+  font-size: var(--text-lg);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.cross-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.cross-link {
+  font-size: var(--text-xs);
+  color: var(--brand-primary);
+  padding: 6px 10px;
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-sm);
+  background: var(--brand-light-50);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.form-group {
+  margin-bottom: var(--space-4);
+}
+
+.form-label {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-strong);
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  background: var(--surface-card);
+  color: var(--text-default);
+  font-family: inherit;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: var(--ring-focus);
+}
+
+.form-control-static {
+  padding: 9px 11px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  color: var(--text-heading);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.summary-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.summary-h {
+  font-size: var(--text-3xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-3);
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: var(--text-sm);
+}
+
+.summary-row .k {
+  color: var(--text-muted);
+}
+
+.summary-row .v {
+  color: var(--text-heading);
+  font-weight: 500;
+  text-align: right;
+  word-break: break-word;
+}
+
+.btn-primary {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-sm);
+  width: 100%;
+  margin-top: var(--space-3);
+  transition: background 120ms ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+/* ─── Right edit-col ──────────────────────────────────────────── */
+
+.edit-col {
+  padding: var(--space-8) var(--space-8);
+}
+
+.edit-head {
+  margin-bottom: var(--space-5);
+}
+
+.edit-h2 {
+  font-size: var(--text-xl);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* ─── Day tabs ────────────────────────────────────────────────── */
+
+.day-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: var(--space-5);
+  background: var(--surface-card);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  border: 1px solid var(--border-default);
+}
+
+.day-tab {
+  flex: 1;
+  padding: 9px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.day-tab:hover:not(:disabled) {
+  color: var(--text-heading);
+}
+
+.day-tab--active {
+  background: var(--brand-light-50);
+  color: var(--brand-primary);
+}
+
+.day-tab--active .day-tab__n {
+  color: var(--brand-primary);
+}
+
+.day-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.day-tab__label {
+  font-weight: 600;
+}
+
+.day-tab__n {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ─── Period cards ────────────────────────────────────────────── */
+
+.day-empty {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  padding: var(--space-3) 0 var(--space-4);
+}
+
+.period-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.period-card--editing {
+  border-color: var(--brand-primary);
+  background: var(--brand-light-50);
+}
+
+.num {
+  width: 30px;
+  height: 30px;
+  background: var(--brand-light-50);
+  color: var(--brand-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.period-card--editing .num {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.time {
+  font-weight: 600;
+  color: var(--text-heading);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.meta {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ─── Inline period edit form ─────────────────────────────────── */
+
+.period-edit {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.period-edit__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.period-edit__label {
+  font-size: var(--text-3xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.period-edit__input {
+  padding: 7px 10px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  background: var(--surface-card);
+  color: var(--text-default);
+  font-family: var(--font-mono);
+}
+
+.period-edit__input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: var(--ring-focus);
+}
+
+.period-edit__dash {
+  font-size: var(--text-md);
+  color: var(--text-muted);
+  padding-bottom: 7px;
+}
+
+.period-edit__btns {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+/* ─── Period card actions ─────────────────────────────────────── */
+
+.actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-period {
+  padding: 5px 9px;
+  font-size: var(--text-2xs);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  color: var(--text-strong);
+  cursor: pointer;
+  font-weight: 500;
+  font-family: inherit;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.btn-period:hover:not(:disabled) {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.btn-period:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-period--del {
+  color: var(--danger-text);
+  border-color: var(--danger-border);
+}
+
+.btn-period--del:hover:not(:disabled) {
+  border-color: var(--danger-text);
+  color: var(--danger-text);
+  background: var(--danger-bg);
+}
+
+/* ─── Add period (dashed) ─────────────────────────────────────── */
+
+.add-period {
+  background: var(--surface-soft);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  text-align: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  width: 100%;
+  font-family: inherit;
+  font-weight: 500;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease,
+    background 120ms ease;
+}
+
+.add-period:hover:not(:disabled) {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  background: var(--brand-light-50);
+}
+
+.add-period:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Outside-branch-hours warning card (UX-FLOWS F-06) ───────── */
+
+.outside-hours {
+  margin-top: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: var(--warning-text);
+}
+
+.outside-hours .oh-body {
+  margin-bottom: var(--space-3);
+  line-height: 1.5;
+}
+
+.outside-hours .oh-body strong {
+  font-weight: 700;
+}
+
+.oh-actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+/* ─── Impact preview banner (E2-S1 schedule invalidation) ────── */
+
+.impact {
+  margin-top: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: var(--warning-text);
+}
+
+.impact-head {
+  margin-bottom: var(--space-3);
+  line-height: 1.5;
+}
+
+.impact-head strong {
+  font-weight: 700;
+}
+
+.impact-list {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.impact-list__item {
+  font-size: var(--text-2xs);
+  background: var(--surface-card);
+  padding: 6px 8px;
+  border-radius: var(--radius-xs);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+}
+
+.impact-list__item code {
+  font-family: var(--font-mono);
+  background: transparent;
+  color: var(--text-strong);
+}
+
+.impact-ack {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-strong);
+  cursor: pointer;
+  user-select: none;
+}
+
+.impact-ack input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* ─── Row foot (discard + hint) ───────────────────────────────── */
+
+.row-foot {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--surface-divider);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.foot-hint {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-default);
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-sm);
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-soft);
+  border-color: var(--border-strong);
+  color: var(--text-heading);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-ghost:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+.btn-ghost-sm {
+  background: transparent;
+  color: var(--text-default);
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  border-radius: var(--radius-xs);
+  padding: 5px 10px;
+  font-size: var(--text-2xs);
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.btn-ghost-sm:hover:not(:disabled) {
+  background: var(--surface-soft);
+  border-color: var(--border-strong);
+  color: var(--text-heading);
+}
+
+.btn-ghost-sm:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+.btn-primary-sm {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  border-radius: var(--radius-xs);
+  padding: 5px 10px;
+  font-size: var(--text-2xs);
+  transition: background 120ms ease;
+}
+
+.btn-primary-sm:hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+}
+
+.btn-primary-sm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary-sm:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+/* ─── Inline form error ────────────────────────────────────────── */
+
+.error-banner {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-xs);
+  color: var(--danger-text);
+  margin-top: var(--space-4);
+}
+
+.error-banner strong {
+  font-weight: 700;
+}
+
+/* ─── Toast (top-right, auto-dismiss) ────────────────────────── */
+
+.toast-stack {
+  position: fixed;
+  top: 88px;
+  right: 16px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.toast {
+  background: var(--surface-card);
+  border: 1px solid var(--brand-border);
+  border-left: 4px solid var(--brand-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--elev-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 280px;
+  max-width: 380px;
+  font-size: var(--text-sm);
+  color: var(--text-default);
+}
+
+.toast-icon {
+  color: var(--brand-primary);
+  font-weight: 700;
+  font-size: var(--text-md);
+}
+
+.toast-text {
+  flex: 1;
+}
+
+.toast-x {
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: var(--text-md);
+  font-family: inherit;
+}
+
+.toast-x:hover {
+  color: var(--text-heading);
+}

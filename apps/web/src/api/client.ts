@@ -473,3 +473,205 @@ export function putDoctorBranches(
     },
   );
 }
+
+// ─── Doctor schedule (E2-S1) ───────────────────────────────
+
+export interface ScheduleRowDto {
+  branch_id: string;
+  day_of_week: number; // 0..6 (Sun..Sat)
+  start_time: string; // HH:MM:SS
+  end_time: string; // HH:MM:SS
+  effective_from: string; // YYYY-MM-DD
+  effective_to: string | null; // YYYY-MM-DD or null
+}
+
+export interface DoctorScheduleDto {
+  doctor_id: string;
+  schedule: ScheduleRowDto[];
+}
+
+export interface AffectedScheduleAppointment {
+  id: string;
+  patient_phone_masked: string;
+  doctor_id: string;
+  branch_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  status: string;
+}
+
+export interface DoctorScheduleImpactResponse {
+  future_appointment_count: number;
+  affected_appointments: AffectedScheduleAppointment[];
+}
+
+export interface DoctorScheduleCommitResponse {
+  inserted_count: number;
+  schedule: ScheduleRowDto[];
+}
+
+export function getDoctorSchedule(doctorId: string): Promise<DoctorScheduleDto> {
+  return request<DoctorScheduleDto>(
+    `/admin/doctors/${doctorId}/schedule`,
+    { method: 'GET' },
+  );
+}
+
+export function previewDoctorScheduleImpact(
+  doctorId: string,
+  rows: ScheduleRowDto[],
+): Promise<DoctorScheduleImpactResponse> {
+  return request<DoctorScheduleImpactResponse>(
+    `/admin/doctors/${doctorId}/schedule-impact`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ rows }),
+    },
+  );
+}
+
+export function postDoctorSchedule(
+  doctorId: string,
+  rows: ScheduleRowDto[],
+): Promise<DoctorScheduleCommitResponse> {
+  return request<DoctorScheduleCommitResponse>(
+    `/admin/doctors/${doctorId}/schedule`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ rows }),
+    },
+  );
+}
+
+// ─── Doctor blocks (E2-S2) ────────────────────────────────
+
+export interface DoctorBlockDto {
+  id: string;
+  doctor_id: string;
+  branch_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  reason: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DoctorBlockImpactResponse {
+  future_appointment_count: number;
+  affected_appointments: AffectedScheduleAppointment[];
+}
+
+export interface CreateDoctorBlockInput {
+  branch_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  reason: string | null;
+}
+
+export function listDoctorBlocks(
+  doctorId: string,
+  filter?: { from?: string; to?: string },
+): Promise<{ blocks: DoctorBlockDto[] }> {
+  const params: string[] = [];
+  if (filter?.from) params.push(`from=${encodeURIComponent(filter.from)}`);
+  if (filter?.to) params.push(`to=${encodeURIComponent(filter.to)}`);
+  const qs = params.length > 0 ? `?${params.join('&')}` : '';
+  return request<{ blocks: DoctorBlockDto[] }>(
+    `/admin/doctors/${doctorId}/blocks${qs}`,
+    { method: 'GET' },
+  );
+}
+
+export function previewDoctorBlockImpact(
+  doctorId: string,
+  body: CreateDoctorBlockInput,
+): Promise<DoctorBlockImpactResponse> {
+  return request<DoctorBlockImpactResponse>(
+    `/admin/doctors/${doctorId}/blocks-impact`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export function createDoctorBlock(
+  doctorId: string,
+  body: CreateDoctorBlockInput,
+): Promise<DoctorBlockDto> {
+  return request<DoctorBlockDto>(`/admin/doctors/${doctorId}/blocks`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteDoctorBlock(
+  doctorId: string,
+  blockId: string,
+): Promise<void> {
+  return request<void>(
+    `/admin/doctors/${doctorId}/blocks/${blockId}`,
+    { method: 'DELETE' },
+  );
+}
+
+// ─── Appointment types (E2-S3) ─────────────────────────────
+
+export interface AppointmentTypeDto {
+  id: string;
+  clinic_id: string;
+  name: string;
+  duration_minutes: number;
+  is_active: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// PATCH always emits warning + future_appointment_count on the response.
+export interface AppointmentTypePatchResponse extends AppointmentTypeDto {
+  warning: string | null;
+  future_appointment_count: number;
+}
+
+export function listAppointmentTypes(
+  filter?: { active?: boolean },
+): Promise<AppointmentTypeDto[]> {
+  const qs =
+    typeof filter?.active === 'boolean'
+      ? `?active=${filter.active ? 'true' : 'false'}`
+      : '';
+  return request<AppointmentTypeDto[]>(`/admin/appointment-types${qs}`, {
+    method: 'GET',
+  });
+}
+
+export function getAppointmentType(id: string): Promise<AppointmentTypeDto> {
+  return request<AppointmentTypeDto>(`/admin/appointment-types/${id}`, {
+    method: 'GET',
+  });
+}
+
+export function createAppointmentType(input: {
+  name: string;
+  duration_minutes: number;
+}): Promise<AppointmentTypeDto> {
+  return request<AppointmentTypeDto>('/admin/appointment-types', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function patchAppointmentType(
+  id: string,
+  body: { name?: string; is_active?: boolean },
+): Promise<AppointmentTypePatchResponse> {
+  return request<AppointmentTypePatchResponse>(
+    `/admin/appointment-types/${id}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    },
+  );
+}

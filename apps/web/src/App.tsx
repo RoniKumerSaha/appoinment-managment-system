@@ -18,6 +18,9 @@ import { AdminBranchHours } from './pages/AdminBranchHours';
 import { AdminReceptionists } from './pages/AdminReceptionists';
 import { AdminDoctors } from './pages/AdminDoctors';
 import { AdminDoctorAssign } from './pages/AdminDoctorAssign';
+import { AdminDoctorSchedule } from './pages/AdminDoctorSchedule';
+import { AdminDoctorBlocks } from './pages/AdminDoctorBlocks';
+import { AdminAppointmentTypes } from './pages/AdminAppointmentTypes';
 import { LoginPage } from './pages/LoginPage';
 import { useAuth, clearAuth } from './auth/store';
 import { setOnUnauthorized, getMe, ApiError } from './api/client';
@@ -84,6 +87,14 @@ export function App() {
     setSub({ key: 'doctor-assign', doctorId });
   }, []);
 
+  const onOpenDoctorSchedule = useCallback((doctorId: string) => {
+    setSub({ key: 'doctor-schedule', doctorId });
+  }, []);
+
+  const onOpenDoctorBlocks = useCallback((doctorId: string) => {
+    setSub({ key: 'doctor-blocks', doctorId });
+  }, []);
+
   const onBackToBranches = useCallback(() => {
     setSub(null);
   }, []);
@@ -128,14 +139,31 @@ export function App() {
           onBackToDoctors={onBackToDoctors}
         />
       )}
+      {sub?.key === 'doctor-schedule' && (
+        <AdminDoctorSchedule
+          doctorId={sub.doctorId}
+          onBackToDoctors={onBackToDoctors}
+        />
+      )}
+      {sub?.key === 'doctor-blocks' && (
+        <AdminDoctorBlocks
+          doctorId={sub.doctorId}
+          onBackToDoctors={onBackToDoctors}
+        />
+      )}
       {!sub && active === 'clinic' && <ClinicSettings />}
       {!sub && active === 'branches' && (
         <AdminBranches onOpenBranchHours={onOpenBranchHours} />
       )}
       {!sub && active === 'doctors' && (
-        <AdminDoctors onOpenDoctorAssign={onOpenDoctorAssign} />
+        <AdminDoctors
+          onOpenDoctorAssign={onOpenDoctorAssign}
+          onOpenDoctorSchedule={onOpenDoctorSchedule}
+          onOpenDoctorBlocks={onOpenDoctorBlocks}
+        />
       )}
       {!sub && active === 'receptionists' && <AdminReceptionists />}
+      {!sub && active === 'types' && <AdminAppointmentTypes />}
     </AppShell>
   );
 }

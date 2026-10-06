@@ -12,17 +12,26 @@ import { useAuth, logout } from './auth/store';
 import type { AuthRole } from './api/client';
 import './styles/shell.css';
 
-export type AdminSection = 'clinic' | 'branches' | 'doctors' | 'receptionists' | 'audit';
+export type AdminSection =
+  | 'clinic'
+  | 'branches'
+  | 'doctors'
+  | 'receptionists'
+  | 'types'
+  | 'audit';
 
 export type AdminSubPage =
   | { key: 'branch-hours'; branchId: string }
-  | { key: 'doctor-assign'; doctorId: string };
+  | { key: 'doctor-assign'; doctorId: string }
+  | { key: 'doctor-schedule'; doctorId: string }
+  | { key: 'doctor-blocks'; doctorId: string };
 
 const SECTIONS: { key: AdminSection; label: string; href: string }[] = [
   { key: 'clinic', label: 'Clinic', href: '/admin/clinic' },
   { key: 'branches', label: 'Branches', href: '/admin/branches' },
   { key: 'doctors', label: 'Doctors', href: '/admin/doctors' },
   { key: 'receptionists', label: 'Receptionists', href: '/admin/receptionists' },
+  { key: 'types', label: 'Appointment types', href: '/admin/types' },
   { key: 'audit', label: 'Audit log', href: '/admin/audit' },
 ];
 
@@ -62,7 +71,11 @@ export function AppShell({ active, onNavigate, children }: AppShellProps) {
   };
 
   const isImplemented = (key: AdminSection): boolean =>
-    key === 'clinic' || key === 'branches' || key === 'doctors' || key === 'receptionists';
+    key === 'clinic' ||
+    key === 'branches' ||
+    key === 'doctors' ||
+    key === 'receptionists' ||
+    key === 'types';
 
   return (
     <div className="shell">

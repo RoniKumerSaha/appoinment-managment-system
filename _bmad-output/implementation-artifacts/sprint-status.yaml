@@ -480,6 +480,58 @@ development_status:
 
   # Epic 2 — Doctor schedule & types
   epic-2: done
+  # 2026-10-06 E2-S1-ui implementation complete; spec-2-1-ui-doctor-weekly-schedule.md
+  # recorded. Pixel-perfect mockup 09 port (1200px frame, 2-column 320px/1fr
+  # layout). Day-tabs Sun..Sat + period cards with inline Edit / Split / Delete
+  # + outside-branch-hours warning (UX-FLOWS F-06) + toast "Schedule saved."
+  # Save flow: preview-first → render impact banner with masked phone + branch
+  # + start_datetime rows + "Continue anyway" acknowledgement checkbox → commit.
+  # Discard re-fetches from server (not a diff-discard) to keep the editor in
+  # sync with the canonical DB state. Branch select shown only when doctor works
+  # at >1 branch (BR-002 single-clinic anchor + multi-branch via doctor_branch).
+  # New API surface: getDoctorSchedule / previewDoctorScheduleImpact /
+  # postDoctorSchedule. New sub-page wiring: AdminSubPage union extended with
+  # {key: 'doctor-schedule', doctorId}; AdminDoctors card gains a "Schedule"
+  # action button. typecheck: 0 errors. lint: 0 new warnings. E7-S1 invariant:
+  # 0 hex literals outside tokens.css. Story E2-S1-ui → done.
+  2-1-ui-doctor-weekly-schedule: done
+  # 2026-10-06 E2-S2-ui implementation complete; spec-2-2-ui-doctor-block-time.md
+  # recorded. Pixel-perfect mockup 10 port (760px frame, 5 stacked section
+  # cards: Type / When / Where / Impact preview / Block & resolve). Time-range
+  # type only — Single date + Multi-day are disabled with "Not in MVP"
+  # tooltips (D-S2-1). Existing blocks panel added below the form for admin
+  # delete (D-S2-2). Branch select shown only when doctor works at >1 branch.
+  # Preview flow: click "Preview impact" → POST /blocks-impact → summary strip
+  # Affected tile + warn-card (only when count > 0) + impact-list. Save flow:
+  # "Block & resolve N →" / "Block →" → POST /blocks → 201 success banner +
+  # form reset + list refresh. 409 block_overlaps_future_appointments surfaced
+  # as inline error (server is source of truth, preview is advisory).
+  # Delete flow: per-row Delete in Existing blocks panel → DELETE /blocks/:id
+  # → 204 + refresh. New API surface: listDoctorBlocks /
+  # previewDoctorBlockImpact / createDoctorBlock / deleteDoctorBlock. New
+  # sub-page wiring: AdminSubPage extended with {key: 'doctor-blocks', ...};
+  # AdminDoctors card gains a "Block time" action button. typecheck: 0 errors.
+  # lint: 0 new warnings. E7-S1 invariant: 0 hex literals outside tokens.css.
+  # Story E2-S2-ui → done.
+  2-2-ui-doctor-block-time: done
+  # 2026-10-06 E2-S3-ui implementation complete; spec-2-3-ui-admin-appointment-types.md
+  # recorded. Pixel-perfect mockup 11 port (760px frame, 2 stacked step
+  # cards: Select a type to edit + Edit · {name}). New top-level admin
+  # section "Appointment types" added to AppShell nav (between
+  # Receptionists and Audit log). Duration field is read-only per
+  # spec-2-3 §Never (`duration_minutes` is NOT mutable; the PATCH route
+  # rejects it as `unknown_field`). Description field is not rendered
+  # (D-S3-1 — the API doesn't accept it). F-08 non-blocking deactivate
+  # surfaces the API's `warning: 'appointment_type_has_future_appointments'`
+  # + `future_appointment_count: N` as a yellow impact banner. Empty
+  # patch body 400s with `no_fields_to_update`; the client detects a
+  # no-op diff and surfaces a friendly message before roundtripping.
+  # New API surface: listAppointmentTypes / getAppointmentType /
+  # createAppointmentType / patchAppointmentType. New admin section:
+  # `types` (AppShell AdminSection union extended; isImplemented returns
+  # true). typecheck: 0 errors. lint: 0 new warnings. E7-S1 invariant:
+  # 0 hex literals outside tokens.css. Story E2-S3-ui → done.
+  2-3-ui-admin-appointment-types: done
   # 2026-10-04 bmad-build step-05 implementation complete for E2-S1 (configure
   #   doctor weekly schedule with multi-period days + effective date):
   #   - No new migration: 0006 already has every column (doctor_schedule
