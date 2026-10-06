@@ -23,6 +23,7 @@ import { AdminDoctorBlocks } from './pages/AdminDoctorBlocks';
 import { AdminAppointmentTypes } from './pages/AdminAppointmentTypes';
 import { PatientApp } from './pages/PatientApp';
 import { ReceptionistApp } from './pages/ReceptionistApp';
+import { DoctorApp } from './pages/DoctorApp';
 import { LoginPage } from './pages/LoginPage';
 import { useAuth, clearAuth } from './auth/store';
 import { setOnUnauthorized, getMe, ApiError } from './api/client';
@@ -137,6 +138,9 @@ export function App() {
   }
   if (role === 'receptionist') {
     return <ReceptionistApp />;
+  }
+  if (role === 'doctor') {
+    return <DoctorApp />;
   }
 
   return (

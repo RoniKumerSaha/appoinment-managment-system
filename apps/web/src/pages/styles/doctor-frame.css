@@ -1,0 +1,105 @@
+/*
+ * DoctorFrame styles — pixel-perfect port of mockups 06 / 24 / 37 nav.
+ * Token-only CSS (E7-S1 invariant): no hex literals.
+ */
+
+.doctor-frame__root {
+  background: var(--surface-page);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.doctor-frame__nav {
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border-default);
+  padding: var(--space-7) var(--space-12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-7);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.doctor-frame__brand {
+  font-weight: 700;
+  color: var(--brand-primary);
+  font-size: var(--text-3xl);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.doctor-frame__brand-logo {
+  width: 28px;
+  height: 28px;
+  background: var(--brand-primary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-brand);
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.doctor-frame__role-pill {
+  background: var(--brand-light-50);
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-border);
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.doctor-frame__actor {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-default);
+}
+
+.doctor-frame__actor-name {
+  font-weight: 500;
+  color: var(--text-strong);
+}
+
+.doctor-frame__actor-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--brand-light);
+  color: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: var(--text-xs);
+}
+
+.doctor-frame__cta {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  border: none;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 120ms ease;
+}
+
+.doctor-frame__cta:hover {
+  background: var(--brand-primary-hover);
+}
+
+.doctor-frame__body {
+  flex: 1;
+}

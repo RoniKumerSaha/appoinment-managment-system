@@ -44,6 +44,11 @@
 
 generated: 09-08-2026 12:00
 last_updated: 2026-10-06
+# 2026-10-06 E6-S2-ui implementation complete (doctor conflict
+# move + affected queue + resolve flow + success modal — F-09,
+# BR-054…058; mockups 06, 24, 37); spec-6-2-ui-doctor-conflict-move.md
+# recorded; 5 deferrals (D-E6-S-UI-1..5); no tests in this pass;
+# token-only CSS verified (0 hex literals in new files).
 # 2026-10-06 E4-S1/S2/S3/S4-ui implementation complete (patient
 # self-service hub — list + cancel modal + reschedule + deep-link —
 # mockups 05 post-OTP, 20, 22); spec-4-1-2-3-4-ui-patient-self-service.md
@@ -1648,6 +1653,85 @@ development_status:
   #     A typed enum would catch typos at write-time.
   6-1-recurring-appointment-preview-partial-success-create: done
   6-2-resolve-affected-appointments-doctor: done
+  6-2-ui-doctor-conflict-move: done
+  # 2026-10-06 E6-S2-ui implementation complete (doctor conflict
+  #   move + affected queue — F-09, BR-054…058 — mockups 06, 24, 37):
+  #   - apps/web/src/api/client.ts (MODIFIED) — added
+  #     DoctorAffectedReason union + DoctorAffectedAppointment /
+  #     DoctorAffectedResponse / DoctorAffectedInput types +
+  #     getDoctorAffected(input); added DoctorMoveInput +
+  #     DoctorMoveAppointment + DoctorMoveResponse + doctorMove(id,
+  #     input).
+  #   - apps/web/src/pages/doctor-utils.ts (NEW) — tz-aware formatters
+  #     for the doctor surface: formatTimeInTz, formatDateInTz,
+  #     formatDowShort, formatMonthDay, maskPhone (+1XXX XXXX XXXX
+  #     matching E1-S2/E2-S1 invariant), initialsOf, lastNameOf,
+  #     patientLabelFromPhone (synthetic "Patient ···{last4}" since
+  #     the doctor sees only patient_phone, E7-S3 invariant).
+  #   - apps/web/src/pages/DoctorFrame.tsx (NEW) — top-level
+  #     doctor frame: sticky nav (logo + Doctor role pill + actor
+  #     chip + Sign out), 1100px body. Distinct from PatientFrame
+  #     (1200px) and ReceptionistFrame (1100px + section nav).
+  #   - apps/web/src/pages/styles/doctor-frame.css (NEW) — token-only
+  #     CSS.
+  #   - apps/web/src/pages/DoctorAffected.tsx (NEW) — Kanban board
+  #     (mock 06). 4-column grid (To do / In progress / Awaiting
+  #     slot choice / Resolved) with a per-card Move → action. Alert
+  #     bar shows X affected + per-column pill counters. Pulls
+  #     branch names via listPublicBranches(doctor_id) for tz-aware
+  #     rendering. Masks patient_phone (E7-S3).
+  #   - apps/web/src/pages/DoctorAffected.module.css (NEW) —
+  #     token-only CSS.
+  #   - apps/web/src/pages/DoctorResolve.tsx (NEW) — Stacked-vertical
+  #     Resolve flow (mock 24). Step 1 read-only card + Step 2
+  #     new-branch + 30-day date rail + slot grid + Confirm.
+  #     Type-lock banner (Q1 from design review) makes BR-058 impossible
+  #     to miss. Calls doctorMove on submit. Maps 401/403/404/409/422
+  #     envelopes inline.
+  #   - apps/web/src/pages/DoctorResolve.module.css (NEW) —
+  #     token-only CSS.
+  #   - apps/web/src/pages/DoctorResolutionSaved.tsx (NEW) — Success
+  #     modal (mock 37). 760px modal over scrim; success icon +
+  #     summary card with moved row + actions. Bottom note
+  #     references the E7-S2 audit drawer (D-E6-S-UI-4).
+  #   - apps/web/src/pages/DoctorResolutionSaved.module.css (NEW) —
+  #     token-only CSS.
+  #   - apps/web/src/pages/DoctorApp.tsx (NEW) — Top-level doctor
+  #     container (W59 deferral: internal router). Today only one
+  #     view ('affected' → DoctorAffected); future stories add
+  #     'schedule' (mock 09), 'audit' (mock 30), 'today' (mock 12).
+  #   - apps/web/src/App.tsx (MODIFIED) — Doctor-role bypass now
+  #     renders <DoctorApp /> instead of falling through to the
+  #     admin AppShell. Previously the doctor saw ClinicSettings,
+  #     which is wrong (the doctor never touches individual
+  #     appointments from the admin surface).
+  #   - Privacy (E7-S3): DoctorAffected receives affected rows
+  #     keyed by claim.doctor_id (server-side doubly-bound). The
+  #     response carries patient_phone but NO patient_name. The
+  #     kanban card renders a synthetic "Patient ···{last4}"
+  #     label.
+  #   - Branch scope: listPublicBranches(doctor_id) returns only
+  #     branches the doctor works at; the new-branch select on
+  #     DoctorResolve lists those only.
+  #   - Deferrals: 5 — D-E6-S-UI-1 (Awaiting slot choice column
+  #     reserved for future patient-time-conflict auto-resolution),
+  #     D-E6-S-UI-2 (bulk resolve endpoint),
+  #     D-E6-S-UI-3 (cancel-on-behalf from kanban card integrates
+  #     with E5-S2),
+  #     D-E6-S-UI-4 (audit drawer link is wired but the E7-S2
+  #     destination is a future story),
+  #     D-E6-S-UI-5 (weekly schedule + audit drawer + today
+  #     queue surfaces).
+  #   - Modified files: 3 (client.ts, App.tsx, sprint-status.yaml).
+  #   - New files: 10 (DoctorFrame + 1 css, DoctorAffected + 1 css,
+  #     DoctorResolve + 1 css, DoctorResolutionSaved + 1 css,
+  #     DoctorApp, doctor-utils, spec doc).
+  #   - Typecheck: 0 new errors (manual review; sandbox blocks
+  #     pnpm in this session).
+  #   - Lint: 0 new warnings (manual review).
+  #   - Hex literal scan: 0 matches in any new file (E7-S1
+  #     invariant holds).
+  #   - Story E6-S2-ui → done.
   6-3-branch-hours-impact-flag-admin: done
   6-4-per-occurrence-recurring-cancel-reschedule: done
   epic-6-retrospective: done

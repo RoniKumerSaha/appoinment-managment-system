@@ -1,0 +1,300 @@
+/*
+ * DoctorAffected styles — pixel-perfect port of mockup 06.
+ * Token-only CSS (E7-S1 invariant): no hex literals.
+ *
+ * Layout: 1100px body, alert-bar at the top, header, 4-column
+ * Kanban board. Each column is 1fr; cards are 12px-padding white
+ * boxes with a hover-border that turns brand-light.
+ */
+
+.doc-aff__page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-9) var(--space-12) var(--space-12);
+}
+
+/* ── Alert bar ─────────────────────────────────────────────────── */
+
+.doc-aff__alert {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-5) var(--space-7);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-sm);
+  color: var(--warning-text);
+  gap: var(--space-5);
+  margin-bottom: var(--space-7);
+  flex-wrap: wrap;
+}
+
+.doc-aff__alert-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.doc-aff__alert-stats {
+  display: flex;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.doc-aff__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--surface-card);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  border: 1px solid var(--warning-border);
+}
+
+.doc-aff__pill-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.doc-aff__pill--todo .doc-aff__pill-dot {
+  background: var(--danger-strong);
+}
+
+.doc-aff__pill--doing .doc-aff__pill-dot {
+  background: var(--warning-border);
+}
+
+.doc-aff__pill--done .doc-aff__pill-dot {
+  background: var(--success-text);
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+
+.doc-aff__header {
+  margin-bottom: var(--space-7);
+}
+
+.doc-aff__title {
+  font-size: var(--text-4xl);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.doc-aff__sub {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ── Error / toast ─────────────────────────────────────────────── */
+
+.doc-aff__error {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-7);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-7);
+}
+
+.doc-aff__toast {
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-7);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-7);
+  font-weight: 500;
+}
+
+/* ── Board ─────────────────────────────────────────────────────── */
+
+.doc-aff__board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-5);
+  margin-bottom: var(--space-7);
+}
+
+.doc-aff__col {
+  background: var(--surface-soft);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+}
+
+.doc-aff__col-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-5);
+  padding: 0 var(--space-1);
+}
+
+.doc-aff__col-title {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.doc-aff__col-title::before {
+  content: '●';
+  margin-right: var(--space-2);
+}
+
+.doc-aff__col--todo .doc-aff__col-title::before {
+  color: var(--danger-strong);
+}
+
+.doc-aff__col--doing .doc-aff__col-title::before {
+  color: var(--warning-border);
+}
+
+.doc-aff__col--scheduling .doc-aff__col-title::before {
+  color: var(--brand-primary);
+}
+
+.doc-aff__col--done .doc-aff__col-title::before {
+  color: var(--success-text);
+}
+
+.doc-aff__col-count {
+  background: var(--surface-card);
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--text-default);
+  border: 1px solid var(--border-default);
+}
+
+.doc-aff__col-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+/* ── Card ──────────────────────────────────────────────────────── */
+
+.doc-aff__card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-4);
+  transition: all 120ms ease;
+}
+
+.doc-aff__card:hover {
+  border-color: var(--brand-border);
+  box-shadow: var(--elev-3);
+}
+
+.doc-aff__card--active {
+  border-color: var(--brand-primary);
+  background: var(--brand-light-50);
+}
+
+.doc-aff__card--resolved {
+  opacity: 0.6;
+  background: var(--surface-soft);
+}
+
+.doc-aff__card-patient {
+  font-weight: 600;
+  color: var(--text-heading);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-1);
+}
+
+.doc-aff__card-time {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.doc-aff__card-where {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.doc-aff__card-issue {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-xs);
+  font-size: var(--text-2xs);
+  margin-bottom: var(--space-3);
+}
+
+.doc-aff__card-issue--done {
+  background: var(--success-badge-bg);
+  color: var(--success-text);
+}
+
+.doc-aff__card-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.doc-aff__card-btn {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  font-size: var(--text-2xs);
+  color: var(--text-strong);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all 120ms ease;
+}
+
+.doc-aff__card-btn:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.doc-aff__empty {
+  text-align: center;
+  padding: var(--space-9) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Footer ────────────────────────────────────────────────────── */
+
+.doc-aff__footer {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.doc-aff__ghost {
+  background: transparent;
+  color: var(--text-default);
+  border: 0;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.doc-aff__ghost:hover {
+  color: var(--brand-primary);
+}

@@ -1013,3 +1013,90 @@ export function getPatientDeepLink(
     { method: 'GET' },
   );
 }
+
+// ─── Doctor self-service (E6-S2 / E6-S3) ───────────────────
+
+// E6-S3 — affected queue. Read-side counterpart of E1-S2's
+// admin impact-preview. Returns the doctor's Scheduled rows
+// that fall outside the current `branch_weekly_hours`.
+export type DoctorAffectedReason =
+  | 'closed_day'
+  | 'before_open_or_after_close';
+
+export interface DoctorAffectedAppointment {
+  appointment_id: string;
+  branch_id: string;
+  doctor_id: string;
+  patient_phone: string;
+  appointment_type_id: string;
+  start_datetime: string; // ISO UTC
+  end_datetime: string;   // ISO UTC
+  status: string;
+  reason: DoctorAffectedReason;
+}
+
+export interface DoctorAffectedResponse {
+  count: number;
+  branch_id: string | null;
+  date: string | null;
+  appointments: DoctorAffectedAppointment[];
+}
+
+export interface DoctorAffectedInput {
+  branch_id?: string;
+  date?: string;
+}
+
+export function getDoctorAffected(
+  input: DoctorAffectedInput = {},
+): Promise<DoctorAffectedResponse> {
+  const params = new URLSearchParams();
+  if (typeof input.branch_id === 'string' && input.branch_id.length > 0) {
+    params.set('branch_id', input.branch_id);
+  }
+  if (typeof input.date === 'string' && input.date.length > 0) {
+    params.set('date', input.date);
+  }
+  const q = params.toString();
+  return request<DoctorAffectedResponse>(
+    `/doctor/affected${q.length > 0 ? `?${q}` : ''}`,
+    { method: 'GET' },
+  );
+}
+
+// E6-S2 — doctor move. Atomic two-slot transaction; body schema
+// accepts (new_branch_id, new_start_datetime, new_end_datetime)
+// only — never a new_doctor_id or new_appointment_type_id
+// (BR-058 type lock + FR-040 doctor lock).
+export interface DoctorMoveInput {
+  new_branch_id: string;
+  new_start_datetime: string; // ISO UTC
+  new_end_datetime: string;   // ISO UTC
+}
+
+export interface DoctorMoveAppointment {
+  id: string;
+  branch_id: string;
+  doctor_id: string;
+  appointment_type_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  status: string;
+}
+
+export interface DoctorMoveResponse {
+  appointment: DoctorMoveAppointment;
+}
+
+export function doctorMove(
+  appointmentId: string,
+  input: DoctorMoveInput,
+): Promise<DoctorMoveResponse> {
+  return request<DoctorMoveResponse>(
+    `/doctor/affected/${encodeURIComponent(appointmentId)}/move`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+}
