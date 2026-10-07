@@ -13,6 +13,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { ApiError } from '../api/client';
 import { loginAsStaff, verifyPatientOtp } from '../auth/store';
+import { BrandMark } from '../brand/BrandMark';
 import styles from './LoginPage.module.css';
 
 const STAFF_ROLES = [
@@ -57,9 +58,7 @@ export function LoginPage() {
     <div className={styles['frame']}>
       <nav className={styles['nav']}>
         <div className={styles['brand']}>
-          <div className={styles['brand__logo']} aria-hidden="true">
-            M
-          </div>
+          <BrandMark size={28} className={styles['brand__logo']} />
           MediSlot
         </div>
         <div className={styles['nav__pill']}>Sign in</div>
@@ -190,7 +189,17 @@ function PatientCard() {
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<FormError | null>(null);
+  // Local attempts counter for mockup 21's "X attempts remaining" banner.
+  // The mock-OTP route doesn't surface this today; decrement on each
+  // invalid_otp_code response. Cleared on success / cancel.
+  const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
+  const onCancel = useCallback(() => {
+    setDigits(['', '', '', '', '', '']);
+    setErr(null);
+    setAttemptsLeft(null);
+  }, []);
 
   const code = digits.join('');
   const canSubmit =
@@ -239,7 +248,14 @@ function PatientCard() {
       try {
         await verifyPatientOtp({ phone, code });
       } catch (caught) {
-        setErr(describeApiError(caught));
+        const described = describeApiError(caught);
+        setErr(described);
+        // Decrement local attempts only on invalid-code errors. The mock
+        // OTP route doesn't enforce this server-side yet — when the real
+        // gateway lands, this banner is driven by the API.
+        if (described.code === 'invalid_otp_code') {
+          setAttemptsLeft((prev) => (prev === null ? 3 : Math.max(0, prev - 1)));
+        }
       } finally {
         setBusy(false);
       }
@@ -324,6 +340,14 @@ function PatientCard() {
 
       <div className={styles['actions']}>
         <button
+          type="button"
+          className={styles['btn-ghost']}
+          onClick={onCancel}
+          disabled={busy}
+        >
+          Cancel
+        </button>
+        <button
           type="submit"
           className={styles['btn-primary']}
           disabled={busy || !canSubmit}
@@ -331,6 +355,13 @@ function PatientCard() {
           {busy ? 'Verifying…' : 'Verify & continue'}
         </button>
       </div>
+      {attemptsLeft !== null && attemptsLeft <= 2 && (
+        <div className={styles['attempts-banner']} role="status">
+          {attemptsLeft === 0
+            ? 'Too many wrong codes. Try again in a minute.'
+            : `${attemptsLeft} attempt${attemptsLeft === 1 ? '' : 's'} remaining.`}
+        </div>
+      )}
 
       <div className={styles['resend']}>
         Didn&apos;t get it?{' '}

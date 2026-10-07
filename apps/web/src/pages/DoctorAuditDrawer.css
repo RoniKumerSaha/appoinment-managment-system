@@ -174,7 +174,9 @@
 }
 
 .doc-audit__time-today {
-  color: var(--brand-primary);
+  /* Mockup 30 uses neutral text-muted for today's time column,
+     not brand-primary. Keep the bold weight to anchor the row. */
+  color: var(--text-muted);
   font-weight: 600;
 }
 

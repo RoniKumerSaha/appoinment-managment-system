@@ -17,6 +17,7 @@
  */
 import type { ReactNode } from 'react';
 import { useAuth, logout } from '../auth/store';
+import { BrandMark } from '../brand/BrandMark';
 import './styles/patient-frame.css';
 
 interface PatientFrameProps {
@@ -57,9 +58,7 @@ export function PatientFrame({
     <div className="patient-frame__root">
       <nav className="patient-frame__nav">
         <div className="patient-frame__brand">
-          <div className="patient-frame__brand-logo" aria-hidden="true">
-            M
-          </div>
+          <BrandMark size={28} className="patient-frame__brand-logo" />
           MediSlot
         </div>
         <div className="patient-frame__links">

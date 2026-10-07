@@ -14,6 +14,7 @@
  */
 import type { ReactNode } from 'react';
 import { useAuth, logout } from '../auth/store';
+import { BrandMark } from '../brand/BrandMark';
 import './styles/doctor-frame.css';
 
 interface DoctorFrameProps {
@@ -40,9 +41,7 @@ export function DoctorFrame({ children }: DoctorFrameProps) {
     <div className="doctor-frame__root">
       <nav className="doctor-frame__nav">
         <div className="doctor-frame__brand">
-          <div className="doctor-frame__brand-logo" aria-hidden="true">
-            M
-          </div>
+          <BrandMark size={28} className="doctor-frame__brand-logo" />
           MediSlot
           {claim?.role === 'doctor' && (
             <span className="doctor-frame__role-pill">Doctor</span>

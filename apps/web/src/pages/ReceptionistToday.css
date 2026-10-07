@@ -322,6 +322,11 @@
   color: var(--danger-dark);
 }
 
+.recep-today__pill--checked-in {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
 /* ── Quick actions ──────────────────────────────────────────────── */
 
 .recep-today__qa {

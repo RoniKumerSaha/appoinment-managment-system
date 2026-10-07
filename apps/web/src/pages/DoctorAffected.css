@@ -91,6 +91,84 @@
   font-size: var(--text-sm);
 }
 
+/* ── Bulk bar (mockup 06) ─────────────────────────────────────── */
+
+.doc-aff__bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-5);
+  background: var(--surface-soft);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+.doc-aff__bulk-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-strong);
+  cursor: pointer;
+}
+
+.doc-aff__bulk-toggle input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--brand-primary);
+  cursor: pointer;
+}
+
+.doc-aff__bulk-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.doc-aff__bulk-btn {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  border: 1px solid var(--brand-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--text-xs);
+  font-family: inherit;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 120ms ease;
+}
+
+.doc-aff__bulk-btn:hover:not(:disabled) {
+  background: var(--brand-primary-hover, var(--brand-primary));
+}
+
+.doc-aff__bulk-btn--danger {
+  background: var(--danger-strong);
+  border-color: var(--danger-strong);
+}
+
+.doc-aff__bulk-btn--danger:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.doc-aff__bulk-btn--ghost {
+  background: transparent;
+  color: var(--text-default);
+  border-color: var(--border-default);
+}
+
+.doc-aff__bulk-btn--ghost:hover:not(:disabled) {
+  background: var(--surface-card);
+}
+
+.doc-aff__bulk-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* ── Error / toast ─────────────────────────────────────────────── */
 
 .doc-aff__error {

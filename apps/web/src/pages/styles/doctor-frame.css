@@ -35,14 +35,11 @@
 .doctor-frame__brand-logo {
   width: 28px;
   height: 28px;
-  background: var(--brand-primary);
-  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--on-brand);
-  font-size: var(--text-xl);
-  font-weight: 700;
+  color: var(--brand-primary);
+  flex-shrink: 0;
 }
 
 .doctor-frame__role-pill {

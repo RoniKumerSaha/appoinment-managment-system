@@ -17,6 +17,7 @@
  */
 import type { ReactNode } from 'react';
 import { useAuth, logout } from '../auth/store';
+import { BrandMark } from '../brand/BrandMark';
 import './styles/receptionist-frame.css';
 
 interface ReceptionistFrameProps {
@@ -62,9 +63,7 @@ export function ReceptionistFrame({
     <div className="recep-frame__root">
       <nav className="recep-frame__nav">
         <div className="recep-frame__brand">
-          <div className="recep-frame__brand-logo" aria-hidden="true">
-            M
-          </div>
+          <BrandMark size={28} className="recep-frame__brand-logo" />
           MediSlot
         </div>
         <div className="recep-frame__user">

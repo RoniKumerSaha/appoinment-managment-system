@@ -35,13 +35,11 @@
 .brand__logo {
   width: 28px;
   height: 28px;
-  background: var(--brand-primary);
-  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--on-brand);
-  font-size: var(--text-lg);
+  color: var(--brand-primary);
+  flex-shrink: 0;
 }
 
 .nav__pill {
@@ -258,6 +256,31 @@
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-default);
+  border: 1px solid var(--border-default);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-page);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.attempts-banner {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--warning-text);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-xs);
+  margin-top: var(--space-3);
 }
 
 .btn-ghost {
