@@ -114,6 +114,8 @@
   --elev-2: 0 2px 6px rgba(15, 118, 110, 0.3);
   --elev-3: 0 2px 8px rgba(15, 118, 110, 0.1);
   --elev-4: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --elev-receipt: 0 4px 14px rgba(15, 118, 110, 0.08);
+  --elev-modal: 0 12px 36px rgba(0, 0, 0, 0.18);
   --ring-focus: 0 0 0 3px rgba(15, 118, 110, 0.1);
   --ring-danger: 0 0 0 4px #fca5a5;
   --ring-success: 0 0 0 4px #99f6e4;

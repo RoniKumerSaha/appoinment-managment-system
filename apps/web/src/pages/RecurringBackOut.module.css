@@ -1,0 +1,461 @@
+/*
+ * RecurringBackOut — pixel-perfect port of mockup 40
+ * (docs/design/mockups/v1/mockups/40-recurring-back-out.html).
+ *
+ * Doctor flow when a recurring series has already been created
+ * and the doctor changes their mind. 760px stacked flow with:
+ * amber hero card (no undo available), list of 9 created rows,
+ * action-grid (4 cards), audit block, and a green principle note
+ * explaining BR-052 / BRD §4.6 / PRD §18.
+ *
+ * Token-only CSS (E7-S1 invariant): no hex literals.
+ */
+
+.page {
+  padding: var(--space-12);
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: var(--space-5);
+}
+
+.page-header .crumb {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.page-header h1 {
+  font-size: var(--text-4xl);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.page-header .sub {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.page-header .sub strong {
+  color: var(--text-heading);
+}
+
+/* ── Amber hero (no undo) ────────────────────────────────────── */
+.hero {
+  background: var(--warning-bg);
+  border: 1.5px solid var(--warning-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8) var(--space-10);
+  margin: var(--space-8) 0 var(--space-9);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-7);
+  align-items: start;
+}
+
+.hero-icon {
+  width: 44px;
+  height: 44px;
+  background: var(--warning-soft);
+  color: var(--on-warning);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-4xl);
+  flex-shrink: 0;
+}
+
+.hero-body h2 {
+  font-size: var(--text-md);
+  color: var(--warning-text);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.hero-body p {
+  font-size: var(--text-sm);
+  color: var(--on-warning);
+  line-height: 1.55;
+}
+
+.hero-body p strong {
+  color: var(--warning-text);
+}
+
+.hero-body p code {
+  background: var(--warning-soft);
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--on-warning);
+}
+
+/* ── Step primitive ──────────────────────────────────────────── */
+.step {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-9) var(--space-10);
+  margin-bottom: var(--space-5);
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-7);
+}
+
+.step-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: var(--text-xs);
+  flex-shrink: 0;
+  background: var(--neutral-bg);
+  color: var(--text-default);
+}
+
+.step-num-done {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+}
+
+.step-num-current {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  box-shadow: 0 0 0 4px var(--brand-border);
+}
+
+.step-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.step-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* ── Created list ────────────────────────────────────────────── */
+.list {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--space-7);
+}
+
+.list-head {
+  padding: var(--space-6) var(--space-7);
+  border-bottom: 1px solid var(--surface-divider);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface-soft);
+}
+
+.list-head-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.list-head-count {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.occ-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+  padding: var(--space-6) var(--space-7);
+  border-bottom: 1px solid var(--surface-divider);
+}
+
+.occ-row:last-child {
+  border-bottom: none;
+}
+
+.occ-row-skip {
+  background: var(--danger-bg);
+}
+
+.occ-date {
+  text-align: center;
+  min-width: 52px;
+}
+
+.occ-date-month {
+  font-size: var(--text-3xs);
+  color: var(--brand-primary);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.occ-date-day {
+  font-size: var(--text-lg);
+  color: var(--text-heading);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.occ-date-dow {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.occ-row-skip .occ-date {
+  opacity: 0.5;
+}
+
+.occ-body {
+  flex: 1;
+}
+
+.occ-body-title {
+  font-size: var(--text-sm);
+  color: var(--text-heading);
+  font-weight: 500;
+}
+
+.occ-body-title-strike {
+  text-decoration: line-through;
+  color: var(--text-faint);
+}
+
+.occ-body-meta {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.occ-ok {
+  color: var(--success-text);
+  font-size: var(--text-2xs);
+  background: var(--success-badge-bg);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+}
+
+.occ-skip {
+  font-size: var(--text-2xs);
+  color: var(--danger-text);
+  background: var(--danger-badge-bg);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.list-tail {
+  text-align: right;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: calc(-1 * var(--space-3));
+}
+
+.list-tail a {
+  color: var(--brand-primary);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/* ── Action grid ─────────────────────────────────────────────── */
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin-bottom: var(--space-7);
+}
+
+.action-card {
+  background: var(--surface-card);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-7);
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.action-card:hover {
+  border-color: var(--brand-primary);
+}
+
+.action-card-ic {
+  width: 32px;
+  height: 32px;
+  background: var(--brand-light-50);
+  color: var(--brand-primary);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-md);
+  margin-bottom: var(--space-5);
+}
+
+.action-card-head {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-heading);
+  margin-bottom: 4px;
+}
+
+.action-card-body {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.step-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-7);
+  padding-top: var(--space-7);
+  border-top: 1px solid var(--surface-divider);
+}
+
+/* ── Audit log block ─────────────────────────────────────────── */
+.audit-block {
+  background: var(--surface-soft);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-7);
+  margin-bottom: var(--space-7);
+}
+
+.audit-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.audit-head-label {
+  font-size: var(--text-3xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.audit-row {
+  font-size: var(--text-xs);
+  color: var(--text-strong);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.audit-row:last-child {
+  border-bottom: none;
+}
+
+.audit-row-actor {
+  color: var(--text-heading);
+  font-weight: 600;
+}
+
+.audit-row-quiet {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Principle note (BR-052 / BRD §4.6 / PRD §18) ────────────── */
+.principle-note {
+  background: var(--brand-light-50);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-7);
+  margin-top: var(--space-8);
+  font-size: var(--text-xs);
+  color: var(--success-text);
+  line-height: 1.6;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+}
+
+.principle-note .ic {
+  color: var(--brand-primary);
+  font-size: var(--text-md);
+  flex-shrink: 0;
+}
+
+.principle-note code {
+  background: var(--brand-light);
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--brand-primary);
+}
+
+.principle-note strong {
+  color: var(--success-text);
+}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn-primary,
+.btn-secondary,
+.btn-ghost {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.btn-primary {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  padding: var(--space-5) var(--space-9);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+}
+
+.btn-secondary {
+  background: var(--surface-card);
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
+  padding: var(--space-4) var(--space-7);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-default);
+  padding: var(--space-5) var(--space-7);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-soft);
+  color: var(--text-heading);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}

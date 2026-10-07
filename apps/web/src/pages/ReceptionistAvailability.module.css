@@ -1,0 +1,368 @@
+/*
+ * ReceptionistAvailability — pixel-perfect port of mockup 16
+ * (docs/design/mockups/v1/mockups/16-recep-availability.html).
+ *
+ * 760px stacked-vertical flow, 4 numbered section cards.
+ * Day groups with slot grids (4-col) + a privacy note.
+ * Token-only CSS (E7-S1 invariant): no hex literals.
+ */
+
+.page {
+  padding: var(--space-12);
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: var(--space-10);
+}
+
+.page-header .crumb {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.page-header h1 {
+  font-size: var(--text-4xl);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.page-header .sub {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ── Step card ───────────────────────────────────────────────── */
+.step {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-9) var(--space-10);
+  margin-bottom: var(--space-5);
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-7);
+}
+
+.step-num {
+  width: 28px;
+  height: 28px;
+  background: var(--brand-light-50);
+  color: var(--brand-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: var(--text-sm);
+  flex-shrink: 0;
+}
+
+.step-num-done {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+}
+
+.step-num-current {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  box-shadow: 0 0 0 4px var(--brand-border);
+}
+
+.step-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.step-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* ── Form primitives ─────────────────────────────────────────── */
+.form-group {
+  margin-bottom: var(--space-7);
+}
+
+.form-group label {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-strong);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.form-group select,
+.form-group input[type='date'] {
+  width: 100%;
+  padding: var(--space-5) var(--space-6);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  background: var(--surface-card);
+  font-family: inherit;
+  color: var(--text-default);
+}
+
+.form-group select:focus,
+.form-group input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: var(--ring-focus);
+}
+
+.form-group .hint {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-7);
+}
+
+.date-range {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+}
+
+/* ── Day group ───────────────────────────────────────────────── */
+.day-group {
+  margin-bottom: var(--space-7);
+}
+
+.day-group-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--surface-divider);
+  margin-bottom: var(--space-5);
+}
+
+.day-group-d {
+  font-weight: 600;
+  color: var(--text-heading);
+  font-size: var(--text-sm);
+}
+
+.day-group-c {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.day-group-c strong {
+  color: var(--brand-primary);
+}
+
+.today-tag {
+  background: var(--warning-soft);
+  color: var(--on-warning);
+  font-size: var(--text-3xs);
+  padding: 1px 7px;
+  border-radius: var(--radius-xs);
+  font-weight: 700;
+  margin-left: var(--space-2);
+}
+
+.day-group-closed {
+  opacity: 0.6;
+}
+
+.day-group-closed-note {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  padding: var(--space-2) 0;
+  font-style: italic;
+}
+
+/* ── Slot grid ───────────────────────────────────────────────── */
+.slots {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+.slot {
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface-card);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: center;
+  font-family: inherit;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.slot:hover:not(.slot-booked):not(.slot-selected) {
+  border-color: var(--brand-border);
+  background: var(--brand-light-50);
+}
+
+.slot-t {
+  font-weight: 700;
+  color: var(--text-heading);
+  font-size: var(--text-sm);
+}
+
+.slot-a {
+  font-size: var(--text-3xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.slot-booked {
+  background: var(--neutral-bg);
+  border-color: var(--border-default);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.slot-booked .slot-t {
+  color: var(--text-faint);
+}
+
+.slot-selected {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 2px var(--brand-border);
+}
+
+.slot-selected .slot-t {
+  color: var(--on-brand);
+}
+
+.slot-selected .slot-a {
+  color: var(--brand-light);
+}
+
+/* ── Privacy note ────────────────────────────────────────────── */
+.privacy-note {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  background: var(--surface-soft);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ── Summary box ─────────────────────────────────────────────── */
+.summary-box {
+  background: var(--brand-light-50);
+  border: 1.5px solid var(--brand-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-7) var(--space-7);
+  margin-bottom: var(--space-6);
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: var(--text-sm);
+}
+
+.summary-k {
+  color: var(--text-muted);
+}
+
+.summary-v {
+  color: var(--text-heading);
+  font-weight: 600;
+}
+
+/* ── Step foot ───────────────────────────────────────────────── */
+.step-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-8);
+  padding-top: var(--space-7);
+  border-top: 1px solid var(--surface-divider);
+}
+
+.audit {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.audit code {
+  background: var(--neutral-bg);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-ghost {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.btn-primary {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  padding: var(--space-5) var(--space-9);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--surface-card);
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
+  padding: var(--space-4) var(--space-7);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-default);
+  padding: var(--space-5) var(--space-7);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-soft);
+  color: var(--text-heading);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}

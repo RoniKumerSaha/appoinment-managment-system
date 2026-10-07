@@ -1,0 +1,299 @@
+/*
+ * RecurringConfirmPage — pixel-perfect port of mockup 23
+ * (docs/design/mockups/v1/mockups/23-recurring-confirm.html).
+ *
+ * 760px stacked-vertical flow: hero summary card (Created /
+ * Skipped / Requested stats), tabs (To be created / Skipped),
+ * occurrences list with date-block column, foot with Edit schedule
+ * + Create N appointments buttons.
+ *
+ * Token-only CSS (E7-S1 invariant): no hex literals.
+ */
+
+.page {
+  padding: var(--space-12);
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: var(--space-8);
+}
+
+.page-header .crumb {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.page-header h1 {
+  font-size: var(--text-4xl);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.page-header .sub {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ── Hero summary card ───────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, var(--brand-light-50) 0%, var(--brand-light) 100%);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-11) var(--space-12);
+  margin: var(--space-8) 0 var(--space-10);
+  text-align: center;
+}
+
+.hero-summary {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-12);
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hero-stat-num {
+  font-size: var(--text-display);
+  font-weight: 700;
+  color: var(--text-heading);
+  line-height: 1.1;
+}
+
+.hero-stat-num-created {
+  color: var(--brand-primary);
+}
+
+.hero-stat-num-skipped {
+  color: var(--danger-strong);
+}
+
+.hero-stat-lbl {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* ── Tabs (segmented control) ────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--neutral-bg);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-7);
+  max-width: 320px;
+}
+
+.tabs button {
+  padding: var(--space-2) var(--space-7);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-weight: 500;
+  cursor: pointer;
+  flex: 1;
+  font-family: inherit;
+}
+
+.tabs button:hover:not(.tabs-button-active) {
+  color: var(--text-strong);
+}
+
+.tabs-button-active {
+  background: var(--surface-card);
+  color: var(--brand-primary);
+  box-shadow: var(--elev-1);
+}
+
+/* ── Occurrences list ────────────────────────────────────────── */
+.list {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  margin-bottom: var(--space-8);
+}
+
+.list-head {
+  padding: var(--space-7) var(--space-9);
+  border-bottom: 1px solid var(--surface-divider);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.list-head-title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.list-head-count {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.occ-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+  padding: var(--space-7) var(--space-9);
+  border-bottom: 1px solid var(--surface-divider);
+}
+
+.occ-row:last-child {
+  border-bottom: none;
+}
+
+.occ-date {
+  text-align: center;
+  min-width: 56px;
+}
+
+.occ-date-month {
+  font-size: var(--text-3xs);
+  color: var(--brand-primary);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.occ-date-day {
+  font-size: var(--text-xl);
+  color: var(--text-heading);
+  font-weight: 700;
+}
+
+.occ-date-dow {
+  font-size: var(--text-3xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.occ-body {
+  flex: 1;
+}
+
+.occ-body-title {
+  font-size: var(--text-sm);
+  color: var(--text-heading);
+  font-weight: 500;
+}
+
+.occ-body-meta {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.occ-ok {
+  color: var(--success-text);
+  font-size: var(--text-2xs);
+  background: var(--success-badge-bg);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+}
+
+.occ-reason {
+  font-size: var(--text-2xs);
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+
+/* ── Step foot ───────────────────────────────────────────────── */
+.step-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-10);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--surface-divider);
+}
+
+.audit {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.audit code {
+  background: var(--neutral-bg);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+}
+
+.btn-row {
+  display: flex;
+  gap: var(--space-5);
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-ghost {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.btn-primary {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  padding: var(--space-5) var(--space-9);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--surface-card);
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
+  padding: var(--space-4) var(--space-7);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-default);
+  padding: var(--space-5) var(--space-7);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-soft);
+  color: var(--text-heading);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}

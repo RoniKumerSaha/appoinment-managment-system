@@ -7,23 +7,25 @@
  *
  *  - 'find-doctor' → <PatientBooking /> (the 5-step E3 flow)
  *  - 'my-appointments' → <MyAppointments onGoFindDoctor={…} />
+ *  - 'cancel-occurrence' → <RecurringOccurrenceCancel /> (mock 33)
+ *  - 'receipt' → <ConfirmationReceipt /> (mock 36)
  *
- * Both views render inside the shared `PatientFrame`. The frame's
- * `activeLink` and `onNavigate` props mirror the view state.
- *
- * E4-S4 deep-link landing: if the patient arrived via a deep link
+ * E4-S2 deep-link landing: if the patient arrived via a deep link
  * (`?action=cancel|reschedule&id=<uuid>`), we probe the appointment
  * and pre-open the matching surface. After handling, the URL is
  * scrubbed via `history.replaceState` so the browser back button
- * doesn't re-trigger.
+ * doesn't re-trigger. The new screens are also reachable via
+ * `?page=cancel-occurrence|receipt`.
  *
  * No tests in this pass (per user instruction).
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { PatientBooking } from './PatientBooking';
 import { MyAppointments } from './MyAppointments';
+import { RecurringOccurrenceCancel } from './RecurringOccurrenceCancel';
+import { ConfirmationReceipt } from './ConfirmationReceipt';
 
-type PatientView = 'find-doctor' | 'my-appointments';
+type PatientView = 'find-doctor' | 'my-appointments' | 'cancel-occurrence' | 'receipt';
 
 interface PatientAppProps {
   initialView?: PatientView;
@@ -31,19 +33,27 @@ interface PatientAppProps {
   initialAppointmentId?: string;
 }
 
-function readQuery(): {
+interface DeepLink {
   action?: 'cancel' | 'reschedule';
   id?: string;
-} {
+  page?: PatientView;
+}
+
+function readQuery(): DeepLink {
   if (typeof window === 'undefined') return {};
   const params = new URLSearchParams(window.location.search);
   const rawAction = params.get('action');
   const rawId = params.get('id') ?? undefined;
+  const rawPage = params.get('page');
   const action: 'cancel' | 'reschedule' | undefined =
     rawAction === 'cancel' || rawAction === 'reschedule'
       ? rawAction
       : undefined;
-  return { action, id: rawId };
+  const page: PatientView | undefined =
+    rawPage === 'cancel-occurrence' || rawPage === 'receipt'
+      ? rawPage
+      : undefined;
+  return { action, id: rawId, page };
 }
 
 function scrubQuery(): void {
@@ -64,44 +74,43 @@ export function PatientApp({
 
   // If the caller already passed an initial action, honour it by
   // jumping to my-appointments. Otherwise, on first mount, inspect
-  // the URL once for a deep-link (E4-S4) — the MyAppointments page
+  // the URL once for a deep-link (E4-S2) — the MyAppointments page
   // also reads the URL, but doing it here lets us surface the deep
   // link even when the initial render is on find-doctor.
-  const deepLinkFromProps = useMemo(() => {
+  const deepLink = (() => {
     if (initialAction && initialAppointmentId) {
-      return { action: initialAction, id: initialAppointmentId };
+      return { action: initialAction, id: initialAppointmentId } as DeepLink;
     }
-    return null;
-  }, [initialAction, initialAppointmentId]);
+    return readQuery();
+  })();
 
-  const deepLinkFromUrl = useMemo(() => {
-    if (deepLinkFromProps) return null;
-    const q = readQuery();
-    if (q.action && q.id) return { action: q.action, id: q.id };
-    return null;
-  }, [deepLinkFromProps]);
-
-  // We hand the deep-link target down to MyAppointments when the
-  // patient lands via a deep link from find-doctor.
   useEffect(() => {
-    if (deepLinkFromUrl) {
-      // Scrub the URL early so a back navigation doesn't re-trigger.
+    if (deepLink.page) {
+      scrubQuery();
+      setView(deepLink.page);
+    } else if (deepLink.action && deepLink.id) {
       scrubQuery();
       setView('my-appointments');
     }
-  }, [deepLinkFromUrl]);
+    // Run only once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onNavigate = useCallback((link: PatientView) => {
     setView(link);
   }, []);
 
+  if (view === 'cancel-occurrence') {
+    return <RecurringOccurrenceCancel />;
+  }
+  if (view === 'receipt') {
+    return <ConfirmationReceipt />;
+  }
   if (view === 'my-appointments') {
     return (
       <MyAppointments
-        initialAction={deepLinkFromProps?.action ?? deepLinkFromUrl?.action}
-        initialAppointmentId={
-          deepLinkFromProps?.id ?? deepLinkFromUrl?.id
-        }
+        initialAction={deepLink.action}
+        initialAppointmentId={deepLink.id}
         onGoFindDoctor={() => {
           onNavigate('find-doctor');
         }}
