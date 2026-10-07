@@ -301,3 +301,16 @@ override.tf.json
 # ---------- Swift / iOS ----------
 # Already covered above (DerivedData, *.xcuserstate, build)
 /.claude
+
+# ---------- Session / dev-only artefacts (NOT source) ----------
+# Stray Windows-path-quoted files dropped at the repo root by past
+# sessions (e.g. literal names like `C:Users…Temppatient.json`).
+# These contain short-lived dev JWTs and never belong in the repo.
+# Patterns cover:
+#   - the unquoted form (`UsersBS01719*`)
+#   - the colon-prefixed form (`C:UsersBS01719*`)
+#   - the U+FFFD-replacement form (`C<U+FFFD>UsersBS01719*`) that
+#     Windows produces when the `:` was incorrectly encoded — the
+#     `*` wildcard absorbs the variable-width UTF-8 replacement char.
+*UsersBS01719*
+
