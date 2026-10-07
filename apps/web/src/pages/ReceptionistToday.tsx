@@ -31,7 +31,7 @@ import {
   type ReceptionistTodayAppointment,
   type ReceptionistTodayResponse,
 } from '../api/client';
-import './ReceptionistToday.module.css';
+import './ReceptionistToday.css';
 import { ReceptionistFrame } from './ReceptionistFrame';
 import { formatTimeLocal, initialsOf, lastNameOf, maskPhone } from './recep-utils';
 

@@ -33,7 +33,7 @@ import {
   formatDateInTz,
   formatTimeInTz,
 } from './doctor-utils';
-import './DoctorResolve.module.css';
+import './DoctorResolve.css';
 
 export interface DoctorResolveAppointment {
   id: string;

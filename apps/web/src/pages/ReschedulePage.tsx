@@ -30,7 +30,7 @@ import {
 import {
   isoDateOffset,
 } from './booking-utils';
-import './ReschedulePage.module.css';
+import './ReschedulePage.css';
 
 interface RescheduleAppointment {
   id: string;

@@ -13,7 +13,7 @@
  */
 import { useState } from 'react';
 import { ApiError, patientCancel } from '../api/client';
-import './CancelModal.module.css';
+import './CancelModal.css';
 
 interface CancelModalProps {
   appointmentId: string;

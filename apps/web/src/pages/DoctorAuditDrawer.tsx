@@ -30,7 +30,7 @@ import {
   type DoctorAuditResponse,
   type DoctorAuditRow,
 } from '../api/client';
-import './DoctorAuditDrawer.module.css';
+import './DoctorAuditDrawer.css';
 
 export type DoctorAuditFilter =
   | 'all'

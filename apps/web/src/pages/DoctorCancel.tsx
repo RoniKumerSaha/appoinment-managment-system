@@ -27,7 +27,7 @@ import {
   formatMonthDay,
   formatTimeInTz,
 } from './doctor-utils';
-import './DoctorCancel.module.css';
+import './DoctorCancel.css';
 
 export interface DoctorCancelTarget {
   id: string;

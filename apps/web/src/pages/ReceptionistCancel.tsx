@@ -35,7 +35,7 @@ import {
   formatTimeLocal,
   maskPhone,
 } from './recep-utils';
-import './ReceptionistCancel.module.css';
+import './ReceptionistCancel.css';
 
 interface ReceptionistCancelProps {
   preselectedAppointmentId?: string;
