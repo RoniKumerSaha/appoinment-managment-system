@@ -39,7 +39,7 @@ import { DoctorCancel } from './DoctorCancel';
 import { DoctorFrame } from './DoctorFrame';
 import { DoctorMarkStatus } from './DoctorMarkStatus';
 import { DoctorResolve } from './DoctorResolve';
-import { DoctorResolutionSaved } from './DoctorResolutionSaved';
+import { DoctorResolutionSaved, type SavedAuditEvent } from './DoctorResolutionSaved';
 import {
   formatDateInTz,
   formatMonthDay,
@@ -221,6 +221,36 @@ interface ResolvedRow {
   toEnd: string;
 }
 
+// Mockup 37 — the audit-block on the resolution-saved modal is supposed
+// to echo the most recent events for the affected appointment. The full
+// audit-log endpoint is wired in E7-S2; until that lands we render 4
+// deterministic mock events so the audit block is not empty.
+function mockSavedAuditEvents(info: ResolvedRow): SavedAuditEvent[] {
+  const fromIso = info.fromStart;
+  return [
+    {
+      at: new Date(Date.parse(fromIso) - 60 * 60 * 1000).toISOString(),
+      label: `Branch impact recorded`,
+      tone: 'config',
+    },
+    {
+      at: new Date(Date.parse(fromIso) - 30 * 60 * 1000).toISOString(),
+      label: 'Affected appointment created',
+      tone: 'create',
+    },
+    {
+      at: new Date(Date.parse(info.toStart) - 5 * 60 * 1000).toISOString(),
+      label: 'Slot offered to patient',
+      tone: 'resolve',
+    },
+    {
+      at: new Date(Date.parse(info.toStart)).toISOString(),
+      label: 'Appointment moved',
+      tone: 'resolve',
+    },
+  ];
+}
+
 export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProps) {
   const { stored } = useAuth();
   const doctorId = stored?.claim.doctor_id ?? null;
@@ -243,6 +273,15 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
   // Cancel + mark-status flow state (E5-S1, E5-S2).
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [markId, setMarkId] = useState<string | null>(null);
+
+  // Bulk-bar selection state (mockup 06). Cleared whenever the open list
+  // mutates so stale ids never leak across refreshes.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [rows]);
 
   const refresh = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -379,6 +418,76 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
     return rows;
   }, [rows]);
 
+  // ── Bulk actions (mockup 06) ─────────────────────────────────
+  const onToggleAll = useCallback((): void => {
+    setSelectedIds((prev) => {
+      if (prev.size === open.length) return new Set();
+      return new Set(open.map((r) => r.appointment_id));
+    });
+  }, [open]);
+
+  const onBulkMove = useCallback((): void => {
+    if (selectedIds.size === 0) return;
+    setToast(
+      `Bulk-move for ${selectedIds.size} appointment${
+        selectedIds.size === 1 ? '' : 's'
+      } is coming with E6-S4. The selection is held until then.`,
+    );
+    window.setTimeout(() => setToast(null), 4000);
+  }, [selectedIds]);
+
+  const onBulkCancel = useCallback((): void => {
+    if (selectedIds.size === 0) return;
+    setToast(
+      `Bulk-cancel for ${selectedIds.size} appointment${
+        selectedIds.size === 1 ? '' : 's'
+      } is coming with E6-S4. Use the row-level cancel button for now.`,
+    );
+    window.setTimeout(() => setToast(null), 4000);
+  }, [selectedIds]);
+
+  const onExportCsv = useCallback((): void => {
+    if (rows === null || rows.length === 0) return;
+    const header = [
+      'appointment_id',
+      'patient_phone',
+      'branch_id',
+      'type_id',
+      'start_datetime',
+      'end_datetime',
+      'tz',
+    ];
+    const escape = (v: string): string =>
+      /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+    const lines = [header.join(',')];
+    for (const r of rows) {
+      lines.push(
+        [
+          r.appointment_id,
+          r.patient_phone,
+          r.branch_id,
+          r.appointment_type_id,
+          r.start_datetime,
+          r.end_datetime,
+          tzForRow(r),
+        ]
+          .map((v) => escape(String(v)))
+          .join(','),
+      );
+    }
+    const blob = new Blob([lines.join('\n')], {
+      type: 'text/csv;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `affected-queue-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, [rows]);
+
   return (
     <DoctorFrame>
       <div className="doc-aff__page">
@@ -396,16 +505,16 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
           {rows !== null && rows.length > 0 && (
             <div className="doc-aff__alert-stats">
               <span className="doc-aff__pill doc-aff__pill--todo">
-                <span className="doc-aff__pill-dot" /> {open.length} to do
+                <span aria-hidden="true">🔴</span> {open.length} to do
               </span>
               {inProgressId !== null && (
                 <span className="doc-aff__pill doc-aff__pill--doing">
-                  <span className="doc-aff__pill-dot" /> 1 in progress
+                  <span aria-hidden="true">🟡</span> 1 in progress
                 </span>
               )}
               {resolved.length > 0 && (
                 <span className="doc-aff__pill doc-aff__pill--done">
-                  <span className="doc-aff__pill-dot" /> {resolved.length} resolved
+                  <span aria-hidden="true">🟢</span> {resolved.length} resolved
                 </span>
               )}
             </div>
@@ -422,6 +531,59 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
 
         {err && <div className="doc-aff__error">{err}</div>}
         {toast && <div className="doc-aff__toast">{toast}</div>}
+
+        {open.length > 1 && (
+          <div className="doc-aff__bulk-bar">
+            <label className="doc-aff__bulk-toggle">
+              <input
+                type="checkbox"
+                checked={selectedIds.size === open.length && open.length > 0}
+                ref={(el) => {
+                  if (el) {
+                    el.indeterminate =
+                      selectedIds.size > 0 &&
+                      selectedIds.size < open.length;
+                  }
+                }}
+                onChange={onToggleAll}
+                aria-label="Select all to-do appointments"
+              />
+              <span>
+                {selectedIds.size === 0
+                  ? `Select all ${open.length} to do`
+                  : `${selectedIds.size} of ${open.length} selected`}
+              </span>
+            </label>
+            <div className="doc-aff__bulk-actions">
+              <button
+                type="button"
+                className="doc-aff__bulk-btn"
+                onClick={onBulkMove}
+                disabled={selectedIds.size === 0}
+                title="Move selected to the same new date — coming with E6-S4"
+              >
+                Bulk: pick same new date
+              </button>
+              <button
+                type="button"
+                className="doc-aff__bulk-btn doc-aff__bulk-btn--danger"
+                onClick={onBulkCancel}
+                disabled={selectedIds.size === 0}
+                title="Cancel selected — coming with E6-S4"
+              >
+                Cancel selected ({selectedIds.size})
+              </button>
+              <button
+                type="button"
+                className="doc-aff__bulk-btn doc-aff__bulk-btn--ghost"
+                onClick={onExportCsv}
+                title="Export current queue as CSV"
+              >
+                Export as CSV
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="doc-aff__board">
           <Column
@@ -649,6 +811,19 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
         <DoctorResolutionSaved
           info={completionModal}
           remaining={open.length - 1}
+          recent={mockSavedAuditEvents(completionModal)}
+          onOpenAuditDrawer={
+            onOpenAudit
+              ? () => {
+                  setCompletionModal(null);
+                  onOpenAudit({
+                    appointmentId: completionModal.appointment_id,
+                    appointmentLabel: `Appointment ···${completionModal.patient_phone.slice(-4)}`,
+                    branchTz: 'UTC',
+                  });
+                }
+              : undefined
+          }
           onClose={() => setCompletionModal(null)}
           onResolveAnother={() => {
             setCompletionModal(null);
