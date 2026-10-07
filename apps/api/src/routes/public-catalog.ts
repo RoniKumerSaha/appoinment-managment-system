@@ -49,12 +49,18 @@ const SELECT_PUBLIC_BRANCHES_SQL = `
 // branch picker. The doctor must be active AND at the branch AND the
 // branch must be active (the patient's branch picker must never offer
 // a branch the doctor isn't at).
+//
+// Params: $1 = doctor_id, $2 = clinic_id. (Earlier revisions filtered
+// `db.branch_id = $2` here — but $2 was bound to the doctor_id in the
+// call site, which made the join match zero rows for every doctor.
+// Removed that filter; the doctor→branch list is governed by
+// `db.doctor_id = d.id` alone.)
 const SELECT_DOCTOR_BRANCHES_PUBLIC_SQL = `
   SELECT b.id::text AS id, b.name, b.tz
     FROM doctor d
-    JOIN doctor_branch db ON db.doctor_id = d.id AND db.branch_id = $2
+    JOIN doctor_branch db ON db.doctor_id = d.id
     JOIN branch b ON b.id = db.branch_id AND b.active = true
-   WHERE d.id = $1 AND d.clinic_id = $3 AND d.active = true
+   WHERE d.id = $1 AND d.clinic_id = $2 AND d.active = true
    ORDER BY b.name ASC, b.id ASC;
 `;
 
@@ -131,7 +137,7 @@ publicCatalogRouter.get(
           id: string;
           name: string;
           tz: string;
-        }>(SELECT_DOCTOR_BRANCHES_PUBLIC_SQL, [doctorId, doctorId, clinicId]);
+        }>(SELECT_DOCTOR_BRANCHES_PUBLIC_SQL, [doctorId, clinicId]);
         rows = result.rows;
       } else {
         const result = await pool.query<{

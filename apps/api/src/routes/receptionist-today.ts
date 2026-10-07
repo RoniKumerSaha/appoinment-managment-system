@@ -64,8 +64,8 @@ const SELECT_TODAY_APPOINTMENTS_SQL = `
    WHERE a.branch_id = $1::uuid
      AND a.start_datetime >= $2::timestamptz
      AND a.start_datetime < $3::timestamptz
-     AND ($4::uuid IS NULL OR a.doctor_id = $4::uuid)
-     AND ($5::text IS NULL OR a.status = $5::text)
+     AND ($4::text IS NULL OR a.doctor_id::text = $4::text)
+     AND ($5::text IS NULL OR a.status::text = $5::text)
    ORDER BY a.start_datetime ASC, d.full_name ASC;
 `;
 
@@ -181,27 +181,32 @@ receptionistTodayRouter.get(
       // omitted, "today" = the branch-local calendar day.
       // We compute the UTC window via SQL so the database — not
       // the API process — handles DST transitions correctly.
-      const dateSql = dateFilter
-        ? dateFilter
-        : `(now() AT TIME ZONE $1::text)::date::text`;
-
-      // Single round-trip: SELECT the branch tz, then SELECT the
-      // appointments filtered by branch_id and the tz-anchored
-      // date window. The window SQL casts the local date to a
-      // UTC instant via `AT TIME ZONE`.
+      //
+      // SAFETY: the supplied date string is bound via $2 as text
+      // and cast to ::date by Postgres — never interpolated raw.
+      //
+      // Algorithm:
+      //   1. `day` is a `date` (calendar day).
+      //   2. `day::timestamp` strips the tz — gives midnight of that
+      //      day with no tz attached.
+      //   3. `AT TIME ZONE branch.tz` treats that as local wall-clock
+      //      and returns the corresponding UTC instant as `timestamptz`.
+      //      (This is the canonical "midnight in branch tz" recipe.)
+      //   4. + INTERVAL '24 hours' for the upper bound.
+      const hasDate = dateFilter !== null;
       const windowSql = `
         WITH d AS (
-          SELECT (${dateSql})::date AS day
+          SELECT COALESCE($2::text::date, (now() AT TIME ZONE $1)::date) AS day
         )
-        SELECT (day::timestamptz AT TIME ZONE $1)::timestamptz AS start_utc,
-               ((day::timestamptz AT TIME ZONE $1) + INTERVAL '24 hours')::timestamptz AS end_utc
+        SELECT ((day::timestamp AT TIME ZONE $1)) AS start_utc,
+               ((day::timestamp AT TIME ZONE $1) + INTERVAL '24 hours') AS end_utc
           FROM d;
       `;
 
       const { rows: windowRows } = await client.query<{
         start_utc: Date;
         end_utc: Date;
-      }>(windowSql, [branch.tz]);
+      }>(windowSql, [branch.tz, hasDate ? dateFilter : null]);
       const window = windowRows[0]!;
 
       const echoDate = dateFilter ?? (
@@ -252,7 +257,13 @@ receptionistTodayRouter.get(
         { err: err instanceof Error ? err.message : String(err) },
         'receptionist_today_failed',
       );
-      throw err;
+      // Surface a 500 to the client instead of rethrowing. Rethrowing
+      // an async route error in Express 4 produces an unhandledRejection
+      // that kills the whole API process (the process-level handler
+      // exits 1 on any unhandled rejection).
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'internal_error' });
+      }
     } finally {
       client.release();
     }
