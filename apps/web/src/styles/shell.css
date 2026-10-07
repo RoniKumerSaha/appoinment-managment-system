@@ -43,33 +43,11 @@
 .nav__brand-logo {
   width: 28px;
   height: 28px;
-  display: block;
-  background: var(--brand-primary);
-  border-radius: var(--radius-sm);
-  position: relative;
-}
-/* The logo glyph — a stylised calendar tick rendered in pure CSS so the
- * UI does not need a real SVG asset. */
-.nav__brand-logo::before {
-  content: '';
-  position: absolute;
-  inset: 6px 6px 8px 6px;
-  background: var(--surface-card);
-  border-radius: 2px;
-}
-.nav__brand-logo::after {
-  content: '';
-  position: absolute;
-  top: 11px;
-  left: 11px;
-  width: 6px;
-  height: 3px;
-  background: var(--brand-primary);
-  border-radius: 1px;
-  box-shadow:
-    6px 0 0 var(--brand-primary),
-    0 5px 0 var(--brand-primary),
-    6px 5px 0 var(--brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-primary);
+  flex-shrink: 0;
 }
 
 .nav__links {

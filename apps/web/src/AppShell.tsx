@@ -10,6 +10,7 @@
 import type { ReactNode } from 'react';
 import { useAuth, logout } from './auth/store';
 import type { AuthRole } from './api/client';
+import { BrandMark } from './brand/BrandMark';
 import './styles/shell.css';
 
 export type AdminSection =
@@ -82,7 +83,7 @@ export function AppShell({ active, onNavigate, children }: AppShellProps) {
     <div className="shell">
       <nav className="nav">
         <div className="nav__brand">
-          <div className="nav__brand-logo" aria-hidden="true" />
+          <BrandMark size={28} className="nav__brand-logo" />
           MediSlot · Admin
         </div>
         <div className="nav__links">

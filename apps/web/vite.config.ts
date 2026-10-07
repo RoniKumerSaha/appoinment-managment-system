@@ -13,8 +13,12 @@ export default defineConfig({
     proxy: {
       '/admin': 'http://localhost:3001',
       '/patient': 'http://localhost:3001',
+      '/doctor': 'http://localhost:3001',
+      '/reception': 'http://localhost:3001',
       '/availability': 'http://localhost:3001',
       '/bookings': 'http://localhost:3001',
+      '/public': 'http://localhost:3001',
+      '/auth': 'http://localhost:3001',
       '/health': 'http://localhost:3001',
       '/metrics': 'http://localhost:3001',
     },
