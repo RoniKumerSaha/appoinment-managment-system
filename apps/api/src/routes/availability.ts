@@ -59,10 +59,25 @@ availabilityRouter.get(
     const branchId = typeof branchIdRaw === 'string' ? branchIdRaw : '';
     const typeId = typeof typeIdRaw === 'string' ? typeIdRaw : '';
     const dateStr = typeof dateRaw === 'string' ? dateRaw : '';
-    const patientPhone =
+    // FR-027/FR-029 patient filter derivation:
+    //   - For `role === 'patient'`, the JWT `sub` IS the phone (per
+    //     patient-otp.ts / otp/service.ts signClaim). Always apply
+    //     the patient filter so the preview matches what the
+    //     commit-time recheck will do (otherwise the slot grid
+    //     shows 28 open slots and the user only learns about a
+    //     conflict after picking one — see E4-S3 UX bug).
+    //   - For staff roles, the explicit `patient_phone` query param
+    //     is honoured when supplied (receptionist booking on
+    //     behalf of a patient — E3-S4). When omitted, no patient
+    //     filter applies.
+    const explicitPatientPhone =
       typeof patientPhoneRaw === 'string' && patientPhoneRaw.length > 0
         ? patientPhoneRaw
         : null;
+    const patientPhone =
+      claim.role === 'patient'
+        ? claim.sub
+        : explicitPatientPhone;
 
     if (!UUID_RE.test(doctorId)) {
       res.status(400).json({ error: 'invalid_doctor_id' });

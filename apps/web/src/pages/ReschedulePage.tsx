@@ -209,6 +209,13 @@ export function ReschedulePage({
           branch_id: branchId,
           date,
           appointment_type_id: typeId,
+          // patient_phone is auto-derived from the JWT by the server
+          // when the caller is a patient (see /availability route),
+          // so the FR-027/FR-029 filters apply to the preview as
+          // well as the commit-time recheck. This prevents the UX bug
+          // where the slot grid shows 28 open slots but the move
+          // fails with `patient_has_future_with_doctor` after the
+          // user picks one.
         });
         if (cancelled) return;
         setSlots(res.slots);
@@ -410,7 +417,9 @@ export function ReschedulePage({
                         ? 'The branch is closed that day.'
                         : slotReason === 'doctor_unavailable'
                           ? "The doctor isn't available that day."
-                          : 'No slots available.'}
+                          : slotReason === 'patient_has_future_with_doctor'
+                            ? 'You already have a future appointment with this doctor. Cancel it first or pick a different doctor.'
+                            : 'No slots available.'}
                 </div>
               )}
               {!loadingSlots &&
