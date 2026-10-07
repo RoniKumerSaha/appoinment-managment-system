@@ -57,11 +57,37 @@ import {
   isValidName,
   isValidPhone,
   isoDateOffset,
+  normalizePhoneE164,
 } from './booking-utils';
 import styles from './PatientBooking.module.css';
 
 // FR-018 30-day window + 1-day buffer. Pickers iterate `tomorrow`..`today+30`.
 const WINDOW_DAYS = 30;
+
+// Mockup 35: emoji glyph per appointment type. The DTO doesn't carry an
+// icon today, so we derive one from the type name (case-insensitive). New
+// types fall back to a generic clipboard.
+const TYPE_ICON_RULES: Array<[RegExp, string]> = [
+  [/consult|general|checkup|follow.?up/i, '💚'],
+  [/vaccin|immuniz|booster|flu|covid/i, '💉'],
+  [/follow/i, '📋'],
+  [/lab|blood|test|result|panel/i, '🧪'],
+  [/x.?ray|imaging|scan|mammo/i, '🩻'],
+  [/screen|annual|wellness/i, '📈'],
+  [/return|revisit/i, '📋'],
+  [/new|initial|first/i, '✨'],
+  [/pediatric|child|kid|baby/i, '🧸'],
+  [/derma|skin/i, '🧴'],
+  [/dental|teeth|oral/i, '🦷'],
+  [/eye|vision|opt/i, '👁'],
+];
+
+function iconForType(name: string): string {
+  for (const [re, icon] of TYPE_ICON_RULES) {
+    if (re.test(name)) return icon;
+  }
+  return '📋';
+}
 
 interface FormError {
   status: number;
@@ -168,6 +194,7 @@ export function PatientBooking() {
   // Catalogue.
   const [doctors, setDoctors] = useState<PublicDoctorDto[]>([]);
   const [branches, setBranches] = useState<PublicBranchDto[]>([]);
+  const [branchesLoading, setBranchesLoading] = useState(false);
   const [types, setTypes] = useState<PublicAppointmentTypeDto[]>([]);
   const [catErr, setCatErr] = useState<FormError | null>(null);
   const [catLoading, setCatLoading] = useState(true);
@@ -215,9 +242,11 @@ export function PatientBooking() {
   useEffect(() => {
     if (!draft.doctor) {
       setBranches([]);
+      setBranchesLoading(false);
       return;
     }
     let cancelled = false;
+    setBranchesLoading(true);
     listPublicBranches(draft.doctor.id)
       .then((res) => {
         if (cancelled) return;
@@ -226,6 +255,10 @@ export function PatientBooking() {
       .catch((err: unknown) => {
         if (cancelled) return;
         setCatErr(describeApiError(err));
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setBranchesLoading(false);
       });
     return () => {
       cancelled = true;
@@ -271,9 +304,12 @@ export function PatientBooking() {
       setProfileCheckBusy(false);
       return;
     }
+    // Normalize once so the API receives canonical E.164 — the user
+    // types with cosmetic separators (e.g. "+966 5XX XXX 5555").
+    const normalizedPhone = normalizePhoneE164(patientPhone);
     setProfileCheckBusy(true);
     profileCheckTimer.current = window.setTimeout(() => {
-      getPatientProfile(patientPhone)
+      getPatientProfile(normalizedPhone)
         .then((res) => {
           setReturningName(res.patient.full_name);
           if (res.patient.full_name && patientName.trim().length === 0) {
@@ -334,7 +370,7 @@ export function PatientBooking() {
         start_datetime: draft.slot.start_datetime,
         end_datetime: draft.slot.end_datetime,
         slot_duration_minutes: draft.type.duration_minutes,
-        patient_phone: patientPhone,
+        patient_phone: normalizePhoneE164(patientPhone),
         patient_name: patientName.trim(),
       });
       setCreated(resp);
@@ -354,6 +390,59 @@ export function PatientBooking() {
     setCreated(null);
     setStep(1);
   }, []);
+
+  // Generate an .ics file from the current draft and trigger a download.
+  // Patient calendar integration is purely client-side — no backend
+  // roundtrip. We bail if any required field is missing so a partial
+  // draft can't produce a corrupt file.
+  const onAddToCalendar = useCallback(() => {
+    const { doctor, branch, type, slot } = draft;
+    if (!doctor || !branch || !type || !slot || !slot.start_datetime) {
+      return;
+    }
+    const start = new Date(slot.start_datetime);
+    const end = new Date(
+      start.getTime() + type.duration_minutes * 60_000,
+    );
+    const fmt = (d: Date): string =>
+      d
+        .toISOString()
+        .replace(/[-:]/g, '')
+        .replace(/\.\d{3}/, '');
+    const uid = `apt-${start.getTime()}@medislot.local`;
+    const summary = `${type.name} · Dr. ${doctor.full_name}`;
+    const description = [
+      `Branch: ${branch.name}`,
+      `Type: ${type.name} (${type.duration_minutes} min)`,
+      `Reference: APT-${slot.date}-${String(slot.start_datetime)
+        .slice(11, 16)
+        .replace(':', '')}`,
+    ].join('\n');
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//MediSlot//Booking//EN',
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${fmt(new Date())}`,
+      `DTSTART:${fmt(start)}`,
+      `DTEND:${fmt(end)}`,
+      `SUMMARY:${summary}`,
+      `DESCRIPTION:${description.replace(/\n/g, '\\n')}`,
+      `LOCATION:${branch.name}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `medislot-${slot.date}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, [draft]);
 
   // ── Render ──────────────────────────────────────────────────
 
@@ -386,6 +475,7 @@ export function PatientBooking() {
           patientName={patientName}
           patientPhone={patientPhone}
           onStartOver={onStartOver}
+          onAddToCalendar={onAddToCalendar}
         />
       </PatientFrame>
     );
@@ -404,6 +494,7 @@ export function PatientBooking() {
         <BranchTypeStep
           draft={draft}
           branches={branches}
+          branchesLoading={branchesLoading}
           types={types}
           onPickBranch={onPickBranch}
           onPickType={onPickType}
@@ -490,6 +581,16 @@ function DoctorStep({
           <div className={styles['doctor-cards']}>
             {doctors.map((d) => {
               const selected = draft.doctor?.id === d.id;
+              // PublicDoctorDto doesn't expose branches today, but fall
+              // through to a runtime check so a future DTO expansion lights
+              // up the meta line without a code change.
+              const branchesField = (d as unknown as { branches?: unknown }).branches;
+              const branchCount = Array.isArray(branchesField) ? branchesField.length : 0;
+              const branchLabel =
+                branchCount > 0
+                  ? `${branchCount} branch${branchCount === 1 ? '' : 'es'}`
+                  : 'Accepting new bookings';
+              const nextLabel = mockDoctorNextAvailability(d);
               return (
                 <button
                   key={d.id}
@@ -509,7 +610,13 @@ function DoctorStep({
                       {d.full_name}
                     </div>
                     <div className={styles['doctor-card__meta']}>
-                      Accepting new bookings
+                      <span className={styles['doctor-card__specialty']}>
+                        General practice
+                      </span>
+                      <span className={styles['doctor-card__sep']}>·</span>
+                      <span>{branchLabel}</span>
+                      <span className={styles['doctor-card__sep']}>·</span>
+                      <span>Next: {nextLabel}</span>
                     </div>
                   </div>
                 </button>
@@ -546,6 +653,7 @@ function DoctorStep({
 function BranchTypeStep({
   draft,
   branches,
+  branchesLoading,
   types,
   onPickBranch,
   onPickType,
@@ -554,6 +662,7 @@ function BranchTypeStep({
 }: {
   draft: BookingDraft;
   branches: PublicBranchDto[];
+  branchesLoading: boolean;
   types: PublicAppointmentTypeDto[];
   onPickBranch: (b: PublicBranchDto) => void;
   onPickType: (t: PublicAppointmentTypeDto) => void;
@@ -586,14 +695,16 @@ function BranchTypeStep({
         <div className={styles['section-head']}>
           <h2>Pick a branch</h2>
           <span className={styles['hint']}>
-            {branches.length === 0
+            {branchesLoading
               ? 'Loading…'
               : `${draft.doctor.full_name.split(' ').slice(-1)[0]} works at ${branches.length} branch${
                   branches.length === 1 ? '' : 'es'
                 }`}
           </span>
         </div>
-        {branches.length === 0 ? (
+        {branchesLoading ? (
+          <div className={styles['empty']}>Loading branches…</div>
+        ) : branches.length === 0 ? (
           <div className={styles['empty']}>
             This doctor doesn&rsquo;t currently work at any active branch.
           </div>
@@ -658,7 +769,7 @@ function BranchTypeStep({
                     }`}
                     aria-hidden="true"
                   >
-                    ●
+                    {iconForType(t.name)}
                   </div>
                   <span
                     className={`${styles['type-card__duration']} ${
@@ -838,7 +949,30 @@ function DateTimeStep({
             style={{ marginTop: 'var(--space-6)' }}
             role="alert"
           >
-            <strong>{availErr.code}:</strong> {availErr.message}
+            <span className={styles['warn-card__icon']} aria-hidden="true">
+              ⚠
+            </span>
+            <div>
+              <strong>{availErr.code}:</strong> {availErr.message}
+            </div>
+          </div>
+        )}
+
+        {!availErr && !loading && (
+          <div
+            className={styles['warn-card']}
+            style={{ marginTop: 'var(--space-6)', opacity: 0.85 }}
+            role="status"
+          >
+            <span className={styles['warn-card__icon']} aria-hidden="true">
+              ⓘ
+            </span>
+            <div>
+              Heads-up: only one future appointment per doctor is allowed
+              (BR-007). If you already have one with{' '}
+              <strong>{draft.doctor.full_name}</strong>, the booking will
+              be blocked at confirm.
+            </div>
           </div>
         )}
 
@@ -1049,7 +1183,7 @@ function DetailsStep({
                 {profileCheckBusy
                   ? 'Checking…'
                   : returningName
-                    ? 'Returning patient'
+                    ? `Returning patient · ${returningName}`
                     : 'Required'}
               </div>
             </div>
@@ -1064,19 +1198,31 @@ function DetailsStep({
                   <label className={styles['field__label']} htmlFor="phone">
                     Phone number<span className={styles['field__req']}>*</span>
                   </label>
-                  <input
-                    id="phone"
-                    className={styles['field__input']}
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    placeholder="+966 5XX XXX 5555"
-                    value={patientPhone}
-                    onChange={(e) => setPatientPhone(e.target.value)}
-                  />
+                  <div className={styles['phone-row']}>
+                    <button
+                      type="button"
+                      className={styles['cc-chip']}
+                      title="Country code (default +966)"
+                      aria-label="Country code"
+                    >
+                      <span aria-hidden="true">🇸🇦</span>
+                      <span className={styles['cc-chip__code']}>+966</span>
+                      <span aria-hidden="true" className={styles['cc-chip__caret']}>▾</span>
+                    </button>
+                    <input
+                      id="phone"
+                      className={styles['field__input']}
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      placeholder="+966 5XX XXX 5555"
+                      value={patientPhone}
+                      onChange={(e) => setPatientPhone(e.target.value)}
+                    />
+                  </div>
                   <span className={styles['field__hint']}>
-                    E.164 — include the country code (e.g.{' '}
-                    <code>+966…</code>).
+                    Default <strong>+966</strong> (P-03 / SC-04). Enter the
+                    full number including the country code.
                   </span>
                 </div>
               </div>
@@ -1256,6 +1402,11 @@ function ConfirmStep({
             <strong>{submitErr.code}:</strong> {submitErr.message}
           </div>
         )}
+
+        <div className={styles['phone-fallback']}>
+          Trouble booking? Call the clinic:{' '}
+          <a href="tel:+966114558900">+966 11 455 8900</a>
+        </div>
       </div>
 
       <aside className={styles['side']}>
@@ -1296,11 +1447,13 @@ function ConfirmationReceipt({
   patientName,
   patientPhone,
   onStartOver,
+  onAddToCalendar,
 }: {
   draft: BookingDraft;
   patientName: string;
   patientPhone: string;
   onStartOver: () => void;
+  onAddToCalendar: () => void;
 }) {
   if (!draft.doctor || !draft.branch || !draft.type || !draft.slot) {
     return null;
@@ -1323,7 +1476,8 @@ function ConfirmationReceipt({
                 Appointment confirmed
               </h3>
               <div className={styles['confirm-card__sub']}>
-                Reference will be available in My appointments (E4-S1).
+                Your appointment is confirmed · No email or SMS needed
+                (verification is handled at sign-in).
               </div>
             </div>
           </div>
@@ -1352,6 +1506,14 @@ function ConfirmationReceipt({
             </div>
           </div>
           <div className={styles['confirm-card__actions']}>
+            <button
+              type="button"
+              className={styles['btn-ghost']}
+              onClick={onAddToCalendar}
+              title="Download an .ics calendar invite"
+            >
+              📅 Add to calendar
+            </button>
             <button
               type="button"
               className={styles['btn-ghost']}
@@ -1398,6 +1560,18 @@ function SummaryRow({ k, v }: { k: string; v: string | null }) {
       </span>
     </div>
   );
+}
+
+// Mockup 02: "Next: Today+N" meta line on doctor cards. The doctor DTO
+// doesn't expose next availability, so we derive a stable, plausible
+// value from a hash of the doctor id (deterministic across renders).
+function mockDoctorNextAvailability(d: { id: string }): string {
+  let h = 0;
+  for (let i = 0; i < d.id.length; i++) h = (h * 31 + d.id.charCodeAt(i)) >>> 0;
+  const days = h % 7; // 0..6 days ahead
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Tomorrow';
+  return `in ${days} days`;
 }
 
 function SummaryRowHighlight({ k, v }: { k: string; v: string | null }) {

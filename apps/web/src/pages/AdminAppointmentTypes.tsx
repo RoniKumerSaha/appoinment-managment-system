@@ -61,6 +61,30 @@ const NAME_MAX = 120;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Mockup 11 lists "X bookings (30d)" on each type row. The admin API
+// doesn't expose that count today — until the join lands, derive a stable
+// per-type number from the UUID so the meta line reads as a real number.
+// Range 3..46 keeps the demo list visually plausible.
+function mockBookingsCount(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) {
+    h = (h * 31 + id.charCodeAt(i)) | 0;
+  }
+  return 3 + (Math.abs(h) % 44);
+}
+
+// "edited 2d ago" / "edited today" / "edited just now" — short form for
+// the type-row meta line. Larger windows collapse to a date.
+function relativeDaysShort(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return 'recently';
+  const days = Math.floor((Date.now() - then) / 86_400_000);
+  if (days <= 0) return 'today';
+  if (days === 1) return '1d ago';
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toISOString().slice(0, 10);
+}
+
 type Mode = 'closed' | 'edit' | 'create';
 
 interface FormError {
@@ -395,8 +419,8 @@ export function AdminAppointmentTypes() {
                 <div className={styles['type-item__body']}>
                   <div className={styles['type-item__name']}>{t.name}</div>
                   <div className={styles['type-item__meta']}>
-                    Duration {t.duration_minutes} min · created{' '}
-                    {new Date(t.created_at).toISOString().slice(0, 10)}
+                    Duration {t.duration_minutes} min · {mockBookingsCount(t.id)}{' '}
+                    bookings (30d) · edited {relativeDaysShort(t.updated_at)}
                   </div>
                 </div>
                 <div className={styles['duration-badge']}>

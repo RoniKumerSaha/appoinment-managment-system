@@ -71,8 +71,16 @@ export function formatPhoneInput(raw: string): string {
 
 export const E164_RE = /^\+[1-9]\d{6,14}$/;
 
+/** Strip the cosmetic separators people type while entering a phone
+ *  number (spaces, dashes, dots, parens) so the strict E.164 regex
+ *  accepts input the user formatted as `+966 5XX XXX 5555` or
+ *  `+1 (555) 123-4567`. We do NOT strip the leading `+`. */
+export function normalizePhoneE164(raw: string): string {
+  return raw.replace(/[\s\-().]/g, '');
+}
+
 export function isValidPhone(s: string): boolean {
-  return E164_RE.test(s);
+  return E164_RE.test(normalizePhoneE164(s));
 }
 
 export function isValidName(s: string): boolean {

@@ -341,7 +341,7 @@ export function AdminDoctorAssign({
         <div className={styles['picker-row']}>
           <div className={`${styles['picker']} ${styles['picker--locked']}`}>
             <div className={styles['picker__label']}>Clinic</div>
-            <div className={styles['picker__value']}>MediSlot</div>
+            <div className={styles['picker__value']}>MediSlot Riyadh</div>
             <div className={styles['picker__lock']}>
               🔒 Single-clinic rule (BR-002)
             </div>
@@ -436,9 +436,10 @@ export function AdminDoctorAssign({
               ⚠
             </span>
             <span>
-              <strong>Heads-up:</strong> branches changed. Future
-              appointments at removed branches stay Scheduled — the
-              doctor&rsquo;s kanban (E6) handles the resolution queue.
+              <strong>Temporary assignment:</strong> branches changed
+              take effect immediately. Future appointments at removed
+              branches stay Scheduled — the doctor&rsquo;s kanban (E6)
+              handles the resolution queue.
             </span>
           </div>
         )}

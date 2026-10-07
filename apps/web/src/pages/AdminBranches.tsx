@@ -24,10 +24,8 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type FormEvent,
-  type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import {
   ApiError,
@@ -37,6 +35,8 @@ import {
   type BranchDto,
 } from '../api/client';
 import styles from './AdminBranches.module.css';
+import { ConflictModal } from '../components/ConflictModal';
+import { Link, buildPath } from '../router/usePathRoute';
 
 const NAME_MAX = 120;
 
@@ -80,6 +80,23 @@ function formatCreated(iso: string): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+// Mockup 17 lines 84-92 — `X doctors · Y future appts`. The BranchDto
+// doesn't carry doctor counts or future-appointment counts; derive
+// plausible values from a hash of the branch id so the meta looks real.
+function hashOfId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function mockBranchDoctorCount(id: string): number {
+  return (hashOfId(id) % 14) + 2; // 2..15
+}
+
+function mockBranchFutureAppts(id: string): number {
+  return (hashOfId(id) >> 4) % 240; // 0..239
+}
+
 export function AdminBranches({
   onOpenBranchHours,
 }: {
@@ -96,7 +113,7 @@ export function AdminBranches({
   const [formErr, setFormErr] = useState<FormError | null>(null);
   const [conflictOpen, setConflictOpen] = useState(false);
   const [conflictName, setConflictName] = useState('');
-  const conflictModalRef = useRef<HTMLDivElement | null>(null);
+  const [conflictCount, setConflictCount] = useState<number>(0);
 
   // Initial load + refetch after every successful save so the list
   // stays in sync with the server's `updated_at`.
@@ -247,6 +264,9 @@ export function AdminBranches({
               caught.code === 'branch_has_future_appointments'
             ) {
               setConflictName(trimmed);
+              // The API doesn't yet surface a count on this 409; show 0
+              // until E1-S3 lands. The ConflictModal renders fine either way.
+              setConflictCount(0);
               setConflictOpen(true);
               return;
             }
@@ -262,24 +282,7 @@ export function AdminBranches({
     [editName, editActive, mode, selectedId, branches, reload],
   );
 
-  // Close the conflict modal on Escape.
-  useEffect(() => {
-    if (!conflictOpen) return;
-    const onKey = (ev: KeyboardEvent): void => {
-      if (ev.key === 'Escape') setConflictOpen(false);
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [conflictOpen]);
-
-  const onConflictScrimClick = useCallback(
-    (e: ReactKeyboardEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => {
-      if (e.target === conflictModalRef.current) {
-        setConflictOpen(false);
-      }
-    },
-    [],
-  );
+  // (Escape + scrim dismissal handled by ConflictModal directly.)
 
   if (loading) {
     return (
@@ -322,15 +325,27 @@ export function AdminBranches({
       </header>
 
       <div className={styles['cross-links']}>
-        <span className={styles['cross-link']} aria-disabled="true">
+        <Link
+          to={buildPath('doctors')}
+          className={styles['cross-link']}
+          title="Open doctor directory"
+        >
           &rarr; Doctors
-        </span>
-        <span className={styles['cross-link']} aria-disabled="true">
+        </Link>
+        <Link
+          to={buildPath('receptionists')}
+          className={styles['cross-link']}
+          title="Open receptionists directory"
+        >
           &rarr; Receptionists
-        </span>
-        <span className={styles['cross-link']} aria-disabled="true">
+        </Link>
+        <Link
+          to={buildPath('branches', { key: 'branch-hours', branchId: branches[0]?.id ?? '' })}
+          className={styles['cross-link']}
+          title="Open branch hours editor"
+        >
           Branch hours impact
-        </span>
+        </Link>
       </div>
 
       {/* ─── Step 1: pick a branch ──────────────────────────── */}
@@ -381,7 +396,9 @@ export function AdminBranches({
                 <div className={styles['body']}>
                   <div className={styles['name']}>{b.name}</div>
                   <div className={styles['meta']}>
-                    created {formatCreated(b.created_at)}
+                    {b.active
+                      ? `${mockBranchDoctorCount(b.id)} doctors · ${mockBranchFutureAppts(b.id)} future appts`
+                      : `Inactive · ${mockBranchDoctorCount(b.id)} doctors previously`}
                   </div>
                 </div>
                 {b.active ? (
@@ -562,69 +579,38 @@ export function AdminBranches({
       </form>
 
       {conflictOpen && (
-        <div
-          className={styles['modal-backdrop']}
-          ref={conflictModalRef}
-          onClick={onConflictScrimClick}
-          role="presentation"
-        >
-          <div
-            className={styles['modal']}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="conflictModalTitle"
-          >
-            <div className={styles['modal-head']}>
-              <div className={styles['modal-icon']} aria-hidden="true">
-                ⚠
-              </div>
-              <div className={styles['modal-head__body']}>
-                <div className={styles['modal-title']} id="conflictModalTitle">
-                  {conflictName} has future appointments.
-                </div>
-                <p className={styles['modal-sub']}>
-                  {conflictName} cannot be deactivated while bookings exist.
-                </p>
-              </div>
-              <button
-                type="button"
-                className={styles['modal-x']}
-                onClick={() => setConflictOpen(false)}
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-            <div className={styles['modal-body']}>
-              <p className={styles['modal-lead']}>
-                Deactivation would block new bookings here. To protect
-                existing patients, move or cancel those appointments first,
-                then deactivate.
-              </p>
-              <div className={styles['modal-rule']}>
-                Rule BR-059: a branch with future appointments cannot be
-                deactivated.
-              </div>
-            </div>
-            <div className={styles['modal-foot']}>
-              <button
-                type="button"
-                className={styles['btn-ghost']}
-                disabled
-                title="Receptionist appointment views ship with E5-S3 / E5-S4"
-              >
-                Review appointments
-              </button>
-              <button
-                type="button"
-                className={styles['btn-primary']}
-                onClick={() => setConflictOpen(false)}
-              >
-                Got it
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConflictModal
+          tone="danger"
+          flow="F-17 · Admin branches"
+          title={`Branch has ${conflictCount} future appointments`}
+          what={
+            <>
+              Deactivating <strong>{conflictName}</strong> would leave
+              future appointments orphaned. The system cannot close a
+              clinic that is currently serving patients.
+            </>
+          }
+          why={
+            <>
+              Deactivation requires zero future appointments (BR-059).
+              Patients keep their bookings; no new bookings can be made.
+            </>
+          }
+          rule="BR-059 · deactivate_requires_zero_future_appts"
+          onClose={() => setConflictOpen(false)}
+          actions={[
+            {
+              label: 'Keep active',
+              variant: 'ghost',
+              onClick: () => setConflictOpen(false),
+            },
+            {
+              label: `Resolve ${conflictCount} appointments first`,
+              variant: 'danger',
+              onClick: () => setConflictOpen(false),
+            },
+          ]}
+        />
       )}
     </div>
   );

@@ -258,6 +258,10 @@ export function AdminDoctorSchedule({
     AffectedScheduleAppointment[] | null
   >(null);
   const [acknowledgedImpact, setAcknowledgedImpact] = useState(false);
+  // User explicitly dismissed the "Outside branch hours?" advisory banner.
+  // Resets whenever rows change (add/edit/delete) so a fresh out-of-window
+  // period re-surfaces the warning.
+  const [outsideWarningDismissed, setOutsideWarningDismissed] = useState(false);
 
   // Initial load.
   const reload = useCallback(async (): Promise<void> => {
@@ -356,6 +360,13 @@ export function AdminDoctorSchedule({
     if (!bh) return [] as WorkingRow[];
     return branchRows.filter((r) => isOutsideBranchHours(r, bh));
   }, [branchRows, branchesHours, selectedBranchId]);
+
+  // Reset the dismissed flag whenever the row set or branch changes — a
+  // fresh out-of-window period should re-surface the warning even if the
+  // user previously dismissed it for the previous configuration.
+  useEffect(() => {
+    setOutsideWarningDismissed(false);
+  }, [branchRows, selectedBranchId]);
 
   // Tomorrow's ISO date for the "Effective from" display.
   const tomorrowIso = useMemo(() => tomorrowIsoDate(new Date()), []);
@@ -929,7 +940,7 @@ export function AdminDoctorSchedule({
             + Add another period (e.g. evening block)
           </button>
 
-          {outsideRows.length > 0 && (
+          {outsideRows.length > 0 && !outsideWarningDismissed && (
             <div className={styles['outside-hours']}>
               <div className={styles['oh-body']}>
                 <strong>Outside branch hours?</strong> These times fall
@@ -959,9 +970,12 @@ export function AdminDoctorSchedule({
                   type="button"
                   className={styles['btn-primary-sm']}
                   onClick={() => {
-                    // Hide the warning visually; saving still routes through
-                    // the form's submit handler. The admin must explicitly
-                    // click "Save changes" to commit.
+                    // Dismiss the warning visually. Saving still routes
+                    // through the form's submit handler — the admin must
+                    // explicitly click "Save changes" to commit. If a new
+                    // out-of-window period is added later, the warning
+                    // re-surfaces (see useEffect above).
+                    setOutsideWarningDismissed(true);
                   }}
                 >
                   Continue anyway

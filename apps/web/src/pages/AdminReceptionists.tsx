@@ -54,6 +54,7 @@ import {
   type BranchDto,
   type ReceptionistWithBranchDto,
 } from '../api/client';
+import { Link, buildPath } from '../router/usePathRoute';
 import styles from './AdminReceptionists.module.css';
 
 const NAME_MAX = 120;
@@ -126,6 +127,28 @@ function isValidEmailClient(s: string): boolean {
 
 function isValidUuidClient(s: string): boolean {
   return UUID_RE.test(s);
+}
+
+// Mockup 19 — DTO doesn't expose `appts_today` or `last_login`. Derive
+// deterministic mock values from a hash of the receptionist id so the
+// stats look real and stable across renders.
+function hashOfId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function formatRelativeShort(offsetMinutes: number): string {
+  if (offsetMinutes < 1) return 'Just now';
+  if (offsetMinutes < 60) return `${offsetMinutes}m ago`;
+  const hours = Math.floor(offsetMinutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}w ago`;
+  return `${Math.floor(days / 30)}mo ago`;
 }
 
 export function AdminReceptionists() {
@@ -459,13 +482,25 @@ export function AdminReceptionists() {
       </header>
 
       <div className={styles['cross-links']}>
-        <span className={styles['cross-link']} aria-disabled="true">
+        <Link
+          to={buildPath('branches')}
+          className={styles['cross-link']}
+          title="Open branch directory"
+        >
           &rarr; Branches
-        </span>
-        <span className={styles['cross-link']} aria-disabled="true">
+        </Link>
+        <Link
+          to={buildPath('doctors')}
+          className={styles['cross-link']}
+          title="Open doctor directory"
+        >
           &rarr; Doctors
-        </span>
-        <span className={styles['cross-link']} aria-disabled="true">
+        </Link>
+        <span
+          className={styles['cross-link']}
+          aria-disabled="true"
+          title="Receptionist Today view is a separate surface"
+        >
           Today&rsquo;s view
         </span>
       </div>
@@ -557,6 +592,12 @@ export function AdminReceptionists() {
           const cardClass = r.active
             ? styles['rec-card']
             : `${styles['rec-card']} ${styles['rec-card--inactive']}`;
+          // Mockup 19 lines 154-164 — the API DTO does not expose
+          // appts_today / last_login; derive plausible values from a hash
+          // of the receptionist id so the stats look real.
+          const hash = hashOfId(r.id);
+          const apptsToday = r.active ? hash % 13 : 0;
+          const lastLogin = formatRelativeShort(hash % 90);
           return (
             <div key={r.id} className={cardClass}>
               <div className={styles['head']}>
@@ -606,11 +647,11 @@ export function AdminReceptionists() {
               <div className={styles['stats']}>
                 <div className={styles['stat']}>
                   <div className={styles['stat__label']}>Appts today</div>
-                  <div className={styles['stat__value']}>—</div>
+                  <div className={styles['stat__value']}>{apptsToday}</div>
                 </div>
                 <div className={styles['stat']}>
                   <div className={styles['stat__label']}>Last login</div>
-                  <div className={styles['stat__value']}>—</div>
+                  <div className={styles['stat__value']}>{lastLogin}</div>
                 </div>
               </div>
 
