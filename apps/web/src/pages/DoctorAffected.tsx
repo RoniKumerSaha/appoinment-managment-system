@@ -47,7 +47,7 @@ import {
   maskPhone,
   patientLabelFromPhone,
 } from './doctor-utils';
-import './DoctorAffected.module.css';
+import './DoctorAffected.css';
 
 interface DoctorAffectedProps {
   onGoSchedule?: () => void;
