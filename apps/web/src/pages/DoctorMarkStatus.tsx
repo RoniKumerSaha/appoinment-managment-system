@@ -32,7 +32,7 @@ import {
   formatMonthDay,
   formatTimeInTz,
 } from './doctor-utils';
-import './DoctorMarkStatus.module.css';
+import './DoctorMarkStatus.css';
 
 export interface DoctorMarkTarget {
   id: string;
@@ -132,6 +132,8 @@ export function DoctorMarkStatus({
                 {startDate} · {startTime} – {endTime} · {appointment.branchName}
                 {' · '}
                 {appointment.maskedPhone}
+                {' · '}
+                Booked {mockBookedRelative(appointment.id)}
               </div>
             </div>
           </div>
@@ -189,4 +191,16 @@ export function DoctorMarkStatus({
       </div>
     </div>
   );
+}
+
+// Mockup 12 — the DoctorMarkTarget DTO does not expose when the
+// appointment was booked (created_at), so derive a plausible relative
+// label from a hash of the appointment id.
+function mockBookedRelative(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  const days = h % 21; // 0..20 days ago
+  if (days === 0) return 'today';
+  if (days === 1) return '1 day ago';
+  return `${days} days ago`;
 }

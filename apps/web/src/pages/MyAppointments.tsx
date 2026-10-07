@@ -44,7 +44,8 @@ import {
 import { PatientFrame } from './PatientFrame';
 import { CancelModal } from './CancelModal';
 import { ReschedulePage } from './ReschedulePage';
-import './MyAppointments.module.css';
+import { useAuth } from '../auth/store';
+import './MyAppointments.css';
 
 interface MyAppointmentsProps {
   initialAction?: 'cancel' | 'reschedule';
@@ -99,6 +100,23 @@ export function MyAppointments({
   initialAppointmentId,
   onGoFindDoctor,
 }: MyAppointmentsProps) {
+  const { stored } = useAuth();
+  const profile = stored?.profile ?? null;
+  // Verified recap card — mockup 05. Falls back to a phone-tail label
+  // when the profile hasn't carried a name yet (new patients).
+  const verifiedLabel = profile
+    ? profile.full_name ?? `Patient …${profile.email.slice(-5)}`
+    : null;
+  const verifiedInitials = profile
+    ? profile.full_name
+      ? profile.full_name
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((p) => p[0]?.toUpperCase() ?? '')
+          .join('')
+      : profile.email.slice(0, 2).toUpperCase()
+    : '··';
+
   const [appts, setAppts] = useState<PatientAppointmentDto[] | null>(null);
   const [doctors, setDoctors] = useState<Map<string, PublicDoctorDto>>(
     () => new Map(),
@@ -266,6 +284,27 @@ export function MyAppointments({
           </p>
         </div>
 
+        {profile && verifiedLabel && (
+          <div className="my-appts__verified">
+            <div className="my-appts__verified-avatar" aria-hidden="true">
+              {verifiedInitials}
+            </div>
+            <div className="my-appts__verified-body">
+              <div className="my-appts__verified-line">
+                <span className="my-appts__verified-badge">
+                  <span aria-hidden="true">✓</span> You're verified
+                </span>
+                <span className="my-appts__verified-name">
+                  {verifiedLabel}
+                </span>
+              </div>
+              <div className="my-appts__verified-phone">
+                Signed in as <code>{profile.email}</code>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="my-appts__quicklinks">
           <button
             type="button"
@@ -273,6 +312,14 @@ export function MyAppointments({
             onClick={onGoFindDoctor}
           >
             Book another appointment
+          </button>
+          <button
+            type="button"
+            className="my-appts__recurring-chip"
+            disabled
+            title="Recurring series — coming with E4-S2"
+          >
+            Recurring series
           </button>
         </div>
 
@@ -377,6 +424,11 @@ export function MyAppointments({
           onDone={onRescheduleDone}
         />
       )}
+
+      <div className="my-appts__help-strip">
+        <strong>Trouble verifying?</strong> We can text you a fresh code — call the
+        clinic at <a href="tel:+966114558900">+966 11 455 8900</a>.
+      </div>
     </PatientFrame>
   );
 }

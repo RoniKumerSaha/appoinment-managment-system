@@ -12,13 +12,30 @@ import {
   formatDateInTz,
   formatTimeInTz,
 } from './doctor-utils';
-import './DoctorResolutionSaved.module.css';
+import './DoctorResolutionSaved.css';
+
+export interface SavedAuditEvent {
+  /** ISO timestamp. */
+  at: string;
+  /** Short label shown in the audit block. */
+  label: string;
+  /** Tone for the small pill: 'create' | 'cancel' | 'resolve' | 'config'. */
+  tone: 'create' | 'cancel' | 'resolve' | 'config';
+}
 
 interface DoctorResolutionSavedProps {
   info: ResolvedInfo;
   remaining: number;
   onClose: () => void;
   onResolveAnother: () => void;
+  /**
+   * Mockup 37 — the mock shows a 4-row audit block below the
+   * resolution summary. Optional: when provided, render it; when
+   * omitted, fall back to the principle-note copy.
+   */
+  recent?: SavedAuditEvent[];
+  /** Optional: open the full audit drawer (E7-S2). */
+  onOpenAuditDrawer?: () => void;
 }
 
 export function DoctorResolutionSaved({
@@ -26,6 +43,8 @@ export function DoctorResolutionSaved({
   remaining,
   onClose,
   onResolveAnother,
+  recent,
+  onOpenAuditDrawer,
 }: DoctorResolutionSavedProps) {
   // The summary card uses the destination branch's tz; we don't
   // store it on the resolve info, so we render in UTC for the
@@ -100,13 +119,52 @@ export function DoctorResolutionSaved({
           )}
         </div>
 
-        <div className="doc-saved__note">
-          <span aria-hidden="true">🛡</span>
-          <div>
-            Every action here is logged. The full audit trail is in the
-            audit drawer (E7-S2).
+        {recent && recent.length > 0 ? (
+          <div className="doc-saved__audit">
+            <div className="doc-saved__audit-head">
+              <span aria-hidden="true">🛡</span>
+              <span>Audit log</span>
+            </div>
+            <ul className="doc-saved__audit-list">
+              {recent.map((ev, i) => (
+                <li key={i} className="doc-saved__audit-row">
+                  <span
+                    className={`doc-saved__pill doc-saved__pill--${ev.tone}`}
+                  >
+                    {ev.tone === 'create'
+                      ? 'CREATE'
+                      : ev.tone === 'cancel'
+                        ? 'CANCEL'
+                        : ev.tone === 'resolve'
+                          ? 'RESOLVE'
+                          : 'CONFIG'}
+                  </span>
+                  <span className="doc-saved__audit-time">
+                    {formatTimeInTz(ev.at, 'UTC')}
+                  </span>
+                  <span className="doc-saved__audit-label">{ev.label}</span>
+                </li>
+              ))}
+            </ul>
+            {onOpenAuditDrawer && (
+              <button
+                type="button"
+                className="doc-saved__audit-link"
+                onClick={onOpenAuditDrawer}
+              >
+                View all {recent.length} event{recent.length === 1 ? '' : 's'} in audit drawer →
+              </button>
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="doc-saved__note">
+            <span aria-hidden="true">🛡</span>
+            <div>
+              Every action here is logged. The full audit trail is in the
+              audit drawer (E7-S2).
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
