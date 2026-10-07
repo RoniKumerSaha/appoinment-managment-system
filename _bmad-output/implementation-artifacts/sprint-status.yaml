@@ -43,7 +43,32 @@
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 
 generated: 09-08-2026 12:00
-last_updated: 2026-10-06
+last_updated: 2026-10-07
+# 2026-10-07 E7 backlog spec-stub batch landed (planning-only pass;
+# Bash sandbox blocked bmad-build so no code/test changes). Seven
+# spec stubs drafted at ready-for-dev status, each following the
+# same shape as recent stories (E7-S1, E7-S2, E6-S2-ui): YAML
+# frontmatter + Intent + Approach + Files-to-change table + I/O &
+# Edge-Case Matrix + Verification + Deferrals + Spec Change Log.
+# Reconciled the duplicate 7-1-design-system-token-wiring key
+# (continuation of done 7-1-design-system-tokens; see reconciliation
+# comment on line 1909). Index doc:
+#   _bmad-output/implementation-artifacts/epic-7-backlog-specs-index.md
+# Specs:
+#   spec-7-7-no-tentative-client-side-slot-holds.md        (7-7)
+#   spec-7-4-conflict-modal-global-component.md             (7-4)
+#   spec-7-1-design-system-token-wiring.md                 (7-1-wiring)
+#   spec-7-5-accessibility-baseline-wcag-2-1-aa.md          (7-5)
+#   spec-7-8-performance-availability-slas.md              (7-8)
+#   spec-7-9-product-metrics-instrumentation.md            (7-9)
+#   spec-7-10-design-open-questions-parking-lot.md         (7-10)
+# Six backlog keys below flipped to ready-for-dev. No code written,
+# no tests run, no story moved to done; the build loop (uv run
+# _bmad/scripts/render_skill.py) is the only sanctioned path to
+# flip a story to done. Testcontainers runtime was unavailable in
+# this session; suite could not be re-run; audit comment relies on
+# the spec-stub files on disk.
+# 2026-10-06 E7-S1 design-system token discipline audit complete;
 # 2026-10-06 E7-S1 design-system token discipline audit complete;
 # spec-7-1-design-system-tokens.md recorded; closes straggler hex
 # in AdminDoctorSchedule.tsx JSDoc + 5 inline marginTop pixel
@@ -1906,7 +1931,14 @@ development_status:
   # web-side work outside the API scope of this implementation run.
   # Epic status reflects the partial completion.
   epic-7: in-progress
-  7-1-design-system-token-wiring: backlog
+  # 7-1-design-system-token-wiring is the CONTINUATION of the done
+  # 7-1-design-system-tokens (line 2018 below). E7-S1 closed the
+  # audit pass; this continuation pre-commit/CI-enforces the
+  # token-only-CSS invariant going forward. Spec lives at
+  # spec-7-1-design-system-token-wiring.md. Key flipped to
+  # ready-for-dev on 2026-10-07 with the spec-stub batch. Flips
+  # to done when the bmad-build pass lands.
+  7-1-design-system-token-wiring: ready-for-dev
   w10-staff-login-patient-otp: done
   7-2-appointment-audit: done
   # 2026-10-04 bmad-build step-25 implementation complete for E7-S2
@@ -1990,8 +2022,8 @@ development_status:
   #   - Lint: 0 new warnings.
   #   - Spec Change Log: SC2 (review-loop-1 documented scope) recorded.
   #   - Story E7-S3 → done.
-  7-4-conflict-modal-global-component: backlog
-  7-5-accessibility-baseline-wcag-2-1-aa: backlog
+  7-4-conflict-modal-global-component: ready-for-dev
+  7-5-accessibility-baseline-wcag-2-1-aa: ready-for-dev
   7-6-branch-timezone-support: done
   # 2026-10-04 E7-S6 documentation-only story complete. The branch
   #   timezone contract (UX §14, UX-FLOWS §6.4) is already enforced
@@ -2057,10 +2089,10 @@ development_status:
   #   - No tests in this pass (per user instruction).
   #   - Token-only CSS verified (0 hex literals in new files).
   #   - Spec: spec-7-2-ui-audit-drawers.md recorded.
-  7-7-no-tentative-client-side-slot-holds: backlog
-  7-8-performance-availability-slas: backlog
-  7-9-product-metrics-instrumentation: backlog
-  7-10-design-open-questions-parking-lot: backlog
+  7-7-no-tentative-client-side-slot-holds: ready-for-dev
+  7-8-performance-availability-slas: ready-for-dev
+  7-9-product-metrics-instrumentation: ready-for-dev
+  7-10-design-open-questions-parking-lot: ready-for-dev
   epic-7-retrospective: in-progress
 # Epic 7 retrospective — 2026-10-04.
 #   - 3/10 stories committed in this session: E7-S2 (799ce39), E7-S3
