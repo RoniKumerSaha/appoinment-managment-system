@@ -274,6 +274,7 @@ export function MyAppointments({
       onNavigate={(l) => {
         if (l === 'find-doctor') onGoFindDoctor();
       }}
+      userName={profile?.full_name ?? undefined}
     >
       <div className="my-appts__page">
         <div className="my-appts__header">

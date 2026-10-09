@@ -91,3 +91,36 @@ export function isValidName(s: string): boolean {
 export function isValidOtpCode(s: string): boolean {
   return /^\d{6}$/.test(s);
 }
+
+// ----------------------------------------------------------------------------
+// iconForType — derive an emoji glyph from an appointment-type name.
+//
+// Mockup 35 (and the booking step-2 type cards) shows a small emoji at the
+// top-left of each type card. The API doesn't carry an icon column today,
+// so we pattern-match on the name. New / unrecognized names fall back to a
+// generic clipboard so the UI never breaks.
+//
+// Reused by PatientBooking.tsx, ReschedulePage.tsx, and the receipt
+// surfaces — kept here so all three share the same rules.
+// ----------------------------------------------------------------------------
+const TYPE_ICON_RULES: Array<[RegExp, string]> = [
+  [/consult|general|checkup|follow.?up/i, '💚'],
+  [/vaccin|immuniz|booster|flu|covid/i, '💉'],
+  [/follow/i, '📋'],
+  [/lab|blood|test|result|panel/i, '🧪'],
+  [/x.?ray|imaging|scan|mammo/i, '🩻'],
+  [/screen|annual|wellness/i, '📈'],
+  [/return|revisit/i, '📋'],
+  [/new|initial|first/i, '✨'],
+  [/pediatric|child|kid|baby/i, '🧸'],
+  [/derma|skin/i, '🧴'],
+  [/dental|teeth|oral/i, '🦷'],
+  [/eye|vision|opt/i, '👁'],
+];
+
+export function iconForType(name: string): string {
+  for (const [re, icon] of TYPE_ICON_RULES) {
+    if (re.test(name)) return icon;
+  }
+  return '📋';
+}

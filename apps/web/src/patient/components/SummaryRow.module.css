@@ -1,0 +1,50 @@
+/* SummaryRow — single key/value row in a SummaryCard. */
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-top: 1px solid rgba(15, 138, 138, 0.1);
+}
+
+.summary-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.summary-row__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted, #6b7280);
+}
+
+.summary-row__value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  word-break: break-word;
+}
+
+.summary-row__hint {
+  grid-column: 2 / 3;
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+  margin-top: 2px;
+}
+
+.summary-row--highlight {
+  background: var(--brand-light-50, #eef7f7);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 4px -12px;
+  border-top: none;
+}
+
+.summary-row--highlight .summary-row__value {
+  color: var(--brand-primary, #0f8a8a);
+  font-size: 15px;
+}

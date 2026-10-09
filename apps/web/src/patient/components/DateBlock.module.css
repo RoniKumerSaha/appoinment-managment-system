@@ -1,0 +1,63 @@
+/* DateBlock — vertical month/day/dow tile.
+ *
+ * Two tones:
+ *   - brand (default): teal-on-white, used for upcoming / selected
+ *   - muted: gray-on-light, used for past / secondary
+ *
+ * Reads as a 64×72 px pill — sized to match mock 05 (line 23-28).
+ */
+
+.date-block {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  height: 72px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md, 12px);
+  background: var(--brand-light-50, #eef7f7);
+  color: var(--brand-primary, #0f8a8a);
+  border: 1px solid var(--brand-border, #d2eaea);
+  font-family: var(--font-sans, system-ui);
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.date-block__month {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--brand-primary, #0f8a8a);
+  opacity: 0.85;
+}
+
+.date-block__day {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 2px 0;
+  color: var(--brand-primary, #0f8a8a);
+}
+
+.date-block__dow {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-primary, #0f8a8a);
+  opacity: 0.85;
+}
+
+.date-block--muted {
+  background: #f5f6f7;
+  color: #6b7280;
+  border-color: #e5e7eb;
+}
+
+.date-block--muted .date-block__month,
+.date-block--muted .date-block__day,
+.date-block--muted .date-block__dow {
+  color: #6b7280;
+  opacity: 1;
+}

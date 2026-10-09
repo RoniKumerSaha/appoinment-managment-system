@@ -136,8 +136,20 @@ export async function seedWith(client: PoolClient): Promise<SeedResult> {
   // ===== Branches (2) =====
   // No UNIQUE on `(clinic_id, name)` — SELECT-then-INSERT.
   const branches = [
-    { name: BRANCH_EAST_NAME, tz: BRANCH_EAST_TZ, roleId: BRANCH_EAST_ID },
-    { name: BRANCH_WEST_NAME, tz: BRANCH_WEST_TZ, roleId: BRANCH_WEST_ID },
+    {
+      name: BRANCH_EAST_NAME,
+      tz: BRANCH_EAST_TZ,
+      roleId: BRANCH_EAST_ID,
+      // Mockup 34 / 35 — branch address shown 2-line on the patient card.
+      // Sourced from typical east-coast clinic fixture data.
+      address: '500 Madison Ave, Tower B\nFloor 3',
+    },
+    {
+      name: BRANCH_WEST_NAME,
+      tz: BRANCH_WEST_TZ,
+      roleId: BRANCH_WEST_ID,
+      address: '1100 Wilshire Blvd, Suite 22\nGround Floor',
+    },
   ] as const;
 
   const branchIds: Record<string, string> = {};
@@ -148,10 +160,20 @@ export async function seedWith(client: PoolClient): Promise<SeedResult> {
     );
     if (res.rows[0]) {
       branchIds[b.roleId] = res.rows[0].id;
+      // Patch `address` if missing (E7-UX; the column was added in 0015
+      // nullable, and this seed is the first time it gets a real value for
+      // the fixture branches). Defense-in-depth so a re-seed backfills
+      // pre-existing branches that were inserted before E7-UX shipped.
+      await client.query(
+        `UPDATE branch
+            SET address = COALESCE(address, $1)
+          WHERE id = $2 AND address IS NULL`,
+        [b.address, res.rows[0].id],
+      );
     } else {
       const ins = await client.query<{ id: string }>(
-        `INSERT INTO branch (clinic_id, name, tz) VALUES ($1, $2, $3) RETURNING id`,
-        [clinicId, b.name, b.tz],
+        `INSERT INTO branch (clinic_id, name, tz, address) VALUES ($1, $2, $3, $4) RETURNING id`,
+        [clinicId, b.name, b.tz, b.address],
       );
       branchIds[b.roleId] = ins.rows[0]!.id;
       inserted = true;
@@ -202,9 +224,23 @@ export async function seedWith(client: PoolClient): Promise<SeedResult> {
   // row's missing columns on first seed-after-migration so pre-existing
   // doctors get anchored to the singleton clinic + given a derived email.)
   const doctors = [
-    { name: DOCTOR_EAST_LEAD_NAME, roleId: DOCTOR_EAST_LEAD_ID },
-    { name: DOCTOR_EAST_SUPPORT_NAME, roleId: DOCTOR_EAST_SUPPORT_ID },
-    { name: DOCTOR_WEST_LEAD_NAME, roleId: DOCTOR_WEST_LEAD_ID },
+    {
+      name: DOCTOR_EAST_LEAD_NAME,
+      roleId: DOCTOR_EAST_LEAD_ID,
+      // E7-UX: specialty shown on the patient doctor card and the receipt.
+      // Hand-picked per the mockup 02/34/35 pattern.
+      specialty: 'Cardiology',
+    },
+    {
+      name: DOCTOR_EAST_SUPPORT_NAME,
+      roleId: DOCTOR_EAST_SUPPORT_ID,
+      specialty: 'Internal Medicine',
+    },
+    {
+      name: DOCTOR_WEST_LEAD_NAME,
+      roleId: DOCTOR_WEST_LEAD_ID,
+      specialty: 'Family Medicine',
+    },
   ] as const;
 
   const doctorIds: Record<string, string> = {};
@@ -226,22 +262,26 @@ export async function seedWith(client: PoolClient): Promise<SeedResult> {
       // Patch pre-existing rows that were inserted before 0016 ran. The
       // 0016 backfill covers NULL columns; this is a defense-in-depth so a
       // regression in the migration's UPDATE doesn't strand a doctor with
-      // NULL clinic_id / NULL email / NULL active.
+      // NULL clinic_id / NULL email / NULL active. We also patch the
+      // E7-UX `specialty` column on re-seed (added in 0019, nullable,
+      // backfill-on-reseed semantics).
       await client.query(
         `UPDATE doctor
             SET clinic_id = $1,
                 email = COALESCE(email, $2),
-                active = COALESCE(active, true)
-          WHERE id = $3
-            AND (clinic_id IS NULL OR email IS NULL OR active IS NULL)`,
-        [clinicId, derivedEmail, res.rows[0].id],
+                active = COALESCE(active, true),
+                specialty = COALESCE(specialty, $3)
+          WHERE id = $4
+            AND (clinic_id IS NULL OR email IS NULL OR active IS NULL
+                 OR specialty IS NULL)`,
+        [clinicId, derivedEmail, d.specialty, res.rows[0].id],
       );
     } else {
       const ins = await client.query<{ id: string }>(
-        `INSERT INTO doctor (clinic_id, full_name, email, active)
-         VALUES ($1, $2, $3, true)
+        `INSERT INTO doctor (clinic_id, full_name, email, active, specialty)
+         VALUES ($1, $2, $3, true, $4)
          RETURNING id`,
-        [clinicId, d.name, derivedEmail],
+        [clinicId, d.name, derivedEmail, d.specialty],
       );
       doctorIds[d.roleId] = ins.rows[0]!.id;
       inserted = true;
@@ -273,16 +313,20 @@ export async function seedWith(client: PoolClient): Promise<SeedResult> {
       name: APPOINTMENT_TYPE_GENERAL_NAME,
       duration: APPOINTMENT_TYPE_GENERAL_DURATION,
       roleId: APPOINTMENT_TYPE_GENERAL_ID,
+      // E7-UX: description shown on the patient type card (mock 35).
+      description: 'Standard 30-minute visit for routine concerns.',
     },
     {
       name: APPOINTMENT_TYPE_FOLLOWUP_NAME,
       duration: APPOINTMENT_TYPE_FOLLOWUP_DURATION,
       roleId: APPOINTMENT_TYPE_FOLLOWUP_ID,
+      description: 'Brief check for returning patients.',
     },
     {
       name: APPOINTMENT_TYPE_CONSULT_NAME,
       duration: APPOINTMENT_TYPE_CONSULT_DURATION,
       roleId: APPOINTMENT_TYPE_CONSULT_ID,
+      description: 'Specialist opinion; longer session.',
     },
   ] as const;
 
@@ -294,12 +338,21 @@ export async function seedWith(client: PoolClient): Promise<SeedResult> {
     );
     if (res.rows[0]) {
       appointmentTypeIds[at.roleId] = res.rows[0].id;
+      // Patch `description` if missing (E7-UX; the column was added in
+      // 0019 nullable, and this seed is the first time it gets a value
+      // for the fixture types).
+      await client.query(
+        `UPDATE appointment_type
+            SET description = COALESCE(description, $1)
+          WHERE id = $2 AND description IS NULL`,
+        [at.description, res.rows[0].id],
+      );
     } else {
       const ins = await client.query<{ id: string }>(
-        `INSERT INTO appointment_type (clinic_id, name, duration_minutes, is_active, created_by)
-         VALUES ($1, $2, $3, true, $4)
+        `INSERT INTO appointment_type (clinic_id, name, duration_minutes, is_active, created_by, description)
+         VALUES ($1, $2, $3, true, $4, $5)
          RETURNING id`,
-        [clinicId, at.name, at.duration, `staff:${ADMIN_MAIN_ID}`],
+        [clinicId, at.name, at.duration, `staff:${ADMIN_MAIN_ID}`, at.description],
       );
       appointmentTypeIds[at.roleId] = ins.rows[0]!.id;
       inserted = true;

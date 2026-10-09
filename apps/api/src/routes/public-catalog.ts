@@ -32,14 +32,31 @@ const UUID_RE =
 const SELECT_CLINIC_ID_SQL = `SELECT id FROM clinic LIMIT 1`;
 
 const SELECT_PUBLIC_DOCTORS_SQL = `
-  SELECT d.id::text AS id, d.full_name
+  SELECT d.id::text AS id, d.full_name, d.specialty,
+         (SELECT count(*)::int FROM doctor_branch db
+            WHERE db.doctor_id = d.id) AS branch_count
     FROM doctor d
    WHERE d.clinic_id = $1 AND d.active = true
    ORDER BY d.full_name ASC, d.id ASC;
 `;
 
 const SELECT_PUBLIC_BRANCHES_SQL = `
-  SELECT b.id::text AS id, b.name, b.tz
+  SELECT b.id::text AS id, b.name, b.tz, b.address,
+         COALESCE(
+           (SELECT json_agg(
+                     json_build_object(
+                       'day_of_week', h.day_of_week,
+                       'open_time', CASE WHEN h.is_closed THEN NULL
+                                         ELSE to_char(h.open_time, 'HH24:MI') END,
+                       'close_time', CASE WHEN h.is_closed THEN NULL
+                                          ELSE to_char(h.close_time, 'HH24:MI') END,
+                       'is_closed', h.is_closed
+                     )
+                     ORDER BY h.day_of_week)
+              FROM branch_weekly_hours h
+             WHERE h.branch_id = b.id),
+           '[]'::json
+         ) AS hours
     FROM branch b
    WHERE b.clinic_id = $1 AND b.active = true
    ORDER BY b.name ASC, b.id ASC;
@@ -56,7 +73,22 @@ const SELECT_PUBLIC_BRANCHES_SQL = `
 // Removed that filter; the doctor→branch list is governed by
 // `db.doctor_id = d.id` alone.)
 const SELECT_DOCTOR_BRANCHES_PUBLIC_SQL = `
-  SELECT b.id::text AS id, b.name, b.tz
+  SELECT b.id::text AS id, b.name, b.tz, b.address,
+         COALESCE(
+           (SELECT json_agg(
+                     json_build_object(
+                       'day_of_week', h.day_of_week,
+                       'open_time', CASE WHEN h.is_closed THEN NULL
+                                         ELSE to_char(h.open_time, 'HH24:MI') END,
+                       'close_time', CASE WHEN h.is_closed THEN NULL
+                                          ELSE to_char(h.close_time, 'HH24:MI') END,
+                       'is_closed', h.is_closed
+                     )
+                     ORDER BY h.day_of_week)
+              FROM branch_weekly_hours h
+             WHERE h.branch_id = b.id),
+           '[]'::json
+         ) AS hours
     FROM doctor d
     JOIN doctor_branch db ON db.doctor_id = d.id
     JOIN branch b ON b.id = db.branch_id AND b.active = true
@@ -65,7 +97,7 @@ const SELECT_DOCTOR_BRANCHES_PUBLIC_SQL = `
 `;
 
 const SELECT_PUBLIC_APPOINTMENT_TYPES_SQL = `
-  SELECT id::text AS id, name, duration_minutes
+  SELECT id::text AS id, name, duration_minutes, description
     FROM appointment_type
    WHERE clinic_id = $1 AND is_active = true
    ORDER BY name ASC, id ASC;
@@ -93,9 +125,16 @@ publicCatalogRouter.get(
       const { rows } = await pool.query<{
         id: string;
         full_name: string;
+        specialty: string | null;
+        branch_count: number;
       }>(SELECT_PUBLIC_DOCTORS_SQL, [clinicRows[0]!.id]);
       res.status(200).json({
-        doctors: rows.map((r) => ({ id: r.id, full_name: r.full_name })),
+        doctors: rows.map((r) => ({
+          id: r.id,
+          full_name: r.full_name,
+          specialty: r.specialty,
+          branch_count: r.branch_count,
+        })),
       });
     } catch (err) {
       getLogger().error(
@@ -127,7 +166,18 @@ publicCatalogRouter.get(
         return;
       }
       const clinicId = clinicRows[0]!.id;
-      let rows: Array<{ id: string; name: string; tz: string }>;
+      let rows: Array<{
+        id: string;
+        name: string;
+        tz: string;
+        address: string | null;
+        hours: Array<{
+          day_of_week: number;
+          open_time: string | null;
+          close_time: string | null;
+          is_closed: boolean;
+        }>;
+      }>;
       if (doctorId.length > 0) {
         if (!UUID_RE.test(doctorId)) {
           res.status(400).json({ error: 'invalid_doctor_id' });
@@ -137,6 +187,13 @@ publicCatalogRouter.get(
           id: string;
           name: string;
           tz: string;
+          address: string | null;
+          hours: Array<{
+            day_of_week: number;
+            open_time: string | null;
+            close_time: string | null;
+            is_closed: boolean;
+          }>;
         }>(SELECT_DOCTOR_BRANCHES_PUBLIC_SQL, [doctorId, clinicId]);
         rows = result.rows;
       } else {
@@ -144,6 +201,13 @@ publicCatalogRouter.get(
           id: string;
           name: string;
           tz: string;
+          address: string | null;
+          hours: Array<{
+            day_of_week: number;
+            open_time: string | null;
+            close_time: string | null;
+            is_closed: boolean;
+          }>;
         }>(SELECT_PUBLIC_BRANCHES_SQL, [clinicId]);
         rows = result.rows;
       }
@@ -179,12 +243,14 @@ publicCatalogRouter.get(
         id: string;
         name: string;
         duration_minutes: number;
+        description: string | null;
       }>(SELECT_PUBLIC_APPOINTMENT_TYPES_SQL, [clinicRows[0]!.id]);
       res.status(200).json({
         appointment_types: rows.map((r) => ({
           id: r.id,
           name: r.name,
           duration_minutes: r.duration_minutes,
+          description: r.description,
         })),
       });
     } catch (err) {

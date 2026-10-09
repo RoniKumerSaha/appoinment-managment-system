@@ -48,11 +48,13 @@ import {
   type PublicDoctorDto,
 } from '../api/client';
 import { PatientFrame } from './PatientFrame';
+import { useAuth } from '../auth/store';
 import {
   formatDayOfWeek,
   formatLongDate,
   formatMonthDay,
   formatTimeUtc,
+  iconForType,
   initialsOf,
   isValidName,
   isValidPhone,
@@ -63,31 +65,6 @@ import styles from './PatientBooking.module.css';
 
 // FR-018 30-day window + 1-day buffer. Pickers iterate `tomorrow`..`today+30`.
 const WINDOW_DAYS = 30;
-
-// Mockup 35: emoji glyph per appointment type. The DTO doesn't carry an
-// icon today, so we derive one from the type name (case-insensitive). New
-// types fall back to a generic clipboard.
-const TYPE_ICON_RULES: Array<[RegExp, string]> = [
-  [/consult|general|checkup|follow.?up/i, '💚'],
-  [/vaccin|immuniz|booster|flu|covid/i, '💉'],
-  [/follow/i, '📋'],
-  [/lab|blood|test|result|panel/i, '🧪'],
-  [/x.?ray|imaging|scan|mammo/i, '🩻'],
-  [/screen|annual|wellness/i, '📈'],
-  [/return|revisit/i, '📋'],
-  [/new|initial|first/i, '✨'],
-  [/pediatric|child|kid|baby/i, '🧸'],
-  [/derma|skin/i, '🧴'],
-  [/dental|teeth|oral/i, '🦷'],
-  [/eye|vision|opt/i, '👁'],
-];
-
-function iconForType(name: string): string {
-  for (const [re, icon] of TYPE_ICON_RULES) {
-    if (re.test(name)) return icon;
-  }
-  return '📋';
-}
 
 interface FormError {
   status: number;
@@ -190,7 +167,18 @@ const EMPTY_DRAFT: BookingDraft = {
   returningPatient: null,
 };
 
-export function PatientBooking() {
+export function PatientBooking({
+  onNavigate,
+}: {
+  /** Forwarded to <PatientFrame> so the "My appointments" /
+   *  "Find a doctor" links in the booking-flow nav actually
+   *  switch views. Without this the link buttons render but
+   *  onClick is a no-op. */
+  onNavigate?: (link: 'find-doctor' | 'my-appointments') => void;
+}) {
+  // User identity (mock 20 lines 79-82 — avatar chip in the right of the nav).
+  const { stored: storedAuth } = useAuth();
+  const userName = storedAuth?.profile.full_name ?? undefined;
   // Catalogue.
   const [doctors, setDoctors] = useState<PublicDoctorDto[]>([]);
   const [branches, setBranches] = useState<PublicBranchDto[]>([]);
@@ -448,7 +436,7 @@ export function PatientBooking() {
 
   if (catLoading) {
     return (
-      <PatientFrame step={step}>
+      <PatientFrame step={step} onNavigate={onNavigate} userName={userName}>
         <div className={styles['loading']}>Loading…</div>
       </PatientFrame>
     );
@@ -456,7 +444,7 @@ export function PatientBooking() {
 
   if (catErr && !draft.doctor) {
     return (
-      <PatientFrame step={step}>
+      <PatientFrame step={step} onNavigate={onNavigate} userName={userName}>
         <div className={styles['page']}>
           <div className={styles['error-banner']} role="alert">
             <strong>{catErr.code}:</strong> {catErr.message}
@@ -469,20 +457,21 @@ export function PatientBooking() {
   // Step 5 = confirmation receipt.
   if (created && draft.doctor && draft.branch && draft.type && draft.slot) {
     return (
-      <PatientFrame step={5}>
+      <PatientFrame step={5} onNavigate={onNavigate} userName={userName}>
         <ConfirmationReceipt
           draft={draft}
           patientName={patientName}
           patientPhone={patientPhone}
           onStartOver={onStartOver}
           onAddToCalendar={onAddToCalendar}
+          onDone={() => onNavigate?.('my-appointments')}
         />
       </PatientFrame>
     );
   }
 
   return (
-    <PatientFrame step={step}>
+    <PatientFrame step={step} onNavigate={onNavigate} userName={userName}>
       {step === 1 && (
         <DoctorStep
           doctors={doctors}
@@ -581,11 +570,11 @@ function DoctorStep({
           <div className={styles['doctor-cards']}>
             {doctors.map((d) => {
               const selected = draft.doctor?.id === d.id;
-              // PublicDoctorDto doesn't expose branches today, but fall
-              // through to a runtime check so a future DTO expansion lights
-              // up the meta line without a code change.
-              const branchesField = (d as unknown as { branches?: unknown }).branches;
-              const branchCount = Array.isArray(branchesField) ? branchesField.length : 0;
+              // PublicDoctorDto now carries `specialty` (0019) and
+              // `branch_count` (correlated subselect). Fall back to a
+              // friendly default for legacy rows.
+              const specialty = d.specialty ?? 'General practice';
+              const branchCount = d.branch_count ?? 0;
               const branchLabel =
                 branchCount > 0
                   ? `${branchCount} branch${branchCount === 1 ? '' : 'es'}`
@@ -611,7 +600,7 @@ function DoctorStep({
                     </div>
                     <div className={styles['doctor-card__meta']}>
                       <span className={styles['doctor-card__specialty']}>
-                        General practice
+                        {specialty}
                       </span>
                       <span className={styles['doctor-card__sep']}>·</span>
                       <span>{branchLabel}</span>
@@ -730,8 +719,20 @@ function BranchTypeStep({
                   >
                     {String.fromCharCode(65 + idx)}
                   </span>
-                  <div className={styles['branch-card__name']}>{b.name}</div>
-                  <div className={styles['branch-card__tz']}>{b.tz}</div>
+                  <div className={styles['branch-card__body']}>
+                    <div className={styles['branch-card__name']}>{b.name}</div>
+                    <div className={styles['branch-card__tz']}>{b.tz}</div>
+                    {b.address && (
+                      <div className={styles['branch-card__address']}>
+                        {b.address}
+                      </div>
+                    )}
+                    {b.hours && b.hours.length > 0 && (
+                      <div className={styles['branch-card__hours']}>
+                        {formatBranchHours(b.hours)}
+                      </div>
+                    )}
+                  </div>
                 </button>
               );
             })}
@@ -779,6 +780,11 @@ function BranchTypeStep({
                     {t.duration_minutes} min
                   </span>
                   <div className={styles['type-card__name']}>{t.name}</div>
+                  {t.description && (
+                    <div className={styles['type-card__description']}>
+                      {t.description}
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -1448,12 +1454,14 @@ function ConfirmationReceipt({
   patientPhone,
   onStartOver,
   onAddToCalendar,
+  onDone,
 }: {
   draft: BookingDraft;
   patientName: string;
   patientPhone: string;
   onStartOver: () => void;
   onAddToCalendar: () => void;
+  onDone: () => void;
 }) {
   if (!draft.doctor || !draft.branch || !draft.type || !draft.slot) {
     return null;
@@ -1524,7 +1532,8 @@ function ConfirmationReceipt({
             <button
               type="button"
               className={styles['btn-ghost']}
-              title="My appointments — coming in E4-S1"
+              title="View your appointments"
+              onClick={onDone}
             >
               Done
             </button>
@@ -1572,6 +1581,52 @@ function mockDoctorNextAvailability(d: { id: string }): string {
   if (days === 0) return 'Today';
   if (days === 1) return 'Tomorrow';
   return `in ${days} days`;
+}
+
+/**
+ * formatBranchHours — collapse a 0..6 daily-hours array into the
+ * "Sun–Thu 09:00–17:00" one-line summary used on the branch card.
+ *
+ * Falls back to a per-day list when the weekly schedule isn't a single
+ * range (e.g. weekend hours differ from weekday hours).
+ */
+interface PublicBranchHourLite {
+  day_of_week: number;
+  open_time: string | null;
+  close_time: string | null;
+  is_closed: boolean;
+}
+const DOW_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function formatBranchHours(
+  hours: PublicBranchHourLite[],
+): string {
+  if (hours.length === 0) return '';
+  const open = hours.filter((h) => !h.is_closed && h.open_time && h.close_time);
+  if (open.length === 0) return 'Closed';
+  // Detect a single contiguous range with the same time (Sun–Thu 09:00–17:00)
+  const first = open[0]!;
+  const sameRange = open.every(
+    (h) => h.open_time === first.open_time && h.close_time === first.close_time,
+  );
+  if (sameRange) {
+    // Find the contiguous run starting at index 0.
+    let last = 0;
+    for (let i = 1; i < open.length; i++) {
+      if (open[i]!.day_of_week === open[last]!.day_of_week + 1) last = i;
+      else break;
+    }
+    const startDay = DOW_SHORT[open[0]!.day_of_week] ?? '';
+    const endDay = DOW_SHORT[open[last]!.day_of_week] ?? '';
+    return `${startDay}–${endDay} ${first.open_time}–${first.close_time}`;
+  }
+  // Mixed schedule: list each open day on its own line.
+  return open
+    .map(
+      (h) =>
+        `${DOW_SHORT[h.day_of_week]} ${h.open_time}–${h.close_time}`,
+    )
+    .join(' · ');
 }
 
 function SummaryRowHighlight({ k, v }: { k: string; v: string | null }) {

@@ -1,0 +1,49 @@
+/* StepFooter — three-slot row. Stacks vertically on narrow screens. */
+
+.step-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 0 4px;
+  border-top: 1px solid var(--brand-border, #d2eaea);
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.step-footer__left {
+  flex: 0 0 auto;
+}
+
+.step-footer__middle {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted, #6b7280);
+  font-weight: 500;
+  min-width: 0;
+}
+
+.step-footer__right {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .step-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .step-footer__middle {
+    order: -1;
+    text-align: left;
+  }
+  .step-footer__right {
+    margin-left: 0;
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}

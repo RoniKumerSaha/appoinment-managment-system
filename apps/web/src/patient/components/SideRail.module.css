@@ -1,0 +1,115 @@
+/* SideRail — small vertical card with title + body.
+ *
+ * Three variants:
+ *   - default  : white card with subtle border (the "Your selection" rails)
+ *   - tinted   : teal-on-light-teal callout (the "Good to know" block)
+ *   - muted    : gray tint, used for "Quick facts" data rails
+ *
+ * Sized to slot next to a 12-col grid as a 4-col component, full-width
+ * on narrow screens.
+ */
+
+.side-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: var(--radius-md, 12px);
+  background: #ffffff;
+  border: 1px solid var(--brand-border, #d2eaea);
+  color: var(--text-primary, #0f172a);
+  font-family: var(--font-sans, system-ui);
+}
+
+.side-rail--tinted {
+  background: var(--brand-light-50, #eef7f7);
+  border-color: var(--brand-border, #d2eaea);
+}
+
+.side-rail--muted {
+  background: #f5f6f7;
+  border-color: #e5e7eb;
+}
+
+.side-rail__eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-primary, #0f8a8a);
+  margin: 0;
+}
+
+.side-rail__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.side-rail__icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.side-rail__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--text-primary, #0f172a);
+}
+
+.side-rail__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.side-rail__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
+  border-top: 1px solid rgba(15, 138, 138, 0.12);
+}
+
+.side-rail__row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.side-rail__row-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted, #6b7280);
+}
+
+.side-rail__row-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  word-break: break-word;
+}
+
+.side-rail__bullet {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary, #0f172a);
+  line-height: 1.4;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.side-rail__bullet + .side-rail__bullet {
+  margin-top: 4px;
+}
+
+.side-rail__bullet-glyph {
+  flex-shrink: 0;
+  color: var(--brand-primary, #0f8a8a);
+  font-weight: 700;
+}

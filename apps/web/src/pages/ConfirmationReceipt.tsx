@@ -14,11 +14,14 @@
  */
 import type { ReactNode } from 'react';
 import { PatientFrame } from './PatientFrame';
+import { useAuth } from '../auth/store';
 import styles from './ConfirmationReceipt.module.css';
 
 export function ConfirmationReceipt(): ReactNode {
+  const { stored } = useAuth();
+  const userName = stored?.profile.full_name ?? undefined;
   return (
-    <PatientFrame>
+    <PatientFrame userName={userName}>
       <div className={styles['page']}>
         <div className={styles['success-head']}>
           <div className={styles['success-icon']}>✓</div>

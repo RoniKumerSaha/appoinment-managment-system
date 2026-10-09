@@ -93,6 +93,44 @@
   background: var(--brand-primary-hover);
 }
 
+/* ── User avatar chip (E7-UX mock 20 lines 79-82) ─────────────── */
+
+.patient-frame__user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-default);
+  color: var(--text-default);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  max-width: 240px;
+  min-width: 0;
+}
+
+.patient-frame__user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+
+.patient-frame__user-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── Progress bar ──────────────────────────────────────────────── */
 
 .patient-frame__progress {

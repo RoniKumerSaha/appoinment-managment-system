@@ -1,0 +1,41 @@
+/* SummaryCard — small panel of SummaryRow(s). */
+
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md, 12px);
+  background: #ffffff;
+  border: 1px solid var(--brand-border, #d2eaea);
+  font-family: var(--font-sans, system-ui);
+}
+
+.summary-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(15, 138, 138, 0.12);
+  margin-bottom: 6px;
+}
+
+.summary-card__icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.summary-card__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted, #6b7280);
+}
+
+.summary-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}

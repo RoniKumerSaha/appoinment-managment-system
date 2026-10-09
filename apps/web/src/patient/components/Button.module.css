@@ -1,0 +1,97 @@
+/* Button — three variants (primary / secondary / ghost / danger) × three
+ * sizes (sm / md / lg). The full-width modifier slots a button into a
+ * stacked column on narrow screens.
+ *
+ * Sizes match the mockup rhythm: small inline links (sm), standard CTAs
+ * (md), and full-weight STAGE buttons (lg).
+ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-md, 12px);
+  font-family: var(--font-sans, system-ui);
+  font-weight: 600;
+  letter-spacing: 0;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease,
+    box-shadow 120ms ease, transform 80ms ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--brand-primary, #0f8a8a);
+  outline-offset: 2px;
+}
+
+.btn--primary {
+  background: var(--brand-primary, #0f8a8a);
+  color: #ffffff;
+  box-shadow: var(--shadow-elev-2, 0 4px 12px rgba(15, 138, 138, 0.18));
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: #0c7474;
+}
+
+.btn--secondary {
+  background: #ffffff;
+  color: var(--brand-primary, #0f8a8a);
+  border-color: var(--brand-primary, #0f8a8a);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background: var(--brand-light-50, #eef7f7);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--brand-primary, #0f8a8a);
+  border-color: transparent;
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: rgba(15, 138, 138, 0.08);
+}
+
+.btn--danger {
+  background: var(--danger-500, #d64545);
+  color: #ffffff;
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: #b73838;
+}
+
+.btn--sm {
+  font-size: 12px;
+  padding: 6px 10px;
+  line-height: 1.2;
+}
+
+.btn--md {
+  font-size: 14px;
+  padding: 10px 16px;
+  line-height: 1.2;
+}
+
+.btn--lg {
+  font-size: 16px;
+  padding: 14px 22px;
+  line-height: 1.2;
+}
+
+.btn--full {
+  width: 100%;
+}

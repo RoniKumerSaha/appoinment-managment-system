@@ -18,6 +18,7 @@
 import type { ReactNode } from 'react';
 import { useAuth, logout } from '../auth/store';
 import { BrandMark } from '../brand/BrandMark';
+import { initialsOf } from './booking-utils';
 import './styles/patient-frame.css';
 
 interface PatientFrameProps {
@@ -26,6 +27,9 @@ interface PatientFrameProps {
   activeLink?: 'find-doctor' | 'my-appointments';
   onNavigate?: (link: 'find-doctor' | 'my-appointments') => void;
   onSignOut?: () => void;
+  /** Optional patient full name. When set, an avatar chip is rendered
+   *  in the right column of the nav (mock 20 lines 79-82). */
+  userName?: string;
 }
 
 const STEP_LABELS: Array<{ num: number; label: string }> = [
@@ -42,6 +46,7 @@ export function PatientFrame({
   activeLink = 'find-doctor',
   onNavigate,
   onSignOut,
+  userName,
 }: PatientFrameProps) {
   const { stored } = useAuth();
   const onClickSignOut = (): void => {
@@ -109,6 +114,17 @@ export function PatientFrame({
         >
           {stored ? 'Sign out' : 'Book appointment'}
         </button>
+        {userName && (
+          <div
+            className="patient-frame__user-chip"
+            title={`Signed in as ${userName}`}
+          >
+            <span className="patient-frame__user-avatar" aria-hidden="true">
+              {initialsOf(userName)}
+            </span>
+            <span className="patient-frame__user-name">{userName}</span>
+          </div>
+        )}
       </nav>
 
       {step !== undefined && (

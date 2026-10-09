@@ -621,18 +621,45 @@ export function deleteDoctorBlock(
 export interface PublicDoctorDto {
   id: string;
   full_name: string;
+  /** E7-UX: shown on the doctor card and the doctor-pill. Nullable
+   *  (admin hasn't filled it in yet) — UI falls back to "General
+   *  practice". */
+  specialty: string | null;
+  /** E7-UX: derived count of `doctor_branch` rows for this doctor.
+   *  Used to render "N branches" on the doctor card without a
+   *  separate round-trip. */
+  branch_count: number;
+}
+
+export interface PublicBranchHourDto {
+  /** 0 = Sun, 1 = Mon, …, 6 = Sat (Postgres EXTRACT(dow …)). */
+  day_of_week: number;
+  /** "HH:MM" in branch-local wall-clock time, or null on a closed day. */
+  open_time: string | null;
+  /** "HH:MM" in branch-local wall-clock time, or null on a closed day. */
+  close_time: string | null;
+  is_closed: boolean;
 }
 
 export interface PublicBranchDto {
   id: string;
   name: string;
   tz: string;
+  /** E7-UX: 2-line street address. Nullable (pre-0015 branch). */
+  address: string | null;
+  /** E7-UX: 7-row weekly hours derived from `branch_weekly_hours`.
+   *  Empty array if no rows are present (pre-0015 branch). */
+  hours: PublicBranchHourDto[];
 }
 
 export interface PublicAppointmentTypeDto {
   id: string;
   name: string;
   duration_minutes: number;
+  /** E7-UX: one-line description shown on the type card. Nullable
+   *  (admin hasn't filled it in yet) — UI falls back to a generic
+   *  string or hides the line. */
+  description: string | null;
 }
 
 export function listPublicDoctors(): Promise<{ doctors: PublicDoctorDto[] }> {
