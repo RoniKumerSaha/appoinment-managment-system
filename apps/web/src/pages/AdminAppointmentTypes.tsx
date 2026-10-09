@@ -140,6 +140,7 @@ export function AdminAppointmentTypes() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editName, setEditName] = useState<string>('');
   const [editDuration, setEditDuration] = useState<number>(30);
+  const [editDescription, setEditDescription] = useState<string>('');
   const [editActive, setEditActive] = useState<boolean>(true);
   const [busy, setBusy] = useState(false);
   const [formErr, setFormErr] = useState<FormError | null>(null);
@@ -191,6 +192,7 @@ export function AdminAppointmentTypes() {
     setMode('edit');
     setEditName(t.name);
     setEditDuration(t.duration_minutes);
+    setEditDescription(t.description ?? '');
     setEditActive(t.is_active);
     setFormErr(null);
     setWarning(null);
@@ -202,6 +204,7 @@ export function AdminAppointmentTypes() {
     setMode('create');
     setEditName('');
     setEditDuration(30);
+    setEditDescription('');
     setEditActive(true);
     setFormErr(null);
     setWarning(null);
@@ -213,6 +216,7 @@ export function AdminAppointmentTypes() {
     setSelectedId(null);
     setEditName('');
     setEditDuration(30);
+    setEditDescription('');
     setEditActive(true);
     setFormErr(null);
     setWarning(null);
@@ -265,24 +269,39 @@ export function AdminAppointmentTypes() {
           const created = await createAppointmentType({
             name: editName.trim(),
             duration_minutes: editDuration,
+            description:
+              editDescription.trim().length === 0
+                ? null
+                : editDescription.trim(),
           });
           await reload();
           setSelectedId(created.id);
           setMode('edit');
           setEditName(created.name);
           setEditDuration(created.duration_minutes);
+          setEditDescription(created.description ?? '');
           setEditActive(created.is_active);
           setSavedAt(new Date().toISOString());
         } else if (mode === 'edit' && selectedId) {
           // Build the patch body. duration_minutes is NOT mutable per
           // spec-2-3 §Never (the route rejects `duration_minutes` as
-          // unknown_field).
-          const patch: { name?: string; is_active?: boolean } = {};
+          // unknown_field). description, name, and is_active ARE
+          // mutable.
+          const patch: {
+            name?: string;
+            is_active?: boolean;
+            description?: string | null;
+          } = {};
           if (selected && selected.name !== editName.trim()) {
             patch.name = editName.trim();
           }
           if (selected && selected.is_active !== editActive) {
             patch.is_active = editActive;
+          }
+          const trimmedDesc = editDescription.trim();
+          const currentDesc = selected?.description ?? '';
+          if (selected && currentDesc !== trimmedDesc) {
+            patch.description = trimmedDesc.length === 0 ? null : trimmedDesc;
           }
           if (Object.keys(patch).length === 0) {
             setFormErr({
@@ -318,6 +337,7 @@ export function AdminAppointmentTypes() {
       mode,
       editName,
       editDuration,
+      editDescription,
       editActive,
       selectedId,
       selected,
@@ -512,6 +532,23 @@ export function AdminAppointmentTypes() {
               <div className={styles['form-hint']}>
                 Min 5 min (FR-007). Locked after creation.
               </div>
+            </div>
+          </div>
+
+          <div className={styles['form-group']}>
+            <label className={styles['form-label']}>Description</label>
+            <textarea
+              className={styles['form-control']}
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              disabled={busy}
+              maxLength={500}
+              rows={3}
+              placeholder="Shown to patients in the booking flow (mocks 02 / 35)."
+            />
+            <div className={styles['form-hint']}>
+              {editDescription.trim().length}/500 characters. Empty clears
+              the description.
             </div>
           </div>
 

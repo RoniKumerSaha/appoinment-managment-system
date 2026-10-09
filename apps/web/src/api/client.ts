@@ -781,6 +781,7 @@ export interface AppointmentTypeDto {
   created_by: string;
   created_at: string;
   updated_at: string;
+  description: string | null;
 }
 
 // PATCH always emits warning + future_appointment_count on the response.
@@ -810,6 +811,7 @@ export function getAppointmentType(id: string): Promise<AppointmentTypeDto> {
 export function createAppointmentType(input: {
   name: string;
   duration_minutes: number;
+  description?: string | null;
 }): Promise<AppointmentTypeDto> {
   return request<AppointmentTypeDto>('/admin/appointment-types', {
     method: 'POST',
@@ -819,7 +821,7 @@ export function createAppointmentType(input: {
 
 export function patchAppointmentType(
   id: string,
-  body: { name?: string; is_active?: boolean },
+  body: { name?: string; is_active?: boolean; description?: string | null },
 ): Promise<AppointmentTypePatchResponse> {
   return request<AppointmentTypePatchResponse>(
     `/admin/appointment-types/${id}`,

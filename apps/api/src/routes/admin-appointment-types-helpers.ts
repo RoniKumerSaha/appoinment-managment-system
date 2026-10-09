@@ -87,15 +87,29 @@ export function validateCreateTypeBody(body: unknown): CreateTypeResult {
   };
 }
 
-export type PatchTypeError = 'invalid_name' | 'invalid_is_active';
+export type PatchTypeError =
+  | 'invalid_name'
+  | 'invalid_is_active'
+  | 'invalid_description';
 
 export type PatchTypeResult =
   | {
       ok: true;
       name: string | null;
       isActive: boolean | null;
+      description: string | null;
     }
   | { ok: false; error: PatchTypeError };
+
+/** True iff `s` is a valid appointment-type description. The DB column
+ *  is nullable; we accept `null` to clear it, or a string up to 500
+ *  characters (trimmed). */
+export function isValidDescription(s: unknown): s is string {
+  if (typeof s !== 'string') return false;
+  return s.trim().length <= 500;
+}
+
+const DESCRIPTION_MAX = 500;
 
 /** Tagged validator for the PATCH /admin/appointment-types/:id body.
  *  Each field is optional; at least one must be present (the route
@@ -113,6 +127,7 @@ export function validatePatchTypeBody(body: unknown): PatchTypeResult {
   const r = body as Record<string, unknown>;
   let name: string | null = null;
   let isActive: boolean | null = null;
+  let description: string | null = null;
   if ('name' in r) {
     if (!isValidName(r['name'])) {
       return { ok: false, error: 'invalid_name' };
@@ -125,7 +140,22 @@ export function validatePatchTypeBody(body: unknown): PatchTypeResult {
     }
     isActive = r['is_active'] as boolean;
   }
-  return { ok: true, name, isActive };
+  if ('description' in r) {
+    const v = r['description'];
+    // null clears the description; string must pass the length cap.
+    if (v === null) {
+      description = null;
+    } else if (typeof v === 'string') {
+      const trimmed = v.trim();
+      if (trimmed.length > DESCRIPTION_MAX) {
+        return { ok: false, error: 'invalid_description' };
+      }
+      description = trimmed.length === 0 ? null : trimmed;
+    } else {
+      return { ok: false, error: 'invalid_description' };
+    }
+  }
+  return { ok: true, name, isActive, description };
 }
 
 /** Parse `?active=true|false` query filter. Returns `null` when unset,

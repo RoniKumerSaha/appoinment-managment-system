@@ -66,13 +66,14 @@ interface TypeRow {
   created_by: string;
   created_at: Date;
   updated_at: Date;
+  description: string | null;
 }
 
 const SELECT_CLINIC_ID_SQL = `SELECT id FROM clinic LIMIT 1`;
 
 const SELECT_TYPE_FOR_UPDATE_SQL = `
   SELECT id, clinic_id, name, duration_minutes, is_active,
-         created_by, created_at, updated_at
+         created_by, created_at, updated_at, description
     FROM appointment_type
    WHERE id = $1 AND clinic_id = $2
    FOR UPDATE;
@@ -80,7 +81,7 @@ const SELECT_TYPE_FOR_UPDATE_SQL = `
 
 const SELECT_TYPE_LIST_SQL = `
   SELECT id, clinic_id, name, duration_minutes, is_active,
-         created_by, created_at, updated_at
+         created_by, created_at, updated_at, description
     FROM appointment_type
    WHERE clinic_id = $1
      AND ($2::boolean IS NULL OR is_active = $2)
@@ -89,16 +90,16 @@ const SELECT_TYPE_LIST_SQL = `
 
 const SELECT_TYPE_BY_ID_SQL = `
   SELECT id, clinic_id, name, duration_minutes, is_active,
-         created_by, created_at, updated_at
+         created_by, created_at, updated_at, description
     FROM appointment_type
    WHERE id = $1 AND clinic_id = $2;
 `;
 
 const INSERT_TYPE_SQL = `
-  INSERT INTO appointment_type (clinic_id, name, duration_minutes, is_active, created_by)
-  VALUES ($1, $2, $3, true, $4)
+  INSERT INTO appointment_type (clinic_id, name, duration_minutes, is_active, created_by, description)
+  VALUES ($1, $2, $3, true, $4, $5)
   RETURNING id, clinic_id, name, duration_minutes, is_active,
-            created_by, created_at, updated_at;
+            created_by, created_at, updated_at, description;
 `;
 
 /** Build a dynamic UPDATE that touches only the fields the caller
@@ -125,6 +126,7 @@ function typeJson(r: TypeRow) {
     created_by: r.created_by,
     created_at: r.created_at,
     updated_at: r.updated_at,
+    description: r.description,
   };
 }
 
@@ -137,7 +139,7 @@ adminAppointmentTypesRouter.post(
   '/appointment-types',
   async (req: Request, res: Response): Promise<void> => {
     const body = (req.body ?? {}) as Record<string, unknown>;
-    const allowedKeys = new Set(['name', 'duration_minutes']);
+    const allowedKeys = new Set(['name', 'duration_minutes', 'description']);
     const unknownKeys = Object.keys(body).filter((k) => !allowedKeys.has(k));
     if (unknownKeys.length > 0) {
       res.status(400).json({ error: 'unknown_field', fields: unknownKeys });
@@ -149,6 +151,12 @@ adminAppointmentTypesRouter.post(
       return;
     }
     const { name, durationMinutes } = v;
+    const description =
+      typeof body['description'] === 'string' ? body['description'].trim() : null;
+    if (description !== null && description.length > 500) {
+      res.status(400).json({ error: 'invalid_description' });
+      return;
+    }
     try {
       const pool = await getPool();
       const { rows: clinicRows } = await pool.query<{ id: string }>(
@@ -165,6 +173,7 @@ adminAppointmentTypesRouter.post(
         name,
         durationMinutes,
         createdBy,
+        description,
       ]);
       const r = rows[0]!;
       res.status(201).json(typeJson(r));
@@ -268,10 +277,11 @@ adminAppointmentTypesRouter.patch(
     }
     const id = req.params['id'] as string;
     const body = (req.body ?? {}) as Record<string, unknown>;
-    // Allowed: name, is_active. duration_minutes is INTENTIONALLY
-    // excluded — types are immutable once created per spec §Never.
-    // Sending `{duration_minutes: 30}` falls through to `unknown_field`.
-    const allowedKeys = new Set(['name', 'is_active']);
+    // Allowed: name, is_active, description. duration_minutes is
+    // INTENTIONALLY excluded — types are immutable once created per
+    // spec §Never. Sending `{duration_minutes: 30}` falls through to
+    // `unknown_field`.
+    const allowedKeys = new Set(['name', 'is_active', 'description']);
     const unknownKeys = Object.keys(body).filter((k) => !allowedKeys.has(k));
     if (unknownKeys.length > 0) {
       res.status(400).json({ error: 'unknown_field', fields: unknownKeys });
@@ -279,7 +289,8 @@ adminAppointmentTypesRouter.patch(
     }
     const hasName = 'name' in body;
     const hasActive = 'is_active' in body;
-    if (!hasName && !hasActive) {
+    const hasDescription = 'description' in body;
+    if (!hasName && !hasActive && !hasDescription) {
       res.status(400).json({ error: 'no_fields_to_update' });
       return;
     }
@@ -288,7 +299,7 @@ adminAppointmentTypesRouter.patch(
       res.status(400).json({ error: v.error });
       return;
     }
-    const { name, isActive } = v;
+    const { name, isActive, description } = v;
 
     const pool = await getPool();
     let client;
@@ -356,13 +367,21 @@ adminAppointmentTypesRouter.patch(
         setClauses.push(`is_active = $${placeholder}`);
         updateParams.push(isActive);
       }
+      if (description !== null || 'description' in body) {
+        // body['description'] may be null (clear) or a string; either
+        // way we always write the column. The presence check uses
+        // 'description' in body so an explicit null PATCH clears it.
+        placeholder += 1;
+        setClauses.push(`description = $${placeholder}`);
+        updateParams.push(description);
+      }
       const idPlaceholder = placeholder + 1;
       const clinicPlaceholder = placeholder + 2;
       const updateSql =
         UPDATE_TYPE_BASE_SQL +
         '\n       ' +
         setClauses.join(',\n       ') +
-        `\n   WHERE id = $${idPlaceholder} AND clinic_id = $${clinicPlaceholder}\n   RETURNING id, clinic_id, name, duration_minutes, is_active,\n             created_by, created_at, updated_at;`;
+        `\n   WHERE id = $${idPlaceholder} AND clinic_id = $${clinicPlaceholder}\n   RETURNING id, clinic_id, name, duration_minutes, is_active,\n             created_by, created_at, updated_at, description;`;
       const { rows: updated } = await client.query<TypeRow>(updateSql, [
         ...updateParams,
         id,
