@@ -32,6 +32,7 @@ import {
   getDoctorAffected,
   listPublicBranches,
   type DoctorAffectedAppointment,
+  type DoctorAffectedResponse,
   type PublicBranchDto,
 } from '../api/client';
 import { useAuth } from '../auth/store';
@@ -96,7 +97,13 @@ function describeCancelError(err: unknown): string {
       return 'You do not have access to this appointment.';
     }
     if (err.status === 404) {
-      return 'That appointment no longer exists.';
+      // The affected queue has a TTL — the row may have been
+      // cancelled by another action (patient self-cancel on
+      // another device, parallel test) between the time the
+      // queue was fetched and the time the doctor clicked
+      // Confirm. The modal will close and refresh the queue
+      // when this happens.
+      return 'This appointment is no longer in the queue. Refreshing…';
     }
     if (err.status === 400) {
       if (err.code === 'reason_required') {
@@ -346,9 +353,81 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
     await refresh();
   }, [refresh]);
 
-  const onOpenCancel = useCallback((id: string): void => {
-    setCancelId(id);
-  }, []);
+  // Look up a row by id (the cancel / mark-status modals need the
+  // full appointment payload). Declared above onOpenCancel so the
+  // re-validation callback can read it.
+  const rowById = useCallback(
+    (id: string): DoctorAffectedAppointment | null => {
+      if (rows === null) return null;
+      return rows.find((r) => r.appointment_id === id) ?? null;
+    },
+    [rows],
+  );
+
+  // Cancel-modal open path: re-validate the row's state before
+  // showing the modal. The affected queue is fetched on mount
+  // only (no polling), so the row the user is looking at may
+  // have been changed by a parallel action (patient self-cancel
+  // on another device, admin action, concurrent test). If we
+  // don't re-validate, the user fills out a reason and the
+  // API returns 404 not_found because the row is no longer
+  // Scheduled (or no longer exists), and the modal shows
+  // "That appointment no longer exists." without context.
+  // Re-validating here lets us surface a friendly toast and
+  // refresh the queue instead of letting the user chase a
+  // phantom 404.
+  const onOpenCancel = useCallback(
+    async (id: string): Promise<void> => {
+      const cached = rowById(id);
+      if (cached === null) {
+        // No such row in the cached list. Refresh once so the
+        // user sees a fresh queue, then bail.
+        setToast('This appointment is no longer in the queue. Refreshing…');
+        await refresh();
+        return;
+      }
+      if (cached.status !== 'Scheduled') {
+        // Row is in the cache but in a non-cancellable state.
+        // Refresh and inform.
+        setToast(
+          `This appointment is ${cached.status.toLowerCase()}, not Scheduled. Refreshing…`,
+        );
+        await refresh();
+        return;
+      }
+      // Re-fetch the affected queue and double-check. This
+      // catches the race where the row was cancelled between
+      // the cache read and now.
+      let latest: DoctorAffectedResponse | null = null;
+      try {
+        latest = await getDoctorAffected();
+      } catch {
+        // Network failure — fall through to opening the modal
+        // (the API call itself will surface a more specific
+        // error if the row is gone).
+      }
+      if (latest !== null) {
+        const fresh: DoctorAffectedAppointment | undefined =
+          latest.appointments.find(
+            (a: DoctorAffectedAppointment) => a.appointment_id === id,
+          );
+        if (fresh === undefined) {
+          setToast('This appointment is no longer in the queue. Refreshing…');
+          await refresh();
+          return;
+        }
+        if (fresh.status !== 'Scheduled') {
+          setToast(
+            `This appointment is ${fresh.status.toLowerCase()}, not Scheduled. Refreshing…`,
+          );
+          await refresh();
+          return;
+        }
+      }
+      setCancelId(id);
+    },
+    [rowById, refresh],
+  );
 
   const onCloseCancel = useCallback((): void => {
     setCancelId(null);
@@ -362,6 +441,24 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
     },
     [refresh],
   );
+
+  // Stale-row handler (E7-UX): invoked by DoctorCancel when the
+  // API returns 404 because the row is no longer in the queue.
+  // Close the modal and refresh so the doctor sees the
+  // up-to-date list instead of a phantom modal anchored to a
+  // row that doesn't exist anymore.
+  const onCancelStale = useCallback((): void => {
+    setCancelId(null);
+    setToast('This appointment is no longer in the queue. Refreshing…');
+    void refresh();
+  }, [refresh]);
+
+  // Same stale-row handler for the mark-status modal (E5-S1).
+  const onMarkStale = useCallback((): void => {
+    setMarkId(null);
+    setToast('This appointment is no longer in the queue. Refreshing…');
+    void refresh();
+  }, [refresh]);
 
   const onOpenMark = useCallback((id: string): void => {
     setMarkId(id);
@@ -391,16 +488,6 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
     const b = branches.get(row.branch_id);
     return b?.tz ?? 'UTC';
   };
-
-  // Look up a row by id (the cancel / mark-status modals need the
-  // full appointment payload).
-  const rowById = useCallback(
-    (id: string): DoctorAffectedAppointment | null => {
-      if (rows === null) return null;
-      return rows.find((r) => r.appointment_id === id) ?? null;
-    },
-    [rows],
-  );
 
   // Was the row's start_datetime in the past (mark-status precond)?
   // Past rows are markable; future rows surface
@@ -847,6 +934,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
             }}
             onCancel={onCloseCancel}
             onCancelled={onCancelled}
+            onStale={onCancelStale}
             describeError={describeCancelError}
           />
         );
@@ -868,6 +956,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
             }}
             onCancel={onCloseMark}
             onMarked={onMarked}
+            onStale={onMarkStale}
             describeError={describeMarkError}
           />
         );

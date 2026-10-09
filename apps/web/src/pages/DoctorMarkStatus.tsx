@@ -48,6 +48,13 @@ interface DoctorMarkStatusProps {
   appointment: DoctorMarkTarget;
   onCancel: () => void;
   onMarked: (status: MarkStatus) => Promise<void> | void;
+  /**
+   * Optional: invoked when the API returns 404 indicating the
+   * row is no longer in the queue. The parent uses this to
+   * close the modal and refresh the affected queue so the
+   * doctor sees the up-to-date list.
+   */
+  onStale?: () => void;
   describeError: (err: unknown) => string;
 }
 
@@ -55,6 +62,7 @@ export function DoctorMarkStatus({
   appointment,
   onCancel,
   onMarked,
+  onStale,
   describeError,
 }: DoctorMarkStatusProps) {
   const [submitting, setSubmitting] = useState<MarkStatus | null>(null);
@@ -77,11 +85,22 @@ export function DoctorMarkStatus({
         await markAppointmentStatus(appointment.id, { status });
         await onMarked(status);
       } catch (e: unknown) {
+        // Stale-row race (see DoctorCancel for the long-form
+        // explanation). Hand the user back to the refreshed
+        // queue instead of leaving them on a phantom modal.
+        if (
+          e instanceof ApiError &&
+          e.status === 404 &&
+          typeof onStale === 'function'
+        ) {
+          onStale();
+          return;
+        }
         setErr(describeError(e));
         setSubmitting(null);
       }
     },
-    [appointment.id, onMarked, describeError],
+    [appointment.id, onMarked, onStale, describeError],
   );
 
   const tz = appointment.branchTz;

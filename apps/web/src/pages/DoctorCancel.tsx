@@ -43,6 +43,15 @@ interface DoctorCancelProps {
   appointment: DoctorCancelTarget;
   onCancel: () => void;
   onCancelled: (reason: string) => Promise<void> | void;
+  /**
+   * Optional: invoked when the API returns a 404 indicating the
+   * row is no longer in the queue (stale data race — patient
+   * self-cancelled on another device, parallel admin action,
+   * etc.). The parent uses this to close the modal and refresh
+   * the affected queue so the doctor sees the up-to-date list
+   * instead of staring at a modal anchored to a phantom row.
+   */
+  onStale?: () => void;
   describeError: (err: unknown) => string;
 }
 
@@ -87,6 +96,7 @@ export function DoctorCancel({
   appointment,
   onCancel,
   onCancelled,
+  onStale,
   describeError,
 }: DoctorCancelProps) {
   const [selectedKey, setSelectedKey] = useState<string>(
@@ -129,10 +139,24 @@ export function DoctorCancel({
       await doctorCancel(appointment.id, { reason });
       await onCancelled(reason);
     } catch (e: unknown) {
+      // Stale-row race: the API reports 404 (the row is no
+      // longer in the queue — patient self-cancelled on
+      // another device, parallel admin action, or the doctor's
+      // open affected-queue tab was opened before the most
+      // recent refresh). Hand the user back to the refreshed
+      // queue instead of leaving them on a phantom modal.
+      if (
+        e instanceof ApiError &&
+        e.status === 404 &&
+        typeof onStale === 'function'
+      ) {
+        onStale();
+        return;
+      }
       setErr(describeError(e));
       setSubmitting(false);
     }
-  }, [selected, note, appointment.id, onCancelled, describeError]);
+  }, [selected, note, appointment.id, onCancelled, onStale, describeError]);
 
   const tz = appointment.branchTz;
   const startDate = formatDateInTz(appointment.start_datetime, tz);
