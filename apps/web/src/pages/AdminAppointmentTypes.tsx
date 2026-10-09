@@ -101,6 +101,8 @@ function describeApiError(err: unknown): FormError {
     } else if (err.code === 'invalid_duration_minutes') {
       message =
         'Duration must be an integer between 5 and 480 minutes (FR-007).';
+    } else if (err.code === 'invalid_description') {
+      message = 'Description must be 500 characters or fewer.';
     } else if (err.code === 'invalid_appointment_type_id') {
       message = 'Invalid appointment type id.';
     } else if (err.code === 'appointment_type_not_found') {
@@ -283,14 +285,13 @@ export function AdminAppointmentTypes() {
           setEditActive(created.is_active);
           setSavedAt(new Date().toISOString());
         } else if (mode === 'edit' && selectedId) {
-          // Build the patch body. duration_minutes is NOT mutable per
-          // spec-2-3 §Never (the route rejects `duration_minutes` as
-          // unknown_field). description, name, and is_active ARE
-          // mutable.
+          // Build the patch body. All four fields (name, is_active,
+          // description, duration_minutes) are mutable.
           const patch: {
             name?: string;
             is_active?: boolean;
             description?: string | null;
+            duration_minutes?: number;
           } = {};
           if (selected && selected.name !== editName.trim()) {
             patch.name = editName.trim();
@@ -302,6 +303,15 @@ export function AdminAppointmentTypes() {
           const currentDesc = selected?.description ?? '';
           if (selected && currentDesc !== trimmedDesc) {
             patch.description = trimmedDesc.length === 0 ? null : trimmedDesc;
+          }
+          if (
+            selected &&
+            selected.duration_minutes !== editDuration &&
+            Number.isInteger(editDuration) &&
+            editDuration >= 5 &&
+            editDuration <= 480
+          ) {
+            patch.duration_minutes = editDuration;
           }
           if (Object.keys(patch).length === 0) {
             setFormErr({
@@ -523,14 +533,13 @@ export function AdminAppointmentTypes() {
                   const n = Number(e.target.value);
                   setEditDuration(Number.isFinite(n) ? n : 0);
                 }}
-                disabled
+                disabled={busy}
                 min={5}
                 max={480}
                 step={5}
-                title="Duration is locked once a type is created (spec-2-3)"
               />
               <div className={styles['form-hint']}>
-                Min 5 min (FR-007). Locked after creation.
+                Min 5 min, max 8 h (FR-007). Applied to all future bookings.
               </div>
             </div>
           </div>

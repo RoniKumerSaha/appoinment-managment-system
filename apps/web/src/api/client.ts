@@ -821,7 +821,12 @@ export function createAppointmentType(input: {
 
 export function patchAppointmentType(
   id: string,
-  body: { name?: string; is_active?: boolean; description?: string | null },
+  body: {
+    name?: string;
+    is_active?: boolean;
+    description?: string | null;
+    duration_minutes?: number;
+  },
 ): Promise<AppointmentTypePatchResponse> {
   return request<AppointmentTypePatchResponse>(
     `/admin/appointment-types/${id}`,

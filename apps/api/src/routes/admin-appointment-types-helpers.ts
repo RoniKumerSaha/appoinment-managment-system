@@ -90,7 +90,8 @@ export function validateCreateTypeBody(body: unknown): CreateTypeResult {
 export type PatchTypeError =
   | 'invalid_name'
   | 'invalid_is_active'
-  | 'invalid_description';
+  | 'invalid_description'
+  | 'invalid_duration_minutes';
 
 export type PatchTypeResult =
   | {
@@ -98,6 +99,7 @@ export type PatchTypeResult =
       name: string | null;
       isActive: boolean | null;
       description: string | null;
+      durationMinutes: number | null;
     }
   | { ok: false; error: PatchTypeError };
 
@@ -128,6 +130,7 @@ export function validatePatchTypeBody(body: unknown): PatchTypeResult {
   let name: string | null = null;
   let isActive: boolean | null = null;
   let description: string | null = null;
+  let durationMinutes: number | null = null;
   if ('name' in r) {
     if (!isValidName(r['name'])) {
       return { ok: false, error: 'invalid_name' };
@@ -155,7 +158,13 @@ export function validatePatchTypeBody(body: unknown): PatchTypeResult {
       return { ok: false, error: 'invalid_description' };
     }
   }
-  return { ok: true, name, isActive, description };
+  if ('duration_minutes' in r) {
+    if (!isValidDurationMinutes(r['duration_minutes'])) {
+      return { ok: false, error: 'invalid_duration_minutes' };
+    }
+    durationMinutes = r['duration_minutes'] as number;
+  }
+  return { ok: true, name, isActive, description, durationMinutes };
 }
 
 /** Parse `?active=true|false` query filter. Returns `null` when unset,

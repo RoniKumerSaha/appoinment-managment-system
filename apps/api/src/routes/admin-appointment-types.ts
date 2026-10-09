@@ -277,11 +277,15 @@ adminAppointmentTypesRouter.patch(
     }
     const id = req.params['id'] as string;
     const body = (req.body ?? {}) as Record<string, unknown>;
-    // Allowed: name, is_active, description. duration_minutes is
-    // INTENTIONALLY excluded — types are immutable once created per
-    // spec §Never. Sending `{duration_minutes: 30}` falls through to
-    // `unknown_field`.
-    const allowedKeys = new Set(['name', 'is_active', 'description']);
+    // Allowed: name, is_active, description, duration_minutes. All
+    // four are editable; the DB CHECK constraint
+    // (duration_minutes BETWEEN 5 AND 480) is the floor/ceiling.
+    const allowedKeys = new Set([
+      'name',
+      'is_active',
+      'description',
+      'duration_minutes',
+    ]);
     const unknownKeys = Object.keys(body).filter((k) => !allowedKeys.has(k));
     if (unknownKeys.length > 0) {
       res.status(400).json({ error: 'unknown_field', fields: unknownKeys });
@@ -290,7 +294,8 @@ adminAppointmentTypesRouter.patch(
     const hasName = 'name' in body;
     const hasActive = 'is_active' in body;
     const hasDescription = 'description' in body;
-    if (!hasName && !hasActive && !hasDescription) {
+    const hasDuration = 'duration_minutes' in body;
+    if (!hasName && !hasActive && !hasDescription && !hasDuration) {
       res.status(400).json({ error: 'no_fields_to_update' });
       return;
     }
@@ -299,7 +304,7 @@ adminAppointmentTypesRouter.patch(
       res.status(400).json({ error: v.error });
       return;
     }
-    const { name, isActive, description } = v;
+    const { name, isActive, description, durationMinutes } = v;
 
     const pool = await getPool();
     let client;
@@ -374,6 +379,11 @@ adminAppointmentTypesRouter.patch(
         placeholder += 1;
         setClauses.push(`description = $${placeholder}`);
         updateParams.push(description);
+      }
+      if (durationMinutes !== null) {
+        placeholder += 1;
+        setClauses.push(`duration_minutes = $${placeholder}`);
+        updateParams.push(durationMinutes);
       }
       const idPlaceholder = placeholder + 1;
       const clinicPlaceholder = placeholder + 2;
