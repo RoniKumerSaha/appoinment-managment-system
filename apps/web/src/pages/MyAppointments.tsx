@@ -276,8 +276,8 @@ export function MyAppointments({
       }}
       userName={profile?.full_name ?? undefined}
     >
-      <div className="my-appts__page">
-        <div className="my-appts__header">
+      <div className="my-appts__page" data-testid="my-appts">
+        <div className="my-appts__header" data-testid="my-appts-header">
           <div className="my-appts__crumb">My appointments</div>
           <h1 className="my-appts__title">Manage your appointments</h1>
           <p className="my-appts__sub">
@@ -286,7 +286,7 @@ export function MyAppointments({
         </div>
 
         {profile && verifiedLabel && (
-          <div className="my-appts__verified">
+          <div className="my-appts__verified" data-testid="my-appts-verified">
             <div className="my-appts__verified-avatar" aria-hidden="true">
               {verifiedInitials}
             </div>
@@ -306,10 +306,11 @@ export function MyAppointments({
           </div>
         )}
 
-        <div className="my-appts__quicklinks">
+        <div className="my-appts__quicklinks" data-testid="my-appts-quicklinks">
           <button
             type="button"
             className="my-appts__quicklink"
+            data-testid="my-appts-book-another-btn"
             onClick={onGoFindDoctor}
           >
             Book another appointment
@@ -317,6 +318,7 @@ export function MyAppointments({
           <button
             type="button"
             className="my-appts__recurring-chip"
+            data-testid="my-appts-recurring-chip"
             disabled
             title="Recurring series — coming with E4-S2"
           >
@@ -324,12 +326,12 @@ export function MyAppointments({
           </button>
         </div>
 
-        {err && <div className="my-appts__error">{err}</div>}
-        {toast && <div className="my-appts__toast">{toast}</div>}
+        {err && <div className="my-appts__error" data-testid="my-appts-error" role="alert">{err}</div>}
+        {toast && <div className="my-appts__toast" data-testid="my-appts-toast" role="status">{toast}</div>}
 
-        <section className="my-appts__section">
+        <section className="my-appts__section" data-testid="my-appts-section">
           <div className="my-appts__section-head">
-            <div className="my-appts__section-num">
+            <div className="my-appts__section-num" data-testid="my-appts-section-num">
               {display.length > 0 ? display.length : '–'}
             </div>
             <div className="my-appts__section-titles">
@@ -345,13 +347,14 @@ export function MyAppointments({
               </div>
             </div>
           </div>
-          <div className="my-appts__section-body">
+          <div className="my-appts__section-body" data-testid="my-appts-section-body">
             {!loading && appts !== null && display.length === 0 && (
-              <div className="my-appts__empty">
+              <div className="my-appts__empty" data-testid="my-appts-empty">
                 <p>You have no upcoming appointments.</p>
                 <button
                   type="button"
                   className="my-appts__primary-btn"
+                  data-testid="my-appts-empty-book-btn"
                   onClick={onGoFindDoctor}
                 >
                   Book an appointment
@@ -361,7 +364,11 @@ export function MyAppointments({
             {display.map((a) => {
               const db = dateBlockParts(a.start_datetime);
               return (
-                <div key={a.id} className="my-appts__row">
+                <div
+                  key={a.id}
+                  className="my-appts__row"
+                  data-testid={`my-appts-row-${a.id}`}
+                >
                   <div className="my-appts__date-block">
                     <div className="my-appts__date-month">
                       {db.month}
@@ -385,6 +392,7 @@ export function MyAppointments({
                     <button
                       type="button"
                       className="my-appts__action"
+                      data-testid={`my-appts-row-${a.id}-reschedule-btn`}
                       onClick={() => setRescheduleId(a.id)}
                     >
                       Reschedule
@@ -392,6 +400,7 @@ export function MyAppointments({
                     <button
                       type="button"
                       className="my-appts__action my-appts__action--danger"
+                      data-testid={`my-appts-row-${a.id}-cancel-btn`}
                       onClick={() => setCancelId(a.id)}
                     >
                       Cancel
@@ -426,7 +435,7 @@ export function MyAppointments({
         />
       )}
 
-      <div className="my-appts__help-strip">
+      <div className="my-appts__help-strip" data-testid="my-appts-help-strip">
         <strong>Trouble verifying?</strong> We can text you a fresh code — call the
         clinic at <a href="tel:+966114558900">+966 11 455 8900</a>.
       </div>

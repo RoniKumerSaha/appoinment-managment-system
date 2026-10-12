@@ -193,7 +193,7 @@
 }
 
 .patient-frame__progress-sep {
-  color: var(--text-faint);
+  color: var(--text-disabled);
 }
 
 /* ── Body ──────────────────────────────────────────────────────── */

@@ -124,13 +124,14 @@ export function DoctorAuditDrawer({
       role="dialog"
       aria-modal="true"
       aria-label={`Audit log for ${appointmentLabel}`}
+      data-testid="doc-audit-modal"
       onClick={(e) => {
         // Click on backdrop (outside the drawer) closes.
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <aside className="doc-audit__drawer">
-        <div className="doc-audit__head">
+      <aside className="doc-audit__drawer" data-testid="doc-audit-drawer">
+        <div className="doc-audit__head" data-testid="doc-audit-head">
           <div className="doc-audit__head-text">
             <div className="doc-audit__crumb">Audit log</div>
             <h2 className="doc-audit__title">{appointmentLabel}</h2>
@@ -141,6 +142,7 @@ export function DoctorAuditDrawer({
           <button
             type="button"
             className="doc-audit__close"
+            data-testid="doc-audit-close-btn"
             aria-label="Close audit drawer"
             onClick={onClose}
           >
@@ -148,7 +150,7 @@ export function DoctorAuditDrawer({
           </button>
         </div>
 
-        <div className="doc-audit__summary">
+        <div className="doc-audit__summary" data-testid="doc-audit-summary">
           <span>
             <strong>{data?.count ?? 0}</strong> events
           </span>
@@ -160,7 +162,7 @@ export function DoctorAuditDrawer({
           <span>scope: your appointments only</span>
         </div>
 
-        <div className="doc-audit__filter" role="group" aria-label="Filter audit events">
+        <div className="doc-audit__filter" role="group" aria-label="Filter audit events" data-testid="doc-audit-filter">
           <FilterChip
             label="All"
             active={filter === 'all'}
@@ -188,13 +190,13 @@ export function DoctorAuditDrawer({
           />
         </div>
 
-        <div className="doc-audit__body">
+        <div className="doc-audit__body" data-testid="doc-audit-body">
           {loading && (
-            <div className="doc-audit__empty">Loading audit log…</div>
+            <div className="doc-audit__empty" data-testid="doc-audit-loading">Loading audit log…</div>
           )}
-          {err && <div className="doc-audit__err">{err}</div>}
+          {err && <div className="doc-audit__err" data-testid="doc-audit-error" role="alert">{err}</div>}
           {!loading && !err && filteredRows.length === 0 && (
-            <div className="doc-audit__empty">
+            <div className="doc-audit__empty" data-testid="doc-audit-empty">
               {data?.count === 0
                 ? 'No audit events for this appointment yet.'
                 : 'No events match the current filter.'}
@@ -203,12 +205,17 @@ export function DoctorAuditDrawer({
           {!loading &&
             !err &&
             filteredRows.map((r) => (
-              <div key={r.id} className="doc-audit__row">
+              <div
+                key={r.id}
+                className="doc-audit__row"
+                data-testid={`doc-audit-row-${r.id}`}
+              >
                 <div
                   className={
                     'doc-audit__time' +
                     (r.isToday ? ' doc-audit__time-today' : '')
                   }
+                  data-testid={`doc-audit-row-${r.id}-time`}
                 >
                   {r.displayTime}
                 </div>
@@ -220,17 +227,19 @@ export function DoctorAuditDrawer({
                     // dangerouslySetInnerHTML) so payloads can't
                     // inject markup.
                     // eslint-disable-next-line react/no-unescaped-entities
+                    data-testid={`doc-audit-row-${r.id}-action`}
                   >
                     {r.actionLine}
                   </div>
-                  <div className="doc-audit__actor">{r.actorLabel}</div>
+                  <div className="doc-audit__actor" data-testid={`doc-audit-row-${r.id}-actor`}>{r.actorLabel}</div>
                   {r.metaLine && (
-                    <div className="doc-audit__meta">{r.metaLine}</div>
+                    <div className="doc-audit__meta" data-testid={`doc-audit-row-${r.id}-meta`}>{r.metaLine}</div>
                   )}
                 </div>
                 <div className="doc-audit__pill-cell">
                   <span
                     className={`doc-audit__pill doc-audit__pill--${r.pillTone}`}
+                    data-testid={`doc-audit-row-${r.id}-pill`}
                   >
                     {r.pillLabel}
                   </span>
@@ -239,7 +248,7 @@ export function DoctorAuditDrawer({
             ))}
         </div>
 
-        <div className="doc-audit__foot">
+        <div className="doc-audit__foot" data-testid="doc-audit-foot">
           <span>
             Showing {filteredRows.length} of {data?.count ?? 0} · newer
             events at the top
@@ -247,6 +256,7 @@ export function DoctorAuditDrawer({
           <button
             type="button"
             className="doc-audit__export"
+            data-testid="doc-audit-export-csv-btn"
             disabled
             title="CSV export — future hardening (D-E7-S-UI-2)"
           >
@@ -254,7 +264,7 @@ export function DoctorAuditDrawer({
           </button>
         </div>
 
-        <div className="doc-audit__privacy">
+        <div className="doc-audit__privacy" data-testid="doc-audit-privacy">
           <strong>Privacy:</strong> Doctors see audit rows for their own
           appointments only. Receptionists see rows for their branch.
           Admins see clinic-structure events. Patients never see audit
@@ -280,6 +290,7 @@ function FilterChip({
       className={
         'doc-audit__chip' + (active ? ' doc-audit__chip--active' : '')
       }
+      data-testid={`doc-audit-filter-${label.toLowerCase().replace(/\s+/g, '-')}`}
       onClick={onClick}
       aria-pressed={active}
     >
@@ -320,15 +331,18 @@ function toDisplayedRow(row: DoctorAuditRow, branchTz: string): DisplayedRow {
 
   const actorLabel = actorLabelOf(row.actor_role);
 
-  // Default fallbacks.
+  // Default fallbacks. E7-S5 — pill labels carry a glyph prefix so
+  // meaning survives a colour-blind viewer or stripped stylesheet
+  // (WCAG 1.4.1 — colour is not the only visual means of conveying
+  // information).
   let actionLine = humanizeEvent(row.event);
-  let pillLabel = 'Resolve';
+  let pillLabel = '✓ Resolve';
   let pillTone: DisplayedRow['pillTone'] = 'resolve';
   let metaLine = metaFromPayload(row.payload);
 
   switch (row.event) {
     case 'cancelled': {
-      pillLabel = 'Cancel';
+      pillLabel = '✕ Cancel';
       pillTone = 'cancel';
       const reason =
         typeof row.payload?.['reason'] === 'string'
@@ -346,7 +360,7 @@ function toDisplayedRow(row: DoctorAuditRow, branchTz: string): DisplayedRow {
       break;
     }
     case 'rescheduled': {
-      pillLabel = 'Resolve';
+      pillLabel = '✓ Resolve';
       pillTone = 'resolve';
       const from =
         typeof row.payload?.['from_start_datetime'] === 'string'
@@ -364,7 +378,7 @@ function toDisplayedRow(row: DoctorAuditRow, branchTz: string): DisplayedRow {
       break;
     }
     case 'moved_by_doctor': {
-      pillLabel = 'Resolve';
+      pillLabel = '✓ Resolve';
       pillTone = 'resolve';
       const fromBranch =
         typeof row.payload?.['from_branch_id'] === 'string'
@@ -389,7 +403,7 @@ function toDisplayedRow(row: DoctorAuditRow, branchTz: string): DisplayedRow {
       break;
     }
     case 'status_marked': {
-      pillLabel = 'Status';
+      pillLabel = '● Status';
       pillTone = 'status';
       const status =
         typeof row.payload?.['new_status'] === 'string'
@@ -399,7 +413,7 @@ function toDisplayedRow(row: DoctorAuditRow, branchTz: string): DisplayedRow {
       break;
     }
     case 'recurring_created': {
-      pillLabel = 'Create';
+      pillLabel = '+ Create';
       pillTone = 'create';
       const recurringId =
         typeof row.payload?.['recurring_series_id'] === 'string'
@@ -412,7 +426,7 @@ function toDisplayedRow(row: DoctorAuditRow, branchTz: string): DisplayedRow {
       break;
     }
     case 'blocked': {
-      pillLabel = 'Block';
+      pillLabel = '⊘ Block';
       pillTone = 'block';
       const reason =
         typeof row.payload?.['reason'] === 'string'
@@ -423,7 +437,7 @@ function toDisplayedRow(row: DoctorAuditRow, branchTz: string): DisplayedRow {
       break;
     }
     case 'created': {
-      pillLabel = 'Create';
+      pillLabel = '+ Create';
       pillTone = 'create';
       actionLine = 'created this appointment';
       metaLine = metaFromPayload(row.payload);
@@ -432,7 +446,7 @@ function toDisplayedRow(row: DoctorAuditRow, branchTz: string): DisplayedRow {
     default:
       // Unknown event: render the raw event name as the action.
       actionLine = row.event;
-      pillLabel = 'Event';
+      pillLabel = '· Event';
       pillTone = 'resolve';
       metaLine = null;
   }

@@ -9,13 +9,23 @@
     "preview": "vite preview --port 5173",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "echo 'no web tests in E0-S1'"
+    "test": "echo 'no web tests in E0-S1'",
+    "test:e7-s7": "node test/run-no-tentative-holds.mjs",
+    "test:e7-s4": "node test/run-conflict-modal-singleton.mjs",
+    "test:e7-s1": "node test/run-token-only-css.mjs",
+    "test:e7-s5-focus": "node test/run-a11y-focus-ring.mjs",
+    "test:e7-s5-pills": "node test/run-a11y-status-pills.mjs",
+    "test:e7-s5-touch": "node test/run-a11y-touch-targets.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
     "@typescript-eslint/eslint-plugin": "8.18.0",

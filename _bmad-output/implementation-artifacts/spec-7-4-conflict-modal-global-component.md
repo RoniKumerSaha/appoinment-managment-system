@@ -2,10 +2,10 @@
 id: spec-7-4-conflict-modal-global-component
 title: E7-S4 — ConflictModal global component
 epic: epic-7
-status: ready-for-dev
+status: review
 review_loop_iteration: 0
 created: 2026-10-07
-last_updated: 2026-10-07
+last_updated: 2026-10-11
 source_story: planning-artifacts/epics-and-stories.md §E7-S4
 ---
 
@@ -126,4 +126,13 @@ The test fails loudly if a new modal component lands without going through Confl
 
 ## Spec Change Log
 
-(none yet — first authoring)
+### 2026-10-11 — Implementation
+
+- **SC1 — Spec divergence on the singleton test's forbidden-pattern list.** The spec's literal forbidden list (`<div role="dialog">`, `aria-modal="true"`, `ModalProps`, `DialogProps` everywhere outside ConflictModal) is too broad. The web client has 19+ dialog-shaped components that are NOT conflict modals: form modals (AdminDoctors, AdminReceptionists, CancelModal, DoctorMarkStatus, DoctorResolve, ReschedulePage), confirmation dialogs (DoctorCancel, DoctorResolutionSaved), and slide-in detail drawers (DoctorAuditDrawer). None of these are in the E7-S4 scope; each is a distinct UX surface with its own state (form state, save flow, focus management) that does not match the 3-slot what/why/canDo contract. The implementation narrows the test to target the spec's **intent**: forbid a second component exposing the conflict-modal contract (PascalCase export whose name contains "Conflict" or "ErrorModal", or re-exports of `ConflictTone` / `ConflictAction` types). A future regression that adds e.g. `BookingConflictModal.tsx` would fail this test. A regression that adds a new form modal would not, which is correct: form modals are out of scope for E7-S4 and will get their own consolidation story (likely E7-S5 / a11y).
+- **SC2 — `DoctorConflictModal.tsx` does not exist.** The spec's "delete DoctorConflictModal.tsx" instruction was based on a stale inventory. Today only `ConflictModal.tsx` exists. The "delete" step is a no-op and is recorded as such in the audit trail. The E6-S2-ui `DoctorConflictMove.tsx` page does not use a separate modal component — its modal surface is inline JSX in the page (line 234 of `DoctorResolve.tsx`; line 58 of `DoctorResolutionSaved.tsx`). Those inline surfaces are not conflict modals either (the success modal at line 58 is a confirmation, not a 409 surface) and are out of scope for E7-S4.
+- **SC3 — Backward-compat surface preserved.** The refactor of `ConflictModal.tsx` keeps the original E1-S1-ui prop shape working (`tone`, `flow`, `title`, `what`, `why`, `rule`, `actions`, `onClose`, `variant`). This is additive only — no consumer was forced to migrate in this pass. The new spec'd props (`canDo`, `intent`, `ariaLabel`, `info` tone) are additive too. Net change: 0 consumer migrations; 1 file refactored (`components/ConflictModal.tsx`); 1 CSS class added (`.icon--info`).
+- **SC4 — `tone` is now optional, defaulting to `'warn'`.** The original was required; the spec made it optional. This is a strict widening (no consumer that passed `tone` is broken) and matches the spec's "always ≥ 1 option" — a default of warn keeps the softest tone as the no-arg default.
+- **SC5 — `canDo` wins over `actions` when both are passed.** This is a future-proofing choice: existing consumers that pass `actions` keep working; new consumers that pass `canDo` get the spec'd shape. If both are passed, `canDo` is rendered. This matches the I/O matrix in the spec.
+- **Deferrals:** 0
+- **Pre-existing baselines unchanged:** 0 (no code outside the conflict-modal component + new test files was touched).
+- **Awaiting:** bmad-code-review pass before flipping to `done`.

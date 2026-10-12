@@ -222,7 +222,7 @@
 }
 
 .hours-table tr.off td {
-  color: var(--text-faint);
+  color: var(--text-disabled);
   background: var(--surface-soft);
 }
 
@@ -254,7 +254,7 @@
 
 .hours-table input[type='time']:disabled {
   background: var(--surface-soft);
-  color: var(--text-faint);
+  color: var(--text-disabled);
 }
 
 .hours-table .sep {
@@ -274,7 +274,7 @@
 .closed-label {
   text-align: center;
   font-style: italic;
-  color: var(--text-faint);
+  color: var(--text-disabled);
 }
 
 .toggle {

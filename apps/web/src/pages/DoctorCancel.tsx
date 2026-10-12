@@ -181,12 +181,13 @@ export function DoctorCancel({
       role="dialog"
       aria-modal="true"
       aria-label={`Cancel appointment for ${appointment.patientLabel}`}
+      data-testid="doc-cancel-modal"
       onClick={(e) => {
         if (e.target === e.currentTarget && !submitting) onCancel();
       }}
     >
-      <div className="doc-cancel__modal">
-        <div className="doc-cancel__head">
+      <div className="doc-cancel__modal" data-testid="doc-cancel-frame">
+        <div className="doc-cancel__head" data-testid="doc-cancel-head">
           <div className="doc-cancel__head-icon" aria-hidden="true">
             !
           </div>
@@ -194,15 +195,15 @@ export function DoctorCancel({
             <div className="doc-cancel__crumb">
               Affected queue → {appointment.patientLabel} → Cancel
             </div>
-            <h2 className="doc-cancel__title">Cancel this appointment</h2>
+            <h2 className="doc-cancel__title" data-testid="doc-cancel-title">Cancel this appointment</h2>
             <div className="doc-cancel__sub">
               A reason is required. The slot will be released.
             </div>
           </div>
         </div>
 
-        <div className="doc-cancel__body">
-          <div className="doc-cancel__appt">
+        <div className="doc-cancel__body" data-testid="doc-cancel-body">
+          <div className="doc-cancel__appt" data-testid="doc-cancel-appt">
             <div className="doc-cancel__appt-time">
               <div className="doc-cancel__appt-month">{month ?? ''}</div>
               <div className="doc-cancel__appt-day">{day ?? ''}</div>
@@ -222,7 +223,7 @@ export function DoctorCancel({
           <div className="doc-cancel__label">
             Reason
           </div>
-          <div className="doc-cancel__reasons" role="radiogroup" aria-label="Cancel reason">
+          <div className="doc-cancel__reasons" role="radiogroup" aria-label="Cancel reason" data-testid="doc-cancel-reason-group">
             {REASON_PRESETS.map((p) => {
               const isSelected = p.key === selectedKey;
               return (
@@ -235,6 +236,7 @@ export function DoctorCancel({
                   }
                   role="radio"
                   aria-checked={isSelected}
+                  data-testid={`doc-cancel-reason-${p.key}`}
                   onClick={() => {
                     setSelectedKey(p.key);
                     setErr(null);
@@ -264,16 +266,17 @@ export function DoctorCancel({
             className="doc-cancel__textarea"
             placeholder="e.g. Patient called at 10:25, asked to reschedule next week"
             value={note}
+            data-testid="doc-cancel-reason-input"
             onChange={(e) => setNote(e.target.value)}
             disabled={submitting}
             maxLength={REASON_MAX}
             aria-label="Internal note"
           />
-          <div className="doc-cancel__count">
+          <div className="doc-cancel__count" data-testid="doc-cancel-count">
             {note.length} / {REASON_MAX}
           </div>
 
-          <div className="doc-cancel__impact">
+          <div className="doc-cancel__impact" data-testid="doc-cancel-impact">
             <span className="doc-cancel__impact-icon" aria-hidden="true">
               ⚠
             </span>
@@ -284,7 +287,7 @@ export function DoctorCancel({
             </span>
           </div>
 
-          {err && <div className="doc-cancel__err">{err}</div>}
+          {err && <div className="doc-cancel__err" data-testid="doc-cancel-error" role="alert">{err}</div>}
 
           <div className="doc-cancel__audit">
             Audit row:{' '}
@@ -294,10 +297,11 @@ export function DoctorCancel({
           </div>
         </div>
 
-        <div className="doc-cancel__foot">
+        <div className="doc-cancel__foot" data-testid="doc-cancel-foot">
           <button
             type="button"
             className="doc-cancel__btn-ghost"
+            data-testid="doc-cancel-keep-btn"
             onClick={onCancel}
             disabled={submitting}
           >
@@ -307,6 +311,7 @@ export function DoctorCancel({
             <button
               type="button"
               className="doc-cancel__btn-secondary"
+              data-testid="doc-cancel-back-btn"
               onClick={onCancel}
               disabled={submitting}
             >
@@ -315,6 +320,7 @@ export function DoctorCancel({
             <button
               type="button"
               className="doc-cancel__btn-danger"
+              data-testid="doc-cancel-confirm-btn"
               onClick={() => {
                 void onConfirm();
               }}

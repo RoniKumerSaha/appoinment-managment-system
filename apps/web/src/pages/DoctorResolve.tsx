@@ -231,13 +231,19 @@ export function DoctorResolve({
   const apptDate = formatDateInTz(appointment.start_datetime, appointment.branchTz);
 
   return (
-    <div className="doc-resolve__backdrop" role="dialog" aria-modal="true">
-      <div className="doc-resolve__frame">
-        <div className="doc-resolve__page">
-          <div className="doc-resolve__header">
+    <div
+      className="doc-resolve__backdrop"
+      role="dialog"
+      aria-modal="true"
+      data-testid="doc-resolve-modal"
+    >
+      <div className="doc-resolve__frame" data-testid="doc-resolve-frame">
+        <div className="doc-resolve__page" data-testid="doc-resolve-page">
+          <div className="doc-resolve__header" data-testid="doc-resolve-header">
             <button
               type="button"
               className="doc-resolve__crumb"
+              data-testid="doc-resolve-crumb-btn"
               onClick={onCancel}
             >
               ‹ Affected queue
@@ -248,7 +254,7 @@ export function DoctorResolve({
             </p>
           </div>
 
-          <section className="doc-resolve__step">
+          <section className="doc-resolve__step" data-testid="doc-resolve-step1">
             <div className="doc-resolve__step-head">
               <div className="doc-resolve__step-num doc-resolve__step-num--done">1</div>
               <div className="doc-resolve__step-title">
@@ -269,7 +275,7 @@ export function DoctorResolve({
             </div>
           </section>
 
-          <div className="doc-resolve__type-lock">
+          <div className="doc-resolve__type-lock" data-testid="doc-resolve-type-lock">
             <div className="doc-resolve__type-lock-icon" aria-hidden="true">
               🔒
             </div>
@@ -288,7 +294,7 @@ export function DoctorResolve({
             <span className="doc-resolve__type-lock-pill">Locked</span>
           </div>
 
-          <section className="doc-resolve__step">
+          <section className="doc-resolve__step" data-testid="doc-resolve-step2">
             <div className="doc-resolve__step-head">
               <div className="doc-resolve__step-num doc-resolve__step-num--current">
                 2
@@ -298,11 +304,12 @@ export function DoctorResolve({
             </div>
 
             <div className="doc-resolve__picker-row">
-              <div className="doc-resolve__picker">
+              <div className="doc-resolve__picker" data-testid="doc-resolve-branch-picker">
                 <div className="doc-resolve__picker-label">New branch</div>
                 <select
                   className="doc-resolve__picker-select"
                   value={branchId}
+                  data-testid="doc-resolve-branch-select"
                   onChange={(e) => setBranchId(e.target.value)}
                 >
                   {branches.map((b) => (
@@ -321,7 +328,7 @@ export function DoctorResolve({
                 {dateRail.length} days
               </span>
             </div>
-            <div className="doc-resolve__rail">
+            <div className="doc-resolve__rail" data-testid="doc-resolve-date-rail">
               {dateRail.map((d) => {
                 const isSelected = d.iso === date;
                 return (
@@ -333,6 +340,7 @@ export function DoctorResolve({
                         ? 'doc-resolve__rail-cell doc-resolve__rail-cell--selected'
                         : 'doc-resolve__rail-cell'
                     }
+                    data-testid={`doc-resolve-date-cell-${d.iso}`}
                     onClick={() => setDate(d.iso)}
                   >
                     <div className="doc-resolve__rail-dow">{d.dow}</div>
@@ -354,7 +362,7 @@ export function DoctorResolve({
                     : `${slots.length} open`}
               </span>
             </div>
-            <div className="doc-resolve__slot-grid">
+            <div className="doc-resolve__slot-grid" data-testid="doc-resolve-slot-grid">
               {loadingSlots && (
                 <div className="doc-resolve__empty">Loading slots…</div>
               )}
@@ -384,6 +392,7 @@ export function DoctorResolve({
                           ? 'doc-resolve__slot doc-resolve__slot--selected'
                           : 'doc-resolve__slot'
                       }
+                      data-testid={`doc-resolve-slot-btn-${s.start_datetime}`}
                       onClick={() => setSelectedSlot(s)}
                     >
                       {formatTimeInTz(s.start_datetime, tz)}
@@ -393,7 +402,7 @@ export function DoctorResolve({
             </div>
 
             {selectedSlot && (
-              <div className="doc-resolve__summary">
+              <div className="doc-resolve__summary" data-testid="doc-resolve-summary">
                 <div className="doc-resolve__row">
                   <span className="doc-resolve__k">New date</span>
                   <span className="doc-resolve__v">
@@ -415,13 +424,14 @@ export function DoctorResolve({
             )}
 
             {submitErr && (
-              <div className="doc-resolve__error">{submitErr}</div>
+              <div className="doc-resolve__error" data-testid="doc-resolve-error" role="alert">{submitErr}</div>
             )}
 
-            <div className="doc-resolve__step-foot">
+            <div className="doc-resolve__step-foot" data-testid="doc-resolve-step-foot">
               <button
                 type="button"
                 className="doc-resolve__btn-ghost"
+                data-testid="doc-resolve-back-btn"
                 onClick={onCancel}
                 disabled={submitting}
               >
@@ -430,6 +440,7 @@ export function DoctorResolve({
               <button
                 type="button"
                 className="doc-resolve__btn-primary"
+                data-testid="doc-resolve-move-btn"
                 onClick={() => {
                   void onConfirm();
                 }}
@@ -444,7 +455,7 @@ export function DoctorResolve({
             </div>
           </section>
 
-          <div className="doc-resolve__cancel-hint">
+          <div className="doc-resolve__cancel-hint" data-testid="doc-resolve-cancel-hint">
             <strong>No slots work for this patient?</strong> You can cancel
             this appointment from the affected queue card.
           </div>

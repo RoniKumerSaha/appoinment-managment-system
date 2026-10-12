@@ -137,3 +137,40 @@
   box-shadow: var(--ring-focus);
   border-color: var(--brand-primary);
 }
+
+/* ── E7-S5 — Accessibility baseline (WCAG 2.1 AA) ─────────────────
+ *
+ * Global focus ring (FR-WCAG-FOCUS): every interactive element shows
+ * a visible focus ring when focused via keyboard. The :where()
+ * pseudo-class keeps specificity at 0 so per-component :hover / :active
+ * rules still win. Per-component overrides use :focus-visible too.
+ */
+:where(a, button, input, select, textarea, [role="button"], [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+  border-radius: inherit;
+}
+
+/* FR-WCAG-TOUCH — interactive elements on small viewports must be
+ * at least 40×40 unless they opt out with `.compact` (dense dashboards
+ * like the doctor kanban keep tight targets on purpose). */
+@media (max-width: 640px) {
+  :where(button, a[role="button"], input, select):not(.compact) {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
+/* FR-WCAG-MOTION — honour user OS preference. Animations and
+ * transitions become effectively instant. The `!important` is scoped
+ * to a media query so it cannot leak into the regular cascade. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

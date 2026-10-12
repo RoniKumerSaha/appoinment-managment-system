@@ -236,7 +236,7 @@
 
 .occ-body-title-strike {
   text-decoration: line-through;
-  color: var(--text-faint);
+  color: var(--text-disabled);
 }
 
 .occ-body-meta {

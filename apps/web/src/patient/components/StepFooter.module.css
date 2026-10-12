@@ -6,7 +6,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 18px 0 4px;
-  border-top: 1px solid var(--brand-border, #d2eaea);
+  border-top: 1px solid var(--brand-border-patient);
   margin-top: 8px;
   flex-wrap: wrap;
 }
@@ -19,7 +19,7 @@
   flex: 1 1 auto;
   text-align: center;
   font-size: 13px;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-muted);
   font-weight: 500;
   min-width: 0;
 }

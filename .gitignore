@@ -196,6 +196,8 @@ junit.xml
 test-results/
 playwright-report/
 playwright/.cache/
+# Playwright E2E auth state (apps/web/e2e/)
+apps/web/e2e/.auth/
 
 # ---------- Misc ----------
 *.swp

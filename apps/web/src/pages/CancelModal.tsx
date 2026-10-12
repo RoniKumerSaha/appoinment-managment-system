@@ -107,22 +107,27 @@ export function CancelModal({
   };
 
   return (
-    <div className="cancel-modal__backdrop" role="dialog" aria-modal="true">
-      <div className="cancel-modal__modal">
-        <div className="cancel-modal__head">
+    <div
+      className="cancel-modal__backdrop"
+      role="dialog"
+      aria-modal="true"
+      data-testid="cancel-modal"
+    >
+      <div className="cancel-modal__modal" data-testid="cancel-modal-frame">
+        <div className="cancel-modal__head" data-testid="cancel-modal-head">
           <div className="cancel-modal__icon" aria-hidden="true">
             ⚠
           </div>
-          <div className="cancel-modal__title">
+          <div className="cancel-modal__title" data-testid="cancel-modal-title">
             Cancel your appointment with Dr. {lastName(doctorName)} on{' '}
             {formatLongDate(startDatetime, tz)}?
           </div>
         </div>
-        <div className="cancel-modal__body">
+        <div className="cancel-modal__body" data-testid="cancel-modal-body">
           <div className="cancel-modal__why">
             Your slot will be released and made available to other patients.
           </div>
-          <div className="cancel-modal__appt-meta">
+          <div className="cancel-modal__appt-meta" data-testid="cancel-modal-appt-meta">
             {branchName} · {typeName} · {formatTime(startDatetime, tz)}–
             {formatTime(endDatetime, tz)}
           </div>
@@ -133,12 +138,17 @@ export function CancelModal({
           <div className="cancel-modal__helper">
             No reason needed from you. The slot will be released.
           </div>
-          {err && <div className="cancel-modal__error">{err}</div>}
+          {err && (
+            <div className="cancel-modal__error" data-testid="cancel-modal-error" role="alert">
+              {err}
+            </div>
+          )}
         </div>
-        <div className="cancel-modal__actions">
+        <div className="cancel-modal__actions" data-testid="cancel-modal-actions">
           <button
             type="button"
             className="cancel-modal__btn-secondary"
+            data-testid="cancel-modal-keep-btn"
             onClick={onClose}
             disabled={submitting}
           >
@@ -147,6 +157,7 @@ export function CancelModal({
           <button
             type="button"
             className="cancel-modal__btn-primary"
+            data-testid="cancel-modal-confirm-btn"
             onClick={onConfirm}
             disabled={submitting}
           >

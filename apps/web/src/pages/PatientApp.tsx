@@ -77,12 +77,18 @@ export function PatientApp({
   // the URL once for a deep-link (E4-S2) — the MyAppointments page
   // also reads the URL, but doing it here lets us surface the deep
   // link even when the initial render is on find-doctor.
-  const deepLink = (() => {
+  //
+  // Important: this is captured into `useState` so it is computed
+  // *exactly once* on mount. If we re-evaluated the IIFE on every
+  // render, the second render (triggered by `setView` after
+  // `scrubQuery()`) would see the now-empty URL and lose the
+  // action/id that we need to hand to <MyAppointments>.
+  const [deepLink] = useState<DeepLink>(() => {
     if (initialAction && initialAppointmentId) {
       return { action: initialAction, id: initialAppointmentId } as DeepLink;
     }
     return readQuery();
-  })();
+  });
 
   useEffect(() => {
     if (deepLink.page) {
@@ -118,5 +124,5 @@ export function PatientApp({
     );
   }
 
-  return <PatientBooking />;
+  return <PatientBooking onNavigate={onNavigate as (link: 'find-doctor' | 'my-appointments') => void} />;
 }

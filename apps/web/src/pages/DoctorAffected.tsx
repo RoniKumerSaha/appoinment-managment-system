@@ -577,8 +577,8 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
 
   return (
     <DoctorFrame>
-      <div className="doc-aff__page">
-        <div className="doc-aff__alert">
+      <div className="doc-aff__page" data-testid="doc-aff">
+        <div className="doc-aff__alert" data-testid="doc-aff-alert">
           <div className="doc-aff__alert-text">
             <strong>
               {rows === null
@@ -590,17 +590,17 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
               : 'No appointments need your attention right now.'}
           </div>
           {rows !== null && rows.length > 0 && (
-            <div className="doc-aff__alert-stats">
-              <span className="doc-aff__pill doc-aff__pill--todo">
+            <div className="doc-aff__alert-stats" data-testid="doc-aff-alert-stats">
+              <span className="doc-aff__pill doc-aff__pill--todo" data-testid="doc-aff-pill-todo">
                 <span aria-hidden="true">🔴</span> {open.length} to do
               </span>
               {inProgressId !== null && (
-                <span className="doc-aff__pill doc-aff__pill--doing">
+                <span className="doc-aff__pill doc-aff__pill--doing" data-testid="doc-aff-pill-doing">
                   <span aria-hidden="true">🟡</span> 1 in progress
                 </span>
               )}
               {resolved.length > 0 && (
-                <span className="doc-aff__pill doc-aff__pill--done">
+                <span className="doc-aff__pill doc-aff__pill--done" data-testid="doc-aff-pill-done">
                   <span aria-hidden="true">🟢</span> {resolved.length} resolved
                 </span>
               )}
@@ -608,7 +608,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
           )}
         </div>
 
-        <div className="doc-aff__header">
+        <div className="doc-aff__header" data-testid="doc-aff-header">
           <h1 className="doc-aff__title">Resolve affected appointments</h1>
           <p className="doc-aff__sub">
             Move each patient to a new slot, or cancel. Each row lists an
@@ -616,11 +616,11 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
           </p>
         </div>
 
-        {err && <div className="doc-aff__error">{err}</div>}
-        {toast && <div className="doc-aff__toast">{toast}</div>}
+        {err && <div className="doc-aff__error" data-testid="doc-aff-error" role="alert">{err}</div>}
+        {toast && <div className="doc-aff__toast" data-testid="doc-aff-toast" role="status">{toast}</div>}
 
         {open.length > 1 && (
-          <div className="doc-aff__bulk-bar">
+          <div className="doc-aff__bulk-bar" data-testid="doc-aff-bulk-bar">
             <label className="doc-aff__bulk-toggle">
               <input
                 type="checkbox"
@@ -634,6 +634,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                 }}
                 onChange={onToggleAll}
                 aria-label="Select all to-do appointments"
+                data-testid="doc-aff-bulk-toggle"
               />
               <span>
                 {selectedIds.size === 0
@@ -641,10 +642,11 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                   : `${selectedIds.size} of ${open.length} selected`}
               </span>
             </label>
-            <div className="doc-aff__bulk-actions">
+            <div className="doc-aff__bulk-actions" data-testid="doc-aff-bulk-actions">
               <button
                 type="button"
                 className="doc-aff__bulk-btn"
+                data-testid="doc-aff-bulk-move-btn"
                 onClick={onBulkMove}
                 disabled={selectedIds.size === 0}
                 title="Move selected to the same new date — coming with E6-S4"
@@ -654,6 +656,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
               <button
                 type="button"
                 className="doc-aff__bulk-btn doc-aff__bulk-btn--danger"
+                data-testid="doc-aff-bulk-cancel-btn"
                 onClick={onBulkCancel}
                 disabled={selectedIds.size === 0}
                 title="Cancel selected — coming with E6-S4"
@@ -663,6 +666,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
               <button
                 type="button"
                 className="doc-aff__bulk-btn doc-aff__bulk-btn--ghost"
+                data-testid="doc-aff-export-csv-btn"
                 onClick={onExportCsv}
                 title="Export current queue as CSV"
               >
@@ -672,7 +676,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
           </div>
         )}
 
-        <div className="doc-aff__board">
+        <div className="doc-aff__board" data-testid="doc-aff-board">
           <Column
             tone="todo"
             title="To do"
@@ -694,6 +698,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                 <button
                   type="button"
                   className="doc-aff__card-btn doc-aff__card-btn--primary"
+                  data-testid={`doc-aff-card-${row.id}-move-btn`}
                   onClick={() => onMove(row.id)}
                 >
                   Move →
@@ -702,6 +707,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                   <button
                     type="button"
                     className="doc-aff__card-btn"
+                    data-testid={`doc-aff-card-${row.id}-audit-btn`}
                     onClick={() =>
                       onOpenAudit({
                         appointmentId: row.id,
@@ -717,6 +723,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                 <button
                   type="button"
                   className="doc-aff__card-btn doc-aff__card-btn--danger"
+                  data-testid={`doc-aff-card-${row.id}-cancel-btn`}
                   onClick={() => onOpenCancel(row.id)}
                 >
                   Cancel
@@ -727,6 +734,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                     <button
                       type="button"
                       className="doc-aff__card-btn"
+                      data-testid={`doc-aff-card-${row.id}-mark-btn`}
                       onClick={() => onOpenMark(row.id)}
                     >
                       Mark status
@@ -764,6 +772,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                 <button
                   type="button"
                   className="doc-aff__card-btn doc-aff__card-btn--primary"
+                  data-testid={`doc-aff-card-${row.id}-continue-btn`}
                   onClick={() => onMove(row.id)}
                 >
                   Continue →
@@ -772,6 +781,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                   <button
                     type="button"
                     className="doc-aff__card-btn"
+                    data-testid={`doc-aff-card-${row.id}-audit-btn`}
                     onClick={() =>
                       onOpenAudit({
                         appointmentId: row.id,
@@ -787,6 +797,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                 <button
                   type="button"
                   className="doc-aff__card-btn doc-aff__card-btn--danger"
+                  data-testid={`doc-aff-card-${row.id}-cancel-btn`}
                   onClick={() => onOpenCancel(row.id)}
                 >
                   Cancel
@@ -797,6 +808,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                     <button
                       type="button"
                       className="doc-aff__card-btn"
+                      data-testid={`doc-aff-card-${row.id}-mark-btn`}
                       onClick={() => onOpenMark(row.id)}
                     >
                       Mark status
@@ -837,6 +849,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                 <button
                   type="button"
                   className="doc-aff__card-btn"
+                  data-testid={`doc-aff-card-${row.id}-view-audit-btn`}
                   onClick={() =>
                     onOpenAudit({
                       appointmentId: row.id,
@@ -854,10 +867,11 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
         </div>
 
         {onGoSchedule && (
-          <div className="doc-aff__footer">
+          <div className="doc-aff__footer" data-testid="doc-aff-footer">
             <button
               type="button"
               className="doc-aff__ghost"
+              data-testid="doc-aff-schedule-btn"
               onClick={onGoSchedule}
             >
               ← Schedule editor
@@ -1001,12 +1015,12 @@ function Column({
   renderAction,
 }: ColumnProps) {
   return (
-    <div className={`doc-aff__col doc-aff__col--${tone}`}>
-      <div className="doc-aff__col-head">
+    <div className={`doc-aff__col doc-aff__col--${tone}`} data-testid={`doc-aff-col-${tone}`}>
+      <div className="doc-aff__col-head" data-testid={`doc-aff-col-${tone}-head`}>
         <div className="doc-aff__col-title">{title}</div>
-        <div className="doc-aff__col-count">{count}</div>
+        <div className="doc-aff__col-count" data-testid={`doc-aff-col-${tone}-count`}>{count}</div>
       </div>
-      <div className="doc-aff__col-body">
+      <div className="doc-aff__col-body" data-testid={`doc-aff-col-${tone}-body`}>
         {loading && <div className="doc-aff__empty">Loading…</div>}
         {!loading && rows.length === 0 && (
           <div className="doc-aff__empty">
@@ -1034,6 +1048,7 @@ function Column({
                 (isActive ? ' doc-aff__card--active' : '') +
                 (r.resolved ? ' doc-aff__card--resolved' : '')
               }
+              data-testid={`doc-aff-card-${r.id}`}
             >
               <div className="doc-aff__card-patient">
                 {r.patientLabel ?? 'Patient'}
@@ -1052,7 +1067,7 @@ function Column({
                 {issue}
               </div>
               {renderAction && (
-                <div className="doc-aff__card-actions">
+                <div className="doc-aff__card-actions" data-testid={`doc-aff-card-${r.id}-actions`}>
                   {renderAction(r)}
                 </div>
               )}

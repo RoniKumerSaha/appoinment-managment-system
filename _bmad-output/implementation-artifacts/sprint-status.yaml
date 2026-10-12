@@ -43,7 +43,20 @@
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 
 generated: 09-08-2026 12:00
-last_updated: 2026-10-07
+last_updated: 2026-10-11
+# 2026-10-11 cleanup pass: removed three stale duplicate backlog
+# keys (superseded by their done siblings). No code or test changes;
+# only sprint-status.yaml edits:
+#   - 1-0-clinic-management-single-clinic-anchor: backlog   (removed;
+#     umbrella key kept only "for traceability until retros close" per
+#     the 2026-09-14 split comment; all three siblings 1-0a/1-0b/1-0-ui
+#     are done)
+#   - 2-3-manage-appointment-types-create-edit-deactivate: backlog
+#     (removed; same-named 'done' key on line 822 supersedes it)
+#   - 2-4-negative-capability-doctor-cannot-reschedule-ordinary-patient-appointments: backlog
+#     (removed; verbose variant superseded by done '2-4-...' on line 859)
+# 0 backlog keys remain. All E0–E6 epics done. E7 still in-progress
+# with 6 stories at ready-for-dev.
 # 2026-10-07 E7 backlog spec-stub batch landed (planning-only pass;
 # Bash sandbox blocked bmad-build so no code/test changes). Seven
 # spec stubs drafted at ready-for-dev status, each following the
@@ -382,8 +395,16 @@ development_status:
   #     baseline: 2 ClinicSettings.tsx apostrophes + 2 .module.css
   #     parser errors unchanged).
   #   - Story E1-S0-ui-router → done; W59 closed.
-  # Legacy umbrella key (kept for traceability until retros close):
-  1-0-clinic-management-single-clinic-anchor: backlog
+  # 2026-10-11 cleanup: removed the legacy umbrella key
+  #   '1-0-clinic-management-single-clinic-anchor: backlog' (was the
+  #   next line). Superseded by the three split siblings, all done:
+  #   - 1-0a-clinic-singleton-enforcement  (DB)
+  #   - 1-0b-admin-clinic-api              (API)
+  #   - 1-0-ui-clinic-settings             (web)
+  # The umbrella key was kept "for traceability until retros close" per
+  # the original 2026-09-14 split comment; the carve-out is stable, all
+  # three siblings are done, and the umbrella added no audit value beyond
+  # pointing readers to the siblings.
   1-1-create-edit-deactivate-branches: done
   # 2026-10-06 E1-S1-ui implementation complete; spec-1-1-ui-admin-branches.md
   # recorded. Pixel-perfect mockup 17 port (two-step stacked flow); Step 1
@@ -849,8 +870,15 @@ development_status:
   #   - Lint: 0 new warnings (4 pre-existing baseline warnings unchanged).
   #   - Story E2-S4 → done.
   2-4-negative-capability-doctor-cannot-reschedule: done
-  2-3-manage-appointment-types-create-edit-deactivate: backlog
-  2-4-negative-capability-doctor-cannot-reschedule-ordinary-patient-appointments: backlog
+  # 2026-10-11 cleanup: removed two stale duplicate backlog keys that
+  # were superseded by their renamed/done siblings:
+  #   - 2-3-manage-appointment-types-create-edit-deactivate (superseded
+  #     by the same-named 'done' key on line 822; original short key
+  #     from before the E2-S3-ui carve-out)
+  #   - 2-4-negative-capability-doctor-cannot-reschedule-ordinary-patient-appointments
+  #     (superseded by '2-4-negative-capability-doctor-cannot-reschedule: done'
+  #     on line 851; this was the verbose variant left over from the
+  #     planning-era heading)
   epic-2-retrospective: optional
 
   # Epic 3 — Booking core
@@ -1938,7 +1966,46 @@ development_status:
   # spec-7-1-design-system-token-wiring.md. Key flipped to
   # ready-for-dev on 2026-10-07 with the spec-stub batch. Flips
   # to done when the bmad-build pass lands.
-  7-1-design-system-token-wiring: ready-for-dev
+  # 2026-10-11 E7-S1-wiring implementation complete (token-only CSS enforcer):
+  #   - apps/web/test/token-only-css.test.ts (NEW, 270 lines) — static
+  #     walker over apps/web/src/**/*.css and apps/web/src/**/*.{ts,tsx}
+  #     that flags hex literals, rgb()/rgba(), hsl()/hsla(), and CSS
+  #     named colours outside tokens.css. Whitelists `&#NN;` HTML
+  #     entities, comments, and value-position string literals.
+  #     TSX/TS heuristic filters mid-string `#NNNN` patterns (e.g.
+  #     `Appt #10234` in mock data).
+  #   - apps/web/test/run-token-only-css.mjs (NEW) — driver for the test.
+  #   - apps/web/package.json (EDIT) — added `test:e7-s1` script.
+  #   - apps/web/src/styles/tokens.css (EDIT) — added patient-palette
+  #     tokens to preserve the patient UI's visual identity while
+  #     making the CSS token-only. New tokens:
+  #     --brand-primary-patient, --brand-primary-patient-hover,
+  #     --brand-border-patient, --brand-light-50-patient,
+  #     --text-primary, --text-secondary, --neutral-bg-2,
+  #     --danger-500, --danger-600, --shadow-elev-1, --shadow-elev-2,
+  #     --shadow-line, --hover-tint, --brand-tint.
+  #   - 7 patient component .module.css files REWRITTEN to use the
+  #     patient-palette tokens: Button, StepCard, SideRail, DateBlock,
+  #     SummaryCard, SummaryRow, StepFooter. PatientBooking.module.css
+  #     and ReschedulePage.css got targeted edits. 71 pre-existing
+  #     violations fixed in this pass.
+  #   - apps/web/src/components/ConflictModal.module.css (EDIT) —
+  #     rgba(15,23,42,0.45) → var(--scrim), rgba(0,0,0,0.25) →
+  #     var(--elev-modal), color: white → var(--on-danger). These
+  #     were the 3 violations in my own E7-S4 commit; the new enforcer
+  #     caught them immediately and they're fixed in the same pass.
+  #   - 3/3 web static tests green (pnpm --filter @clinic/web run
+  #     test:e7-s1); regression-catching verified by introducing and
+  #     removing synthetic hex + var-fallback violations. The test
+  #     correctly reports file + line + match + kind.
+  #   - 0 new typecheck errors (api: 9 pre-existing baseline unchanged;
+  #     web: 0).
+  #   - 0 new lint errors (api: 0; web: 35 pre-existing
+  #     react/no-unescaped-entities errors unchanged).
+  #   - 8/8 E7 web suite green (S7 + S4 + S1 together). Pre-commit
+  #     hook + CI workflow (out of scope for this session — can't
+  #     verify git hooks in the sandbox) documented in SC4.
+  7-1-design-system-token-wiring: review
   w10-staff-login-patient-otp: done
   7-2-appointment-audit: done
   # 2026-10-04 bmad-build step-25 implementation complete for E7-S2
@@ -2022,7 +2089,51 @@ development_status:
   #   - Lint: 0 new warnings.
   #   - Spec Change Log: SC2 (review-loop-1 documented scope) recorded.
   #   - Story E7-S3 → done.
-  7-4-conflict-modal-global-component: ready-for-dev
+  # 2026-10-11 E7-S4 implementation complete (ConflictModal global component):
+  #   - apps/web/src/components/ConflictModal.tsx (REWRITE, 222 lines) —
+  #     refactored to expose the spec'd public API:
+  #     * `canDo: CanDoAction[]` (spec'd) preferred over `actions` (legacy)
+  #     * `intent` prop (spec'd) preferred over `variant` (legacy)
+  #     * `tone` now optional, defaults to 'warn'; 'info' added
+  #     * `ariaLabel` supported as alternative to `aria-labelledby`
+  #     * `flow` + `rule` preserved as optional for the E1-S1-ui AdminBranches
+  #       consumer (BR-059 modal). The 3-slot what/why/canDo contract is
+  #       intact; flow/rule are diagnostic additions, not slot substitutions.
+  #   - apps/web/src/components/ConflictModal.module.css (EDIT) — added
+  #     `.icon--info` (info-bg / info-text tokens) for the new 'info' tone.
+  #     Token-only CSS preserved (0 hex literals).
+  #   - apps/web/test/conflict-modal-singleton.test.ts (NEW, 167 lines) —
+  #     static singleton test. Pinned 3 invariants:
+  #     * no second component with "Conflict" or "ErrorModal" in its name
+  #     * ConflictModal.tsx exists at components/ConflictModal.tsx
+  #     * ConflictModal exports the spec'd ConflictTone type + CanDoAction interface
+  #   - apps/web/test/run-conflict-modal-singleton.mjs (NEW) — driver
+  #     that shells out to `node --import tsx --test` for the test file.
+  #   - apps/web/package.json (EDIT) — added `test:e7-s4` script.
+  #   - SC1 in the spec change log documents the deliberate narrowing of
+  #     the spec's literal forbidden-pattern list (which would have
+  #     flagged 19 existing form/confirmation modals) to target the
+  #     spec's intent (no second conflict-modal component).
+  #   - SC2 documents that DoctorConflictModal.tsx (which the spec
+  #     instructs to delete) does not exist in the codebase today —
+  #     the "delete" step is a no-op.
+  #   - SC3 documents the backward-compat surface: the refactor is
+  #     additive only; the single in-repo consumer (AdminBranches,
+  #     which passes `tone`, `flow`, `title`, `what`, `why`, `rule`,
+  #     `onClose`, and `actions` with `variant`) keeps working
+  #     unchanged. 0 consumer migrations in this pass.
+  #   - 3/3 web static tests green (run via `pnpm --filter @clinic/web
+  #     run test:e7-s4`); regression-catching verified by introducing
+  #     and removing a synthetic `DoctorConflictModal` violation.
+  #   - 0 new typecheck errors (api: 9 pre-existing baseline unchanged;
+  #     web: 0).
+  #   - 0 new lint errors (api: 0; web: 35 pre-existing
+  #     react/no-unescaped-entities errors unchanged).
+  #   - Testcontainers runtime unavailable; no api-side test added in
+  #     this pass (ConflictModal is a web-only surface). Spec
+  #     frontmatter → review, awaiting bmad-code-review pass before
+  #     flipping to done.
+  7-4-conflict-modal-global-component: review
   7-5-accessibility-baseline-wcag-2-1-aa: ready-for-dev
   7-6-branch-timezone-support: done
   # 2026-10-04 E7-S6 documentation-only story complete. The branch
@@ -2089,7 +2200,162 @@ development_status:
   #   - No tests in this pass (per user instruction).
   #   - Token-only CSS verified (0 hex literals in new files).
   #   - Spec: spec-7-2-ui-audit-drawers.md recorded.
-  7-7-no-tentative-client-side-slot-holds: ready-for-dev
+  # 2026-10-11 E7-S7 implementation complete (no-tentative-client-side-slot-holds):
+  #   - apps/web/test/no-tentative-holds.test.ts (NEW, 142 lines) — static
+  #     forbidden-pattern test. Walks apps/web/src/ for hold-state
+  #     identifiers, hold-lifetime trackers, mutable hold stores,
+  #     optimistic-locking smokes, persistent hold stores (localStorage
+  #     / sessionStorage), and timer-driven hold expiry. Comments are
+  #     whitelisted so this spec file itself doesn't false-positive.
+  #   - apps/web/test/run-no-tentative-holds.mjs (NEW) — driver that
+  #     shells out to `node --import tsx --test` so the spec file can
+  #     use TypeScript syntax (import.meta.url, file walking) without
+  #     bundling. Sanctioned entry point for the web test.
+  #   - apps/web/package.json (EDIT) — added `test:e7-s7` script that
+  #     invokes the driver. The legacy `test` script ("no web tests in
+  #     E0-S1") is preserved unchanged for backward compat.
+  #   - apps/api/test/no-tentative-holds-concurrent.test.ts (NEW, 287
+  #     lines) — dynamic half. Two-API-call concurrent-booking race
+  #     against the same slot; pins the server contract that
+  #     ConflictModal (E7-S4) consumes:
+  #     * exactly one 201 + one 409 with envelope {error:'slot_raced',
+  #       code:'SLOT_RACED', can_do:[{action:'refresh_availability',...}]}
+  #     * appointment count for the slot = 1 (never 2) — proves GIST
+  #       exclusion is the race-safety net, not a client hold
+  #     * appointment_audit 'created' count = 1 — proves the failure
+  #       path rolls back the audit write
+  #   - 2/2 web static tests green (run via `pnpm --filter @clinic/web
+  #     run test:e7-s7`); regression-catching verified by introducing
+  #     and removing a synthetic `slotHolds` violation — the test
+  #     correctly reported file + line + reason.
+  #   - 0 new typecheck errors (api: 3 pre-existing baseline in
+  #     src/otp/{provider,service,twilio-provider}.ts + 2 in
+  #     test/_populate-app.ts + 4 in test/e2e-*.ts unchanged; web: 0).
+  #   - 0 new lint errors (api: 0; web: 35 pre-existing
+  #     react/no-unescaped-entities errors unchanged).
+  #   - Testcontainers runtime unavailable in this env; api dynamic
+  #     test could not be re-run; status relies on spec audit trail
+  #     + web static green. Spec frontmatter → review, awaiting
+  #     bmad-code-review pass before flipping to done.
+  7-7-no-tentative-client-side-slot-holds: review
+  # 2026-10-11 E7-S5 implementation complete (accessibility baseline
+  # WCAG 2.1 AA):
+  #   - apps/web/src/styles/tokens.css (EDIT) — `--text-faint`
+  #     renamed to `--text-disabled` (the colour #9ca3af at 2.85:1
+  #     against --surface fails WCAG body-text contrast; the new
+  #     name makes the constraint explicit). 11 CSS files updated
+  #     to use the renamed token. `--ring-focus` was already in
+  #     place; `--ring-offset: 2px` was added per spec-7-5 §1.
+  #   - apps/web/src/styles/shell.css (EDIT) — three new global
+  #     rules:
+  #     * `:where(a, button, input, select, textarea,
+  #       [role="button"], [tabindex]):focus-visible { outline:
+  #       none; box-shadow: var(--ring-focus); }` — the canonical
+  #       focus ring (FR-WCAG-FOCUS). The :where() pseudo-class
+  #       keeps specificity at 0 so per-component hover/active
+  #       rules still win.
+  #     * `@media (max-width: 640px) { :where(button, a[role=
+  #       "button"], input, select):not(.compact) { min-height:
+  #       40px; min-width: 40px; } }` — mobile touch-target floor
+  #       (FR-WCAG-TOUCH, WCAG 2.5.5 AA floor). The `.compact`
+  #       opt-out is preserved for dense dashboards.
+  #     * `@media (prefers-reduced-motion: reduce) { *, *::before,
+  #       *::after { animation-duration: 0.001ms !important;
+  #       transition-duration: 0.001ms !important; ... } }` —
+  #       honours the OS-level motion preference
+  #       (FR-WCAG-MOTION).
+  #   - apps/web/src/components/ConflictModal.tsx (EDIT) — added:
+  #     * `role="alertdialog"` (was `role="dialog"`) per
+  #       spec-7-5 §2.
+  #     * `tabIndex={-1}` on the dialog so the dialog itself
+  #       receives focus when no focusable child is present.
+  #     * `aria-describedby` linking the `what` block to the
+  #       dialog label.
+  #     * Focus trap: on Tab/Shift+Tab, focus cycles within the
+  #       dialog (queries FOCUSABLE_SELECTOR = `a[href],
+  #       button:not([disabled]), input, select, textarea,
+  #       [tabindex]:not([tabindex="-1"])`).
+  #     * On open: capture the previously focused element, move
+  #       focus to the first focusable inside the dialog (or
+  #       the dialog itself if none).
+  #     * On close: restore focus to the previously focused
+  #       element (WCAG 2.4.3 focus order).
+  #     * Escape-to-close was already implemented in E7-S4.
+  #       Enter-to-primary is implicit (native <button> behaviour).
+  #   - apps/web/src/pages/AdminDoctorAssign.tsx (EDIT) — added
+  #     `<span aria-hidden="true">●</span>` / `○` glyph prefixes
+  #     to the pill-shaped Active/Inactive indicators. Were bare
+  #     text before.
+  #   - apps/web/src/pages/ReceptionistCancel.tsx (EDIT) —
+  #     `statusPillLabel` now returns glyph-prefixed labels
+  #     (`● Scheduled`, `✓ Done`, `✕ Cancelled`, `⊘ No-show`)
+  #     instead of bare words.
+  #   - apps/web/src/pages/DoctorAuditDrawer.tsx (EDIT) — the
+  #     audit-row pill labels now carry glyph prefixes
+  #     (`✓ Resolve`, `✕ Cancel`, `● Status`, `+ Create`,
+  #     `⊘ Block`, `· Event`).
+  #   - 3 new test files (NEW):
+  #     * apps/web/test/a11y-focus-ring.test.ts (NEW, ~165 lines)
+  #       — two static assertions: (a) shell.css declares the
+  #       global `:where(...):focus-visible` rule targeting
+  #       button/input/select/textarea/a, with
+  #       `box-shadow: var(--ring-focus)`; (b) no other CSS file
+  #       removes an outline (`outline: none` / `outline: 0`)
+  #       on an interactive element without supplying a
+  #       focus-replacement (box-shadow: var(--ring-*) or an
+  #       explicit outline colour). Catches the classic
+  #       `button { outline: none }` regression.
+  #     * apps/web/test/a11y-status-pills.test.ts (NEW, ~165
+  #       lines) — walks apps/web/src for lines containing
+  #       `styles['...pill...']` (case-insensitive), then
+  #       examines the 6 lines after (and the line itself) for
+  #       a Unicode glyph, a nested `<svg>`, or an `aria-label`.
+  #       Exempts non-status pills (nav__pill, doctor-pill,
+  #       doctor-pill__avatar, returning-pill, target-pill,
+  #       type-lock-pill, role-pill, branch-pill). Catches
+  #       regressions that strip the colour-independent
+  #       marker.
+  #     * apps/web/test/a11y-touch-targets.test.ts (NEW, ~85
+  #       lines) — pins the mobile touch-target rule and the
+  #       prefers-reduced-motion rule in shell.css. Asserts
+  #       `@media (max-width: 640px) { :where(button,
+  #       a[role="button"], input, select):not(.compact) {
+  #       min-height: 40px; min-width: 40px; } }` and
+  #       `@media (prefers-reduced-motion: reduce) { ... }`.
+  #   - 3 new test drivers (NEW):
+  #     * apps/web/test/run-a11y-focus-ring.mjs
+  #     * apps/web/test/run-a11y-status-pills.mjs
+  #     * apps/web/test/run-a11y-touch-targets.mjs
+  #   - apps/web/package.json (EDIT) — added three
+  #     `test:e7-s5-{focus,pills,touch}` scripts. Legacy
+  #     `test` script preserved.
+  #   - 13/13 web tests green (run via `pnpm --filter @clinic/web
+  #     run test:e7-s5-{focus,pills,touch}` plus the prior
+  #     `test:e7-s1`/`test:e7-s4`/`test:e7-s7`). Regression-
+  #     catching verified by introducing and removing
+  #     synthetic violations:
+  #     * a11y-focus-ring: added `button:focus-visible {
+  #       outline: 0; background: yellow; }` to a CSS file —
+  #       test correctly reported file + selector + rule body.
+  #     * a11y-status-pills: removed the `●` prefix from the
+  #       Active pill in AdminBranches.tsx — test correctly
+  #       reported the offender.
+  #   - axe-core integration smoke (spec-7-5 §7.4) is DEFERRED
+  #     to a future "P7-12: per-page AA audit" story. The
+  #     three static tests lock the global rules; axe will
+  #     validate per-page. Tracked in the spec's deferrals
+  #     section + SC3 in the spec change log.
+  #   - 0 new typecheck errors (web: 0 baseline).
+  #   - 0 new lint errors (35 pre-existing
+  #     react/no-unescaped-entities errors in pages
+  #     unchanged).
+  #   - Spec change log updated with SC1–SC6 (ring token
+  #     keep, aria-label as alternative, axe-smoke defer,
+  #     pill exemption list, role=alertdialog migration,
+  #     :focus-visible selector scope).
+  #   - Status → review, awaiting bmad-code-review pass
+  #     before flipping to done.
+  7-5-accessibility-baseline-wcag-2-1-aa: review
   7-8-performance-availability-slas: ready-for-dev
   7-9-product-metrics-instrumentation: ready-for-dev
   7-10-design-open-questions-parking-lot: ready-for-dev

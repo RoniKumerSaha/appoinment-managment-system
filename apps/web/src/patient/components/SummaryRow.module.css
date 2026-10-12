@@ -1,4 +1,7 @@
-/* SummaryRow — single key/value row in a SummaryCard. */
+/* SummaryRow — single key/value row in a SummaryCard.
+ *
+ * E7-S1 wiring: token-only CSS. Uses patient-palette tokens.
+ */
 
 .summary-row {
   display: grid;
@@ -6,7 +9,7 @@
   gap: 12px;
   align-items: baseline;
   padding: 8px 0;
-  border-top: 1px solid rgba(15, 138, 138, 0.1);
+  border-top: var(--shadow-line);
 }
 
 .summary-row:first-child {
@@ -19,25 +22,25 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-muted);
 }
 
 .summary-row__value {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary, #0f172a);
+  color: var(--text-primary);
   word-break: break-word;
 }
 
 .summary-row__hint {
   grid-column: 2 / 3;
   font-size: 12px;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
 .summary-row--highlight {
-  background: var(--brand-light-50, #eef7f7);
+  background: var(--brand-light-50-patient);
   border-radius: 8px;
   padding: 10px 12px;
   margin: 4px -12px;
@@ -45,6 +48,6 @@
 }
 
 .summary-row--highlight .summary-row__value {
-  color: var(--brand-primary, #0f8a8a);
+  color: var(--brand-primary-patient);
   font-size: 15px;
 }

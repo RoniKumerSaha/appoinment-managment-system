@@ -123,21 +123,22 @@ export function DoctorMarkStatus({
       role="dialog"
       aria-modal="true"
       aria-label={`Mark status for ${appointment.patientLabel}`}
+      data-testid="doc-mark-modal"
       onClick={(e) => {
         if (e.target === e.currentTarget && submitting === null) onCancel();
       }}
     >
-      <div className="doc-mark__modal">
-        <div className="doc-mark__head">
+      <div className="doc-mark__modal" data-testid="doc-mark-frame">
+        <div className="doc-mark__head" data-testid="doc-mark-head">
           <div className="doc-mark__crumb">Mark status</div>
-          <h2 className="doc-mark__title">Update this appointment</h2>
+          <h2 className="doc-mark__title" data-testid="doc-mark-title">Update this appointment</h2>
           <div className="doc-mark__sub">
             The slot will not be released — this row is in the past.
           </div>
         </div>
 
-        <div className="doc-mark__body">
-          <div className="doc-mark__appt">
+        <div className="doc-mark__body" data-testid="doc-mark-body">
+          <div className="doc-mark__appt" data-testid="doc-mark-appt">
             <div className="doc-mark__appt-time">
               <div className="doc-mark__appt-month">{month ?? ''}</div>
               <div className="doc-mark__appt-day">{day ?? ''}</div>
@@ -158,10 +159,11 @@ export function DoctorMarkStatus({
           </div>
 
           <div className="doc-mark__label">Quick status update</div>
-          <div className="doc-mark__choices">
+          <div className="doc-mark__choices" data-testid="doc-mark-choices">
             <button
               type="button"
               className="doc-mark__btn doc-mark__btn--completed"
+              data-testid="doc-mark-completed-btn"
               onClick={() => {
                 void onConfirm('Completed');
               }}
@@ -176,6 +178,7 @@ export function DoctorMarkStatus({
             <button
               type="button"
               className="doc-mark__btn doc-mark__btn--no-show"
+              data-testid="doc-mark-no-show-btn"
               onClick={() => {
                 void onConfirm('No-Show');
               }}
@@ -189,7 +192,7 @@ export function DoctorMarkStatus({
             </button>
           </div>
 
-          {err && <div className="doc-mark__err">{err}</div>}
+          {err && <div className="doc-mark__err" data-testid="doc-mark-error" role="alert">{err}</div>}
 
           <div className="doc-mark__note">
             <strong>Audit row:</strong> marked_&lt;status&gt; · actor=you ·
@@ -197,10 +200,11 @@ export function DoctorMarkStatus({
           </div>
         </div>
 
-        <div className="doc-mark__foot">
+        <div className="doc-mark__foot" data-testid="doc-mark-foot">
           <button
             type="button"
             className="doc-mark__btn-ghost"
+            data-testid="doc-mark-close-btn"
             onClick={onCancel}
             disabled={submitting !== null}
           >

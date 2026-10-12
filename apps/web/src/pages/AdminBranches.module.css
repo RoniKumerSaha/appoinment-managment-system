@@ -188,7 +188,7 @@
 
 .row--inactive .ic {
   background: var(--surface-divider);
-  color: var(--text-faint);
+  color: var(--text-disabled);
 }
 
 .body {

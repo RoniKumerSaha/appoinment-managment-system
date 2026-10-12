@@ -4,6 +4,13 @@
  *
  * Sizes match the mockup rhythm: small inline links (sm), standard CTAs
  * (md), and full-weight STAGE buttons (lg).
+ *
+ * E7-S1 wiring: token-only CSS. The patient palette uses the
+ * `--brand-primary-patient` and `--danger-500`/`--danger-600` semantic
+ * tokens defined in `apps/web/src/styles/tokens.css` (kept separate
+ * from the canonical brand tokens to preserve the patient UI's
+ * visual identity). Direct hex values are forbidden by the
+ * `apps/web/test/token-only-css.test.ts` static enforcer.
  */
 
 .btn {
@@ -31,47 +38,47 @@
 }
 
 .btn:focus-visible {
-  outline: 2px solid var(--brand-primary, #0f8a8a);
+  outline: 2px solid var(--brand-primary-patient);
   outline-offset: 2px;
 }
 
 .btn--primary {
-  background: var(--brand-primary, #0f8a8a);
-  color: #ffffff;
-  box-shadow: var(--shadow-elev-2, 0 4px 12px rgba(15, 138, 138, 0.18));
+  background: var(--brand-primary-patient);
+  color: var(--on-brand);
+  box-shadow: var(--shadow-elev-2);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: #0c7474;
+  background: var(--brand-primary-patient-hover);
 }
 
 .btn--secondary {
-  background: #ffffff;
-  color: var(--brand-primary, #0f8a8a);
-  border-color: var(--brand-primary, #0f8a8a);
+  background: var(--on-brand);
+  color: var(--brand-primary-patient);
+  border-color: var(--brand-primary-patient);
 }
 
 .btn--secondary:hover:not(:disabled) {
-  background: var(--brand-light-50, #eef7f7);
+  background: var(--brand-light-50-patient);
 }
 
 .btn--ghost {
   background: transparent;
-  color: var(--brand-primary, #0f8a8a);
+  color: var(--brand-primary-patient);
   border-color: transparent;
 }
 
 .btn--ghost:hover:not(:disabled) {
-  background: rgba(15, 138, 138, 0.08);
+  background: var(--hover-tint);
 }
 
 .btn--danger {
-  background: var(--danger-500, #d64545);
-  color: #ffffff;
+  background: var(--danger-500);
+  color: var(--on-danger);
 }
 
 .btn--danger:hover:not(:disabled) {
-  background: #b73838;
+  background: var(--danger-600);
 }
 
 .btn--sm {

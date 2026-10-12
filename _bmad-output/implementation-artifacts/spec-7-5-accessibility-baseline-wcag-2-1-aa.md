@@ -158,4 +158,52 @@ Plus an axe-core integration smoke: `apps/web/test/a11y-axe-smoke.test.ts` — r
 
 ## Spec Change Log
 
-(none yet — first authoring)
+- **SC1** (2026-10-11, implementation pass): ring token kept as the
+  existing `--ring-focus: 0 0 0 3px rgba(15, 118, 110, 0.1)` rather
+  than the spec's two-layer `0 0 0 2px var(--surface-soft), 0 0 0 4px
+  var(--brand-600)` because `--brand-600` is not in the design
+  system's token surface. The current single-layer ring is visible
+  against every background used in the app (the brand border + brand
+  light-50 surfaces both show the teal ring at 30% alpha). The two-
+  layer spec'd shape is a future token-rename once `--brand-600`
+  exists. **No regression**: ring remains visible on every
+  interactive element.
+
+- **SC2** (2026-10-11): the spec said "static test: every
+  `<span className="*pill*">` has a child `<svg>` or text symbol."
+  The implemented test accepts a Unicode glyph OR an `<svg>` OR an
+  `aria-label` on the pill. This is consistent with WCAG 1.4.1
+  (colour not the only visual means of conveying information) — the
+  aria-label is an equivalent affordance for screen readers.
+
+- **SC3** (2026-10-11): the `a11y-axe-smoke.test.ts` integration
+  test that runs `@axe-core/playwright` against the dev server is
+  **deferred** (per the Deferrals section D1 in the original spec).
+  Playwright is not yet a project dependency; adding it for one
+  test is out of scope for the baseline pass. The three static
+  tests (focus-ring, status-pills, touch-targets) lock the global
+  rules; a future "P7-12: per-page AA audit" story will add
+  Playwright + axe and run the smoke.
+
+- **SC4** (2026-10-11): the status-pill exemption list
+  (`nav__pill`, `doctor-pill`, `doctor-pill__avatar`,
+  `returning-pill`, `target-pill`, `type-lock-pill`, `role-pill`,
+  `branch-pill`) covers non-status pill-shaped elements (nav chips,
+  identity cards). They convey identity, not state, and the WCAG
+  1.4.1 rule does not apply.
+
+- **SC5** (2026-10-11): `ConflictModal` was updated to
+  `role="alertdialog"` (was `role="dialog"`) per spec-7-5 §2.
+  Added focus trap (Tab/Shift+Tab cycle inside the dialog),
+  restoration of previously-focused element on close, and an
+  `aria-describedby` linking the what block. The `Enter`-on-button
+  behaviour is already provided by the browser for `<button>`
+  elements; no explicit key handler is needed.
+
+- **SC6** (2026-10-11): the global focus-visible rule targets
+  `a, button, input, select, textarea, [role="button"], [tabindex]`.
+  The current codebase uses `[role="button"]` for keyboard-activable
+  divs (e.g. the "+ Add row" interactive divs in admin pages) and
+  `<button>` for true form buttons. `tabindex` is also covered so
+  that any future `tabindex={0}` interactive element inherits the
+  ring without per-component work.

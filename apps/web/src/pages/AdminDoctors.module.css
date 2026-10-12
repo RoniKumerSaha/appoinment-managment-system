@@ -233,7 +233,7 @@
 
 .doc-card--inactive .av {
   background: var(--surface-divider);
-  color: var(--text-faint);
+  color: var(--text-disabled);
 }
 
 .name-block {
@@ -323,7 +323,7 @@
 
 .branch-chip-empty {
   font-size: var(--text-xs);
-  color: var(--text-faint);
+  color: var(--text-disabled);
   font-style: italic;
 }
 
@@ -358,7 +358,7 @@
 }
 
 .doc-card--inactive .stat__value {
-  color: var(--text-faint);
+  color: var(--text-disabled);
 }
 
 /* ─── Action buttons ───────────────────────────────────────────── */

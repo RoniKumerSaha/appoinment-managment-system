@@ -2,10 +2,10 @@
 id: spec-7-7-no-tentative-client-side-slot-holds
 title: E7-S7 — No tentative client-side slot holds
 epic: epic-7
-status: ready-for-dev
+status: review
 review_loop_iteration: 0
 created: 2026-10-07
-last_updated: 2026-10-07
+last_updated: 2026-10-11
 source_story: planning-artifacts/epics-and-stories.md §E7-S7
 ---
 
@@ -95,4 +95,13 @@ The web client (E7-S4) renders ConflictModal on `409 slot_taken`; this test asse
 
 ## Spec Change Log
 
-(none yet — first authoring)
+### 2026-10-11 — Implementation
+
+- **SC1** — Static test file lives at `apps/web/test/no-tentative-holds.test.ts` as specified. The web package's `test` script is preserved as a no-op (it predates this work and is referenced by other workflows); a new `test:e7-s7` script in `apps/web/package.json` invokes the driver at `apps/web/test/run-no-tentative-holds.mjs` which shells out to `node --import tsx --test`. Net: 1 new test script + 1 driver; 0 changes to existing web scripts.
+- **SC2** — Static test whitelists comment lines (`//`, `/*`, `*`) so the spec file's own prose ("forbidden by spec-7-7") does not self-trip. This is a deliberate choice over the alternative (whitelist-by-path) because it keeps the test focused on call-sites rather than identifier mentions.
+- **SC3** — Dynamic test mirrors the structure of `bookings.test.ts:531` (the deterministic "pre-inserted" slot_raced case) and adds a true concurrent `Promise.all([A, B])` race on top. The control case (pre-inserted) is kept as a second test in the same file so E7-S7 owns its full contract surface and reviewers don't need to cross-reference `bookings.test.ts` to understand the loser envelope.
+- **SC4** — Test cleanup in `after()` deletes by test-prefixed `created_by` value (`patient:+15559990002`); the concurrent test's winning patient is the one whose row is asserted, so cleanup targets the winner. Loser leaves no row, so no cleanup is needed for it. Audit cleanup is by `actor_id LIKE 'patient:%test%'`.
+- **SC5** — Future E7-S4 work (ConflictModal extraction) can branch on `error === 'slot_raced' | 'branch_inactive' | ...` and render the `can_do[]` action list. The dynamic test pins the exact envelope shape so any future E7-S4 wiring is test-driven.
+- **Deferrals:** 0
+- **Pre-existing baselines unchanged:** 0 (no code outside the new test files was touched).
+- **Awaiting:** bmad-code-review pass before flipping to `done`.

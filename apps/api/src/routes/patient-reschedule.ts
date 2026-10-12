@@ -60,6 +60,10 @@ import {
   timeStringToMinutes,
   utcDayOfWeek,
 } from '../availability/types.js';
+import {
+  branchLocalMidnightMs,
+  branchLocalDayOfWeek,
+} from './recurring-helpers.js';
 
 const E164_PHONE_RE = /^\+[1-9]\d{6,14}$/;
 const DURATION_MIN = 5;
@@ -99,6 +103,11 @@ const SELECT_DOCTOR_BRANCH_HOURS_SQL = `
       ON bw.branch_id = b.id AND bw.day_of_week = $4
    WHERE d.id = $1 AND d.clinic_id = $3;
 `;
+
+// E7-S6 partial: light-weight tz probe. Used to compute the
+// branch-local DOW before the doctor+branch_hours SELECT, so
+// the hours row is keyed on the correct (branch-local) day.
+const SELECT_BRANCH_TZ_SQL = `SELECT tz FROM branch WHERE id = $1`;
 
 const SELECT_DOCTOR_SQL = `
   SELECT id FROM doctor WHERE id = $1 AND clinic_id = $2;
@@ -258,11 +267,19 @@ async function recheckNewSlotInTxn(
       close_time: string | null;
       is_closed: boolean | null;
     };
+    /** E7-S6 partial: IANA tz name. When supplied, the slot's
+     *  minutes-of-day are anchored to branch-local midnight and
+     *  the doctor_schedule query uses the branch-local DOW. */
+    branchTz?: string | null;
   },
 ): Promise<RecheckOutcome> {
   const startDate = new Date(args.startMs);
   const endDate = new Date(args.endMs);
-  const dow = utcDayOfWeek(startDate);
+  // E7-S6 partial: branch-local DOW when tz is set.
+  const dow =
+    args.branchTz !== undefined && args.branchTz !== null
+      ? branchLocalDayOfWeek(args.startMs, args.branchTz)
+      : utcDayOfWeek(startDate);
 
   // 1. Branch-hours disambiguation (P0-3 fix from E3-S2 review-loop-1).
   const h = args.branchHours;
@@ -278,11 +295,17 @@ async function recheckNewSlotInTxn(
   }
 
   // 2. Slot's minutes-of-day.
-  const dayStartMs = Date.UTC(
-    startDate.getUTCFullYear(),
-    startDate.getUTCMonth(),
-    startDate.getUTCDate(),
-  );
+  //    E7-S6 partial: branch-local anchor when tz is set, so a
+  //    14:00 ET slot is 14*60=840 min and fits the 09:00-17:00
+  //    branch-local window. Without it, fall back to UTC.
+  const dayStartMs =
+    args.branchTz !== undefined && args.branchTz !== null
+      ? branchLocalMidnightMs(args.startMs, args.branchTz)
+      : Date.UTC(
+          startDate.getUTCFullYear(),
+          startDate.getUTCMonth(),
+          startDate.getUTCDate(),
+        );
   const startMin = Math.floor((args.startMs - dayStartMs) / 60000);
   const endMin = Math.floor((args.endMs - dayStartMs) / 60000);
 
@@ -564,7 +587,20 @@ patientRescheduleRouter.post(
       // 2. Doctor + branch + branch_hours + tz lookup. The doctor is
       //    LOCKED — appt.doctor_id is the only source. The branch can
       //    change (FR-041).
-      const dow = utcDayOfWeek(new Date(startMs));
+      //    E7-S6 partial: probe the branch tz first so the
+      //    branch_weekly_hours row is keyed on the branch-local
+      //    DOW (a 23:30 Sun ET slot is Sun, not Mon).
+      const { rows: tzRows } = await client.query<{ tz: string }>(
+        SELECT_BRANCH_TZ_SQL,
+        [body.new_branch_id],
+      );
+      if (tzRows.length === 0) {
+        await client.query('ROLLBACK');
+        res.status(404).json({ error: 'branch_not_found' });
+        return;
+      }
+      const branchTz = tzRows[0]!.tz;
+      const dow = branchLocalDayOfWeek(startMs, branchTz);
       const { rows: docRows } = await client.query<DoctorBranchRow>(
         SELECT_DOCTOR_BRANCH_HOURS_SQL,
         [appt.doctor_id, body.new_branch_id, clinicId, dow],
@@ -639,6 +675,9 @@ patientRescheduleRouter.post(
           close_time: docInfo.close_time,
           is_closed: docInfo.is_closed,
         },
+        // E7-S6 partial: thread branch tz so the validator uses
+        // branch-local minutes-of-day + branch-local DOW.
+        branchTz,
       });
       if (!recheck.ok) {
         await client.query('ROLLBACK');

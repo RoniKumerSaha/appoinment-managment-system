@@ -37,7 +37,7 @@ const SIBLINGS: Sibling[] = [
 
 export function RecurringOccurrenceCancel(): ReactNode {
   const { stored } = useAuth();
-  const userName = stored?.profile.full_name ?? undefined;
+  const userName = stored?.profile?.full_name ?? undefined;
   const past = SIBLINGS.filter((s) => s.state === 'completed');
   const upcoming = SIBLINGS.filter((s) => s.state !== 'completed');
 

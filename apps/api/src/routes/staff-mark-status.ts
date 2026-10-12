@@ -42,8 +42,8 @@ import { getLogger } from '../middleware/log.js';
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const ALLOWED_STATUSES = new Set(['Completed', 'No-Show'] as const);
-type MarkStatus = 'Completed' | 'No-Show';
+const ALLOWED_STATUSES = new Set(['Completed', 'No-show'] as const);
+type MarkStatus = 'Completed' | 'No-show';
 
 const SELECT_APPOINTMENT_FOR_UPDATE_SQL = `
   SELECT id::text AS id, patient_phone, status, branch_id::text AS branch_id,
@@ -101,7 +101,12 @@ staffMarkStatusRouter.post(
       return;
     }
 
-    // Body shape: { status: 'Completed' | 'No-Show' }.
+    // Body shape: { status: 'Completed' | 'No-show' }.
+    // Per spec-0-2 the appointment_status enum is exactly
+    // {Scheduled, Completed, Cancelled, No-show} (lowercase 's').
+    // The route must mirror the DB enum verbatim, otherwise the
+    // UPDATE fails at the SQL layer with `22P02 invalid input value
+    // for enum`.
     const body = req.body;
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       res.status(400).json({ error: 'invalid_status' });

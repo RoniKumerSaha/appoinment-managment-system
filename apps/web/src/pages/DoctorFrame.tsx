@@ -38,28 +38,29 @@ export function DoctorFrame({ children }: DoctorFrameProps) {
   };
 
   return (
-    <div className="doctor-frame__root">
-      <nav className="doctor-frame__nav">
-        <div className="doctor-frame__brand">
+    <div className="doctor-frame__root" data-testid="doctor-frame">
+      <nav className="doctor-frame__nav" data-testid="doctor-frame-nav">
+        <div className="doctor-frame__brand" data-testid="doctor-frame-brand">
           <BrandMark size={28} className="doctor-frame__brand-logo" />
           MediSlot
           {claim?.role === 'doctor' && (
-            <span className="doctor-frame__role-pill">Doctor</span>
+            <span className="doctor-frame__role-pill" data-testid="doctor-frame-role-pill">Doctor</span>
           )}
         </div>
-        <div className="doctor-frame__actor">
+        <div className="doctor-frame__actor" data-testid="doctor-frame-actor">
           <span className="doctor-frame__actor-name">{displayName}</span>
           <span className="doctor-frame__actor-avatar">{initials}</span>
         </div>
         <button
           type="button"
           className="doctor-frame__cta"
+          data-testid="doctor-frame-signout"
           onClick={onClickSignOut}
         >
           Sign out
         </button>
       </nav>
-      <div className="doctor-frame__body">{children}</div>
+      <div className="doctor-frame__body" data-testid="doctor-frame-body">{children}</div>
     </div>
   );
 }

@@ -184,7 +184,7 @@
 
 .day-group-closed-note {
   font-size: var(--text-xs);
-  color: var(--text-faint);
+  color: var(--text-disabled);
   padding: var(--space-2) 0;
   font-style: italic;
 }
@@ -236,7 +236,7 @@
 }
 
 .slot-booked .slot-t {
-  color: var(--text-faint);
+  color: var(--text-disabled);
 }
 
 .slot-selected {

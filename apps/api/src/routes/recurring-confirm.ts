@@ -215,6 +215,10 @@ recurringConfirmRouter.post(
           submittedDuration: snapshot.body.duration_minutes,
           branchLocalDate: occ.localDate,
           todayLocalDate: todayLocal,
+          // E7-S6 partial: thread branch tz so the validator
+          // compares the slot against the branch's local working
+          // window in branch-local time.
+          branchTz: snapshot.branchTz,
         });
         if (!recheck.ok) {
           skipped.push({

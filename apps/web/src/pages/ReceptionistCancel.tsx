@@ -104,15 +104,18 @@ function statusPillClass(s: ReceptionistAppointmentStatus): string {
 }
 
 function statusPillLabel(s: ReceptionistAppointmentStatus): string {
+  // E7-S5 — pill meaning must not rely on colour alone; every status
+  // carries a Unicode glyph prefix so the meaning survives a colour-
+  // blind viewer or a stripped stylesheet.
   switch (s) {
     case 'Scheduled':
-      return 'Scheduled';
+      return '● Scheduled';
     case 'Completed':
-      return 'Done';
+      return '✓ Done';
     case 'Cancelled':
-      return 'Cancelled';
+      return '✕ Cancelled';
     case 'No-Show':
-      return 'No-show';
+      return '⊘ No-show';
   }
 }
 

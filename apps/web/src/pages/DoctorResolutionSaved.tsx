@@ -55,13 +55,18 @@ export function DoctorResolutionSaved({
   const fromDate = formatDateInTz(info.fromStart, tzGuess);
 
   return (
-    <div className="doc-saved__backdrop" role="dialog" aria-modal="true">
-      <div className="doc-saved__modal">
-        <div className="doc-saved__success-head">
+    <div
+      className="doc-saved__backdrop"
+      role="dialog"
+      aria-modal="true"
+      data-testid="doc-saved-modal"
+    >
+      <div className="doc-saved__modal" data-testid="doc-saved-frame">
+        <div className="doc-saved__success-head" data-testid="doc-saved-success-head">
           <div className="doc-saved__success-icon" aria-hidden="true">
             ✓
           </div>
-          <h1 className="doc-saved__success-title">
+          <h1 className="doc-saved__success-title" data-testid="doc-saved-title">
             {remaining > 0
               ? `1 of ${remaining + 1} resolved.`
               : 'All affected appointments resolved.'}
@@ -71,7 +76,7 @@ export function DoctorResolutionSaved({
           </p>
         </div>
 
-        <div className="doc-saved__summary">
+        <div className="doc-saved__summary" data-testid="doc-saved-summary">
           <div className="doc-saved__summary-head">
             <div className="doc-saved__summary-ic" aria-hidden="true">
               📅
@@ -79,7 +84,7 @@ export function DoctorResolutionSaved({
             <h2 className="doc-saved__summary-title">Resolution summary</h2>
             <span className="doc-saved__summary-meta">just now</span>
           </div>
-          <div className="doc-saved__row">
+          <div className="doc-saved__row" data-testid="doc-saved-summary-row">
             <div className="doc-saved__time">
               {toDate}
               <div className="doc-saved__time-range">{toStart}</div>
@@ -100,10 +105,11 @@ export function DoctorResolutionSaved({
           </div>
         </div>
 
-        <div className="doc-saved__actions">
+        <div className="doc-saved__actions" data-testid="doc-saved-actions">
           <button
             type="button"
             className="doc-saved__btn-secondary"
+            data-testid="doc-saved-back-btn"
             onClick={onClose}
           >
             ← Back to queue
@@ -112,6 +118,7 @@ export function DoctorResolutionSaved({
             <button
               type="button"
               className="doc-saved__btn-primary"
+              data-testid="doc-saved-resolve-next-btn"
               onClick={onResolveAnother}
             >
               Resolve next
@@ -120,14 +127,14 @@ export function DoctorResolutionSaved({
         </div>
 
         {recent && recent.length > 0 ? (
-          <div className="doc-saved__audit">
+          <div className="doc-saved__audit" data-testid="doc-saved-audit">
             <div className="doc-saved__audit-head">
               <span aria-hidden="true">🛡</span>
               <span>Audit log</span>
             </div>
             <ul className="doc-saved__audit-list">
               {recent.map((ev, i) => (
-                <li key={i} className="doc-saved__audit-row">
+                <li key={i} className="doc-saved__audit-row" data-testid={`doc-saved-audit-row-${i}`}>
                   <span
                     className={`doc-saved__pill doc-saved__pill--${ev.tone}`}
                   >
@@ -150,6 +157,7 @@ export function DoctorResolutionSaved({
               <button
                 type="button"
                 className="doc-saved__audit-link"
+                data-testid="doc-saved-audit-link-btn"
                 onClick={onOpenAuditDrawer}
               >
                 View all {recent.length} event{recent.length === 1 ? '' : 's'} in audit drawer →
@@ -157,7 +165,7 @@ export function DoctorResolutionSaved({
             )}
           </div>
         ) : (
-          <div className="doc-saved__note">
+          <div className="doc-saved__note" data-testid="doc-saved-note">
             <span aria-hidden="true">🛡</span>
             <div>
               Every action here is logged. The full audit trail is in the

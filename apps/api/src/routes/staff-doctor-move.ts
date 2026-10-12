@@ -313,6 +313,9 @@ staffDoctorMoveRouter.post(
 
       // 9. In-txn FR-046 recheck on the destination slot. The
       //    appointment_type_id is taken from the source row.
+      //    Exclude the moving row from FR-027/FR-029 so it does
+      //    not count itself as its own sibling (otherwise the
+      //    only-future-with-this-doctor case always 409s).
       const branchLocalDate = formatLocalDate(new Date(startMs), newBranch.tz);
       const todayLocal = formatLocalDate(new Date(nowMs), newBranch.tz);
       const recheck = await validateOccurrenceInTxn(client, {
@@ -326,6 +329,12 @@ staffDoctorMoveRouter.post(
         submittedDuration: Math.round(sourceDurationMs / 60_000),
         branchLocalDate,
         todayLocalDate: todayLocal,
+        excludeAppointmentId: appt.id,
+        // E7-S6 partial: thread the destination branch's tz so
+        // the validator compares the new slot against the
+        // branch's local working window in branch-local time
+        // (e.g. 14:00 ET on East Branch fits 09:00-17:00 ET).
+        branchTz: newBranch.tz,
       });
       if (!recheck.ok) {
         await client.query('ROLLBACK');

@@ -73,7 +73,7 @@ export function DoctorApp({ initialView }: DoctorAppProps) {
     return <RecurringBackOut />;
   }
   return (
-    <>
+    <div data-testid="doctor-app">
       <DoctorAffected onOpenAudit={openAudit} />
       {auditTarget !== null && (
         <DoctorAuditDrawer
@@ -83,6 +83,6 @@ export function DoctorApp({ initialView }: DoctorAppProps) {
           onClose={closeAudit}
         />
       )}
-    </>
+    </div>
   );
 }

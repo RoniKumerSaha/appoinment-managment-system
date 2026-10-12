@@ -178,7 +178,7 @@ export function PatientBooking({
 }) {
   // User identity (mock 20 lines 79-82 — avatar chip in the right of the nav).
   const { stored: storedAuth } = useAuth();
-  const userName = storedAuth?.profile.full_name ?? undefined;
+  const userName = storedAuth?.profile?.full_name ?? undefined;
   // Catalogue.
   const [doctors, setDoctors] = useState<PublicDoctorDto[]>([]);
   const [branches, setBranches] = useState<PublicBranchDto[]>([]);
@@ -437,7 +437,7 @@ export function PatientBooking({
   if (catLoading) {
     return (
       <PatientFrame step={step} onNavigate={onNavigate} userName={userName}>
-        <div className={styles['loading']}>Loading…</div>
+        <div className={styles['loading']} data-testid="patient-booking-loading">Loading…</div>
       </PatientFrame>
     );
   }
@@ -445,8 +445,8 @@ export function PatientBooking({
   if (catErr && !draft.doctor) {
     return (
       <PatientFrame step={step} onNavigate={onNavigate} userName={userName}>
-        <div className={styles['page']}>
-          <div className={styles['error-banner']} role="alert">
+        <div className={styles['page']} data-testid="patient-booking-page">
+          <div className={styles['error-banner']} role="alert" data-testid="patient-booking-error-banner">
             <strong>{catErr.code}:</strong> {catErr.message}
           </div>
         </div>
@@ -541,7 +541,7 @@ function DoctorStep({
   onPick: (d: PublicDoctorDto) => void;
 }) {
   return (
-    <div className={styles['layout']}>
+    <div className={styles['layout']} data-testid="patient-booking-step1">
       <div className={styles['main']}>
         <div className={styles['back-link']}>
           <span className={styles['back-link__inner']}>← Branches / Help</span>
@@ -562,12 +562,12 @@ function DoctorStep({
         </div>
 
         {doctors.length === 0 ? (
-          <div className={styles['empty']}>
+          <div className={styles['empty']} data-testid="patient-booking-no-doctors">
             No doctors are accepting bookings right now. Please check back
             later.
           </div>
         ) : (
-          <div className={styles['doctor-cards']}>
+          <div className={styles['doctor-cards']} data-testid="patient-booking-doctor-list">
             {doctors.map((d) => {
               const selected = draft.doctor?.id === d.id;
               // PublicDoctorDto now carries `specialty` (0019) and
@@ -589,6 +589,7 @@ function DoctorStep({
                       ? `${styles['doctor-card']} ${styles['doctor-card--selected']}`
                       : styles['doctor-card']
                   }
+                  data-testid={`patient-booking-doctor-card-${d.id}`}
                   onClick={() => onPick(d)}
                 >
                   <div className={styles['doctor-card__avatar']}>
@@ -660,9 +661,9 @@ function BranchTypeStep({
 }) {
   if (!draft.doctor) return null;
   return (
-    <div className={styles['layout']}>
+    <div className={styles['layout']} data-testid="patient-booking-step2">
       <div className={styles['main']}>
-        <button type="button" className={styles['back-link']} onClick={onBack}>
+        <button type="button" className={styles['back-link']} data-testid="patient-booking-step2-back-btn" onClick={onBack}>
           ← Back to doctors
         </button>
         <header className={styles['page-header']}>
@@ -671,7 +672,7 @@ function BranchTypeStep({
             Pick where you&rsquo;d like to be seen and what kind of visit
             you need.
           </p>
-          <div className={styles['doctor-pill']}>
+          <div className={styles['doctor-pill']} data-testid="patient-booking-doctor-pill">
             <div className={styles['doctor-pill__avatar']}>
               {initialsOf(draft.doctor.full_name)}
             </div>
@@ -692,13 +693,13 @@ function BranchTypeStep({
           </span>
         </div>
         {branchesLoading ? (
-          <div className={styles['empty']}>Loading branches…</div>
+          <div className={styles['empty']} data-testid="patient-booking-branches-loading">Loading branches…</div>
         ) : branches.length === 0 ? (
-          <div className={styles['empty']}>
+          <div className={styles['empty']} data-testid="patient-booking-no-branches">
             This doctor doesn&rsquo;t currently work at any active branch.
           </div>
         ) : (
-          <div className={styles['branch-cards']}>
+          <div className={styles['branch-cards']} data-testid="patient-booking-branch-list">
             {branches.map((b, idx) => {
               const selected = draft.branch?.id === b.id;
               return (
@@ -710,6 +711,7 @@ function BranchTypeStep({
                       ? `${styles['branch-card']} ${styles['branch-card--selected']}`
                       : styles['branch-card']
                   }
+                  data-testid={`patient-booking-branch-card-${b.id}`}
                   onClick={() => onPickBranch(b)}
                 >
                   <span
@@ -746,11 +748,11 @@ function BranchTypeStep({
           </span>
         </div>
         {types.length === 0 ? (
-          <div className={styles['empty']}>
+          <div className={styles['empty']} data-testid="patient-booking-no-types">
             No appointment types are active right now.
           </div>
         ) : (
-          <div className={styles['type-cards']}>
+          <div className={styles['type-cards']} data-testid="patient-booking-type-list">
             {types.map((t) => {
               const selected = draft.type?.id === t.id;
               return (
@@ -762,6 +764,7 @@ function BranchTypeStep({
                       ? `${styles['type-card']} ${styles['type-card--selected']}`
                       : styles['type-card']
                   }
+                  data-testid={`patient-booking-type-card-${t.id}`}
                   onClick={() => onPickType(t)}
                 >
                   <div
@@ -820,8 +823,8 @@ function BranchTypeStep({
         </div>
       </aside>
 
-      <div className={styles['footer']}>
-        <button type="button" className={styles['btn-ghost']} onClick={onBack}>
+      <div className={styles['footer']} data-testid="patient-booking-step2-footer">
+        <button type="button" className={styles['btn-ghost']} data-testid="patient-booking-step2-back-foot-btn" onClick={onBack}>
           ← Back
         </button>
         <span className={styles['footer-summary']}>
@@ -830,6 +833,7 @@ function BranchTypeStep({
         <button
           type="button"
           className={styles['btn-primary']}
+          data-testid="patient-booking-step2-continue-btn"
           disabled={!draft.branch || !draft.type}
           onClick={onContinue}
         >
@@ -911,9 +915,9 @@ function DateTimeStep({
   const isDateBookable = selectedDate > isoDateOffset(0);
 
   return (
-    <div className={styles['layout']}>
+    <div className={styles['layout']} data-testid="patient-booking-step3">
       <div className={styles['main']}>
-        <button type="button" className={styles['back-link']} onClick={onBack}>
+        <button type="button" className={styles['back-link']} data-testid="patient-booking-step3-back-btn" onClick={onBack}>
           ← Back to branch & type
         </button>
         <header className={styles['page-header']}>
@@ -954,6 +958,7 @@ function DateTimeStep({
             className={styles['warn-card']}
             style={{ marginTop: 'var(--space-6)' }}
             role="alert"
+            data-testid="patient-booking-avail-error"
           >
             <span className={styles['warn-card__icon']} aria-hidden="true">
               ⚠
@@ -969,6 +974,7 @@ function DateTimeStep({
             className={styles['warn-card']}
             style={{ marginTop: 'var(--space-6)', opacity: 0.85 }}
             role="status"
+            data-testid="patient-booking-br007-warn"
           >
             <span className={styles['warn-card__icon']} aria-hidden="true">
               ⓘ
@@ -982,7 +988,7 @@ function DateTimeStep({
           </div>
         )}
 
-        <div className={styles['date-rail']}>
+        <div className={styles['date-rail']} data-testid="patient-booking-date-rail">
           {Array.from({ length: WINDOW_DAYS }, (_, i) => i + 1).map((offset) => {
             const date = isoDateOffset(offset);
             const selected = date === selectedDate;
@@ -995,6 +1001,7 @@ function DateTimeStep({
                     ? `${styles['date-rail__cell']} ${styles['date-rail__cell--selected']}`
                     : styles['date-rail__cell']
                 }
+                data-testid={`patient-booking-date-cell-${date}`}
                 onClick={() => setSelectedDate(date)}
               >
                 <div className={styles['date-rail__dow']}>
@@ -1008,17 +1015,17 @@ function DateTimeStep({
           })}
         </div>
 
-        <div className={styles['agenda']}>
+        <div className={styles['agenda']} data-testid="patient-booking-agenda">
           {loading ? (
-            <div className={styles['empty']}>
+            <div className={styles['empty']} data-testid="patient-booking-agenda-loading">
               Loading availability for {formatLongDate(selectedDate)}…
             </div>
           ) : !isDateBookable ? (
-            <div className={styles['empty']}>
+            <div className={styles['empty']} data-testid="patient-booking-agenda-past">
               Same-day bookings are not available. Pick tomorrow or later.
             </div>
           ) : slots.length === 0 ? (
-            <div className={styles['empty']}>
+            <div className={styles['empty']} data-testid="patient-booking-agenda-empty">
               {reason === 'doctor_unavailable'
                 ? `The doctor isn\u2019t available on ${formatLongDate(selectedDate)}.`
                 : reason === 'branch_closed'
@@ -1034,7 +1041,7 @@ function DateTimeStep({
                   available
                 </span>
               </div>
-              <div className={styles['slot-list']}>
+              <div className={styles['slot-list']} data-testid="patient-booking-slot-list">
                 {slots.map((s) => {
                   const selected =
                     draft.slot?.start_datetime === s.start_datetime;
@@ -1042,6 +1049,7 @@ function DateTimeStep({
                     <div
                       key={s.start_datetime}
                       className={styles['slot-line']}
+                      data-testid={`patient-booking-slot-line-${s.start_datetime}`}
                     >
                       <div className={styles['slot-time']}>
                         {formatTimeUtc(s.start_datetime)}
@@ -1053,6 +1061,7 @@ function DateTimeStep({
                             ? `${styles['slot-bar']} ${styles['slot-bar--selected']}`
                             : styles['slot-bar']
                         }
+                        data-testid={`patient-booking-slot-btn-${s.start_datetime}`}
                         onClick={() =>
                           onPickSlot({
                             start_datetime: s.start_datetime,
@@ -1116,8 +1125,8 @@ function DateTimeStep({
         </div>
       </aside>
 
-      <div className={styles['footer']}>
-        <button type="button" className={styles['btn-ghost']} onClick={onBack}>
+      <div className={styles['footer']} data-testid="patient-booking-step3-footer">
+        <button type="button" className={styles['btn-ghost']} data-testid="patient-booking-step3-back-foot-btn" onClick={onBack}>
           ← Back
         </button>
         <span className={styles['footer-summary']}>
@@ -1128,6 +1137,7 @@ function DateTimeStep({
         <button
           type="button"
           className={styles['btn-primary']}
+          data-testid="patient-booking-step3-continue-btn"
           disabled={!draft.slot}
           onClick={onContinue}
         >
@@ -1166,9 +1176,9 @@ function DetailsStep({
   const canContinue =
     isValidName(patientName) && isValidPhone(patientPhone);
   return (
-    <div className={styles['layout']}>
+    <div className={styles['layout']} data-testid="patient-booking-step4">
       <div className={styles['main']}>
-        <button type="button" className={styles['back-link']} onClick={onBack}>
+        <button type="button" className={styles['back-link']} data-testid="patient-booking-step4-back-btn" onClick={onBack}>
           ← Back to date & time
         </button>
         <header className={styles['page-header']}>
@@ -1179,7 +1189,7 @@ function DetailsStep({
         </header>
 
         <div className={styles['stack']}>
-          <div className={styles['stack-card']}>
+          <div className={styles['stack-card']} data-testid="patient-booking-phone-card">
             <div className={styles['stack-card__head']}>
               <div className={styles['stack-num']}>1</div>
               <div className={styles['stack-card__title']}>
@@ -1195,7 +1205,7 @@ function DetailsStep({
             </div>
             <div className={styles['stack-card__body']}>
               {returningName && (
-                <div className={styles['returning-pill']}>
+                <div className={styles['returning-pill']} data-testid="patient-booking-returning-pill">
                   ✓ Returning patient — {returningName}
                 </div>
               )}
@@ -1223,6 +1233,7 @@ function DetailsStep({
                       autoComplete="tel"
                       placeholder="+966 5XX XXX 5555"
                       value={patientPhone}
+                      data-testid="patient-booking-phone-input"
                       onChange={(e) => setPatientPhone(e.target.value)}
                     />
                   </div>
@@ -1233,7 +1244,7 @@ function DetailsStep({
                 </div>
               </div>
               {profileCheckErr && (
-                <div className={styles['error-banner']} role="alert">
+                <div className={styles['error-banner']} role="alert" data-testid="patient-booking-profile-check-error">
                   <strong>{profileCheckErr.code}:</strong>{' '}
                   {profileCheckErr.message}
                 </div>
@@ -1241,7 +1252,7 @@ function DetailsStep({
             </div>
           </div>
 
-          <div className={styles['stack-card']}>
+          <div className={styles['stack-card']} data-testid="patient-booking-name-card">
             <div className={styles['stack-card__head']}>
               <div className={styles['stack-num']}>2</div>
               <div className={styles['stack-card__title']}>Full name</div>
@@ -1260,6 +1271,7 @@ function DetailsStep({
                     autoComplete="name"
                     placeholder="e.g. Fatima Al-Sayed"
                     value={patientName}
+                    data-testid="patient-booking-name-input"
                     onChange={(e) => setPatientName(e.target.value)}
                   />
                   <span className={styles['field__hint']}>
@@ -1270,7 +1282,7 @@ function DetailsStep({
                 </div>
               </div>
               {submitErr && (
-                <div className={styles['error-banner']} role="alert">
+                <div className={styles['error-banner']} role="alert" data-testid="patient-booking-details-submit-error">
                   <strong>{submitErr.code}:</strong> {submitErr.message}
                 </div>
               )}
@@ -1287,8 +1299,8 @@ function DetailsStep({
         </div>
       </aside>
 
-      <div className={styles['footer']}>
-        <button type="button" className={styles['btn-ghost']} onClick={onBack}>
+      <div className={styles['footer']} data-testid="patient-booking-step4-footer">
+        <button type="button" className={styles['btn-ghost']} data-testid="patient-booking-step4-back-foot-btn" onClick={onBack}>
           ← Back
         </button>
         <span className={styles['footer-summary']}>
@@ -1299,6 +1311,7 @@ function DetailsStep({
         <button
           type="button"
           className={styles['btn-primary']}
+          data-testid="patient-booking-step4-continue-btn"
           disabled={!canContinue}
           onClick={onContinue}
         >
@@ -1332,9 +1345,9 @@ function ConfirmStep({
     return null;
   }
   return (
-    <div className={styles['layout']}>
+    <div className={styles['layout']} data-testid="patient-booking-step5">
       <div className={styles['main']}>
-        <button type="button" className={styles['back-link']} onClick={onBack}>
+        <button type="button" className={styles['back-link']} data-testid="patient-booking-step5-back-btn" onClick={onBack}>
           ← Back to your details
         </button>
         <header className={styles['page-header']}>
@@ -1345,7 +1358,7 @@ function ConfirmStep({
         </header>
 
         <div className={styles['stack']}>
-          <div className={`${styles['stack-card']} ${styles['stack-card--done']}`}>
+          <div className={`${styles['stack-card']} ${styles['stack-card--done']}`} data-testid="patient-booking-step5-summary-dbt">
             <div className={styles['stack-card__head']}>
               <div className={`${styles['stack-num']} ${styles['stack-num--done']}`}>
                 ✓
@@ -1369,7 +1382,7 @@ function ConfirmStep({
             </div>
           </div>
 
-          <div className={`${styles['stack-card']} ${styles['stack-card--done']}`}>
+          <div className={`${styles['stack-card']} ${styles['stack-card--done']}`} data-testid="patient-booking-step5-summary-dt">
             <div className={styles['stack-card__head']}>
               <div className={`${styles['stack-num']} ${styles['stack-num--done']}`}>
                 ✓
@@ -1388,7 +1401,7 @@ function ConfirmStep({
             </div>
           </div>
 
-          <div className={`${styles['stack-card']} ${styles['stack-card--done']}`}>
+          <div className={`${styles['stack-card']} ${styles['stack-card--done']}`} data-testid="patient-booking-step5-summary-details">
             <div className={styles['stack-card__head']}>
               <div className={`${styles['stack-num']} ${styles['stack-num--done']}`}>
                 ✓
@@ -1404,7 +1417,7 @@ function ConfirmStep({
         </div>
 
         {submitErr && (
-          <div className={styles['error-banner']} style={{ marginTop: 'var(--space-7)' }} role="alert">
+          <div className={styles['error-banner']} style={{ marginTop: 'var(--space-7)' }} role="alert" data-testid="patient-booking-step5-submit-error">
             <strong>{submitErr.code}:</strong> {submitErr.message}
           </div>
         )}
@@ -1426,8 +1439,8 @@ function ConfirmStep({
         </ol>
       </aside>
 
-      <div className={styles['footer']}>
-        <button type="button" className={styles['btn-ghost']} onClick={onBack}>
+      <div className={styles['footer']} data-testid="patient-booking-step5-footer">
+        <button type="button" className={styles['btn-ghost']} data-testid="patient-booking-step5-back-foot-btn" onClick={onBack}>
           ← Back
         </button>
         <span className={styles['footer-summary']}>
@@ -1436,6 +1449,7 @@ function ConfirmStep({
         <button
           type="button"
           className={styles['btn-primary']}
+          data-testid="patient-booking-step5-confirm-btn"
           disabled={submitting}
           onClick={onSubmit}
         >
@@ -1467,7 +1481,7 @@ function ConfirmationReceipt({
     return null;
   }
   return (
-    <div className={styles['layout']}>
+    <div className={styles['layout']} data-testid="patient-booking-receipt">
       <div className={styles['main']}>
         <header className={styles['page-header']}>
           <h1>You&rsquo;re booked, {patientName.split(' ')[0]}</h1>
@@ -1476,7 +1490,7 @@ function ConfirmationReceipt({
           </p>
         </header>
 
-        <div className={styles['confirm-card']}>
+        <div className={styles['confirm-card']} data-testid="patient-booking-confirm-card">
           <div className={styles['confirm-card__head']}>
             <div className={styles['confirm-card__check']}>✓</div>
             <div>
@@ -1490,13 +1504,13 @@ function ConfirmationReceipt({
             </div>
           </div>
           <div className={styles['confirm-card__grid']}>
-            <div className={styles['confirm-field']}>
+            <div className={styles['confirm-field']} data-testid="patient-booking-confirm-doctor">
               <div className={styles['confirm-field__label']}>Doctor</div>
               <div className={styles['confirm-field__value']}>
                 {draft.doctor.full_name}
               </div>
             </div>
-            <div className={styles['confirm-field']}>
+            <div className={styles['confirm-field']} data-testid="patient-booking-confirm-when">
               <div className={styles['confirm-field__label']}>When</div>
               <div className={styles['confirm-field__value']}>
                 {formatDayOfWeek(draft.slot.date)}, {formatMonthDay(draft.slot.date)} ·{' '}
@@ -1509,14 +1523,15 @@ function ConfirmationReceipt({
           </div>
           <div className={styles['confirm-card__ref']}>
             <div className={styles['confirm-card__ref-label']}>Reference</div>
-            <div className={styles['confirm-card__ref-num']}>
+            <div className={styles['confirm-card__ref-num']} data-testid="patient-booking-confirm-ref">
               APT-{draft.slot.date}-{String(draft.slot.start_datetime).slice(11, 16).replace(':', '')}
             </div>
           </div>
-          <div className={styles['confirm-card__actions']}>
+          <div className={styles['confirm-card__actions']} data-testid="patient-booking-confirm-actions">
             <button
               type="button"
               className={styles['btn-ghost']}
+              data-testid="patient-booking-confirm-calendar-btn"
               onClick={onAddToCalendar}
               title="Download an .ics calendar invite"
             >
@@ -1525,6 +1540,7 @@ function ConfirmationReceipt({
             <button
               type="button"
               className={styles['btn-ghost']}
+              data-testid="patient-booking-confirm-book-another-btn"
               onClick={onStartOver}
             >
               Book another
@@ -1532,6 +1548,7 @@ function ConfirmationReceipt({
             <button
               type="button"
               className={styles['btn-ghost']}
+              data-testid="patient-booking-confirm-done-btn"
               title="View your appointments"
               onClick={onDone}
             >

@@ -450,7 +450,7 @@
 }
 
 .qlink__arr {
-  color: var(--text-faint);
+  color: var(--text-disabled);
   font-size: var(--text-lg);
 }
 

@@ -35,7 +35,13 @@
   --text-strong: #374151;
   --text-default: #4b5563;
   --text-muted: #6b7280;
-  --text-faint: #9ca3af;
+  /* E7-S5 (a11y baseline): --text-faint was renamed to --text-disabled
+   * to make the constraint explicit. The colour (#9ca3af) is 2.85:1
+   * against --surface, which FAILS WCAG 2.1 AA contrast for body text
+   * (4.5:1 required). Use this token ONLY for: disabled controls,
+   * placeholder text, de-emphasised hints. For body copy or actionable
+   * labels, use --text-muted or stronger. */
+  --text-disabled: #9ca3af;
 
   /* ── Semantic (§2.4) ───────────────────────────────────────────── */
   --success-bg: #f0fdfa;
@@ -119,6 +125,12 @@
   --ring-focus: 0 0 0 3px rgba(15, 118, 110, 0.1);
   --ring-danger: 0 0 0 4px #fca5a5;
   --ring-success: 0 0 0 4px #99f6e4;
+  /* E7-S5 (a11y baseline): outer + inner focus ring composition used
+   * by the global :focus-visible rule in shell.css. The double-ring
+   * approach gives a visible focus indicator against any background
+   * colour (outer ring matches the surface, inner ring matches the
+   * brand). */
+  --ring-offset: 2px;
 
   /* ── Font stack (§3) — system only, no web font load ──────────── */
   --font-sans:
@@ -130,6 +142,26 @@
 
   /* ── Scrim (§2.4) — modal backdrop tint ───────────────────────── */
   --scrim: rgba(15, 29, 35, 0.45);
+
+  /* ── Patient palette (E7-S1 wiring) ───────────────────────────── */
+  /* The patient-side components (apps/web/src/patient/) used a
+   * slightly different palette than the canonical brand tokens. They
+   * are preserved here as semantic tokens so the patient UI keeps its
+   * intended appearance while the CSS becomes token-only. */
+  --brand-primary-patient: #0f8a8a;       /* patient brand teal */
+  --brand-primary-patient-hover: #0c7474;
+  --brand-border-patient: #d2eaea;        /* softer patient border */
+  --brand-light-50-patient: #eef7f7;      /* patient soft fill */
+  --text-primary: #0f172a;                /* slate-900 */
+  --text-secondary: #475569;              /* slate-600 */
+  --neutral-bg-2: #f5f6f7;                /* near-surface-page */
+  --danger-500: #d64545;                  /* patient danger */
+  --danger-600: #b73838;                  /* patient danger hover */
+  --shadow-elev-1: 0 2px 6px rgba(15, 138, 138, 0.08);
+  --shadow-elev-2: 0 4px 12px rgba(15, 138, 138, 0.18);
+  --shadow-line: 1px solid rgba(15, 138, 138, 0.12);
+  --hover-tint: rgba(15, 138, 138, 0.08);
+  --brand-tint: rgba(15, 118, 110, 0.04);  /* ReschedulePage header gradient */
 }
 
 html,

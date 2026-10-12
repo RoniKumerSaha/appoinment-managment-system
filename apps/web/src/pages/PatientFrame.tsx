@@ -60,34 +60,42 @@ export function PatientFrame({
     if (onNavigate) onNavigate('my-appointments');
   };
   return (
-    <div className="patient-frame__root">
-      <nav className="patient-frame__nav">
-        <div className="patient-frame__brand">
+    <div className="patient-frame__root" data-testid="patient-frame">
+      <nav className="patient-frame__nav" data-testid="patient-frame-nav">
+        <div className="patient-frame__brand" data-testid="patient-frame-brand">
           <BrandMark size={28} className="patient-frame__brand-logo" />
           MediSlot
         </div>
-        <div className="patient-frame__links">
+        <div className="patient-frame__links" data-testid="patient-frame-links">
           {activeLink === 'find-doctor' ? (
-            <span className="patient-frame__link patient-frame__link--active">
+            <span
+              className="patient-frame__link patient-frame__link--active"
+              data-testid="patient-frame-find-doctor"
+            >
               Find a doctor
             </span>
           ) : (
             <button
               type="button"
               className="patient-frame__link"
+              data-testid="patient-frame-find-doctor"
               onClick={goFindDoctor}
             >
               Find a doctor
             </button>
           )}
           {activeLink === 'my-appointments' ? (
-            <span className="patient-frame__link patient-frame__link--active">
+            <span
+              className="patient-frame__link patient-frame__link--active"
+              data-testid="patient-frame-my-appts"
+            >
               My appointments
             </span>
           ) : (
             <button
               type="button"
               className="patient-frame__link"
+              data-testid="patient-frame-my-appts"
               onClick={goMyAppointments}
             >
               My appointments
@@ -109,6 +117,7 @@ export function PatientFrame({
         <button
           type="button"
           className="patient-frame__cta"
+          data-testid="patient-frame-signout"
           title={stored ? 'Sign out' : 'Sign in'}
           onClick={onClickSignOut}
         >
@@ -117,6 +126,7 @@ export function PatientFrame({
         {userName && (
           <div
             className="patient-frame__user-chip"
+            data-testid="patient-frame-user-chip"
             title={`Signed in as ${userName}`}
           >
             <span className="patient-frame__user-avatar" aria-hidden="true">
@@ -128,7 +138,7 @@ export function PatientFrame({
       </nav>
 
       {step !== undefined && (
-        <div className="patient-frame__progress">
+        <div className="patient-frame__progress" data-testid="patient-frame-progress">
           {STEP_LABELS.map((s, i) => {
             const isCurrent = s.num === step;
             const isDone = step > s.num;
@@ -145,6 +155,7 @@ export function PatientFrame({
                         ? 'patient-frame__step patient-frame__step--done'
                         : 'patient-frame__step'
                   }
+                  data-testid={`patient-frame-step-${s.num}`}
                 >
                   <span className="patient-frame__step-n">
                     {isDone ? '✓' : s.num}
@@ -157,7 +168,7 @@ export function PatientFrame({
         </div>
       )}
 
-      <div className="patient-frame__body">{children}</div>
+      <div className="patient-frame__body" data-testid="patient-frame-body">{children}</div>
     </div>
   );
 }

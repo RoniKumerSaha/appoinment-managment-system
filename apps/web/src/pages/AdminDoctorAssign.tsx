@@ -312,9 +312,9 @@ export function AdminDoctorAssign({
             <div className={styles['doctor-card__name']}>
               {doctor.full_name}
               {doctor.active ? (
-                <span className={styles['pill-active']}>Active</span>
+                <span className={styles['pill-active']}><span aria-hidden="true">●</span> Active</span>
               ) : (
-                <span className={styles['pill-inactive']}>Inactive</span>
+                <span className={styles['pill-inactive']}><span aria-hidden="true">○</span> Inactive</span>
               )}
             </div>
             <div className={styles['doctor-card__meta']}>{doctor.email}</div>

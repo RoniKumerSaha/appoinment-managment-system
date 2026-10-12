@@ -19,17 +19,17 @@ import styles from './ConfirmationReceipt.module.css';
 
 export function ConfirmationReceipt(): ReactNode {
   const { stored } = useAuth();
-  const userName = stored?.profile.full_name ?? undefined;
+  const userName = stored?.profile?.full_name ?? undefined;
   return (
     <PatientFrame userName={userName}>
-      <div className={styles['page']}>
-        <div className={styles['success-head']}>
+      <div className={styles['page']} data-testid="recep-today">
+        <div className={styles['success-head']} data-testid="recep-today-success-head">
           <div className={styles['success-icon']}>✓</div>
           <h1>You're booked, Fatima.</h1>
           <div className={styles.sub}>Your appointment is real. It's yours.</div>
         </div>
 
-        <div className={styles.receipt}>
+        <div className={styles.receipt} data-testid="recep-today-receipt">
           <div className={styles['receipt-tag']}>Appointment confirmed</div>
           <div className={styles['receipt-doctor']}>Dr. Ahmed Al-Rashid</div>
           <div className={styles['receipt-spec']}>Cardiology</div>
@@ -75,7 +75,7 @@ export function ConfirmationReceipt(): ReactNode {
           </div>
         </div>
 
-        <div className={styles['otp-hint']}>
+        <div className={styles['otp-hint']} data-testid="recep-today-otp-hint">
           <div className={styles.icon}>🔒</div>
           <div>
             We sent a code to{' '}
@@ -84,21 +84,33 @@ export function ConfirmationReceipt(): ReactNode {
           </div>
         </div>
 
-        <div className={styles.actions}>
-          <button type="button" className={`${styles['btn-primary']} ${styles.primary}`}>
+        <div className={styles.actions} data-testid="recep-today-actions">
+          <button
+            type="button"
+            className={`${styles['btn-primary']} ${styles.primary}`}
+            data-testid="recep-today-view-appts-btn"
+          >
             View my appointments →
           </button>
           <div className={styles['secondary-row']}>
-            <button type="button" className={styles['btn-secondary']}>
+            <button
+              type="button"
+              className={styles['btn-secondary']}
+              data-testid="recep-today-calendar-btn"
+            >
               📅 Add to calendar
             </button>
-            <button type="button" className={styles['btn-secondary']}>
+            <button
+              type="button"
+              className={styles['btn-secondary']}
+              data-testid="recep-today-screenshot-btn"
+            >
               📷 Screenshot this
             </button>
           </div>
         </div>
 
-        <div className={styles['phone-fallback']}>
+        <div className={styles['phone-fallback']} data-testid="recep-today-phone-fallback">
           Need to change something?{' '}
           <strong>Call the clinic: +966 11 XXX 8900</strong>
           <br />

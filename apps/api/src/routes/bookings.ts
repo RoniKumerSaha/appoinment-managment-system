@@ -71,6 +71,10 @@ import {
   timeStringToMinutes,
   utcDayOfWeek,
 } from '../availability/types.js';
+import {
+  branchLocalMidnightMs,
+  branchLocalDayOfWeek,
+} from './recurring-helpers.js';
 
 const VALIDATION_ERROR_MAP: Record<CreateBookingValidationError, string> = {
   unknown_field: 'unknown_field',
@@ -114,6 +118,11 @@ const SELECT_DOCTOR_SQL = `
 const SELECT_BRANCH_SQL = `
   SELECT id FROM branch WHERE id = $1 AND clinic_id = $2;
 `;
+
+// E7-S6 partial: light-weight tz probe. Used to compute the
+// branch-local DOW before the doctor+branch_hours SELECT, so the
+// hours row is keyed on the correct (branch-local) day.
+const SELECT_BRANCH_TZ_SQL = `SELECT tz FROM branch WHERE id = $1`;
 
 const SELECT_APPOINTMENT_TYPE_SQL = `
   SELECT id, name, duration_minutes, is_active
@@ -261,6 +270,12 @@ async function recheckSlotInTxn(
       close_time: string | null;
       is_closed: boolean | null;
     };
+    /** E7-S6 partial: IANA tz name. When supplied, the slot's
+     *  minutes-of-day are anchored to branch-local midnight and
+     *  the doctor_schedule query uses the branch-local DOW.
+     *  Without it, the legacy UTC-anchored math is used (works
+     *  only for UTC branches). */
+    branchTz?: string | null;
   },
 ): Promise<RecheckOutcome> {
   // Defense in depth — caller already enforces this in the route, but
@@ -295,12 +310,19 @@ async function recheckSlotInTxn(
   }
 
   // 2. Compute slot's minutes-of-day.
+  //    E7-S6 partial: when branchTz is set, anchor to
+  //    branch-local midnight so a 14:00 ET slot is 14*60=840 min,
+  //    which fits the branch's 09:00-17:00 wall-clock window.
+  //    Without it, fall back to UTC midnight (legacy).
   const startDate = new Date(args.startMs);
-  const dayStartMs = Date.UTC(
-    startDate.getUTCFullYear(),
-    startDate.getUTCMonth(),
-    startDate.getUTCDate(),
-  );
+  const dayStartMs =
+    args.branchTz !== undefined && args.branchTz !== null
+      ? branchLocalMidnightMs(args.startMs, args.branchTz)
+      : Date.UTC(
+          startDate.getUTCFullYear(),
+          startDate.getUTCMonth(),
+          startDate.getUTCDate(),
+        );
   const startMin = Math.floor((args.startMs - dayStartMs) / 60000);
   const endMin = Math.floor((args.endMs - dayStartMs) / 60000);
 
@@ -308,7 +330,11 @@ async function recheckSlotInTxn(
   const branchIntervals = [{ startMin: openMin, endMin: closeMin }];
 
   // 4. Doctor schedule intervals — multi-period days allowed.
-  const dow = utcDayOfWeek(startDate);
+  //    E7-S6 partial: use branch-local DOW when tz is set.
+  const dow =
+    args.branchTz !== undefined && args.branchTz !== null
+      ? branchLocalDayOfWeek(args.startMs, args.branchTz)
+      : utcDayOfWeek(startDate);
   const { rows: scheduleRows } = await client.query<{
     start_time: string;
     end_time: string;
@@ -447,7 +473,22 @@ bookingsRouter.post(
       const clinicId = clinicRows[0]!.id;
 
       // Combined doctor + branch + branch_hours + tz lookup (P0-1, P1-4).
-      const dow = utcDayOfWeek(new Date(startMs));
+      // E7-S6 partial: probe branch tz first so the
+      // branch_weekly_hours row is keyed on the branch-local
+      // DOW. (The doctor+branch_hours query also returns `tz`
+      // in the row, but we need it before the SELECT to compute
+      // the DOW.)
+      const { rows: tzRows } = await client.query<{ tz: string }>(
+        SELECT_BRANCH_TZ_SQL,
+        [body.branch_id],
+      );
+      if (tzRows.length === 0) {
+        await client.query('ROLLBACK');
+        res.status(404).json({ error: 'branch_not_found' });
+        return;
+      }
+      const branchTz = tzRows[0]!.tz;
+      const dow = branchLocalDayOfWeek(startMs, branchTz);
       const { rows: docRows } = await client.query<DoctorBranchRow>(
         SELECT_DOCTOR_BRANCH_HOURS_SQL,
         [body.doctor_id, body.branch_id, clinicId, dow],
@@ -476,8 +517,6 @@ bookingsRouter.post(
         return;
       }
       const docInfo = docRows[0]!;
-      // `tz` is captured here so we don't need a post-COMMIT SELECT (P0-1).
-      const branchTz = docInfo.tz;
       if (!docInfo.doctor_active) {
         await client.query('COMMIT');
         res.status(400).json({ error: 'doctor_inactive' });
@@ -548,6 +587,9 @@ bookingsRouter.post(
           close_time: docInfo.close_time,
           is_closed: docInfo.is_closed,
         },
+        // E7-S6 partial: thread branch tz so the validator uses
+        // branch-local minutes-of-day + branch-local DOW.
+        branchTz,
       });
       if (!recheck.ok) {
         await client.query('COMMIT');
