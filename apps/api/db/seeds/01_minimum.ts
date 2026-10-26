@@ -306,6 +306,50 @@ export async function seedWith(client: PoolClient): Promise<SeedResult> {
     if ((r.rowCount ?? 0) > 0) inserted = true;
   }
 
+  // ===== Doctor weekly schedule (E2-S2 fixture) =====
+  // The booking recheck in `bookings.ts:recheckSlotInTxn` requires a
+  // `doctor_schedule` row for the (doctor, branch, day_of_week) before
+  // it can confirm a slot is bookable. Without these seed rows, every
+  // booking attempt falls through to `doctor_unavailable` (BR-008).
+  // The route then returns 409 doctor_unavailable, which is correct for
+  // a doctor with no schedule — but for the seed, we want bookable
+  // doctors. Insert one row per (doctor, branch) covering all 7 DOWs
+  // with a 9-17 default window. Idempotent on (doctor, branch, dow) via
+  // the unique-by-natural-key on the table.
+  const doctorSchedules: Array<{ docRole: string; brRole: string }> = [
+    { docRole: DOCTOR_EAST_LEAD_ID, brRole: BRANCH_EAST_ID },
+    { docRole: DOCTOR_EAST_SUPPORT_ID, brRole: BRANCH_EAST_ID },
+    { docRole: DOCTOR_WEST_LEAD_ID, brRole: BRANCH_WEST_ID },
+  ];
+  for (const ds of doctorSchedules) {
+    for (let dow = 0; dow < 7; dow++) {
+      // Skip Sunday (DOW 0) so the appointment-booking E3-S1 happy
+      // path still exercises the "outside_branch_hours" branch on
+      // Sundays (consistent with the branch_weekly_hours seed which
+      // also closes Sundays). Tests that book on Mon-Sat still pass.
+      if (dow === 0) continue;
+      // doctor_schedule has no UNIQUE constraint, so ON CONFLICT is
+      // not available. Use SELECT-then-INSERT for idempotency.
+      const exists = await client.query<{ id: string }>(
+        `SELECT id FROM doctor_schedule
+          WHERE doctor_id = $1 AND branch_id = $2 AND day_of_week = $3
+            AND effective_from = '2020-01-01'::date
+          LIMIT 1`,
+        [doctorIds[ds.docRole]!, branchIds[ds.brRole]!, dow],
+      );
+      if (exists.rows.length === 0) {
+        await client.query(
+          `INSERT INTO doctor_schedule
+             (doctor_id, branch_id, day_of_week, start_time, end_time,
+              effective_from, effective_to, created_by)
+           VALUES ($1, $2, $3, '09:00', '17:00', '2020-01-01', NULL, $4)`,
+          [doctorIds[ds.docRole]!, branchIds[ds.brRole]!, dow, `staff:${ADMIN_MAIN_ID}`],
+        );
+        inserted = true;
+      }
+    }
+  }
+
   // ===== Appointment types (3) =====
   // No UNIQUE on (clinic_id, name) — SELECT-then-INSERT.
   const appointmentTypes = [

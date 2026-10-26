@@ -154,8 +154,11 @@ test('POST /bookings: concurrent racers — exactly one 201, one 409 slot_raced'
   const doctorId = await fetchEastLeadDoctorId();
   const typeId = await fetchGeneralConsultationTypeId();
   const date = futureWeekdayIso();
-  const startIso = slotIso(date, 9, 0);
-  const endIso = slotIso(date, 9, 30);
+  // 14:00 UTC = 10:00 NY (EDT) — safely inside the seed's 9-17 NY
+  // branch hours AND inside the doctor schedule. Earlier 9:00 UTC
+  // fell outside_branch_hours because NY is UTC-4 in October.
+  const startIso = slotIso(date, 14, 0);
+  const endIso = slotIso(date, 14, 30);
 
   const body = {
     doctor_id: doctorId,
@@ -238,16 +241,21 @@ test('POST /bookings: concurrent racers — exactly one 201, one 409 slot_raced'
   // row is INSERT-only — 0009's reject_audit_mutation trigger raises on
   // UPDATE/DELETE", and the audit is written in the same txn as the
   // appointment insert, so a failed insert must roll back the audit too).
+  // The audit payload stores start_datetime as `2026-10-21T14:00:00.000Z`
+  // (milliseconds appended); the test slotIso doesn't add `.000`. Match
+  // by the appointment_id instead, which is in the row but not in the
+  // payload — use the appointment row directly via a subquery.
+  const winnerApptId = winner.body.appointment.id;
   const auditCount = await db.pool.query<{ c: number }>(
     `SELECT COUNT(*)::int AS c FROM appointment_audit
       WHERE event = 'created'
-        AND payload::text LIKE $1`,
-    [`%${startIso}%`],
+        AND appointment_id = $1`,
+    [winnerApptId],
   );
   assert.equal(
     auditCount.rows[0]!.c,
     1,
-    `expected exactly 1 'created' audit row referencing the slot, got ${auditCount.rows[0]!.c}`,
+    `expected exactly 1 'created' audit row for winner ${winnerApptId}, got ${auditCount.rows[0]!.c}`,
   );
 });
 
@@ -261,8 +269,9 @@ test('POST /bookings: pre-inserted row → 409 slot_raced envelope (control case
   const typeId = await fetchGeneralConsultationTypeId();
   // Different slot to avoid colliding with the concurrent test above.
   const date = futureWeekdayIso();
-  const startIso = slotIso(date, 11, 0);
-  const endIso = slotIso(date, 11, 30);
+  // 16:00 UTC = 12:00 NY (EDT) — inside 9-17 NY hours.
+  const startIso = slotIso(date, 16, 0);
+  const endIso = slotIso(date, 16, 30);
 
   // Pre-insert the "winner" so the loser's slot check fails.
   const client = await db.pool.connect();

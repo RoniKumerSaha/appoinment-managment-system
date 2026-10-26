@@ -61,15 +61,12 @@ const SELECT_CLINIC_ID_SQL = `SELECT id FROM clinic LIMIT 1`;
 // our INSERT. The GIST exclusion is the second line of defense
 // (raising SQLSTATE 23P01 on overlap), but the lock makes the
 // race-safety observable in the response (skipped, not failed).
-const SELECT_FOR_UPDATE_OVERLAPS_SQL = `
-  SELECT id::text AS id
-    FROM appointment
-   WHERE doctor_id = $1::uuid AND branch_id = $2::uuid
-     AND status = 'Scheduled'
-     AND tstzrange(start_datetime, end_datetime, '[)') &&
-         ANY ($3::tstzrange[])
-   FOR UPDATE;
-`;
+//
+// The lock SQL is built dynamically in the handler (see below) so
+// each occurrence can be parameterised separately — embedding
+// `tstzrange('...'::timestamptz, '...'::timestamptz, '[)')` in a
+// `{...}` array literal would break Postgres's array parser, which
+// splits on the first comma inside the inner function call.
 
 const INSERT_APPOINTMENT_SQL = `
   INSERT INTO appointment
@@ -173,13 +170,35 @@ recurringConfirmRouter.post(
       // /recurring that wants to insert a conflicting row blocks
       // here. Combined with the in-txn re-validation below, this
       // gives a deterministic partial-success envelope.
-      const candidateRanges = snapshot.occurrences.map(
-        (o) => `tstzrange('${new Date(o.startMs).toISOString()}'::timestamptz, '${new Date(o.endMs).toISOString()}'::timestamptz, '[)')`,
-      );
-      const rangesSql = `{${candidateRanges.join(',')}}`;
+      //
+      // Each occurrence's [start, end) range is built with the
+      // explicit `tstzrange($s, $e, '[)')` two-arg form, then the
+      // outer `ANY (SELECT ... UNION ALL ...)` aggregates them. This
+      // sidesteps the `{...}` array-literal parser, which would
+      // split on the first comma inside `tstzrange(...)`.
+      const lockValues: unknown[] = [snapshot.body.doctor_id, snapshot.body.branch_id];
+      const unions: string[] = [];
+      for (const o of snapshot.occurrences) {
+        const sIdx = lockValues.length + 1;
+        lockValues.push(new Date(o.startMs).toISOString());
+        const eIdx = lockValues.length + 1;
+        lockValues.push(new Date(o.endMs).toISOString());
+        unions.push(`SELECT tstzrange($${sIdx}::timestamptz, $${eIdx}::timestamptz, '[)') AS r`);
+      }
+      const rangesCte = unions.length > 0 ? unions.join(' UNION ALL ') : 'SELECT NULL::tstzrange AS r WHERE FALSE';
+      const lockSql = `
+        WITH ranges AS (${rangesCte})
+        SELECT a.id::text AS id
+          FROM appointment a, ranges
+         WHERE a.doctor_id = $1::uuid
+           AND a.branch_id = $2::uuid
+           AND a.status = 'Scheduled'
+           AND tstzrange(a.start_datetime, a.end_datetime, '[)') && ranges.r
+         FOR UPDATE;
+      `;
       const { rows: lockedRows } = await client.query<{ id: string }>(
-        SELECT_FOR_UPDATE_OVERLAPS_SQL,
-        [snapshot.body.doctor_id, snapshot.body.branch_id, rangesSql],
+        lockSql,
+        lockValues,
       );
       void lockedRows;
 

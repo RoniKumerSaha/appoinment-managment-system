@@ -53,6 +53,10 @@ export default defineConfig({
     video: 'retain-on-failure',
     actionTimeout: 8_000,
     navigationTimeout: 15_000,
+    // Headed + slowMo for the user-flow spec (per the spec test plan).
+    // CI can override via `CI=1 pnpm test:e2e` to keep automation fast.
+    headless: !isCI,
+    slowMo: isCI ? 0 : 1_000,
   },
 
   projects: [
