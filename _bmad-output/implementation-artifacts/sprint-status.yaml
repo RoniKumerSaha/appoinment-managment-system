@@ -2033,6 +2033,96 @@ development_status:
   #     - E7-S10 stays ready-for-dev (parking lot by narrative).
   #     - P2 gaps (fabricated dashboard stats, metrics never
   #       incremented, stub auth) are tracked separately.
+  #
+  # 2026-10-27 P2 gap closure — the three gaps the 2026-10-26 pass
+  # left open. Two were already fixed by that pass (verified here);
+  # the third — stub auth — needed real work.
+  #
+  #   P2-a — fabricated dashboard stats: ALREADY CLOSED. The counts
+  #     that were derived from a hash of the entity id are gone from
+  #     both the web layer and the API layer (a grep for
+  #     hashCode/Math.random/fabricat across apps/web/src and
+  #     apps/api/src returns nothing). `GET /admin/stats`
+  #     (apps/api/src/routes/admin-stats.ts) answers the same
+  #     questions from the real tables, and AdminBranches /
+  #     AdminDoctors / AdminReceptionists / AdminAppointmentTypes
+  #     all read their counts from it. 9 tests in
+  #     apps/api/test/17-admin-stats.test.ts assert the numbers
+  #     match the real query ("a doctor specialty is the real
+  #     column, not a fabricated value").
+  #
+  #   P2-b — metrics never incremented: ALREADY CLOSED. The counter
+  #     registry (apps/api/src/metrics/counters.ts) declares seven
+  #     named counters; all seven now have a call site —
+  #     booking.attempt/success/conflict/failure in bookings.ts,
+  #     otp.verification in sms-otp.ts, recurring.created/skipped
+  #     in recurring-confirm.ts. Pinned by
+  #     apps/api/test/18-metrics-counters.test.ts (8 tests), which
+  #     asserts the counters actually move.
+  #
+  #   P2-c — stub auth: CLOSED by this pass (W10a). The staff login
+  #     used to accept a bare email and mint a token, so it proved
+  #     only that the caller knew a seeded address. It was confined
+  #     to dev/test by `staffStubLoginAllowed`, which left the app
+  #     with no way to authenticate a staff user at all in
+  #     production.
+  #
+  #     What landed:
+  #     - apps/api/db/migrations/0022_staff_password_auth.sql (NEW)
+  #       — a nullable `password_hash` on admin_user / doctor /
+  #       receptionist, plus a CHECK constraint pinning the value to
+  #       the bcrypt shape. NULLABLE BY DESIGN: a NULL hash means
+  #       "no credential configured", so the existing seeded rows
+  #       keep working without a forced password reset on deploy. A
+  #       NOT NULL column with a backfilled default password would
+  #       have shipped a well-known credential on every account.
+  #     - apps/api/src/auth/password.ts (NEW) — the hashing +
+  #       verification seam, with the policy bounds (>= 12 chars,
+  #       < 72 UTF-8 bytes — bcrypt truncates at 72, so a longer
+  #       password would silently collide with any other password
+  #       sharing its first 72 bytes).
+  #     - apps/api/src/routes/admin-staff-password.ts (NEW) —
+  #       POST /admin/staff/:role/:id/password (set/replace) and
+  #       DELETE (clear). There is deliberately no read route that
+  #       returns the hash: a hash is a credential and has no reason
+  #       to leave the database.
+  #     - apps/api/src/routes/auth-staff.ts (EDIT) — the login route
+  #       now accepts an optional `password`. A supplied password is
+  #       REQUIRED to verify against the row's hash and works in
+  #       every environment. Omitting it falls back to the dev-only
+  #       email-only path.
+  #
+  #     Why pgcrypto instead of a native bcrypt dependency: the
+  #     extension is already installed (0002) and granted (0011), and
+  #     `crypt(..., 'bf')` IS bcrypt — same algorithm, same `$2a$`
+  #     hash shape. The plaintext is a bind parameter, never
+  #     interpolated into SQL. The only property given up is
+  #     in-process hashing without a database, which is not needed
+  #     here (hashes are created by an admin action against the live
+  #     DB, and verified on every login against the same DB).
+  #
+  #     Production posture: the email-only path is refused with a
+  #     404 `not_found` BEFORE any database lookup, so production
+  #     never reveals whether the account exists. A password login
+  #     works in every environment. The 404 (rather than a 401) is
+  #     deliberate — it hides the endpoint's existence instead of
+  #     confirming that authentication is possible here.
+  #
+  #     Web side: LoginPage gained an optional password field; a
+  #     blank field means "use the dev-only email sign-in", a
+  #     non-blank one is sent as a credential.
+  #
+  #     New tests (19): apps/api/test/19-staff-password-auth.test.ts
+  #     — hash-not-plaintext, hash-never-echoed, role gating, the
+  #     password policy bounds, correct/wrong password, the
+  #     email-only fallback in dev/test, the production refusal,
+  #     and clearing a credential.
+  #
+  #     Still deferred (not gap-closure): W10b (token refresh /
+  #     denylist), W10c (rate limiting on the login routes), W10d
+  #     (remove the dev-mode x-auth-claim header from the web
+  #     client), W10e (lockout after N failed attempts), and the
+  #     SSO half of W10a.
 
   # 7-1-design-system-token-wiring is the CONTINUATION of the done
   # 7-1-design-system-tokens (line 2018 below). E7-S1 closed the

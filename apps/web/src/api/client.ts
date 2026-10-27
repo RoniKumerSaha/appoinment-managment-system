@@ -201,9 +201,18 @@ export function patchClinic(name: string): Promise<ClinicDto> {
   });
 }
 
+/**
+ * Staff login.
+ *
+ * `password` is optional. When supplied, the API verifies it against the
+ * account's stored bcrypt hash and the login works in every environment.
+ * When omitted, the API falls back to the dev-only email-only path,
+ * which is refused outside dev/test.
+ */
 export function loginStaff(input: {
   role: 'admin' | 'doctor' | 'receptionist';
   email: string;
+  password?: string;
 }): Promise<LoginResponse> {
   return request<LoginResponse>('/auth/login/staff', {
     method: 'POST',

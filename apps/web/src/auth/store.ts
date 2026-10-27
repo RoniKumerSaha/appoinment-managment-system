@@ -114,9 +114,17 @@ export function clearAuth(): void {
   emit();
 }
 
+/**
+ * Staff sign-in.
+ *
+ * `password` is optional — omit it to use the dev-only email-only path
+ * (refused outside dev/test by the API). Supply it to authenticate with
+ * the account's stored credential.
+ */
 export async function loginAsStaff(input: {
   role: 'admin' | 'doctor' | 'receptionist';
   email: string;
+  password?: string;
 }): Promise<StoredAuth> {
   const res = await apiLoginStaff(input);
   setStored(res);

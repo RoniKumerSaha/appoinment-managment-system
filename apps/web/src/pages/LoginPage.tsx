@@ -35,6 +35,8 @@ function describeApiError(err: unknown): FormError {
     let message = err.code;
     if (err.code === 'staff_not_found') {
       message = 'No staff account matches that role + email.';
+    } else if (err.code === 'invalid_credentials') {
+      message = 'That email and password combination is not valid.';
     } else if (err.code === 'invalid_email') {
       message = 'Enter a valid email address.';
     } else if (err.code === 'invalid_role') {
@@ -84,6 +86,7 @@ function StaffCard() {
     'admin',
   );
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<FormError | null>(null);
 
@@ -93,14 +96,21 @@ function StaffCard() {
       setErr(null);
       setBusy(true);
       try {
-        await loginAsStaff({ role, email: email.trim() });
+        // A blank password field means "use the dev-only email-only path".
+        // Sending an empty string would be a password login attempt and
+        // would fail, so the field is only sent when it has content.
+        await loginAsStaff({
+          role,
+          email: email.trim(),
+          ...(password.length > 0 ? { password } : {}),
+        });
       } catch (caught) {
         setErr(describeApiError(caught));
       } finally {
         setBusy(false);
       }
     },
-    [role, email],
+    [role, email, password],
   );
 
   return (
@@ -155,6 +165,26 @@ function StaffCard() {
         />
       </div>
 
+      <div className={styles['field']}>
+        <label className={styles['field__label']} htmlFor="staff-password">
+          Password
+        </label>
+        <input
+          id="staff-password"
+          className={styles['field__input']}
+          type="password"
+          placeholder="••••••••••••"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          disabled={busy}
+        />
+        <span className={styles['field__hint']}>
+          Leave blank for the dev-only email sign-in. Accounts with a
+          configured password must use it.
+        </span>
+      </div>
+
       {err && (
         <div className={styles['error-banner']} role="alert">
           <strong>{err.code}:</strong> {err.message}
@@ -175,8 +205,8 @@ function StaffCard() {
         <strong>Dev seed:</strong>{' '}
         <code>admin-main@clinic.local</code> (admin),{' '}
         <code>dr.-east-lead@clinic.local</code> (doctor),{' '}
-        <code>receptionist-east@clinic.local</code> (receptionist). No password today
-        — staff login is gated on email only (deferral W10a).
+        <code>receptionist-east@clinic.local</code> (receptionist). These seeded
+        accounts have no password set — sign in with email only in dev.
       </div>
     </form>
   );

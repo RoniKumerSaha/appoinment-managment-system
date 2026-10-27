@@ -305,6 +305,15 @@ override.tf.json
 /.claude
 
 # ---------- Session / dev-only artefacts (NOT source) ----------
+# Redirected test-run logs (pino JSON + vitest TAP) dumped at the repo
+# root by ad-hoc runs. Pure output, never source.
+api-test-out.txt
+/apps/web/api-test-out.txt
+/apps/api/m.txt
+/apps/api/m2.txt
+# Local MCP server config (playwright browser tooling) — machine-local.
+.mcp.json
+
 # Stray Windows-path-quoted files dropped at the repo root by past
 # sessions (e.g. literal names like `C:Users…Temppatient.json`).
 # These contain short-lived dev JWTs and never belong in the repo.

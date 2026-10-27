@@ -1,18 +1,29 @@
 /**
  * Staff login — `POST /auth/login/staff` + `GET /auth/me`.
  *
- * W10 (the staff login surface that E0-S3 deferred). Today the route is an
- * **email-based stub login**: the caller supplies `{role, email}` and if a
- * staff row matches, the route mints a JWT. There is no password column on
- * `admin_user` / `doctor` / `receptionist` today; adding one is deferred
- * to a future hardening story (deferral W10a — password / SSO choice).
+ * W10 shipped the staff login surface that E0-S3 deferred. It started as an
+ * **email-based stub login**: the caller supplied `{role, email}` and if a
+ * staff row matched, the route minted a JWT. There was no password column
+ * on `admin_user` / `doctor` / `receptionist`, so the endpoint proved only
+ * that the caller knew a seeded address. It was confined to dev/test by
+ * `staffStubLoginAllowed`.
  *
- * The endpoint is gated only by the caller's knowledge of the seeded
- * email; this is acceptable for the dev web app where the user picks
- * from the seed list. The route refuses to serve in production
- * (`staffStubLoginAllowed` is an env allowlist) — a production deploy
- * MUST swap in a real credential check before this endpoint is
- * exposed.
+ * W10a adds the real credential: a nullable `password_hash` column on
+ * each staff table (migration 0022), hashed with Postgres `pgcrypto`'s
+ * bcrypt (`crypt(..., 'bf')`). When the caller supplies a `password`, the
+ * route verifies it against the stored hash. When they don't, the route
+ * falls back to the dev-only email-only path.
+ *
+ * The two modes coexist deliberately:
+ *
+ *   - A staff row with a `password_hash` set can ALWAYS sign in with the
+ *     password, in any environment.
+ *   - The email-only path remains available ONLY in dev/test (the
+ *     `staffStubLoginAllowed` allowlist), so the seeded accounts keep
+ *     working in the dev web app without every developer having to set
+ *     a password first.
+ *   - In production the email-only path is refused outright, so a
+ *     production deploy MUST have configured password credentials.
  *
  * Response shape mirrors `patient-otp.ts` (`/patient/otp/verify-now`):
  *   {
@@ -34,6 +45,7 @@ import { getPool } from '../db/pool.js';
 import { getLogger } from '../middleware/log.js';
 import { signClaim, verifyToken } from '../auth/jwt.js';
 import { loadAuthConfig } from '../auth/config.js';
+import { verifyPassword } from '../auth/password.js';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
@@ -51,6 +63,12 @@ interface StaffProfile {
 interface StaffRow extends StaffProfile {
   /** Set when the role is `doctor`. The store may override for multi-branch doctors. */
   doctor_id: string | null;
+  /**
+   * The stored bcrypt hash, or NULL when the account has no credential
+   * configured. A NULL hash means this account can only use the
+   * dev-only email-only path.
+   */
+  password_hash: string | null;
 }
 
 function redactEmail(email: string): string {
@@ -75,9 +93,11 @@ async function lookupStaff(
       branch_id: string;
       branch_name: string;
       tz: string;
+      password_hash: string | null;
     }>(
       `SELECT a.full_name,
               a.email,
+              a.password_hash,
               b.id::text AS branch_id,
               b.name    AS branch_name,
               b.tz      AS tz
@@ -101,9 +121,11 @@ async function lookupStaff(
       branch_id: string;
       branch_name: string;
       tz: string;
+      password_hash: string | null;
     }>(
       `SELECT d.full_name,
               d.email,
+              d.password_hash,
               d.id::text AS doctor_id,
               b.id::text AS branch_id,
               b.name    AS branch_name,
@@ -127,9 +149,11 @@ async function lookupStaff(
     branch_id: string;
     branch_name: string;
     tz: string;
+    password_hash: string | null;
   }>(
     `SELECT r.full_name,
             r.email,
+            r.password_hash,
             b.id::text AS branch_id,
             b.name    AS branch_name,
             b.tz      AS tz
@@ -144,20 +168,40 @@ async function lookupStaff(
   return { ...row, doctor_id: null };
 }
 
+/**
+ * Compare a candidate password against the row's stored bcrypt hash.
+ *
+ * The comparison runs in the database via `pgcrypto.crypt()`, which
+ * re-derives the hash from the candidate and the stored salt and returns
+ * the stored value when they match. The plaintext is a bind parameter,
+ * so it is never interpolated into the SQL text.
+ */
+async function checkPassword(
+  password: string,
+  hash: string | null,
+): Promise<boolean> {
+  const pool = await getPool();
+  return verifyPassword(
+    async (candidate, stored) => {
+      const r = await pool.query<{ ok: boolean }>(
+        `SELECT (pgcrypto.crypt($1, $2) = $2) AS ok`,
+        [candidate, stored],
+      );
+      return r.rows[0]?.ok === true;
+    },
+    password,
+    hash,
+  );
+}
+
 export const authStaffRouter: Router = Router();
 export const authMeRouter: Router = Router();
 
 // Mounted BEFORE authMiddleware — the login route IS its own auth gate.
 authStaffRouter.post('/login/staff', (req: Request, res: Response): void => {
-  // The email-only login proves nothing beyond "the caller knows a
-  // seeded email" — there is no password column on the staff tables.
-  // It is therefore confined to dev/test; production must be served by
-  // the real credential check deferred to W10a.
+  let staffStubLoginAllowed: boolean;
   try {
-    if (!loadAuthConfig().staffStubLoginAllowed) {
-      res.status(404).json({ error: 'not_found' });
-      return;
-    }
+    staffStubLoginAllowed = loadAuthConfig().staffStubLoginAllowed;
   } catch {
     // A config that fails to load is a boot failure, not a request
     // failure. Refuse the login rather than minting an unverified token.
@@ -168,6 +212,11 @@ authStaffRouter.post('/login/staff', (req: Request, res: Response): void => {
   const body = (req.body ?? {}) as Record<string, unknown>;
   const role = body['role'];
   const email = body['email'];
+  // The password is optional on the wire, but its presence selects the
+  // credential path. A non-string value is treated as absent rather
+  // than as a 400 — the email+password path below will reject it with
+  // the same generic error as any other bad credential.
+  const password = typeof body['password'] === 'string' ? body['password'] : null;
 
   if (typeof role !== 'string' || !STAFF_ROLES.has(role as StaffRole)) {
     res.status(400).json({ error: 'invalid_role' });
@@ -182,8 +231,33 @@ authStaffRouter.post('/login/staff', (req: Request, res: Response): void => {
     return;
   }
 
+  // Two credential modes:
+  //
+  //   1. A password was supplied → the password is REQUIRED. The
+  //      account must have a configured `password_hash` and the
+  //      password must match it. This path works in every environment.
+  //
+  //   2. No password was supplied → the dev-only email-only path. This
+  //      is refused outside dev/test, so a production deploy can never
+  //      mint a token from nothing but a known email address.
+  //
+  // Note the ordering: the email-only refusal happens BEFORE the
+  // database lookup, so in production the endpoint never even reveals
+  // whether the account exists. The 404 (rather than a 401) is
+  // deliberate — it hides the endpoint's existence rather than
+  // confirming "authentication is possible here, you just used the
+  // wrong method".
+  if (password === null && !staffStubLoginAllowed) {
+    getLogger().info(
+      { event: 'staff_login_attempt', outcome: 'email_only_refused' },
+      'staff_login_rejected',
+    );
+    res.status(404).json({ error: 'not_found' });
+    return;
+  }
+
   lookupStaff(role as StaffRole, email)
-    .then((row) => {
+    .then(async (row) => {
       if (!row || row.branch_id === null) {
         getLogger().info(
           {
@@ -196,6 +270,26 @@ authStaffRouter.post('/login/staff', (req: Request, res: Response): void => {
         );
         res.status(401).json({ error: 'staff_not_found' });
         return;
+      }
+
+      // Credential check. When a password was supplied it MUST verify
+      // against the row's hash. An account with no configured hash can
+      // never satisfy a password login.
+      if (password !== null) {
+        const ok = await checkPassword(password, row.password_hash);
+        if (!ok) {
+          getLogger().info(
+            {
+              event: 'staff_login_attempt',
+              outcome: 'bad_password',
+              role,
+              email: redactEmail(email),
+            },
+            'staff_login_rejected',
+          );
+          res.status(401).json({ error: 'invalid_credentials' });
+          return;
+        }
       }
 
       const branchIds = [row.branch_id];
@@ -246,7 +340,12 @@ authStaffRouter.post('/login/staff', (req: Request, res: Response): void => {
         { event: 'staff_login_db_error', err: message },
         'staff_login_internal_error',
       );
-      res.status(500).json({ error: 'internal_error' });
+      // The handler may already have answered (e.g. the password check
+      // failed and wrote a 401) before a later error surfaced. Writing
+      // again would throw "Cannot set headers after they are sent".
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'internal_error' });
+      }
     });
 });
 

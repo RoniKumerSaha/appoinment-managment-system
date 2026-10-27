@@ -37,6 +37,7 @@ import { adminDoctorScheduleRouter } from './routes/admin-doctor-schedule.js';
 import { adminDoctorBlockRouter } from './routes/admin-doctor-block.js';
 import { adminAppointmentTypesRouter } from './routes/admin-appointment-types.js';
 import { adminStatsRouter } from './routes/admin-stats.js';
+import { adminStaffPasswordRouter } from './routes/admin-staff-password.js';
 import { availabilityRouter } from './routes/availability.js';
 import { publicCatalogRouter } from './routes/public-catalog.js';
 import { bookingsRouter } from './routes/bookings.js';
@@ -341,7 +342,7 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // The mount order mirrors the E0-S3 convention: authenticated routers
   // (admin) come after the auth middleware, public routers (health,
   // metrics, OTP) before it.
-  app.use('/admin', adminScope, adminClinicRouter, adminBranchesRouter, adminBranchHoursRouter, adminBranchDoctorsRouter, adminBranchReceptionistsRouter, adminDoctorScheduleRouter, adminDoctorBlockRouter, adminAppointmentTypesRouter, adminStatsRouter);
+  app.use('/admin', adminScope, adminClinicRouter, adminBranchesRouter, adminBranchHoursRouter, adminBranchDoctorsRouter, adminBranchReceptionistsRouter, adminDoctorScheduleRouter, adminDoctorBlockRouter, adminAppointmentTypesRouter, adminStatsRouter, adminStaffPasswordRouter);
 
   // JSON 404 fallthrough — kept after the routers so a matching route wins;
   // every other path returns a stable JSON error envelope (no HTML default).

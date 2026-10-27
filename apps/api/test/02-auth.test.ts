@@ -197,9 +197,11 @@ test('POST /auth/login/staff ignores body branch_ids/doctor_id (body-claim invar
 });
 
 test('POST /auth/login/staff is refused in production (email-only stub)', async () => {
-  // The staff tables carry no password column, so the email-only login
-  // proves nothing beyond "the caller knows a seeded email". It must not
-  // be reachable in production.
+  // The staff tables now carry a `password_hash` column (migration 0022),
+  // so a real credential exists. But the EMAIL-ONLY fallback — which
+  // proves nothing beyond "the caller knows a seeded email" — must not
+  // be reachable in production. The password path is covered by
+  // 19-staff-password-auth.test.ts.
   const prior = process.env['NODE_ENV'];
   process.env['NODE_ENV'] = 'production';
   __resetAuthConfigForTests();

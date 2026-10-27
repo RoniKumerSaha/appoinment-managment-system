@@ -29,9 +29,15 @@ export interface AuthConfig {
   mockOtpAllowed: boolean;
   /**
    * True when the email-only staff login is permitted (allowlist: dev/test).
-   * The staff tables carry no password column, so this endpoint proves
-   * only that the caller knows a seeded email. It is therefore refused
-   * in production, where a real credential check (W10a) must replace it.
+   *
+   * The staff tables carry a `password_hash` column (migration 0022), so
+   * a real credential exists. This flag governs ONLY the fallback that
+   * accepts a bare email with no password — a path that proves nothing
+   * beyond "the caller knows a seeded address". It stays confined to
+   * dev/test so the seeded accounts remain usable in the dev web app
+   * without provisioning a password first.
+   *
+   * A password login works in EVERY environment regardless of this flag.
    */
   staffStubLoginAllowed: boolean;
   /** JWT `aud` claim — verified by `verifyToken` to prevent confused-deputy. */
