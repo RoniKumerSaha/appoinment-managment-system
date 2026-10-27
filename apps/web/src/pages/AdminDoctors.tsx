@@ -68,6 +68,8 @@ import styles from './AdminDoctors.module.css';
 
 const NAME_MAX = 120;
 const EMAIL_MAX = 254;
+/** E7-UX: doctor.specialty. Mirrors the API's 120-char ceiling. */
+const SPECIALTY_MAX = 120;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -101,6 +103,8 @@ function describeApiError(err: unknown): FormError {
       message = 'A branch id in the list is not a valid UUID.';
     } else if (err.code === 'invalid_active') {
       message = 'Status must be Active or Inactive.';
+    } else if (err.code === 'invalid_specialty') {
+      message = `Specialty must be at most ${SPECIALTY_MAX} characters.`;
     } else if (err.code === 'branch_not_found') {
       message = 'One or more branches no longer exist.';
     } else if (err.code === 'doctor_not_found') {
@@ -181,6 +185,7 @@ export function AdminDoctors({
   const [editEmail, setEditEmail] = useState('');
   const [editBranchIds, setEditBranchIds] = useState<string[]>([]);
   const [editActive, setEditActive] = useState(true);
+  const [editSpecialty, setEditSpecialty] = useState('');
   const [busy, setBusy] = useState(false);
   const [formErr, setFormErr] = useState<FormError | null>(null);
 
@@ -287,6 +292,7 @@ export function AdminDoctors({
     setEditEmail('');
     setEditBranchIds(branches[0]?.id ? [branches[0].id] : []);
     setEditActive(true);
+    setEditSpecialty('');
     setFormErr(null);
   }, [branches]);
 
@@ -297,6 +303,7 @@ export function AdminDoctors({
     setEditEmail(d.email);
     setEditBranchIds(d.branches.map((b) => b.id));
     setEditActive(d.active);
+    setEditSpecialty(d.specialty ?? '');
     setFormErr(null);
   }, []);
 
@@ -338,6 +345,7 @@ export function AdminDoctors({
       const fullName = editFullName.trim();
       const email = editEmail.trim().toLowerCase();
       const branchIds = editBranchIds;
+      const specialty = editSpecialty.trim();
 
       if (fullName.length < 1 || fullName.length > NAME_MAX) {
         setFormErr({
@@ -352,6 +360,14 @@ export function AdminDoctors({
           status: 400,
           code: 'invalid_email',
           message: `Email must be a valid address (3..${EMAIL_MAX} characters).`,
+        });
+        return;
+      }
+      if (specialty.length > SPECIALTY_MAX) {
+        setFormErr({
+          status: 400,
+          code: 'invalid_specialty',
+          message: `Specialty must be at most ${SPECIALTY_MAX} characters.`,
         });
         return;
       }
@@ -377,7 +393,14 @@ export function AdminDoctors({
       setBusy(true);
       try {
         if (mode === 'create') {
-          await createDoctor({ full_name: fullName, email, branch_ids: branchIds });
+          await createDoctor({
+            full_name: fullName,
+            email,
+            branch_ids: branchIds,
+            // An empty specialty means "not set" — send null so the
+            // column stays NULL rather than an empty string.
+            specialty: specialty.length > 0 ? specialty : null,
+          });
           await reload();
           setMode('closed');
           return;
@@ -391,12 +414,22 @@ export function AdminDoctors({
           );
           return;
         }
-        // PATCH: full_name + active only. The branch list is managed
-        // via the dedicated Assign page (PUT /branches). Edit modal
-        // does NOT touch branch_ids.
-        const patch: { full_name?: string; active?: boolean } = {};
+        // PATCH: full_name + active + specialty. The branch list is
+        // managed via the dedicated Assign page (PUT /branches). Edit
+        // modal does NOT touch branch_ids.
+        const patch: {
+          full_name?: string;
+          active?: boolean;
+          specialty?: string | null;
+        } = {};
         if (fullName !== original.full_name) patch.full_name = fullName;
         if (editActive !== original.active) patch.active = editActive;
+        const originalSpecialty = original.specialty ?? '';
+        if (specialty !== originalSpecialty) {
+          // null clears the specialty (the column is nullable and the
+          // card renders "Not set" for NULL).
+          patch.specialty = specialty.length > 0 ? specialty : null;
+        }
         let resp: DoctorPatchResponse | null = null;
         if (Object.keys(patch).length > 0) {
           resp = await patchDoctor(editId, patch);
@@ -430,6 +463,7 @@ export function AdminDoctors({
       editEmail,
       editBranchIds,
       editActive,
+      editSpecialty,
       mode,
       editId,
       doctors,
@@ -644,7 +678,14 @@ export function AdminDoctors({
           // the specialty both come from `GET /admin/stats`.
           const dStats = stats?.doctors.find((s) => s.id === d.id);
           const futureAppts = dStats?.future_appointment_count ?? 0;
-          const specialty = dStats?.specialty ?? 'Not set';
+          // The specialty comes from the doctor row itself (the DTO
+          // carries it), not from /admin/stats — the stats read is a
+          // separate, best-effort call that can fail on its own, and
+          // the card must still show the doctor's specialty when it
+          // does. Falls back to the stats value for a doctor that
+          // predates the DTO carrying the field.
+          const specialty =
+            d.specialty ?? dStats?.specialty ?? 'Not set';
           return (
             <div key={d.id} className={cardClass}>
               <div className={styles['head']}>
@@ -694,7 +735,12 @@ export function AdminDoctors({
                 </div>
                 <div className={styles['stat']}>
                   <div className={styles['stat__label']}>Specialty</div>
-                  <div className={styles['stat__value']}>{specialty}</div>
+                  <div
+                    className={styles['stat__value']}
+                    data-testid={`doc-specialty-${d.id}`}
+                  >
+                    {specialty}
+                  </div>
                 </div>
               </div>
 
@@ -704,6 +750,7 @@ export function AdminDoctors({
                   className={styles['action-btn']}
                   onClick={() => onOpenEdit(d)}
                   disabled={busy}
+                  data-testid={`doc-edit-btn-${d.id}`}
                 >
                   Edit
                 </button>
@@ -874,6 +921,25 @@ export function AdminDoctors({
                   </div>
                 </div>
 
+                <div className={styles['form-group']}>
+                  <label htmlFor="doc-specialty">Specialty</label>
+                  <input
+                    id="doc-specialty"
+                    type="text"
+                    value={editSpecialty}
+                    onChange={(e) => setEditSpecialty(e.target.value)}
+                    maxLength={SPECIALTY_MAX + 1}
+                    disabled={busy}
+                    placeholder="e.g. Cardiology"
+                    autoComplete="off"
+                    data-testid="doc-specialty-input"
+                  />
+                  <div className={styles['hint']}>
+                    Shown on the patient&rsquo;s doctor card and booking
+                    receipt. Leave blank for &ldquo;Not set&rdquo;.
+                  </div>
+                </div>
+
                 {mode === 'create' && (
                   <div className={styles['form-group']}>
                     <label>
@@ -1005,6 +1071,7 @@ export function AdminDoctors({
                 <button
                   type="submit"
                   className={styles['btn-primary']}
+                  data-testid="doc-modal-save-btn"
                   disabled={
                     busy ||
                     editFullName.trim().length === 0 ||

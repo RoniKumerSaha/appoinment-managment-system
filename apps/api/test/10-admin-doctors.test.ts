@@ -354,6 +354,138 @@ test('PATCH /admin/doctors/:id (activate invalid_active) → 400', async () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════
+// PATCH /admin/doctors/:id — specialty (E7-UX)
+// ═══════════════════════════════════════════════════════════════════
+test('PATCH /admin/doctors/:id (specialty) → 200 and persists', async () => {
+  const { doctorId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  const res = await request(createApp())
+    .patch(`/admin/doctors/${doctorId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ specialty: 'Dermatology' });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.specialty, 'Dermatology');
+
+  // It is persisted, not just echoed back.
+  const readBack = await request(createApp())
+    .get(`/admin/doctors/${doctorId}`)
+    .set('Authorization', `Bearer ${adminToken()}`);
+  assert.equal(readBack.status, 200);
+  assert.equal(readBack.body.specialty, 'Dermatology');
+
+  // Restore.
+  await request(createApp())
+    .patch(`/admin/doctors/${doctorId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ specialty: 'Cardiology' });
+});
+
+test('PATCH /admin/doctors/:id (specialty: "" clears it → null)', async () => {
+  const { doctorId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  const res = await request(createApp())
+    .patch(`/admin/doctors/${doctorId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ specialty: '' });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.specialty, null);
+
+  // Restore.
+  await request(createApp())
+    .patch(`/admin/doctors/${doctorId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ specialty: 'Cardiology' });
+});
+
+test('PATCH /admin/doctors/:id (specialty: null clears it → null)', async () => {
+  const { doctorId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  const res = await request(createApp())
+    .patch(`/admin/doctors/${doctorId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ specialty: null });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.specialty, null);
+
+  // Restore.
+  await request(createApp())
+    .patch(`/admin/doctors/${doctorId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ specialty: 'Cardiology' });
+});
+
+test('PATCH /admin/doctors/:id (specialty: non-string) → 400 invalid_specialty', async () => {
+  const { doctorId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  const res = await request(createApp())
+    .patch(`/admin/doctors/${doctorId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ specialty: 42 });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error, 'invalid_specialty');
+});
+
+test('PATCH /admin/doctors/:id (specialty: too long) → 400 invalid_specialty', async () => {
+  const { doctorId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  const res = await request(createApp())
+    .patch(`/admin/doctors/${doctorId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ specialty: 'x'.repeat(121) });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error, 'invalid_specialty');
+});
+
+test('GET /admin/doctors (list) carries specialty for every doctor', async () => {
+  const res = await request(createApp())
+    .get('/admin/doctors')
+    .set('Authorization', `Bearer ${adminToken()}`);
+  assert.equal(res.status, 200);
+  assert.ok(Array.isArray(res.body), 'the list is a bare array');
+  const eastLead = res.body.find(
+    (d: { full_name: string }) => d.full_name === DR_EAST_LEAD,
+  );
+  assert.ok(eastLead, 'the seeded doctor is in the list');
+  assert.equal(eastLead.specialty, 'Cardiology');
+  // Every doctor row carries the key (null when unset) so the client
+  // can tell "not set" from "the server did not report it".
+  for (const d of res.body as Array<{ specialty?: unknown }>) {
+    assert.ok('specialty' in d, 'specialty is present on every doctor row');
+  }
+});
+
+test('POST /admin/doctors (with specialty) → 201 and persists', async () => {
+  const { branchId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  const res = await request(createApp())
+    .post('/admin/doctors')
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({
+      full_name: 'Dr. Specialty Probe',
+      email: 'specialty-probe@clinic.local',
+      branch_ids: [branchId],
+      specialty: 'Neurology',
+    });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.specialty, 'Neurology');
+
+  // Cleanup — the doctor has no appointments, so a hard delete is safe.
+  await db.pool.query(`DELETE FROM doctor_branch WHERE doctor_id = $1`, [
+    res.body.id,
+  ]);
+  await db.pool.query(`DELETE FROM doctor WHERE id = $1`, [res.body.id]);
+});
+
+test('POST /admin/doctors (bad specialty) → 400 invalid_specialty', async () => {
+  const { branchId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  const res = await request(createApp())
+    .post('/admin/doctors')
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({
+      full_name: 'Dr. Bad Specialty',
+      email: 'bad-specialty@clinic.local',
+      branch_ids: [branchId],
+      specialty: 42,
+    });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error, 'invalid_specialty');
+});
+
+// ═══════════════════════════════════════════════════════════════════
 // PUT /admin/doctors/:id/branches
 // ═══════════════════════════════════════════════════════════════════
 test('PUT /admin/doctors/:id/branches (no auth) → 401', async () => {

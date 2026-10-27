@@ -616,6 +616,8 @@ export interface DoctorWithBranchesDto {
   full_name: string;
   email: string;
   active: boolean;
+  /** E7-UX. Nullable — the card renders "Not set" when it is null. */
+  specialty: string | null;
   branches: DoctorBranchDto[];
   created_at: string;
   updated_at: string;
@@ -658,6 +660,8 @@ export function createDoctor(input: {
   full_name: string;
   email: string;
   branch_ids: string[];
+  /** E7-UX. Optional — omit to leave it unset. */
+  specialty?: string | null;
 }): Promise<DoctorWithBranchesDto> {
   return request<DoctorWithBranchesDto>('/admin/doctors', {
     method: 'POST',
@@ -667,7 +671,7 @@ export function createDoctor(input: {
 
 export function patchDoctor(
   id: string,
-  body: { full_name?: string; active?: boolean },
+  body: { full_name?: string; active?: boolean; specialty?: string | null },
 ): Promise<DoctorPatchResponse> {
   return request<DoctorPatchResponse>(`/admin/doctors/${id}`, {
     method: 'PATCH',

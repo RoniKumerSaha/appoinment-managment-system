@@ -67,6 +67,8 @@ interface DoctorRow {
   full_name: string;
   email: string;
   active: boolean;
+  /** E7-UX (migration 0019). Nullable. */
+  specialty: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -77,6 +79,7 @@ interface DoctorWithBranches {
   full_name: string;
   email: string;
   active: boolean;
+  specialty: string | null;
   branches: BranchRow[];
   created_at: Date;
   updated_at: Date;
@@ -89,9 +92,9 @@ const SELECT_DOCTOR_FOR_UPDATE_SQL = `
 `;
 
 const INSERT_DOCTOR_SQL = `
-  INSERT INTO doctor (clinic_id, full_name, email, active)
-  VALUES ($1, $2, $3, true)
-  RETURNING id, clinic_id, full_name, email, active, created_at, updated_at;
+  INSERT INTO doctor (clinic_id, full_name, email, active, specialty)
+  VALUES ($1, $2, $3, true, $4)
+  RETURNING id, clinic_id, full_name, email, active, specialty, created_at, updated_at;
 `;
 
 const INSERT_DOCTOR_BRANCH_SQL = `
@@ -99,7 +102,7 @@ const INSERT_DOCTOR_BRANCH_SQL = `
 `;
 
 const SELECT_DOCTOR_BY_ID_SQL = `
-  SELECT id, clinic_id, full_name, email, active, created_at, updated_at
+  SELECT id, clinic_id, full_name, email, active, specialty, created_at, updated_at
     FROM doctor
    WHERE id = $1 AND clinic_id = $2;
 `;
@@ -113,7 +116,7 @@ const SELECT_BRANCHES_FOR_DOCTOR_SQL = `
 `;
 
 const SELECT_DOCTORS_BY_CLINIC_SQL = `
-  SELECT id, clinic_id, full_name, email, active, created_at, updated_at
+  SELECT id, clinic_id, full_name, email, active, specialty, created_at, updated_at
     FROM doctor
    WHERE clinic_id = $1
      AND ($2::boolean IS NULL OR active = $2)
@@ -122,7 +125,7 @@ const SELECT_DOCTORS_BY_CLINIC_SQL = `
 
 const SELECT_DOCTORS_BY_BRANCH_SQL = `
   SELECT DISTINCT d.id, d.clinic_id, d.full_name, d.email, d.active,
-                  d.created_at, d.updated_at
+                  d.specialty, d.created_at, d.updated_at
     FROM doctor d
     JOIN doctor_branch db ON db.doctor_id = d.id
    WHERE d.clinic_id = $1
@@ -149,6 +152,9 @@ function doctorJson(r: DoctorRow) {
     full_name: r.full_name,
     email: r.email,
     active: r.active,
+    // E7-UX (migration 0019). Nullable — the admin card renders
+    // "Not set" when it is null.
+    specialty: r.specialty ?? null,
     created_at: r.created_at,
     updated_at: r.updated_at,
   };
@@ -229,7 +235,7 @@ adminBranchDoctorsRouter.post(
       res.status(400).json({ error: v.error });
       return;
     }
-    const { fullName, email, branchIds } = v;
+    const { fullName, email, branchIds, specialty } = v;
 
     const pool = await getPool();
     let client;
@@ -284,6 +290,7 @@ adminBranchDoctorsRouter.post(
           clinicId,
           fullName,
           email,
+          specialty,
         ]);
         doctorRows = result.rows;
       } catch (err) {
@@ -461,7 +468,7 @@ adminBranchDoctorsRouter.patch(
     const id = req.params['id'] as string;
 
     const body = (req.body ?? {}) as Record<string, unknown>;
-    const allowedKeys = new Set(['full_name', 'active']);
+    const allowedKeys = new Set(['full_name', 'active', 'specialty']);
     const unknownKeys = Object.keys(body).filter((k) => !allowedKeys.has(k));
     if (unknownKeys.length > 0) {
       res.status(400).json({ error: 'unknown_field', fields: unknownKeys });
@@ -469,7 +476,8 @@ adminBranchDoctorsRouter.patch(
     }
     const hasName = 'full_name' in body;
     const hasActive = 'active' in body;
-    if (!hasName && !hasActive) {
+    const hasSpecialty = 'specialty' in body;
+    if (!hasName && !hasActive && !hasSpecialty) {
       res.status(400).json({ error: 'no_fields_to_update' });
       return;
     }
@@ -479,7 +487,7 @@ adminBranchDoctorsRouter.patch(
       res.status(400).json({ error: v.error });
       return;
     }
-    const { fullName, active } = v;
+    const { fullName, active, specialty } = v;
 
     const pool = await getPool();
     let client;
@@ -548,6 +556,10 @@ adminBranchDoctorsRouter.patch(
         setClauses.push(`active = $${++placeholder}`);
         updateParams.push(active);
       }
+      if (hasSpecialty) {
+        setClauses.push(`specialty = $${++placeholder}`);
+        updateParams.push(specialty ?? null);
+      }
       const idPlaceholder = ++placeholder;
       const clinicPlaceholder = ++placeholder;
       updateParams.push(id);
@@ -555,7 +567,7 @@ adminBranchDoctorsRouter.patch(
       const sql = `
         UPDATE doctor SET ${setClauses.join(', ')}
          WHERE id = $${idPlaceholder} AND clinic_id = $${clinicPlaceholder}
-        RETURNING id, clinic_id, full_name, email, active, created_at, updated_at;
+        RETURNING id, clinic_id, full_name, email, active, specialty, created_at, updated_at;
       `;
       const { rows: updated } = await client.query<DoctorRow>(sql, updateParams);
       if (updated.length === 0) {

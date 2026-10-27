@@ -66,6 +66,32 @@ export function isValidActive(v: unknown): v is boolean {
   return typeof v === 'boolean';
 }
 
+// doctor.specialty — E7-UX (migration 0019). Nullable text, shown on
+// the patient doctor picker, the booking receipt, and the admin
+// doctor card.
+//
+// The admin surface allows setting it to '' (clear it) — that is a
+// legitimate state, not an error. `null` is accepted too and means
+// "no change" (the field is optional on PATCH); an explicit `null`
+// clears it.
+const SPECIALTY_MAX = 120;
+
+/** True iff `s` is a usable specialty: a string of at most
+ *  SPECIALTY_MAX characters once trimmed. An empty string is valid
+ *  (it means "clear the specialty"). */
+export function isValidSpecialty(s: unknown): s is string {
+  if (typeof s !== 'string') return false;
+  return s.trim().length <= SPECIALTY_MAX;
+}
+
+/** Trim a valid specialty into its canonical stored form. An empty
+ *  string is stored as NULL — the column is nullable and the UI
+ *  renders "Not set" for NULL. */
+export function normalizeSpecialty(s: string): string | null {
+  const trimmed = s.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
 export interface BranchIdCheck {
   ok: boolean;
   /** Non-UUID values from the input array (in original form). */
@@ -106,7 +132,8 @@ export function normalizeBranchIds(arr: unknown): string[] | null {
 export type CreateDoctorError =
   | 'invalid_full_name'
   | 'invalid_email'
-  | 'invalid_branch_ids';
+  | 'invalid_branch_ids'
+  | 'invalid_specialty';
 
 export type CreateDoctorResult =
   | {
@@ -114,12 +141,14 @@ export type CreateDoctorResult =
       fullName: string;
       email: string;
       branchIds: string[];
+      /** Optional — null when not supplied. */
+      specialty: string | null;
     }
   | { ok: false; error: CreateDoctorError };
 
 /** Tagged validator for the POST /admin/doctors body shape. Validates
  *  full_name + email + branch_ids; returns the canonical normalized
- *  values on success. */
+ *  values on success. `specialty` is optional (E7-UX). */
 export function validateCreateDoctorBody(
   body: unknown,
 ): CreateDoctorResult {
@@ -136,21 +165,39 @@ export function validateCreateDoctorBody(
   if (!('branch_ids' in r) || !isValidBranchIdsList(r['branch_ids'])) {
     return { ok: false, error: 'invalid_branch_ids' };
   }
+  let specialty: string | null = null;
+  if ('specialty' in r) {
+    const raw = r['specialty'];
+    if (raw === null) {
+      specialty = null;
+    } else if (isValidSpecialty(raw)) {
+      specialty = normalizeSpecialty(raw);
+    } else {
+      return { ok: false, error: 'invalid_specialty' };
+    }
+  }
   return {
     ok: true,
     fullName: normalizeFullName(r['full_name'] as string),
     email: normalizeEmail(r['email'] as string),
     branchIds: r['branch_ids'] as string[],
+    specialty,
   };
 }
 
-export type PatchDoctorError = 'invalid_full_name' | 'invalid_active';
+export type PatchDoctorError =
+  | 'invalid_full_name'
+  | 'invalid_active'
+  | 'invalid_specialty';
 
 export type PatchDoctorResult =
   | {
       ok: true;
       fullName: string | null;
       active: boolean | null;
+      /** `undefined` = "not present in the body, leave alone".
+       *  `null` = "explicitly clear it". A string = the new value. */
+      specialty: string | null | undefined;
     }
   | { ok: false; error: PatchDoctorError };
 
@@ -164,6 +211,7 @@ export function validatePatchDoctorBody(body: unknown): PatchDoctorResult {
   const r = body as Record<string, unknown>;
   let fullName: string | null = null;
   let active: boolean | null = null;
+  let specialty: string | null | undefined = undefined;
   if ('full_name' in r) {
     if (!isValidFullName(r['full_name'])) {
       return { ok: false, error: 'invalid_full_name' };
@@ -176,7 +224,19 @@ export function validatePatchDoctorBody(body: unknown): PatchDoctorResult {
     }
     active = r['active'] as boolean;
   }
-  return { ok: true, fullName, active };
+  if ('specialty' in r) {
+    // `null` clears the specialty; a string sets it (an empty string
+    // also clears it). Anything else is a shape error.
+    const raw = r['specialty'];
+    if (raw === null) {
+      specialty = null;
+    } else if (isValidSpecialty(raw)) {
+      specialty = normalizeSpecialty(raw);
+    } else {
+      return { ok: false, error: 'invalid_specialty' };
+    }
+  }
+  return { ok: true, fullName, active, specialty };
 }
 
 export type PutBranchesError = 'invalid_branch_ids';
