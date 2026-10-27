@@ -47,6 +47,7 @@ export const INTERNATIONAL_COUNTRIES: CountryDialCode[] = [
   { code: 'TR', name: 'Türkiye', dial: '+90', flag: '🇹🇷' },
   { code: 'PK', name: 'Pakistan', dial: '+92', flag: '🇵🇰' },
   { code: 'IN', name: 'India', dial: '+91', flag: '🇮🇳' },
+  { code: 'BD', name: 'Bangladesh', dial: '+880', flag: '🇧🇩' },
   { code: 'PH', name: 'Philippines', dial: '+63', flag: '🇵🇭' },
   { code: 'ID', name: 'Indonesia', dial: '+62', flag: '🇮🇩' },
   { code: 'MY', name: 'Malaysia', dial: '+60', flag: '🇲🇾' },

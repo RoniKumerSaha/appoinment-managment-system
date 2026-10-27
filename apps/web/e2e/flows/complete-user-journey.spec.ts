@@ -70,9 +70,12 @@ async function staffSignIn(
   await login.signInAsStaff(role, email);
 }
 
-/** Sign out via the AppShell nav. */
+/** Sign out via the app's nav. */
 async function signOut(page: Page): Promise<void> {
-  await page.locator('button.nav__signout').first().click();
+  // The patient app renders its own nav (PatientFrame), which uses a
+  // different class than the staff AppShell — so select by the
+  // accessible name, which both share.
+  await page.getByRole('button', { name: 'Sign out' }).first().click();
   // After sign out the LoginPage is the landing page.
   await page.waitForURL((u) => u.pathname === '/' || u.pathname === '', {
     timeout: 10_000,

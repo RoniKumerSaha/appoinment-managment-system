@@ -32,11 +32,7 @@ import {
 } from '../api/client';
 import { ReceptionistFrame } from './ReceptionistFrame';
 import { PhoneCountryPicker } from './PhoneCountryPicker';
-import {
-  DEFAULT_COUNTRY_CODE,
-  findCountry,
-  joinPhone,
-} from './booking-utils';
+import { usePhoneField } from './usePhoneField';
 import { formatMonthDay, formatTimeLocal } from './recep-utils';
 import { addDays, todayLocalIn } from './reception-schedule';
 import styles from './ReceptionistCreate.module.css';
@@ -119,8 +115,6 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
   const [selectedStart, setSelectedStart] = useState<string>(
     prefill?.start_datetime ?? '',
   );
-  const [countryCode, setCountryCode] = useState<string>(DEFAULT_COUNTRY_CODE);
-  const [nationalNumber, setNationalNumber] = useState<string>('');
   const [patientName, setPatientName] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -128,7 +122,15 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
 
-  const patientPhone = joinPhone(countryCode, nationalNumber);
+  const {
+    countryCode,
+    nationalNumber,
+    phone: patientPhone,
+    onCountryChange,
+    onNumberChange,
+    reset: resetPhone,
+    countryName,
+  } = usePhoneField();
 
   // The branch is the receptionist's own — read it, never pick it.
   useEffect(() => {
@@ -299,16 +301,6 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
     ],
   );
 
-  const onCountryChange = useCallback((code: string): void => {
-    setCountryCode(code);
-    // The national number belongs to the country — keeping a number
-    // typed against the old country would build a valid-looking but
-    // wrong E.164 string.
-    setNationalNumber('');
-  }, []);
-
-  const countryName = findCountry(countryCode)?.name ?? 'Other country';
-
   if (done !== null) {
     return (
       <ReceptionistFrame>
@@ -360,7 +352,7 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
               onClick={() => {
                 setDone(null);
                 setSelectedStart('');
-                setNationalNumber('');
+                resetPhone();
                 setPatientName('');
                 setNotes('');
               }}
@@ -561,9 +553,11 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
               <input
                 id="recep-create-phone"
                 type="tel"
+                inputMode="tel"
+                autoComplete="tel"
                 value={nationalNumber}
-                placeholder="5XX XXX 5555"
-                onChange={(e) => setNationalNumber(e.target.value)}
+                placeholder="+966 5XX XXX 5555"
+                onChange={(e) => onNumberChange(e.target.value)}
               />
             </div>
             <div className={styles.hint}>

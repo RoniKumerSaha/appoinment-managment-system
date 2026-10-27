@@ -2124,6 +2124,76 @@ development_status:
   #     client), W10e (lockout after N failed attempts), and the
   #     SSO half of W10a.
 
+  # 2026-10-27 W11 — the patient booking phone field could not
+  # accept a full international number. Spec lives at
+  # spec-w11-phone-input-international.md.
+  #
+  #   The bug: the field is a country chip + a number input, and
+  #   joinPhone() glued them together blindly — it stripped the
+  #   SELECTED country's dial code from the typed value and nothing
+  #   else. A patient who typed their whole international number got
+  #   a corrupted string:
+  #
+  #     chip: SA +966   typed: +8801684960808
+  #     → "+9668801684960808"  (16 digits)
+  #     → /^\+[1-9]\d{6,14}$/ → INVALID
+  #
+  #   The field never validated, so the wizard could not advance past
+  #   step 4. The same defect silently rewrote legitimate numbers —
+  #   the e2e journey suite was booking as +96615550000002 when the
+  #   patient had signed in as +15550000002, so
+  #   GET /patient/appointments (which binds the phone from the JWT
+  #   claim) returned an empty list. And +880 (Bangladesh) was not in
+  #   the country catalogue at all, so the chip could never reflect a
+  #   Bangladeshi number even via "Other country".
+  #
+  #   What landed:
+  #   - apps/web/src/pages/usePhoneField.ts (NEW) — the shared hook
+  #     (countryCode / nationalNumber / phone / onCountryChange /
+  #     onNumberChange / reset / countryName). Used by BOTH the
+  #     public booking flow and the receptionist walk-in form so the
+  #     two cannot drift.
+  #   - apps/web/src/pages/booking-utils.ts (EDIT) — joinPhone()
+  #     keeps a typed `+CC…` number intact; splitPhone() falls back
+  #     to `OTHER` for an unrecognised country code instead of
+  #     returning null; new detectCountryCode(typed).
+  #   - apps/web/src/pages/phone-countries.ts (EDIT) — +880
+  #     (Bangladesh) added to the catalogue.
+  #   - PatientBooking.tsx / ReceptionistCreate.tsx (EDIT) — the
+  #     placeholder and hint now show a full international number and
+  #     say the chip follows what you type. The chip is no longer a
+  #     required interaction.
+  #
+  #   The API contract is untouched: the client still submits one
+  #   E.164 string, which is what availability.ts,
+  #   bookings-helpers.ts, patient-otp.ts, sms-otp.ts,
+  #   patient-profile.ts, patient-reschedule.ts and
+  #   recurring-helpers.ts all validate against.
+  #
+  #   Two unrelated e2e defects surfaced while proving the fix, both
+  #   fixed:
+  #   - A RACE in the journey spec: confirmBooking() clicked the
+  #     confirm button and returned immediately, so the spec queried
+  #     the appointments list BEFORE POST /bookings had resolved. The
+  #     API log shows the ordering plainly (GET at 09:26:22.770,
+  #     POST completing at 09:26:23.287). The helper now waits for
+  #     `patient-booking-receipt`, which the app renders only after
+  #     the POST resolves.
+  #   - signOut() selected `button.nav__signout` (the staff
+  #     AppShell class) while the patient app renders its own
+  #     PatientFrame nav. It now selects by accessible name, which
+  #     both share.
+  #
+  #   Also fixed: apps/api/test/19-staff-password-auth.test.ts had a
+  #   wrong return type on the setPassword() helper (request.Response
+  #   — the callback type — instead of request.Test), which was
+  #   failing the API typecheck.
+  #
+  #   Verification: API 394/394 pass; web unit runners all green
+  #   (phone-country 18); web typecheck 0; web lint 0; API typecheck
+  #   0; E7-S1 token-only-CSS invariant green. The e2e suite went
+  #   from 1 passed / 6 failed / 8 not run to 15 passed.
+
   # 7-1-design-system-token-wiring is the CONTINUATION of the done
   # 7-1-design-system-tokens (line 2018 below). E7-S1 closed the
   # audit pass; this continuation pre-commit/CI-enforces the

@@ -140,8 +140,22 @@ export class PatientPage {
     return this.page.locator('[data-testid="patient-booking-step5-submit-error"]');
   }
 
+  /**
+   * The receipt only renders once the POST /bookings has resolved and
+   * the response has been folded into the draft. Clicking the confirm
+   * button and returning immediately races the request — the caller
+   * would query the appointments list before the row is committed and
+   * see an empty list.
+   */
+  get receipt() {
+    return this.page.locator('[data-testid="patient-booking-receipt"]');
+  }
+
   async confirmBooking() {
     await this.step5Confirm.click();
+    // Wait for the booking to land. The receipt is the app's own
+    // "the POST resolved" signal.
+    await this.receipt.waitFor({ state: 'visible', timeout: 15_000 });
   }
 
   // ─── End-to-end booking helper ────────────────────────────────

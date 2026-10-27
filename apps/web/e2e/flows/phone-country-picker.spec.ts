@@ -101,4 +101,43 @@ test.describe('phone country code picker', () => {
     // this proves the selection reached the form state.
     await expect(chip).toContainText('+971');
   });
+
+  test('a patient can type the whole number without touching the chip', async ({
+    page,
+  }) => {
+    // The regression: typing a full international number while the
+    // chip showed +966 produced +9668801684960808 (16 digits), which
+    // is not valid E.164 — the field never validated and the wizard
+    // could not advance.
+    await signIn(page);
+    const patient = await reachDetailsStep(page);
+
+    const chip = page.getByRole('button', { name: /country code/i });
+    await expect(chip).toContainText('+966');
+
+    await patient.phoneInput.fill('+8801684960808');
+
+    // The chip follows the country the patient typed.
+    await expect(chip).toContainText('+880');
+
+    // And the number is accepted — the form's validity check (which
+    // runs the E.164 regex) lets the wizard continue.
+    await patient.nameInput.fill('Bangladeshi Patient');
+    await expect(patient.step4Continue).toBeEnabled();
+  });
+
+  test('a typed international number is not prefixed by the chip', async ({
+    page,
+  }) => {
+    await signIn(page);
+    const patient = await reachDetailsStep(page);
+
+    const chip = page.getByRole('button', { name: /country code/i });
+    await patient.phoneInput.fill('+8801684960808');
+    await expect(chip).toContainText('+880');
+
+    // The input still holds what the patient typed — the app does
+    // not rewrite the value under them.
+    await expect(patient.phoneInput).toHaveValue('+8801684960808');
+  });
 });

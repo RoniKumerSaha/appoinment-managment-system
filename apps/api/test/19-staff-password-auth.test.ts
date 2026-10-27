@@ -89,7 +89,7 @@ function setPassword(
   role: 'admin' | 'doctor' | 'receptionist',
   id: string,
   password: string,
-): request.Response {
+): request.Test {
   return request(createApp())
     .post(`/admin/staff/${role}/${id}/password`)
     .set('Authorization', `Bearer ${adminToken()}`)

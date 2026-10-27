@@ -15,6 +15,7 @@ const {
   joinPhone,
   splitPhone,
   isValidPhone,
+  detectCountryCode,
 } = await import('../src/pages/booking-utils.js');
 const { searchCountries } = await import('../src/pages/phone-countries.js');
 
@@ -33,6 +34,20 @@ test('joinPhone strips cosmetic separators from the national number', () => {
 test('joinPhone does not double the prefix when the number already carries it', () => {
   assert.equal(joinPhone('SA', '+966512345678'), '+966512345678');
   assert.equal(joinPhone('SA', '966512345678'), '+966512345678');
+});
+
+test('joinPhone keeps a typed international number as-is', () => {
+  // The patient typed the whole number including a country code that
+  // is NOT the chip's. The chip must not be glued on top of it —
+  // that produced an over-length, invalid E.164 string.
+  assert.equal(joinPhone('SA', '+8801684960808'), '+8801684960808');
+  assert.equal(joinPhone('SA', '+1 555 123 4567'), '+15551234567');
+  assert.ok(isValidPhone(joinPhone('SA', '+8801684960808')));
+});
+
+test('joinPhone strips cosmetic separators from a typed international number', () => {
+  assert.equal(joinPhone('SA', '+880 1684 960808'), '+8801684960808');
+  assert.equal(joinPhone('SA', '+880-1684-960808'), '+8801684960808');
 });
 
 test('joinPhone with OTHER keeps the patient’s own prefix', () => {
@@ -61,10 +76,28 @@ test('splitPhone prefers the longest matching dial code', () => {
   assert.equal(split?.nationalNumber, '501234567');
 });
 
-test('splitPhone returns null for a number with no known prefix', () => {
-  // +81 (Japan) is deliberately not in the catalogue.
-  assert.equal(splitPhone('+81123456789'), null);
+test('splitPhone returns null for a number with no prefix at all', () => {
+  // A bare national number carries no country information.
   assert.equal(splitPhone('512345678'), null);
+});
+
+test('splitPhone falls back to OTHER for an unknown country code', () => {
+  // +81 (Japan) is not in the catalogue. It is still a valid
+  // international number, so it must not be rejected — it splits as
+  // `OTHER` with the whole number intact.
+  const split = splitPhone('+81123456789');
+  assert.ok(split !== null);
+  assert.equal(split?.countryCode, 'OTHER');
+  assert.equal(split?.nationalNumber, '+81123456789');
+  // And `OTHER` puts the number back together unchanged.
+  assert.equal(joinPhone('OTHER', split?.nationalNumber ?? ''), '+81123456789');
+});
+
+test('splitPhone recognises Bangladesh', () => {
+  const split = splitPhone('+8801684960808');
+  assert.equal(split?.countryCode, 'BD');
+  assert.equal(split?.nationalNumber, '1684960808');
+  assert.equal(joinPhone('BD', '1684960808'), '+8801684960808');
 });
 
 test('a joined phone is a valid E.164 number', () => {
@@ -82,6 +115,24 @@ test('a joined + split round-trip preserves the national number', () => {
   const split = splitPhone(joined);
   assert.equal(split?.countryCode, 'AE');
   assert.equal(split?.nationalNumber, '501234567');
+});
+
+test('detectCountryCode follows the country the patient typed', () => {
+  assert.equal(detectCountryCode('+966512345678'), 'SA');
+  assert.equal(detectCountryCode('+8801684960808'), 'BD');
+  assert.equal(detectCountryCode('+971501234567'), 'AE');
+  assert.equal(detectCountryCode('+1 555 123 4567'), 'US');
+});
+
+test('detectCountryCode returns null for a bare national number', () => {
+  // No country information in the value — the chip keeps its own pick.
+  assert.equal(detectCountryCode('512345678'), null);
+  assert.equal(detectCountryCode(''), null);
+  assert.equal(detectCountryCode('  '), null);
+});
+
+test('detectCountryCode returns OTHER for an unknown country code', () => {
+  assert.equal(detectCountryCode('+81123456789'), 'OTHER');
 });
 
 test('the country search matches name, ISO code, and dial code', () => {
