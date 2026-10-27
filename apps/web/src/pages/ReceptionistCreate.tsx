@@ -31,7 +31,6 @@ import {
   type DoctorWithBranchesDto,
 } from '../api/client';
 import { ReceptionistFrame } from './ReceptionistFrame';
-import { PhoneCountryPicker } from './PhoneCountryPicker';
 import { usePhoneField } from './usePhoneField';
 import { formatMonthDay, formatTimeLocal } from './recep-utils';
 import { addDays, todayLocalIn } from './reception-schedule';
@@ -123,13 +122,10 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
   const [done, setDone] = useState<string | null>(null);
 
   const {
-    countryCode,
-    nationalNumber,
-    phone: patientPhone,
-    onCountryChange,
-    onNumberChange,
+    phone: phoneInput,
+    e164: patientPhone,
+    onPhoneChange,
     reset: resetPhone,
-    countryName,
   } = usePhoneField();
 
   // The branch is the receptionist's own — read it, never pick it.
@@ -545,24 +541,18 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
             <label htmlFor="recep-create-phone">
               Patient phone <span className={styles.req}>*</span>
             </label>
-            <div className={styles['phone-row']}>
-              <PhoneCountryPicker
-                countryCode={countryCode}
-                onCountryChange={onCountryChange}
-              />
-              <input
-                id="recep-create-phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                value={nationalNumber}
-                placeholder="+966 5XX XXX 5555"
-                onChange={(e) => onNumberChange(e.target.value)}
-              />
-            </div>
+            <input
+              id="recep-create-phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={phoneInput}
+              placeholder="+966 5XX XXX 5555"
+              onChange={(e) => onPhoneChange(e.target.value)}
+            />
             <div className={styles.hint}>
               {patientPhone === ''
-                ? `Country code ${countryName}. Existing patients match on phone (BR-016).`
+                ? 'Include the country code, e.g. +966 512345678. Existing patients match on phone (BR-016).'
                 : `Will book as ${patientPhone}. Existing patients match on phone (BR-016).`}
             </div>
           </div>

@@ -59,9 +59,7 @@ import {
   isValidName,
   isValidPhone,
   isoDateOffset,
-  normalizePhoneE164,
 } from './booking-utils';
-import { PhoneCountryPicker } from './PhoneCountryPicker';
 import { usePhoneField } from './usePhoneField';
 import styles from './PatientBooking.module.css';
 
@@ -194,17 +192,13 @@ export function PatientBooking({
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
 
   // Form state.
-  // The phone is two parts: the country dial code (chosen from the
-  // picker) and the number. The patient may type the whole
-  // international number — the chip then follows what they typed.
-  // `patientPhone` is the joined E.164 string the rest of the flow
-  // reads.
+  // The patient types the whole international number — there is no
+  // country picker. `patientPhone` is the normalised E.164 string
+  // the rest of the flow reads.
   const {
-    countryCode,
-    nationalNumber,
-    phone: patientPhone,
-    onCountryChange,
-    onNumberChange,
+    phone: phoneInput,
+    e164: patientPhone,
+    onPhoneChange,
     reset: resetPhone,
   } = usePhoneField();
   const [patientName, setPatientName] = useState('');
@@ -306,12 +300,12 @@ export function PatientBooking({
       setProfileCheckBusy(false);
       return;
     }
-    // Normalize once so the API receives canonical E.164 — the user
-    // types with cosmetic separators (e.g. "+966 5XX XXX 5555").
-    const normalizedPhone = normalizePhoneE164(patientPhone);
+    // `patientPhone` is already the canonical E.164 string — the user
+    // types with cosmetic separators (e.g. "+966 5XX XXX 5555") and
+    // the field normalises them away.
     setProfileCheckBusy(true);
     profileCheckTimer.current = window.setTimeout(() => {
-      getPatientProfile(normalizedPhone)
+      getPatientProfile(patientPhone)
         .then((res) => {
           setReturningName(res.patient.full_name);
           if (res.patient.full_name && patientName.trim().length === 0) {
@@ -372,7 +366,7 @@ export function PatientBooking({
         start_datetime: draft.slot.start_datetime,
         end_datetime: draft.slot.end_datetime,
         slot_duration_minutes: draft.type.duration_minutes,
-        patient_phone: normalizePhoneE164(patientPhone),
+        patient_phone: patientPhone,
         patient_name: patientName.trim(),
       });
       setCreated(resp);
@@ -517,10 +511,8 @@ export function PatientBooking({
       {step === 4 && (
         <DetailsStep
           patientPhone={patientPhone}
-          countryCode={countryCode}
-          onCountryChange={onCountryChange}
-          nationalNumber={nationalNumber}
-          onNumberChange={onNumberChange}
+          phoneInput={phoneInput}
+          onPhoneChange={onPhoneChange}
           patientName={patientName}
           setPatientName={setPatientName}
           returningName={returningName}
@@ -1169,10 +1161,8 @@ function DateTimeStep({
 
 function DetailsStep({
   patientPhone,
-  countryCode,
-  onCountryChange,
-  nationalNumber,
-  onNumberChange,
+  phoneInput,
+  onPhoneChange,
   patientName,
   setPatientName,
   returningName,
@@ -1183,10 +1173,8 @@ function DetailsStep({
   onContinue,
 }: {
   patientPhone: string;
-  countryCode: string;
-  onCountryChange: (code: string) => void;
-  nationalNumber: string;
-  onNumberChange: (s: string) => void;
+  phoneInput: string;
+  onPhoneChange: (s: string) => void;
   patientName: string;
   setPatientName: (s: string) => void;
   returningName: string | null;
@@ -1237,27 +1225,20 @@ function DetailsStep({
                   <label className={styles['field__label']} htmlFor="phone">
                     Phone number<span className={styles['field__req']}>*</span>
                   </label>
-                  <div className={styles['phone-row']}>
-                    <PhoneCountryPicker
-                      countryCode={countryCode}
-                      onCountryChange={onCountryChange}
-                    />
-                    <input
-                      id="phone"
-                      className={styles['field__input']}
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      placeholder="+966 5XX XXX 5555"
-                      value={nationalNumber}
-                      data-testid="patient-booking-phone-input"
-                      onChange={(e) => onNumberChange(e.target.value)}
-                    />
-                  </div>
+                  <input
+                    id="phone"
+                    className={styles['field__input']}
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="+966 5XX XXX 5555"
+                    value={phoneInput}
+                    data-testid="patient-booking-phone-input"
+                    onChange={(e) => onPhoneChange(e.target.value)}
+                  />
                   <span className={styles['field__hint']}>
-                    Enter your number with its country code (e.g.{' '}
-                    <strong>+966 512345678</strong>) — no need to change
-                    the chip, it follows what you type.
+                    Enter your number with its country code, e.g.{' '}
+                    <strong>+966 512345678</strong>.
                   </span>
                 </div>
               </div>

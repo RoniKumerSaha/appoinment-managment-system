@@ -2149,20 +2149,28 @@ development_status:
   #
   #   What landed:
   #   - apps/web/src/pages/usePhoneField.ts (NEW) — the shared hook
-  #     (countryCode / nationalNumber / phone / onCountryChange /
-  #     onNumberChange / reset / countryName). Used by BOTH the
-  #     public booking flow and the receptionist walk-in form so the
-  #     two cannot drift.
-  #   - apps/web/src/pages/booking-utils.ts (EDIT) — joinPhone()
-  #     keeps a typed `+CC…` number intact; splitPhone() falls back
-  #     to `OTHER` for an unrecognised country code instead of
-  #     returning null; new detectCountryCode(typed).
-  #   - apps/web/src/pages/phone-countries.ts (EDIT) — +880
-  #     (Bangladesh) added to the catalogue.
-  #   - PatientBooking.tsx / ReceptionistCreate.tsx (EDIT) — the
-  #     placeholder and hint now show a full international number and
-  #     say the chip follows what you type. The chip is no longer a
-  #     required interaction.
+  #     (phone / e164 / isValid / onPhoneChange / reset). Used by
+  #     BOTH the public booking flow and the receptionist walk-in
+  #     form so the two cannot drift.
+  #   - apps/web/src/pages/booking-utils.ts (EDIT) — new
+  #     normalizePhone(raw): strips cosmetic separators, understands
+  #     the longhand `00` international prefix, and drops a leading
+  #     zero after `+`. joinPhone / splitPhone / detectCountryCode
+  #     are gone. A bare national number is NEVER given a guessed
+  #     country code — it is rejected.
+  #   - PatientBooking.tsx / ReceptionistCreate.tsx (EDIT) — ONE
+  #     phone input each; the placeholder and hint show a full
+  #     international number and ask for the country code as part of
+  #     the number.
+  #   - DELETED: PhoneCountryPicker.tsx, PhoneCountryPicker.module.css,
+  #     phone-countries.ts — the country chip, its stylesheet and the
+  #     country catalogue are all gone. The user asked for the
+  #     country-code field to be removed outright, so there is no
+  #     picker, no catalogue and no second control to understand.
+  #   - Tests: phone-country.test.ts → phone-number.test.ts (10
+  #     tests) and phone-country-picker.spec.ts →
+  #     phone-number.spec.ts (5 browser tests). The package script is
+  #     now `test:phone-number`.
   #
   #   The API contract is untouched: the client still submits one
   #   E.164 string, which is what availability.ts,
@@ -2190,7 +2198,7 @@ development_status:
   #   failing the API typecheck.
   #
   #   Verification: API 394/394 pass; web unit runners all green
-  #   (phone-country 18); web typecheck 0; web lint 0; API typecheck
+  #   (phone-number 10); web typecheck 0; web lint 0; API typecheck
   #   0; E7-S1 token-only-CSS invariant green. The e2e suite went
   #   from 1 passed / 6 failed / 8 not run to 15 passed.
 

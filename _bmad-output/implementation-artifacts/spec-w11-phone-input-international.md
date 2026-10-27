@@ -1,5 +1,5 @@
 ---
-title: 'W11 — Patient can type a full international phone number'
+title: 'W11 — Single-input phone field (no country picker)'
 type: 'bugfix'
 created: '2026-10-27'
 status: 'done'
@@ -36,59 +36,77 @@ Compounding it, `+880` (Bangladesh) was not in the country catalogue at
 all, so the chip could never reflect a Bangladeshi number even when the
 patient picked "Other country".
 
-**Approach:** Make the input the source of truth. A number the patient
-types is accepted as-is if it carries its own `+CC` prefix; the chip
-then *follows* what they typed instead of overriding it. A bare national
-number still gets the chip's dial code prepended. The API contract is
-untouched — the client still submits one E.164 string.
+**Approach:** Delete the country picker. The phone field is ONE input
+and the patient types the whole international number — the country code
+is part of the number, the way it is in every other booking app. The
+field normalises what was typed (separators, a longhand `00` prefix,
+leading zeros) into the single E.164 string the API expects. We never
+guess a country code for the patient: a bare national number is
+rejected, and the field says what is missing.
+
+The API contract is untouched — the client still submits one E.164
+string.
+
+> **Note (2026-10-27, later the same day):** this story first shipped a
+> *single-input* fix that kept the chip and made it follow what the
+> patient typed. The user then asked for the country-code field to be
+> removed outright, so the chip, the country catalogue and the
+> join/split helpers are gone. The final design is the one described
+> above. The intermediate design is recorded in the Change Log below
+> for the record.
 
 ## Boundaries & Constraints
 
 **Always:**
 - The API contract is unchanged. Every phone the client submits is still E.164 (`^\+[1-9]\d{6,14}$`), which is what `availability.ts`, `bookings-helpers.ts`, `patient-otp.ts`, `sms-otp.ts`, `patient-profile.ts`, `patient-reschedule.ts` and `recurring-helpers.ts` all validate against.
-- A typed `+CC…` number wins over the chip. The chip is a convenience for typing a national number, not an override of a number the patient already qualified.
-- The chip **auto-syncs** to the country the patient typed, so the UI stays truthful about what will be submitted.
-- A `+CC` prefix that is not in the catalogue is still a valid international number: it splits as `OTHER` (the existing escape hatch) rather than being rejected. `splitPhone` no longer returns `null` for an unknown country code — only for a value with no `+` at all.
-- `+880` (Bangladesh) is added to the catalogue, so the chip can display it.
-- The country chip is **not** a required interaction. The field's placeholder and hint now show a full international number (`+966 5XX XXX 5555`) and say the chip follows what you type.
-- The shared behaviour lives in one hook (`usePhoneField`) used by both the public booking flow (`PatientBooking`) and the receptionist walk-in form (`ReceptionistCreate`), so the two cannot drift.
+- **There is one phone input and no country picker.** The country code is part of the number the patient types.
+- The field **never guesses a country code**. A bare national number (`512345678`) is not given a `+966`; it is rejected and the patient is told what is missing. Guessing wrong would book the appointment under a phone that belongs to nobody.
+- Cosmetic separators are stripped before validation: `+966 512 345 678`, `+1 (555) 123-4567` and `+880.1684.960808` are all accepted.
+- The longhand international prefix `00` is treated as `+`: `00966512345678` → `+966512345678`.
+- A leading zero immediately after the `+` is dropped, because E.164 forbids it: `+00966…` → `+966…`.
 - The value in the input is never rewritten under the patient — the app does not reformat what they typed.
-- Changing the chip still clears a bare national number (it belonged to the old country), but **keeps** a number that carries its own `+CC` prefix (it is not country-bound).
+- The shared behaviour lives in one hook (`usePhoneField`) used by both the public booking flow (`PatientBooking`) and the receptionist walk-in form (`ReceptionistCreate`), so the two cannot drift.
+- The placeholder and hint show a full international number (`+966 5XX XXX 5555`), matching the format the design system already documents.
 
 **Ask First:**
-- **A1 — Auto-detect-and-sync vs. ignore the chip entirely.** (i) Auto-detect and sync the chip to the typed country (chosen) — the chip stays truthful, the patient can still override it, and the UI never shows "SA +966" for a Bangladeshi number. (ii) Ignore the chip whenever the value has a `+` — simpler, but the chip would then display a country that contradicts the number. (iii) Drop the chip entirely and require a full international number — the most explicit, but it breaks the one-tap Gulf presets that P-03/SC-04 specify and makes the common Saudi case slower.
-- **A2 — Where to put the sync logic.** (i) A shared `usePhoneField` hook (chosen) — one implementation, both pages identical, and the pure parts (`joinPhone`/`splitPhone`/`detectCountryCode`) stay unit-testable without a React testing library. (ii) Duplicate the logic in each page — rejected, the two would drift. (iii) Push the detection into `PhoneCountryPicker` — rejected, the picker is presentational; it does not own the input's value.
+- **A1 — Keep the chip (auto-syncing) vs. remove it.** (i) **Remove the chip entirely** (chosen — the user's explicit instruction, and the behaviour every mainstream booking app has). The cost is that the one-tap Gulf presets from P-03/SC-04 are gone; the patient types `+966` instead of tapping it. (ii) Keep the chip and sync it to what the patient types — this was the intermediate design shipped earlier the same day, and it is strictly more UI for the same result. (iii) Keep the chip as a display-only label (no dropdown) — rejected, it would still be a second thing to look at for no benefit.
+- **A2 — Where to put the normalisation logic.** (i) A shared `usePhoneField` hook plus a pure `normalizePhone` in `booking-utils` (chosen) — one implementation, both pages identical, and the pure function stays unit-testable without a React testing library. (ii) Duplicate the logic in each page — rejected, the two would drift. (iii) Put it inside the input component — rejected, there is no dedicated input component; the pages own the field.
 
 ## I/O & Edge-Case Matrix
 
 | # | Trigger | Behaviour |
 |---|---------|-----------|
-| 1 | Chip `SA`, type `512345678` | `+966512345678` (national number, chip prefixes) |
-| 2 | Chip `SA`, type `+8801684960808` | `+8801684960808`; chip auto-switches to `BD` |
-| 3 | Chip `SA`, type `+1 555 123 4567` | `+15551234567`; chip auto-switches to `US` |
-| 4 | Chip `SA`, type `+81123456789` (unknown code) | `+81123456789`; chip auto-switches to `OTHER` |
-| 5 | Chip `SA`, type `+966 512 345 678` | `+966512345678`; chip stays `SA` |
-| 6 | Chip `SA`, type `+966512345678` | `+966512345678` (no double prefix) |
-| 7 | Chip `SA`, type `966512345678` (no `+`) | `+966512345678` (the chip's own code is stripped) |
-| 8 | Chip `OTHER`, type `+15551234567` | `+15551234567` |
-| 9 | Chip `OTHER`, type `15551234567` | `+15551234567` |
-| 10 | Empty input | `''` |
-| 11 | Chip changed while a bare national number is typed | the number is cleared (it belonged to the old country) |
-| 12 | Chip changed while a `+CC…` number is typed | the number is kept (it is not country-bound) |
-| 13 | `reset()` (start over / book another) | back to the initial country and an empty number |
+| 1 | Type `+966512345678` | `+966512345678` — valid, the wizard advances |
+| 2 | Type `+8801684960808` | `+8801684960808` — valid (Bangladesh is not special-cased) |
+| 3 | Type `+1 555 123 4567` | `+15551234567` — separators stripped, valid |
+| 4 | Type `+81123456789` | `+81123456789` — valid (no country catalogue, so no code is unknown) |
+| 5 | Type `00966512345678` | `+966512345678` — the longhand `00` prefix is understood |
+| 6 | Type `+00966512345678` | `+966512345678` — the leading zero is dropped |
+| 7 | Type `512345678` | `512345678` — **invalid**, no country code is guessed; the continue button stays disabled |
+| 8 | Type `966512345678` | `966512345678` — invalid, same reason |
+| 9 | Type `+0123` | `+123` — invalid, E.164 forbids a zero country code |
+| 10 | Type `+9665123456789012` | invalid — more than 15 digits |
+| 11 | Empty input | `''` — invalid |
+| 12 | `reset()` (start over / book another) | the field is cleared |
 
 ## Code Map
 
 **Web (new / edited):**
-- `apps/web/src/pages/usePhoneField.ts` (NEW) — the shared hook: `countryCode`, `nationalNumber`, `phone`, `onCountryChange`, `onNumberChange`, `reset`, `countryName`.
-- `apps/web/src/pages/booking-utils.ts` (EDIT) — `joinPhone` keeps a typed `+CC…` number intact; `splitPhone` falls back to `OTHER` for an unknown country code; new `detectCountryCode(typed)`.
-- `apps/web/src/pages/phone-countries.ts` (EDIT) — `+880` (Bangladesh) added to `INTERNATIONAL_COUNTRIES`.
-- `apps/web/src/pages/PatientBooking.tsx` (EDIT) — uses the hook; the placeholder and hint now show a full international number.
-- `apps/web/src/pages/ReceptionistCreate.tsx` (EDIT) — uses the hook; same placeholder.
+- `apps/web/src/pages/usePhoneField.ts` (NEW) — the shared hook: `phone` (the raw input), `e164` (the normalised string the API receives), `isValid`, `onPhoneChange`, `reset`.
+- `apps/web/src/pages/booking-utils.ts` (EDIT) — new `normalizePhone(raw)`; `joinPhone` / `splitPhone` / `detectCountryCode` are gone.
+- `apps/web/src/pages/PhoneCountryPicker.tsx` (DELETED) — the chip + searchable listbox.
+- `apps/web/src/pages/PhoneCountryPicker.module.css` (DELETED).
+- `apps/web/src/pages/phone-countries.ts` (DELETED) — the country catalogue; with the chip gone it had no remaining consumer.
+- `apps/web/src/pages/PatientBooking.tsx` (EDIT) — one input; the placeholder and hint show a full international number.
+- `apps/web/src/pages/ReceptionistCreate.tsx` (EDIT) — one input; the hint asks for the country code instead of naming one.
+- `apps/web/src/pages/PatientBooking.module.css` (EDIT) — the dead `.phone-row` / `.cc-chip` rules removed.
+- `apps/web/src/pages/ReceptionistCreate.module.css` (EDIT) — the dead `.phone-row` rules removed.
 
 **Tests:**
-- `apps/web/test/phone-country.test.ts` (EDIT) — pins the typed-international-number behaviour, the `OTHER` fallback, Bangladesh, and `detectCountryCode`. 18 tests.
-- `apps/web/e2e/flows/phone-country-picker.spec.ts` (EDIT) — two new browser tests: a patient can type the whole number without touching the chip, and the value is not rewritten under them.
+- `apps/web/test/phone-country.test.ts` → `apps/web/test/phone-number.test.ts` (RENAMED + REWRITTEN) — pins `normalizePhone` and `isValidPhone`. 10 tests.
+- `apps/web/test/run-phone-country.mjs` → `apps/web/test/run-phone-number.mjs` (RENAMED).
+- `apps/web/package.json` (EDIT) — the script is now `test:phone-number`.
+- `apps/web/e2e/flows/phone-country-picker.spec.ts` → `apps/web/e2e/flows/phone-number.spec.ts` (RENAMED + REWRITTEN) — five browser tests: there is no picker, a full international number is accepted, separators are tolerated, a country-less number is rejected, and the submitted phone is what the patient typed.
 - `apps/web/e2e/pages/patient.page.ts` (EDIT) — `confirmBooking()` waits for the receipt (see below).
 - `apps/web/e2e/flows/complete-user-journey.spec.ts` (EDIT) — `signOut()` selects by accessible name.
 
@@ -120,10 +138,9 @@ run**. It is now **15 passed**.
 
 ## Reuse of existing code
 
-- `apps/web/src/pages/booking-utils.ts` `joinPhone` / `splitPhone` — extended in place; the join/split contract is unchanged for national numbers.
-- `apps/web/src/pages/phone-countries.ts` `OTHER_COUNTRY` — the existing escape hatch is now the fallback for an unrecognised `+CC`, so no new concept was introduced.
-- `apps/web/src/pages/PhoneCountryPicker.tsx` — unchanged. It already renders the `OTHER` sentinel as a bare `+` and accepts any country code as a prop, so the auto-sync needed no change there.
+- `apps/web/src/pages/booking-utils.ts` `isValidPhone` — the E.164 regex was already there and is unchanged; `normalizePhone` is new and sits beside it.
 - `apps/web/src/styles/tokens.css` — no new tokens; the hint text and placeholder reuse the existing field styles.
+- `docs/design/DESIGN-SYSTEM.md` §3.4 — already specified the phone format as `+966 5XX XXX 5555`, which is exactly what the single input now asks for. The design system did not need to change; the implementation caught up with it.
 
 ## Verification
 
@@ -132,25 +149,31 @@ run**. It is now **15 passed**.
 3. `pnpm --filter @clinic/api typecheck` — 0 errors.
 4. `pnpm --filter @clinic/api lint` — unchanged (0 errors).
 5. API suite — **394 pass / 0 fail**.
-6. Web unit runners — all 10 green (52 tests); `phone-country` is 18.
+6. Web unit runners — all 10 green; `test:phone-number` is **10 pass** (was `phone-country`, 18).
 7. `pnpm --filter @clinic/web test:e2e` — **15 passed** (was 1 passed / 6 failed / 8 not run).
 8. E7-S1 invariant (no hex literals outside `tokens.css`) — green.
-9. Manual: type `+8801684960808` in the booking phone field → the chip flips to `🇧🇩 +880`, the field validates, and the wizard advances.
+9. Dead-code sweep — a grep for `PhoneCountryPicker|phone-countries|joinPhone|splitPhone|detectCountryCode|searchCountries|findCountry|DEFAULT_COUNTRY_CODE|OTHER_COUNTRY|countryCode|nationalNumber|onCountryChange|onNumberChange|phone-row|cc-chip` across `apps/web/src`, `apps/web/e2e`, `apps/web/test`, `apps/api/src`, `apps/api/test` and `docs/design` returns **zero hits**.
+10. Manual: type `+8801684960808` in the booking phone field → the field validates and the wizard advances. Type `512345678` → the continue button stays disabled and the hint says the country code is missing.
 
 ## Spec Change Log
 
 - 2026-10-27 — initial spec. Done.
+- 2026-10-27 (later the same day) — **the country picker was removed outright.** The first implementation kept the chip and made it follow what the patient typed. The user then asked for the country-code field to be removed, so the chip, the country catalogue (`phone-countries.ts`) and the join/split helpers are gone; the field is one input and the normaliser is `normalizePhone`. The API contract never changed. The intermediate design is recorded in the note under **Intent**.
 
 ## Deferrals
 
 - **Formatting the number as the patient types (e.g. `+880 1684 960808`).** The app normalises separators away before validating but does not re-insert them, so the value shown is what the patient typed. Grouping is a cosmetic follow-up.
-- **A country catalogue covering every ITU dial code.** The catalogue is a convenience list (Gulf presets + common international destinations). Anything else works through `OTHER` — the country code is simply not guessed.
-- **Persisting the patient's country preference.** The chip resets to `SA` on a new booking. Storing it against the patient profile is a separate story.
-- **Deriving the country from the request IP or locale.** Not attempted; the chip follows what the patient types.
+- **Live formatting as the patient types** (regrouping on each keystroke). Deliberately not done: rewriting the input under the patient is the behaviour this story was opened to remove, and it breaks cursor position mid-edit.
+- **Guessing a country code from a national number.** Not a deferral but a decision — a bare national number is rejected rather than assumed to be `+966`, because guessing wrong books the appointment under a phone that belongs to nobody.
+- **A one-tap country preset / dialling-code shortcut.** Dropped along with the chip. The patient types `+966` instead of tapping it — one extra keystroke, no second control to understand.
+- **Deriving the country from the request IP or locale.** Not attempted, and moot now that the app has no notion of a selected country.
 
 ## Cross-References
 
 - `spec-w10-staff-login-patient-otp.md` — the auth surface that fronts the booking flow.
 - `docs/design/DESIGN-SYSTEM.md` §3.4 (phone format) — the E.164 rule the client must satisfy.
 - `apps/api/src/routes/bookings-helpers.ts` `isValidE164Phone` — the server-side contract.
-- `apps/web/src/pages/booking-utils.ts` — the join/split/detect helpers.
+- `apps/web/src/pages/booking-utils.ts` — `normalizePhone` / `isValidPhone`.
+- `apps/web/src/pages/usePhoneField.ts` — the shared hook both phone fields use.
+- `apps/web/test/phone-number.test.ts` — the unit tests for the normaliser.
+- `apps/web/e2e/flows/phone-number.spec.ts` — the browser tests for the single input.

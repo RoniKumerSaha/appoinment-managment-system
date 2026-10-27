@@ -1,89 +1,56 @@
 /**
- * usePhoneField — the country chip + phone input, kept in sync.
+ * usePhoneField — the phone input, normalised for the API.
  *
- * The patient is NOT required to work with the country code. They
- * may type the whole international number (`+8801684960808`) and the
- * chip follows along; or they may type a national number
- * (`01684960808`) and the selected chip's dial code is prefixed.
+ * The patient types the whole international number — `+966512345678`,
+ * `+880 1684 960808`, `+1 (555) 123-4567`. There is no country
+ * picker: the country code is part of the number, the way it is in
+ * every other booking app.
  *
  * The rule the API forces on us: the number we submit must be E.164
- * (`^\+[1-9]\d{6,14}$`). So the hook always exposes a joined string
- * that is E.164-shaped, and the chip is a convenience that never
- * overrides a prefix the patient typed themselves.
+ * (`^\+[1-9]\d{6,14}$`). The hook exposes:
+ *   - `phone`   — the raw text in the input (what the patient typed)
+ *   - `e164`    — the normalised string the API receives
+ *   - `isValid` — whether `e164` satisfies the API's regex
  *
  * Shared by the public booking flow (`PatientBooking`) and the
  * receptionist walk-in form (`ReceptionistCreate`) so both behave
  * identically.
  */
 import { useCallback, useMemo, useState } from 'react';
-import { DEFAULT_COUNTRY_CODE, findCountry } from './phone-countries';
-import { detectCountryCode, joinPhone } from './booking-utils';
+import { isValidPhone, normalizePhone } from './booking-utils';
 
 export interface PhoneFieldState {
-  /** The selected country code (ISO 3166-1 alpha-2, or `OTHER`). */
-  countryCode: string;
   /** The raw text in the input — exactly what the patient typed. */
-  nationalNumber: string;
-  /** The joined E.164 string the API receives. */
   phone: string;
-  /** Fired by the chip: the country changed, so the number is reset. */
-  onCountryChange: (code: string) => void;
+  /** The normalised E.164 string the API receives. */
+  e164: string;
+  /** Whether the normalised number satisfies the API's E.164 rule. */
+  isValid: boolean;
   /** Fired by the input: the patient typed (or pasted) a number. */
-  onNumberChange: (value: string) => void;
-  /** Clears the field back to its initial country and an empty number. */
+  onPhoneChange: (value: string) => void;
+  /** Clears the field. */
   reset: () => void;
-  /** The country name for display, e.g. "Saudi Arabia". */
-  countryName: string;
 }
 
-export function usePhoneField(
-  initialCountryCode: string = DEFAULT_COUNTRY_CODE,
-): PhoneFieldState {
-  const [countryCode, setCountryCode] = useState<string>(initialCountryCode);
-  const [nationalNumber, setNationalNumber] = useState<string>('');
+export function usePhoneField(initialPhone = ''): PhoneFieldState {
+  const [phone, setPhone] = useState<string>(initialPhone);
 
-  const onCountryChange = useCallback((code: string): void => {
-    setCountryCode(code);
-    // The national number belongs to the country, not the other way
-    // round — keeping a number typed against the old country would
-    // produce a valid-looking but wrong E.164 string. An explicitly
-    // typed international number is the exception: it carries its own
-    // country code, so it survives the switch.
-    setNationalNumber((prev) =>
-      prev.replace(/[\s\-().]/g, '').startsWith('+') ? prev : '',
-    );
+  const onPhoneChange = useCallback((value: string): void => {
+    setPhone(value);
   }, []);
 
-  const onNumberChange = useCallback((value: string): void => {
-    setNationalNumber(value);
-    // The patient typed a full international number. Follow the
-    // country code they typed rather than forcing the chip's.
-    const detected = detectCountryCode(value);
-    if (detected !== null) setCountryCode(detected);
-  }, []);
-
-  const phone = useMemo(
-    () => joinPhone(countryCode, nationalNumber),
-    [countryCode, nationalNumber],
-  );
-
-  const countryName = useMemo(
-    () => findCountry(countryCode)?.name ?? 'Other country',
-    [countryCode],
-  );
+  const e164 = useMemo(() => normalizePhone(phone), [phone]);
+  const isValid = useMemo(() => isValidPhone(e164), [e164]);
 
   const reset = useCallback((): void => {
-    setCountryCode(initialCountryCode);
-    setNationalNumber('');
-  }, [initialCountryCode]);
+    setPhone(initialPhone);
+  }, [initialPhone]);
 
   return {
-    countryCode,
-    nationalNumber,
     phone,
-    onCountryChange,
-    onNumberChange,
+    e164,
+    isValid,
+    onPhoneChange,
     reset,
-    countryName,
   };
 }

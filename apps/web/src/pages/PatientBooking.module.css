@@ -771,59 +771,6 @@
   gap: var(--space-5);
 }
 
-.phone-row {
-  display: grid;
-  grid-template-columns: 130px 1fr;
-  gap: 0;
-  align-items: stretch;
-  border: 1.5px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
-  overflow: hidden;
-}
-
-.phone-row:focus-within {
-  border-color: var(--brand-primary);
-  box-shadow: var(--ring-focus);
-}
-
-.cc-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 12px;
-  background: var(--surface-page);
-  border: none;
-  border-right: 1.5px solid var(--border-default);
-  font-size: var(--text-md);
-  color: var(--text-heading);
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.cc-chip:hover {
-  background: var(--neutral-bg);
-}
-
-.cc-chip__code {
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.cc-chip__caret {
-  color: var(--text-muted);
-  font-size: 10px;
-}
-
-.phone-row .field__input {
-  border: none;
-  border-radius: 0;
-}
-
-.phone-row .field__input:focus {
-  box-shadow: none;
-}
-
 .field {
   display: block;
 }

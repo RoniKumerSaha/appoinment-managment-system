@@ -188,37 +188,6 @@
   margin-top: 4px;
 }
 
-/* Country chip + national-number input share one bordered well so
-   the pair reads as a single phone field. */
-.phone-row {
-  display: grid;
-  grid-template-columns: 130px 1fr;
-  gap: 0;
-  align-items: stretch;
-  border: 1.5px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--surface-card);
-  overflow: hidden;
-}
-
-.phone-row:focus-within {
-  border-color: var(--brand-primary);
-  box-shadow: var(--ring-focus);
-}
-
-.phone-row input {
-  border: none;
-  border-radius: 0;
-}
-
-/* The input is borderless inside the shared well, so the well owns
-   the border. The focus ring still rides on the input itself so the
-   keyboard affordance survives the borderless reset. */
-.phone-row input:focus {
-  outline: none;
-  box-shadow: var(--ring-focus);
-}
-
 /* ── Branch locked card ──────────────────────────────────────── */
 .branch-card {
   background: var(--surface-soft);

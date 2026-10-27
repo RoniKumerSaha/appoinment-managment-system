@@ -11,16 +11,6 @@
  * the branch.tz field is rendered as a hint, not used for math. The
  * spec pins this behavior (D2 deferral to E7-S6 for proper TZ math).
  */
-import {
-  ALL_COUNTRIES,
-  findCountry,
-} from './phone-countries';
-
-export {
-  DEFAULT_COUNTRY_CODE,
-  findCountry,
-} from './phone-countries';
-
 export function initialsOf(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
   const first = parts[0]?.[0] ?? '';
@@ -102,82 +92,29 @@ export function isValidOtpCode(s: string): boolean {
 }
 
 // ----------------------------------------------------------------------------
-// Country-code splitting — the phone field is a country chip + a
-// national number, but the API only ever sees one E.164 string.
+// Phone normalisation — the field is a single input and the API only
+// ever sees one E.164 string.
 //
 
-/** Join a country code + national number into the E.164 string the
- *  API expects.
+/** Normalise a typed phone number into the E.164 string the API
+ *  expects.
  *
- *  The patient is allowed to type the WHOLE international number —
- *  `+8801684960808` — without touching the country chip. When the
- *  typed value carries its own `+CC` prefix, that prefix wins and
- *  the chip is only a display convenience; we never blindly glue
- *  the selected dial code onto a number that already declares one.
- *  (`OTHER` contributes no prefix — the patient types their own full
- *  international number in the national field.) */
-export function joinPhone(countryCode: string, nationalNumber: string): string {
-  const digits = nationalNumber.replace(/[\s\-().]/g, '');
+ *  The patient types the whole international number — `+966512345678`,
+ *  `+880 1684 960808`, `+1 (555) 123-4567`. We strip the cosmetic
+ *  separators, drop a leading `00` (the international prefix written
+ *  longhand), and keep the `+` the patient typed.
+ *
+ *  A bare national number (`512345678`) is NOT given a country code:
+ *  we do not guess one. The API rejects it, and the field shows the
+ *  patient what is missing. */
+export function normalizePhone(raw: string): string {
+  const digits = raw.replace(/[\s\-().]/g, '');
   if (digits === '') return '';
-  if (countryCode === 'OTHER') return digits.startsWith('+') ? digits : `+${digits}`;
-  // The patient typed (or pasted) a complete international number.
-  // Trust it as-is: the chip is a fallback, not an override.
-  if (digits.startsWith('+')) {
-    return `+${digits.slice(1).replace(/^0+/, '')}`;
-  }
-  const country = findCountry(countryCode);
-  if (country === undefined || country.dial === '') return digits;
-  // The patient may have pasted the number including the prefix but
-  // without the `+`. Strip it so the prefix is not doubled.
-  const bare = digits;
-  const national = bare.startsWith(country.dial.slice(1))
-    ? bare.slice(country.dial.length - 1)
-    : bare;
-  return `${country.dial}${national}`;
-}
-
-/** Split a full phone string back into a country code + national
- *  number.
- *
- *  A number whose `+CC` prefix is not in the catalogue (Bangladesh
- *  `+880`, say) is still a perfectly good international number, so
- *  it splits as `OTHER` + the digits after the country code rather
- *  than being rejected. Only a string with no `+` at all returns
- *  null — the caller then treats it as a raw national number. */
-export function splitPhone(
-  full: string,
-): { countryCode: string; nationalNumber: string } | null {
-  const bare = full.replace(/[\s\-().]/g, '');
-  if (!bare.startsWith('+')) return null;
-  // Longest dial code first: +1 is a prefix of nothing, but +7 would
-  // shadow +971 if the list were unordered.
-  const candidates = ALL_COUNTRIES.filter((c) => c.dial !== '').sort(
-    (a, b) => b.dial.length - a.dial.length,
-  );
-  for (const c of candidates) {
-    if (bare.startsWith(c.dial)) {
-      return {
-        countryCode: c.code,
-        nationalNumber: bare.slice(c.dial.length),
-      };
-    }
-  }
-  // Unknown country code: hand the whole international number to the
-  // `OTHER` escape hatch, which contributes no prefix of its own.
-  // We do not guess where the country code ends — the digits after
-  // the `+` are all the patient typed, and `joinPhone('OTHER', …)`
-  // puts the `+` back in front of them.
-  return { countryCode: 'OTHER', nationalNumber: bare };
-}
-
-/** The country the chip should show for a value the patient typed.
- *
- *  Returns null when the value carries no country code of its own
- *  (a bare national number), in which case the chip keeps whatever
- *  the patient picked. */
-export function detectCountryCode(typed: string): string | null {
-  const split = splitPhone(typed);
-  return split === null ? null : split.countryCode;
+  // `00` is the longhand international prefix — `00966…` means
+  // `+966…`. Strip it so the number is not silently invalid.
+  if (digits.startsWith('00')) return `+${digits.slice(2)}`;
+  if (digits.startsWith('+')) return `+${digits.slice(1).replace(/^0+/, '')}`;
+  return digits;
 }
 
 // ----------------------------------------------------------------------------

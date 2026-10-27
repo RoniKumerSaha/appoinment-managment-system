@@ -13,7 +13,7 @@
     "test:e7-s7": "node test/run-no-tentative-holds.mjs",
     "test:api-error-body": "node test/run-api-error-body.mjs",
     "test:recurring-client": "node test/run-recurring-client.mjs",
-    "test:phone-country": "node test/run-phone-country.mjs",
+    "test:phone-number": "node test/run-phone-number.mjs",
     "test:reception-schedule": "node test/run-reception-schedule.mjs",
     "test:e7-s4": "node test/run-conflict-modal-singleton.mjs",
     "test:e7-s1": "node test/run-token-only-css.mjs",
