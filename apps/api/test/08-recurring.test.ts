@@ -696,16 +696,7 @@ test('POST /recurring/confirm (unknown UUID) → 404 preview_not_found', async (
   assert.equal(res.body.error, 'preview_not_found');
 });
 
-// SKIPPED — confirm-route writes `created_by = 'staff:<claim.sub>'`
-// for receptionist tokens, where `claim.sub` is the staff email
-// (e.g. `receptionist-east@clinic.local`). The `appointment_created_by_check`
-// regex is `^(staff|patient):[A-Za-z0-9+_.-]{1,255}` which doesn't
-// permit `@` characters, so the INSERT throws 23514 (check violation)
-// and the entire batch rolls back. Same root cause as the "second
-// confirm" test below. To be re-enabled once either:
-//   (a) the CHECK constraint is relaxed to allow `@`, or
-//   (b) the route prefixes the staff id (e.g. `staff:rec-east`)
-test.skip('POST /recurring/confirm (happy path, weekly) → 201 with created rows + audit', async () => {
+test('POST /recurring/confirm (happy path, weekly) → 201 with created rows + audit', async () => {
   const { doctorId, branchId, typeId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
   // Find a Monday 2 days out
   const start = new Date();
@@ -774,10 +765,7 @@ test.skip('POST /recurring/confirm (happy path, weekly) → 201 with created row
   }
 });
 
-// SKIPPED — same `created_by` CHECK constraint bug as the happy
-// path above: the receptionist token's `claim.sub` is an email and
-// the regex on the column doesn't allow `@`.
-test.skip('POST /recurring/confirm (after confirm, second confirm with same preview_id) → 404 preview_not_found', async () => {
+test('POST /recurring/confirm (after confirm, second confirm with same preview_id) → 404 preview_not_found', async () => {
   const { doctorId, branchId, typeId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
   // Find a Monday 4 days out
   const start = new Date();

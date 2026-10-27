@@ -15,14 +15,14 @@
  * `slots` is empty, `reason` describes why (for UI rendering). The
  * route maps the result to a JSON response.
  *
- * TZ resolution: this engine uses UTC throughout. The spec pins
- * branch.hours and doctor_schedule as wall-clock time values that
- * the engine treats as UTC for slot math. E7-S6 (branch-tz support)
- * will switch the engine to convert at read time using `(start AT
- * TIME ZONE branch.tz)::time`. Today, the seeded branches use
- * 'America/New_York' / 'America/Los_Angeles' but no schedule row
- * crosses a TZ-aware boundary — so the UTC-as-working-plane shortcut
- * is safe at realistic scheduling volume.
+ * TZ resolution: branch.hours and doctor_schedule are wall-clock
+ * values expressed in the branch's local timezone. The engine
+ * therefore anchors the requested day to branch-local midnight,
+ * keys the schedule lookup on the branch-local day-of-week, and
+ * measures every stored UTC timestamp as branch-local
+ * minutes-of-day. The resulting slots carry absolute UTC instants so
+ * the write-side validators (which apply the same anchoring) accept
+ * them unchanged.
  *
  * Patient privacy: when `patientPhone` is null, FR-027/FR-029 filters
  * are skipped (a fresh patient). When supplied, the engine applies
@@ -36,8 +36,11 @@ import {
   type AvailabilityResult,
   type Interval,
   isWithin30DayWindow,
+  localDateInTz,
+  localDayOfWeek,
+  localMinutesOfDayOn,
+  localWallClockToUtcMs,
   timeStringToMinutes,
-  utcDayOfWeek,
 } from './types.js';
 import {
   buildSlots,
@@ -50,7 +53,7 @@ import {
 const SELECT_CLINIC_ID_SQL = `SELECT id FROM clinic LIMIT 1`;
 
 const SELECT_DOCTOR_AT_BRANCH_SQL = `
-  SELECT d.id, d.full_name, d.active, b.active AS branch_active
+  SELECT d.id, d.full_name, d.active, b.active AS branch_active, b.tz
     FROM doctor d
     JOIN doctor_branch db ON db.doctor_id = d.id
     JOIN branch b ON b.id = db.branch_id
@@ -117,6 +120,7 @@ interface DoctorRow {
   full_name: string;
   active: boolean;
   branch_active: boolean;
+  tz: string;
 }
 
 interface AppointmentTypeRow {
@@ -158,18 +162,39 @@ export type AvailabilityOutcome =
   | { kind: 'ok'; result: AvailabilityResult }
   | { kind: 'err'; error: AvailabilityError };
 
-/** Build the UTC midnight → next-day-midnight interval for `date`. */
-function dayBounds(date: Date): { startMs: number; endMs: number } {
-  const startMs = date.getTime();
-  const endMs = startMs + 24 * 60 * 60 * 1000;
+/** Build the branch-local midnight → next-day-midnight interval for
+ *  the requested calendar date. The bounds are absolute UTC instants;
+ *  their local span is exactly one calendar day in `tz` (23 or 25
+ *  hours across a DST boundary). */
+function localDayBounds(
+  isoDate: string,
+  tz: string,
+): { startMs: number; endMs: number } {
+  const startMs = localWallClockToUtcMs(isoDate, 0, 0, tz);
+  const nextDate = addDays(isoDate, 1);
+  const endMs = localWallClockToUtcMs(nextDate, 0, 0, tz);
   return { startMs, endMs };
 }
 
-/** Convert a timestamp Date (assumed UTC) to minutes-of-day relative to
- *  the same calendar day. For inputs inside `[date, date+24h)`, the
- *  result is in `[0, 1440)`. */
-function timestampToMinutes(t: Date, dayStartMs: number): number {
-  return Math.floor((t.getTime() - dayStartMs) / 60000);
+/** Advance a `YYYY-MM-DD` date by `n` days. */
+function addDays(isoDate: string, n: number): string {
+  const ms = Date.UTC(
+    Number(isoDate.slice(0, 4)),
+    Number(isoDate.slice(5, 7)) - 1,
+    Number(isoDate.slice(8, 10)),
+  ) + n * 86_400_000;
+  const d = new Date(ms);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
+/** Convert a stored UTC timestamp to branch-local minutes-of-day,
+ *  anchored on the requested calendar day. */
+function timestampToLocalMinutes(
+  t: Date,
+  isoDate: string,
+  tz: string,
+): number {
+  return localMinutesOfDayOn(t.getTime(), isoDate, tz);
 }
 
 /** Construct an `Interval` from a Postgres `time` row pair. Returns
@@ -274,8 +299,13 @@ export async function computeAvailability(
     }
 
     // 4. Read branch hours + doctor schedule for the date's DOW.
-    const dayStart = dayBounds(query.date);
-    const dow = utcDayOfWeek(query.date);
+    //    The requested date is a calendar date in the branch's local
+    //    timezone; every wall-clock value below is expressed in that
+    //    same frame.
+    const branchTz = doctor.tz;
+    const isoDate = localDateInTz(query.date.getTime(), 'UTC');
+    const dayStart = localDayBounds(isoDate, branchTz);
+    const dow = localDayOfWeek(dayStart.startMs, branchTz);
 
     const { rows: hoursRows } = await client.query<BranchHoursRow>(
       SELECT_BRANCH_HOURS_SQL,
@@ -300,7 +330,7 @@ export async function computeAvailability(
 
     const { rows: scheduleRows } = await client.query<TimeRangeRow>(
       SELECT_DOCTOR_SCHEDULE_SQL,
-      [query.doctorId, query.branchId, dow, query.date],
+      [query.doctorId, query.branchId, dow, isoDate],
     );
     if (scheduleRows.length === 0) {
       await client.query('COMMIT');
@@ -346,8 +376,8 @@ export async function computeAvailability(
     const blockIntervals: Interval[] = [];
     for (const r of blockRows) {
       const iv = clampToDay(
-        timestampToMinutes(r.start_datetime, dayStart.startMs),
-        timestampToMinutes(r.end_datetime, dayStart.startMs),
+        timestampToLocalMinutes(r.start_datetime, isoDate, branchTz),
+        timestampToLocalMinutes(r.end_datetime, isoDate, branchTz),
       );
       if (iv !== null) blockIntervals.push(iv);
     }
@@ -364,8 +394,8 @@ export async function computeAvailability(
     const existingIntervals: Interval[] = [];
     for (const r of existingRows) {
       const iv = clampToDay(
-        timestampToMinutes(r.start_datetime, dayStart.startMs),
-        timestampToMinutes(r.end_datetime, dayStart.startMs),
+        timestampToLocalMinutes(r.start_datetime, isoDate, branchTz),
+        timestampToLocalMinutes(r.end_datetime, isoDate, branchTz),
       );
       if (iv !== null) existingIntervals.push(iv);
     }
@@ -401,8 +431,8 @@ export async function computeAvailability(
       patientSkip = [];
       for (const r of poRows) {
         const iv = clampToDay(
-          timestampToMinutes(r.start_datetime, dayStart.startMs),
-          timestampToMinutes(r.end_datetime, dayStart.startMs),
+          timestampToLocalMinutes(r.start_datetime, isoDate, branchTz),
+          timestampToLocalMinutes(r.end_datetime, isoDate, branchTz),
         );
         if (iv !== null) patientSkip.push(iv);
       }
@@ -417,6 +447,23 @@ export async function computeAvailability(
     await client.query('COMMIT');
 
     const slots = buildSlots(finalIntervals, query.durationMinutes);
+    // Anchor each slot's branch-local minutes-of-day to the branch's
+    // timezone so the returned instants are the ones the write-side
+    // validators will re-derive.
+    for (const slot of slots) {
+      slot.startMs = localWallClockToUtcMs(
+        isoDate,
+        Math.floor(slot.startMin / 60),
+        slot.startMin % 60,
+        branchTz,
+      );
+      slot.endMs = localWallClockToUtcMs(
+        isoDate,
+        Math.floor(slot.endMin / 60),
+        slot.endMin % 60,
+        branchTz,
+      );
+    }
     if (slots.length === 0) {
       // Distinguish "all booked" vs "no_fit" vs other empty reasons.
       // Simplest heuristic: if baseIntervals (branch ∩ doctor) had

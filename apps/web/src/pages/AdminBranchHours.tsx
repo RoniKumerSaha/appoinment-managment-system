@@ -163,6 +163,7 @@ export function AdminBranchHours({
 }: AdminBranchHoursProps) {
   const [branch, setBranch] = useState<BranchDto | null>(null);
   const [originalAddress, setOriginalAddress] = useState<string | null>(null);
+  const [originalTz, setOriginalTz] = useState<string>('');
   const [original, setOriginal] = useState<HoursRow[]>([]);
   const [edit, setEdit] = useState<HoursRow[]>([]);
   const [address, setAddress] = useState<string>('');
@@ -188,6 +189,7 @@ export function AdminBranchHours({
         setBranch(b);
         setOriginalAddress(h.address);
         setAddress(h.address ?? '');
+        setOriginalTz(h.tz);
         setTz(h.tz);
         // The GET path returns `[]` for a fresh branch; build the default
         // 7-row set so the editor is always renderable.
@@ -277,10 +279,19 @@ export function AdminBranchHours({
         const body: {
           hours: HoursRow[];
           address?: string | null;
+          tz?: string;
         } = { hours: hoursBody };
         const trimmedAddress = address.trim();
         if ((originalAddress ?? null) !== (trimmedAddress || null)) {
           body.address = trimmedAddress === '' ? null : trimmedAddress;
+        }
+        // The timezone is editable on this screen and is part of what the
+        // hours are interpreted in — a timezone change silently changes
+        // every slot's wall-clock meaning, so it is sent alongside the
+        // hours rather than left as a local-only field.
+        const trimmedTz = tz.trim();
+        if (trimmedTz !== originalTz) {
+          body.tz = trimmedTz;
         }
         const resp = await patchBranchHours(branchId, body, acknowledge);
         // Refresh local state from the canonical response.
@@ -288,6 +299,7 @@ export function AdminBranchHours({
         setEdit(resp.hours.map((r) => ({ ...r })));
         setOriginalAddress(resp.branch.address);
         setAddress(resp.branch.address ?? '');
+        setOriginalTz(resp.branch.tz);
         setTz(resp.branch.tz);
         setImpact({
           count_affected: resp.impact.count_affected,
@@ -315,10 +327,9 @@ export function AdminBranchHours({
           // counts + affected_doctors + ack flag. Affected-list is only
           // present on the preview path; for the PATCH-409 path we
           // surface what the server gave us.
-          type Envelope = { error?: string; impact?: HoursImpactSummary };
-          const envelope = (caught as unknown as { body?: Envelope }).body;
-          if (envelope?.impact) {
-            setImpact(envelope.impact);
+          const impact = caught.body['impact'];
+          if (impact && typeof impact === 'object') {
+            setImpact(impact as HoursImpactSummary);
             setImpactExpanded(true);
             return;
           }
@@ -328,7 +339,7 @@ export function AdminBranchHours({
         setBusy(false);
       }
     },
-    [edit, address, branchId, branch, originalAddress],
+    [edit, address, tz, branchId, branch, originalAddress, originalTz],
   );
 
   if (loading) {

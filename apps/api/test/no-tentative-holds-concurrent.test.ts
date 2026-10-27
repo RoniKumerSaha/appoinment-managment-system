@@ -61,14 +61,18 @@ before(async () => {
 after(async () => {
   delete process.env['AUTH_SECRET'];
   __resetAuthConfigForTests();
-  // Best-effort cleanup of any test-prefixed rows (mirrors bookings.test.ts).
+  // Best-effort cleanup of any test-prefixed rows. `appointment_audit` is
+  // append-only (trigger P0001 on DELETE) and the appointment FK from the
+  // audit table is ON DELETE RESTRICT, so neither row can be removed. The
+  // appointments are marked Cancelled instead, which keeps them off the
+  // kanban / patient list and off every availability query.
   const client = await db.pool.connect();
   try {
     await client.query(
-      `DELETE FROM appointment_audit WHERE actor_id LIKE 'patient:%test%'`,
-    );
-    await client.query(
-      `DELETE FROM appointment WHERE created_by = 'patient:+15559990002'`,
+      `UPDATE appointment SET status = 'Cancelled'
+        WHERE created_by IN ('patient:+15559990002', 'patient:+15559990003',
+                             'patient:+15559990004', 'patient:+15559990005')
+          AND status = 'Scheduled'`,
     );
   } finally {
     client.release();
@@ -91,6 +95,28 @@ function patientTokenA(): string {
 function patientTokenB(): string {
   return signClaim({
     sub: '+15559990003',
+    role: 'patient',
+    branch_ids: [],
+    scope: 'self',
+  });
+}
+
+/** The control-case test books under its own patient. It must not reuse
+ *  patient A: whichever racer wins the test above leaves a Scheduled
+ *  appointment for that phone, and FR-027 (one Scheduled appointment per
+ *  patient+doctor) would then reject the control case with
+ *  `patient_has_future_with_doctor` before the slot check ever runs. */
+const CONTROL_PATIENT = '+15559990004';
+
+/** The already-booked slot the control case races against. A third
+ *  distinct phone: the pre-inserted row is Scheduled for the same
+ *  doctor, so it must not collide with either racer under the FR-027
+ *  partial unique index. */
+const PREINSERTED_PATIENT = '+15559990005';
+
+function controlPatientToken(): string {
+  return signClaim({
+    sub: CONTROL_PATIENT,
     role: 'patient',
     branch_ids: [],
     scope: 'self',
@@ -289,11 +315,11 @@ test('POST /bookings: pre-inserted row → 409 slot_raced envelope (control case
         clinicRows[0]!.id,
         branchId,
         doctorId,
-        '+15550000002',
+        PREINSERTED_PATIENT,
         typeId,
         startIso,
         endIso,
-        'patient:+15550000002',
+        `patient:${PREINSERTED_PATIENT}`,
       ],
     );
     await client.query('COMMIT');
@@ -304,7 +330,7 @@ test('POST /bookings: pre-inserted row → 409 slot_raced envelope (control case
   try {
     const res = await request(adminApp())
       .post('/bookings')
-      .set('Authorization', `Bearer ${patientTokenA()}`)
+      .set('Authorization', `Bearer ${controlPatientToken()}`)
       .set('content-type', 'application/json')
       .send({
         doctor_id: doctorId,
@@ -313,25 +339,23 @@ test('POST /bookings: pre-inserted row → 409 slot_raced envelope (control case
         start_datetime: startIso,
         end_datetime: endIso,
         slot_duration_minutes: 30,
-        patient_phone: '+15559990002',
-        patient_name: 'Test Patient A',
+        patient_phone: CONTROL_PATIENT,
+        patient_name: 'Control Patient',
       });
     assert.equal(res.status, 409);
     assert.equal(res.body.error, 'slot_raced');
     assert.equal(res.body.code, 'SLOT_RACED');
   } finally {
-    // Cleanup the pre-inserted row + its audit.
+    // Cleanup the pre-inserted row. `appointment_audit` is append-only
+    // and the appointment FK from it is ON DELETE RESTRICT, so the row
+    // is cancelled rather than deleted.
     const cleanup = await db.pool.connect();
     try {
       await cleanup.query(
-        `DELETE FROM appointment_audit WHERE payload::text LIKE $1`,
-        [`%${startIso}%`],
-      );
-      await cleanup.query(
-        `DELETE FROM appointment
-          WHERE patient_phone = '+15550000002'
-            AND start_datetime = $1::timestamptz`,
-        [startIso],
+        `UPDATE appointment SET status = 'Cancelled'
+          WHERE patient_phone = $1
+            AND start_datetime = $2::timestamptz`,
+        [PREINSERTED_PATIENT, startIso],
       );
     } finally {
       cleanup.release();

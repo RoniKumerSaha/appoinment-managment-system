@@ -56,6 +56,7 @@ import {
   validatePatchTypeBody,
   parseActiveFilter,
 } from './admin-appointment-types-helpers.js';
+import { staffCreatedBy } from './created-by.js';
 
 interface TypeRow {
   id: string;
@@ -167,7 +168,7 @@ adminAppointmentTypesRouter.post(
         return;
       }
       const clinicId = clinicRows[0]!.id;
-      const createdBy = `staff:${req.auth?.claim?.sub ?? 'admin-main'}`;
+      const createdBy = staffCreatedBy(req.auth?.claim?.sub);
       const { rows } = await pool.query<TypeRow>(INSERT_TYPE_SQL, [
         clinicId,
         name,

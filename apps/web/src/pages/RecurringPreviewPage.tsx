@@ -7,32 +7,21 @@
  * 760px stacked-vertical flow, 4 numbered section cards:
  *   1. Series details (meta-cell grid)
  *   2. Validation summary (create vs skip counts)
- *   3. Occurrences detail (4 create, 2 skip with footnote)
- *   4. Confirm creation (text + Cancel + Edit pattern + Create 4 →)
+ *   3. Occurrences detail (create/skip rows with reasons)
+ *   4. Confirm creation (text + Cancel + Edit pattern + Create N →)
  *
- * No tests in this pass (per user instruction).
+ * The page is fed by the REAL preview response (`POST /recurring/preview`)
+ * — the owner (DoctorApp) holds the series input and the preview result
+ * and passes them down. The "Create N appointments" button calls the
+ * owner, which POSTs `/recurring/confirm` with the `preview_id`.
  */
 import type { ReactNode } from 'react';
 import { DoctorFrame } from './DoctorFrame';
 import styles from './RecurringPreviewPage.module.css';
-
-interface Occurrence {
-  date: string;
-  time: string;
-  status: 'create' | 'skip';
-  reason?: string;
-}
-
-const SERIES = {
-  patient: 'Sara M. · +966 5XX XXX 7777',
-  doctor: 'Dr. Ahmed Al-Rashid (you)',
-  branch: 'Branch A — Downtown',
-  type: 'Cardiology consultation · 45 min',
-  pattern: 'Weekly · Monday',
-  time: '10:00 – 10:45',
-  start: 'Mon, Aug 25 · 10:00',
-  requested: 6,
-};
+import type {
+  RecurringPreviewResponse,
+  RecurringSkippedOccurrence,
+} from '../api/client';
 
 const CHECKS = [
   'Branch operating hours',
@@ -45,32 +34,100 @@ const CHECKS = [
   'Same-day exclusion',
 ];
 
-const OCCURRENCES: Occurrence[] = [
-  { date: 'Mon, Aug 25', time: '10:00 – 10:45 · Branch A · Cardiology', status: 'create' },
-  { date: 'Mon, Sep 1', time: '10:00 – 10:45 · Branch A · Cardiology', status: 'create' },
-  { date: 'Mon, Sep 15', time: '10:00 – 10:45 · Branch A · Cardiology', status: 'create' },
-  { date: 'Mon, Sep 22', time: '10:00 – 10:45 · Branch A · Cardiology', status: 'create' },
-  {
-    date: 'Mon, Sep 8',
-    time: '10:00 – 10:45 · Branch A',
-    status: 'skip',
-    reason: 'Doctor blocked: cardiology conference',
-  },
-  {
-    date: 'Mon, Sep 22',
-    time: '10:00 – 10:45 · Branch A',
-    status: 'skip',
-    reason: 'Outside 30-day window',
-  },
-];
+export interface RecurringPreviewLabels {
+  patient: string;
+  doctor: string;
+  branch: string;
+  type: string;
+}
+
+export interface RecurringPreviewPageProps {
+  preview: RecurringPreviewResponse;
+  labels: RecurringPreviewLabels;
+  /** Number of occurrences the user asked for. The preview response
+   *  carries only the surviving occurrences, so the requested count has
+   *  to come from the request. */
+  requested: number;
+  error: string | null;
+  busy: boolean;
+  onCancel: () => void;
+  onEditPattern: () => void;
+  onConfirm: () => void;
+}
 
 function StepNum({ n }: { n: number }): ReactNode {
   return <div className={styles['section-num']}>{n}</div>;
 }
 
-export function RecurringPreviewPage(): ReactNode {
-  const creates = OCCURRENCES.filter((o) => o.status === 'create');
-  const skips = OCCURRENCES.filter((o) => o.status === 'skip');
+/** `2026-11-04` → `Wed, Nov 4`. The local_date is already in the
+ *  branch's timezone, so it is rendered as a plain calendar date with
+ *  no timezone conversion. */
+function formatLocalDate(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  if (!y || !m || !d) return iso;
+  const date = new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)));
+  const dow = date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    timeZone: 'UTC',
+  });
+  const mon = date.toLocaleDateString('en-US', {
+    month: 'short',
+    timeZone: 'UTC',
+  });
+  return `${dow}, ${mon} ${Number(d)}`;
+}
+
+/** `2026-11-04T14:00:00.000Z` → `10:00`. The instant is rendered in
+ *  the branch's timezone — the hours are wall-clock in that zone, so
+ *  the ISO instant alone would be misleading. */
+function formatLocalTime(iso: string, tz: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-GB', {
+      timeZone: tz,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(new Date(iso));
+  } catch {
+    return '—';
+  }
+}
+
+function formatRange(
+  startIso: string,
+  endIso: string,
+  tz: string,
+): string {
+  return `${formatLocalTime(startIso, tz)} – ${formatLocalTime(endIso, tz)}`;
+}
+
+/** The server's skip reasons are snake_case codes (`outside_branch_hours`,
+ *  `doctor_blocked`, …). They are rendered as-is — the server owns the
+ *  vocabulary, and inventing a display label here would let the two
+ *  drift apart. */
+function humanizeReason(reason: string): string {
+  return reason.replace(/_/g, ' ');
+}
+
+export function RecurringPreviewPage({
+  preview,
+  labels,
+  requested,
+  error,
+  busy,
+  onCancel,
+  onEditPattern,
+  onConfirm,
+}: RecurringPreviewPageProps): ReactNode {
+  const creates = preview.will_create;
+  const skips: RecurringSkippedOccurrence[] = preview.skipped_with_reason;
+  const tz = preview.branch.tz;
+  const patternLabel =
+    preview.recurrence.kind === 'every_two_weeks'
+      ? 'Every 2 weeks'
+      : preview.recurrence.kind === 'custom_days'
+        ? `Custom · every ${preview.recurrence.interval_days} days`
+        : 'Weekly';
 
   return (
     <DoctorFrame>
@@ -82,6 +139,12 @@ export function RecurringPreviewPage(): ReactNode {
             created.
           </p>
         </header>
+
+        {error !== null && (
+          <div className={styles['footnote']} role="alert">
+            {error}
+          </div>
+        )}
 
         {/* Step 1 — Series details */}
         <div className={styles['section']}>
@@ -96,14 +159,20 @@ export function RecurringPreviewPage(): ReactNode {
           </div>
           <div className={styles['section-body']}>
             <div className={styles['meta-row']}>
-              <Cell k="Patient" v={SERIES.patient} />
-              <Cell k="Doctor" v={SERIES.doctor} />
-              <Cell k="Branch" v={SERIES.branch} />
-              <Cell k="Type" v={SERIES.type} />
-              <Cell k="Pattern" v={SERIES.pattern} />
-              <Cell k="Time" v={SERIES.time} />
-              <Cell k="Start" v={SERIES.start} />
-              <Cell k="Occurrences" v={`${SERIES.requested} requested`} />
+              <Cell k="Patient" v={labels.patient} />
+              <Cell k="Doctor" v={labels.doctor} />
+              <Cell k="Branch" v={labels.branch} />
+              <Cell k="Type" v={labels.type} />
+              <Cell k="Pattern" v={patternLabel} />
+              <Cell
+                k="Time"
+                v={`${preview.recurrence.time_of_day} · ${preview.recurrence.duration_minutes} min`}
+              />
+              <Cell
+                k="Start"
+                v={`${formatLocalDate(preview.recurrence.start_date)} · ${preview.recurrence.time_of_day}`}
+              />
+              <Cell k="Occurrences" v={`${requested} requested`} />
             </div>
           </div>
         </div>
@@ -125,7 +194,7 @@ export function RecurringPreviewPage(): ReactNode {
                 {creates.length}
               </div>
               <div className={styles['summary-text']}>
-                <strong>will be created</strong>of {SERIES.requested} requested
+                <strong>will be created</strong>of {requested} requested
               </div>
               <div className={`${styles['summary-num']} ${styles['summary-num-skip']}`}>
                 {skips.length}
@@ -152,7 +221,7 @@ export function RecurringPreviewPage(): ReactNode {
             <StepNum n={3} />
             <div style={{ flex: 1 }}>
               <div className={styles['section-title']}>
-                All {OCCURRENCES.length} occurrences
+                All {creates.length + skips.length} occurrences
               </div>
               <div className={styles['section-sub']}>
                 Each row shows the validation result for that date.
@@ -168,11 +237,15 @@ export function RecurringPreviewPage(): ReactNode {
             <div className={styles['occ-list']}>
               {creates.map((o) => (
                 <div
-                  key={`c-${o.date}`}
+                  key={`c-${o.index}`}
                   className={`${styles['occ-row']} ${styles['occ-row-create']}`}
                 >
-                  <div className={styles['occ-row-date']}>{o.date}</div>
-                  <div className={styles['occ-row-time']}>{o.time}</div>
+                  <div className={styles['occ-row-date']}>
+                    {formatLocalDate(o.local_date)}
+                  </div>
+                  <div className={styles['occ-row-time']}>
+                    {formatRange(o.start_datetime, o.end_datetime, tz)}
+                  </div>
                   <span className={styles['occ-row-badge']}>➜“ Create</span>
                 </div>
               ))}
@@ -186,14 +259,18 @@ export function RecurringPreviewPage(): ReactNode {
             <div className={styles['occ-list']}>
               {skips.map((o) => (
                 <div
-                  key={`s-${o.date}`}
+                  key={`s-${o.index}`}
                   className={`${styles['occ-row']} ${styles['occ-row-skip']}`}
                 >
-                  <div className={styles['occ-row-date']}>{o.date}</div>
-                  <div className={styles['occ-row-time']}>{o.time}</div>
-                  {o.reason && (
-                    <span className={styles['occ-row-reason']}>{o.reason}</span>
-                  )}
+                  <div className={styles['occ-row-date']}>
+                    {formatLocalDate(o.local_date)}
+                  </div>
+                  <div className={styles['occ-row-time']}>
+                    {formatRange(o.start_datetime, o.end_datetime, tz)}
+                  </div>
+                  <span className={styles['occ-row-reason']}>
+                    {humanizeReason(o.reason)}
+                  </span>
                   <span className={styles['occ-row-badge']}>➜— Skip</span>
                 </div>
               ))}
@@ -225,14 +302,29 @@ export function RecurringPreviewPage(): ReactNode {
             released.
           </div>
           <div className={styles['section-actions']}>
-            <button type="button" className={styles['btn-ghost']}>
+            <button
+              type="button"
+              className={styles['btn-ghost']}
+              onClick={onCancel}
+              disabled={busy}
+            >
               Cancel
             </button>
-            <button type="button" className={styles['btn-secondary']}>
+            <button
+              type="button"
+              className={styles['btn-secondary']}
+              onClick={onEditPattern}
+              disabled={busy}
+            >
               Edit pattern
             </button>
-            <button type="button" className={styles['btn-primary']}>
-              Create {creates.length} appointments →
+            <button
+              type="button"
+              className={styles['btn-primary']}
+              onClick={onConfirm}
+              disabled={busy || creates.length === 0}
+            >
+              {busy ? 'Creating…' : `Create ${creates.length} appointments →`}
             </button>
           </div>
         </div>

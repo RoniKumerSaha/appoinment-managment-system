@@ -132,7 +132,7 @@ export function CancelModal({
             {formatTime(endDatetime, tz)}
           </div>
           <div className="cancel-modal__rule">
-            Cancellation is final — we'll cancel the appointment immediately.
+            Cancellation is final — we&rsquo;ll cancel the appointment immediately.
             You can book another time from the booking page.
           </div>
           <div className="cancel-modal__helper">

@@ -44,6 +44,7 @@ import {
   maskPhone,
   type CreateBlockBody,
 } from './admin-doctor-block-helpers.js';
+import { staffCreatedBy } from './created-by.js';
 
 interface BlockRow {
   id: string;
@@ -371,7 +372,7 @@ adminDoctorBlockRouter.post(
         });
         return;
       }
-      const createdBy = `staff:${req.auth?.claim?.sub ?? 'admin-main'}`;
+      const createdBy = staffCreatedBy(req.auth?.claim?.sub);
       const { rows: inserted } = await client.query<BlockRow>(INSERT_BLOCK_SQL, [
         id,
         validated.branchId,

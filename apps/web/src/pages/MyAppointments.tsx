@@ -239,7 +239,7 @@ export function MyAppointments({
   }, [appts, doctors, branches, types]);
 
   const onCancelDone = useCallback(
-    async (id: string): Promise<void> => {
+    async (): Promise<void> => {
       setCancelId(null);
       setToast('Your appointment has been cancelled. The slot is released.');
       window.setTimeout(() => setToast(null), 4000);
@@ -249,7 +249,7 @@ export function MyAppointments({
   );
 
   const onRescheduleDone = useCallback(
-    async (id: string): Promise<void> => {
+    async (): Promise<void> => {
       setRescheduleId(null);
       setToast('Your appointment has been moved.');
       window.setTimeout(() => setToast(null), 4000);
@@ -281,7 +281,7 @@ export function MyAppointments({
           <div className="my-appts__crumb">My appointments</div>
           <h1 className="my-appts__title">Manage your appointments</h1>
           <p className="my-appts__sub">
-            Review what you've booked. Reschedule or cancel below.
+            Review what you&rsquo;ve booked. Reschedule or cancel below.
           </p>
         </div>
 
@@ -293,7 +293,7 @@ export function MyAppointments({
             <div className="my-appts__verified-body">
               <div className="my-appts__verified-line">
                 <span className="my-appts__verified-badge">
-                  <span aria-hidden="true">✓</span> You're verified
+                  <span aria-hidden="true">✓</span> You&rsquo;re verified
                 </span>
                 <span className="my-appts__verified-name">
                   {verifiedLabel}

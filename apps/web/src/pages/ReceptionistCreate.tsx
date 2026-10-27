@@ -1,86 +1,90 @@
 /**
  * ReceptionistCreate — E5 receptionist walk-in booking flow (mock 14).
  *
- * Pixel-perfect port of mockup 14
- * (docs/design/mockups/v1/mockups/14-recep-create.html).
- *
  * 5-step stepped form rendered as numbered section cards + a top
- * stepper. Branch is locked (single-branch per BR-004). Calendar
- * picker and 4-column slot grid reuse the same component style as
- * the patient booking flow (mock 03 / 04). On confirm, writes
- * `audit.creator_role = "receptionist"`.
+ * stepper. Branch is locked (single-branch per BR-004). On confirm,
+ * the booking is POSTed to `POST /bookings`, which records the
+ * receptionist as the actor of record (audit.creator_role =
+ * "receptionist", E3-S4 / F-13).
  *
- * No tests in this pass (per user instruction).
+ * The branch comes from the receptionist's own schedule envelope
+ * (`GET /reception/branch/schedule`), so it is never a choice.
+ * Slots come from `GET /availability` — the same engine the patient
+ * flow uses, so the conflict checks are identical (FR-027/029).
  */
-import { useCallback, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
+import {
+  ApiError,
+  createBooking,
+  getAvailability,
+  getReceptionSchedule,
+  listAppointmentTypes,
+  listDoctors,
+  type AppointmentTypeDto,
+  type DoctorWithBranchesDto,
+} from '../api/client';
 import { ReceptionistFrame } from './ReceptionistFrame';
+import { PhoneCountryPicker } from './PhoneCountryPicker';
+import {
+  DEFAULT_COUNTRY_CODE,
+  findCountry,
+  joinPhone,
+} from './booking-utils';
+import { formatMonthDay, formatTimeLocal } from './recep-utils';
+import { addDays, todayLocalIn } from './reception-schedule';
 import styles from './ReceptionistCreate.module.css';
 
-interface TypeOption {
-  id: string;
-  name: string;
-  dur: string;
-  desc: string;
+interface Props {
+  /** Prefill from the availability browser (mock 16). */
+  prefill?: {
+    doctor_id?: string;
+    appointment_type_id?: string;
+    date?: string;
+    start_datetime?: string;
+    end_datetime?: string;
+  };
+  onBooked?: (appointmentId: string) => void;
 }
 
-const TYPES: TypeOption[] = [
-  { id: 'card-consult', name: 'Cardiology consultation', dur: '45 min', desc: 'Initial assessment for new patients.' },
-  { id: 'follow-up', name: 'Follow-up', dur: '20 min', desc: 'Returning patient brief check.' },
-  { id: 'ecg', name: 'ECG review', dur: '15 min', desc: 'Reading + interpretation.' },
-  { id: 'preop', name: 'Pre-op assessment', dur: '30 min', desc: 'Pre-surgical clearance.' },
-];
-
-const DOCTORS = [
-  { id: 'd1', name: 'Dr. Ahmed Al-Rashid (Cardiology)' },
-  { id: 'd2', name: 'Dr. Khalid Al-Qahtani' },
-  { id: 'd3', name: 'Dr. Mohammed Hassan' },
-];
-
-const SLOTS = [
-  { time: '09:00', disabled: false },
-  { time: '10:00', disabled: false, selected: true },
-  { time: '11:30', disabled: false },
-  { time: '13:00', disabled: true },
-  { time: '14:00', disabled: false },
-  { time: '15:30', disabled: false },
-  { time: '16:00', disabled: false },
-  { time: '16:30', disabled: false },
-];
-
-interface DayCell {
-  n: number;
-  state: 'disabled' | 'today' | 'selected' | 'has-slots';
-  avail?: string;
+interface SlotOption {
+  start: string;
+  end: string;
+  selected: boolean;
 }
 
-const CAL_DAYS: DayCell[] = [
-  // row 1 (Jul 28 – Aug 3 — all disabled / past)
-  ...[28, 30, 31].map((n) => ({ n, state: 'disabled' as const })),
-  { n: 1, state: 'disabled' },
-  { n: 2, state: 'disabled' },
-  { n: 3, state: 'disabled' },
-  { n: 29, state: 'disabled' },
-  // row 2 (Aug 4–10)
-  ...[4, 5, 6, 7, 8, 9, 10].map((n) => ({ n, state: 'disabled' as const })),
-  // row 3 (Aug 11–17)
-  ...[11, 12, 13, 14, 15, 16, 17].map((n) => ({ n, state: 'disabled' as const })),
-  // row 4 (Aug 18–24)
-  { n: 18, state: 'disabled' },
-  { n: 19, state: 'today', avail: 'today' },
-  { n: 20, state: 'selected', avail: '6 slots' },
-  { n: 21, state: 'has-slots', avail: '7 slots' },
-  { n: 22, state: 'has-slots', avail: '4 slots' },
-  { n: 23, state: 'has-slots', avail: '8 slots' },
-  { n: 24, state: 'disabled' },
-  // row 5 (Aug 25–31)
-  { n: 25, state: 'has-slots', avail: '5 slots' },
-  { n: 26, state: 'has-slots', avail: '6 slots' },
-  { n: 27, state: 'has-slots', avail: '3 slots' },
-  { n: 28, state: 'has-slots', avail: '7 slots' },
-  { n: 29, state: 'has-slots', avail: '5 slots' },
-  { n: 30, state: 'has-slots', avail: '8 slots' },
-  { n: 31, state: 'disabled' },
-];
+function describeError(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 401) return 'Session expired. Please sign in again.';
+    if (err.status === 403) return 'You do not have access to this branch.';
+    if (err.status === 400 && err.code === 'slot_conflict') {
+      return 'That slot was just taken. Pick another one.';
+    }
+    if (err.status === 400 && err.code === 'patient_conflict') {
+      return 'This patient already has an appointment with that doctor.';
+    }
+    if (err.status === 400 && err.code === 'outside_30d_window') {
+      return 'That date is outside the 30-day booking window.';
+    }
+    if (err.status === 400 && err.code === 'branch_closed') {
+      return 'The branch is closed on that day.';
+    }
+    if (err.status === 400 && err.code === 'invalid_patient_phone') {
+      return 'That phone number is not a valid E.164 number.';
+    }
+    return `Booking failed (${err.code}).`;
+  }
+  if (err instanceof TypeError) {
+    return 'Connection failed. Is the API running on :3001?';
+  }
+  return 'Booking failed.';
+}
 
 function StepNum({
   n,
@@ -98,21 +102,276 @@ function StepNum({
   return <div className={cls}>{n}</div>;
 }
 
-export function ReceptionistCreate(): ReactNode {
-  const firstType: TypeOption = TYPES[0] as TypeOption;
-  const [typeId, setTypeId] = useState<string>(firstType.id);
-  const selectedType: TypeOption = useMemo(
-    () => TYPES.find((t) => t.id === typeId) ?? firstType,
-    [typeId, firstType],
+export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
+  const [branch, setBranch] = useState<{
+    id: string;
+    name: string;
+    tz: string;
+  } | null>(null);
+  const [doctors, setDoctors] = useState<DoctorWithBranchesDto[]>([]);
+  const [types, setTypes] = useState<AppointmentTypeDto[]>([]);
+  const [doctorId, setDoctorId] = useState<string>(prefill?.doctor_id ?? '');
+  const [typeId, setTypeId] = useState<string>(
+    prefill?.appointment_type_id ?? '',
+  );
+  const [date, setDate] = useState<string>(prefill?.date ?? '');
+  const [slots, setSlots] = useState<SlotOption[]>([]);
+  const [selectedStart, setSelectedStart] = useState<string>(
+    prefill?.start_datetime ?? '',
+  );
+  const [countryCode, setCountryCode] = useState<string>(DEFAULT_COUNTRY_CODE);
+  const [nationalNumber, setNationalNumber] = useState<string>('');
+  const [patientName, setPatientName] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [busy, setBusy] = useState<boolean>(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+
+  const patientPhone = joinPhone(countryCode, nationalNumber);
+
+  // The branch is the receptionist's own — read it, never pick it.
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    getReceptionSchedule({})
+      .then((res) => {
+        if (cancelled) return;
+        setBranch(res.branch);
+        if (date === '') setDate(todayLocalIn(res.branch.tz));
+        setLoading(false);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setErr(describeError(e));
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // `date` is seeded from the response once; later edits must not
+    // be clobbered by a re-read.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (branch === null) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [d, t] = await Promise.all([
+          listDoctors({ active: true, branch_id: branch.id }),
+          listAppointmentTypes({ active: true }),
+        ]);
+        if (cancelled) return;
+        const branchDoctors = d.filter((doc) =>
+          doc.branches.some((b) => b.id === branch.id),
+        );
+        setDoctors(branchDoctors);
+        setTypes(t);
+        setDoctorId((prev) => {
+          if (prefill?.doctor_id !== undefined) return prefill.doctor_id;
+          return prev === '' ? (branchDoctors[0]?.id ?? '') : prev;
+        });
+        setTypeId((prev) => {
+          if (prefill?.appointment_type_id !== undefined) {
+            return prefill.appointment_type_id;
+          }
+          return prev === '' ? (t[0]?.id ?? '') : prev;
+        });
+      } catch (e: unknown) {
+        if (!cancelled) setErr(describeError(e));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [branch, prefill]);
+
+  // The open slots for the chosen day.
+  useEffect(() => {
+    if (branch === null) return;
+    if (doctorId === '' || typeId === '' || date === '') {
+      setSlots([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await getAvailability({
+          doctor_id: doctorId,
+          branch_id: branch.id,
+          date,
+          appointment_type_id: typeId,
+        });
+        if (cancelled) return;
+        const duration =
+          types.find((t) => t.id === typeId)?.duration_minutes ?? 30;
+        setSlots(
+          res.slots.map((s) => ({
+            start: s.start_datetime,
+            end: new Date(
+              new Date(s.start_datetime).getTime() + duration * 60_000,
+            ).toISOString(),
+            selected: s.start_datetime === selectedStart,
+          })),
+        );
+        setErr(null);
+      } catch (e: unknown) {
+        if (!cancelled) {
+          setSlots([]);
+          setErr(describeError(e));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [branch, doctorId, typeId, date, types, selectedStart]);
+
+  const selectedType = useMemo(
+    () => types.find((t) => t.id === typeId) ?? null,
+    [types, typeId],
+  );
+  const selectedDoctor = useMemo(
+    () => doctors.find((d) => d.id === doctorId) ?? null,
+    [doctors, doctorId],
+  );
+  const selectedSlot = useMemo(
+    () => slots.find((s) => s.start === selectedStart) ?? null,
+    [slots, selectedStart],
   );
 
+  // The 30-day booking window (FR-018), measured from today in the
+  // branch's timezone.
+  const [maxDate, setMaxDate] = useState<string>('');
+  useEffect(() => {
+    if (branch === null) return;
+    setMaxDate(addDays(todayLocalIn(branch.tz), 30));
+  }, [branch]);
+
   const onSubmit = useCallback(
-    (e: FormEvent<HTMLFormElement>) => {
+    (e: FormEvent<HTMLFormElement>): void => {
       e.preventDefault();
-      // No backend wiring in this pass; ack.
+      if (branch === null || selectedSlot === null || selectedType === null) {
+        setErr('Pick a doctor, a type and an open slot first.');
+        return;
+      }
+      if (patientPhone === '') {
+        setErr('A patient phone number is required.');
+        return;
+      }
+      if (patientName.trim() === '') {
+        setErr('A patient name is required.');
+        return;
+      }
+      setBusy(true);
+      setErr(null);
+      createBooking({
+        doctor_id: doctorId,
+        branch_id: branch.id,
+        appointment_type_id: typeId,
+        start_datetime: selectedSlot.start,
+        end_datetime: selectedSlot.end,
+        slot_duration_minutes: selectedType.duration_minutes,
+        patient_phone: patientPhone,
+        patient_name: patientName.trim(),
+      })
+        .then((res) => {
+          setBusy(false);
+          setDone(res.appointment.id);
+          onBooked?.(res.appointment.id);
+        })
+        .catch((e: unknown) => {
+          setBusy(false);
+          setErr(describeError(e));
+        });
     },
-    [],
+    [
+      branch,
+      selectedSlot,
+      selectedType,
+      doctorId,
+      typeId,
+      patientPhone,
+      patientName,
+      onBooked,
+    ],
   );
+
+  const onCountryChange = useCallback((code: string): void => {
+    setCountryCode(code);
+    // The national number belongs to the country — keeping a number
+    // typed against the old country would build a valid-looking but
+    // wrong E.164 string.
+    setNationalNumber('');
+  }, []);
+
+  const countryName = findCountry(countryCode)?.name ?? 'Other country';
+
+  if (done !== null) {
+    return (
+      <ReceptionistFrame>
+        <div className={styles['page']}>
+          <header className={styles['page-header']}>
+            <div className={styles.crumb}>Today → + New appointment</div>
+            <h1>Appointment booked</h1>
+            <p className={styles.sub}>
+              The appointment is on the schedule with the receptionist as the
+              actor of record.
+            </p>
+          </header>
+          <div className={styles['confirm-box']}>
+            <div className={styles['confirm-grid']}>
+              <div>
+                <span className={styles.k}>Reference:</span>{' '}
+                <strong>{done}</strong>
+              </div>
+              <div>
+                <span className={styles.k}>Doctor:</span>{' '}
+                <strong>{selectedDoctor?.full_name ?? '—'}</strong>
+              </div>
+              <div>
+                <span className={styles.k}>Type:</span>{' '}
+                <strong>{selectedType?.name ?? '—'}</strong>
+              </div>
+              <div>
+                <span className={styles.k}>When:</span>{' '}
+                <strong>
+                  {selectedSlot === null
+                    ? '—'
+                    : `${formatMonthDay(selectedSlot.start.slice(0, 10))} · ${formatTimeLocal(selectedSlot.start, branch?.tz ?? 'UTC')}`}
+                </strong>
+              </div>
+              <div className={styles['confirm-grid-row-full']}>
+                <span className={styles.k}>Patient:</span>{' '}
+                <strong>{patientName}</strong> · {patientPhone}
+              </div>
+            </div>
+          </div>
+          <div className={styles['step-foot']}>
+            <div className={styles.audit}>
+              Atomic: <code>Appointment.create</code> · audit:{' '}
+              <code>appointment.created</code>
+            </div>
+            <button
+              type="button"
+              className={styles['btn-secondary']}
+              onClick={() => {
+                setDone(null);
+                setSelectedStart('');
+                setNationalNumber('');
+                setPatientName('');
+                setNotes('');
+              }}
+            >
+              Book another
+            </button>
+          </div>
+        </div>
+      </ReceptionistFrame>
+    );
+  }
 
   return (
     <ReceptionistFrame>
@@ -121,7 +380,8 @@ export function ReceptionistCreate(): ReactNode {
           <div className={styles.crumb}>Today → + New appointment</div>
           <h1>Book on behalf of patient</h1>
           <p className={styles.sub}>
-            For walk-ins or phone bookings. Same conflict checks as patient flow (FR-027/029).
+            For walk-ins or phone bookings. Same conflict checks as patient
+            flow (FR-027/029).
           </p>
         </header>
 
@@ -144,6 +404,8 @@ export function ReceptionistCreate(): ReactNode {
           </div>
         </div>
 
+        {err && <div className={styles['info-note']}>⚠ {err}</div>}
+
         {/* Step 1 — Branch (locked) */}
         <div className={styles.step}>
           <div className={styles['step-head']}>
@@ -154,8 +416,14 @@ export function ReceptionistCreate(): ReactNode {
           <div className={styles['branch-card']}>
             <div className={styles['branch-icon']}>📍</div>
             <div className={styles['branch-body']}>
-              <div className={styles['branch-name']}>Riyadh Olaya Branch</div>
-              <div className={styles['branch-meta']}>King Fahd Rd · 3 doctors available</div>
+              <div className={styles['branch-name']}>
+                {branch?.name ?? (loading ? 'Loading…' : '—')}
+              </div>
+              <div className={styles['branch-meta']}>
+                {branch === null
+                  ? 'Your assigned branch'
+                  : `${doctors.length} doctor${doctors.length === 1 ? '' : 's'} available`}
+              </div>
             </div>
             <span className={styles['branch-lock']}>🔒 Single-branch</span>
           </div>
@@ -166,14 +434,25 @@ export function ReceptionistCreate(): ReactNode {
           <div className={styles['step-head']}>
             <StepNum n={2} state="done" />
             <div className={styles['step-title']}>Doctor + appointment type</div>
-            <div className={styles['step-hint']}>3 active types at this branch</div>
+            <div className={styles['step-hint']}>
+              {types.length} active type{types.length === 1 ? '' : 's'} at this
+              branch
+            </div>
           </div>
           <div className={styles['form-group']}>
-            <label>Doctor</label>
-            <select defaultValue={DOCTORS[0]!.id}>
-              {DOCTORS.map((d) => (
+            <label htmlFor="recep-create-doctor">Doctor</label>
+            <select
+              id="recep-create-doctor"
+              value={doctorId}
+              onChange={(e) => {
+                setDoctorId(e.target.value);
+                setSelectedStart('');
+              }}
+            >
+              {doctors.length === 0 && <option value="">No doctors</option>}
+              {doctors.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.name}
+                  {d.full_name}
                 </option>
               ))}
             </select>
@@ -181,20 +460,27 @@ export function ReceptionistCreate(): ReactNode {
           <div className={styles['form-group']} style={{ marginBottom: 0 }}>
             <label>Type</label>
             <div className={styles.types}>
-              {TYPES.map((t) => (
+              {types.map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   className={
                     t.id === typeId
-                        ? `${styles['type-opt']} ${styles['type-opt-selected']}`
-                        : styles['type-opt']
-                    }
-                  onClick={() => setTypeId(t.id)}
+                      ? `${styles['type-opt']} ${styles['type-opt-selected']}`
+                      : styles['type-opt']
+                  }
+                  onClick={() => {
+                    setTypeId(t.id);
+                    setSelectedStart('');
+                  }}
                 >
                   <div className={styles['type-opt-name']}>{t.name}</div>
-                  <div className={styles['type-opt-dur']}>{t.dur}</div>
-                  <div className={styles['type-opt-desc']}>{t.desc}</div>
+                  <div className={styles['type-opt-dur']}>
+                    {t.duration_minutes} min
+                  </div>
+                  <div className={styles['type-opt-desc']}>
+                    {t.description ?? ''}
+                  </div>
                 </button>
               ))}
             </div>
@@ -206,58 +492,51 @@ export function ReceptionistCreate(): ReactNode {
           <div className={styles['step-head']}>
             <StepNum n={3} state="done" />
             <div className={styles['step-title']}>Date + slot</div>
-            <div className={styles['step-hint']}>Wed, Aug 21 · 6 slots</div>
-          </div>
-          <div className={styles.cal} style={{ marginBottom: 'var(--space-7)' }}>
-            <div className={styles['cal-head']}>
-              <button type="button" className={styles.nav} aria-label="prev">
-                ‹
-              </button>
-              <span>August 2026</span>
-              <button type="button" className={styles.nav} aria-label="next">
-                ›
-              </button>
-            </div>
-            <div className={styles['cal-grid']}>
-              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
-                <div key={`h-${i}`} className={styles['cal-grid-day-h']}>
-                  {d}
-                </div>
-              ))}
-              {CAL_DAYS.map((d, i) => {
-                const base =
-                  d.state === 'disabled'
-                    ? `${styles['cal-day']} ${styles['cal-day-disabled']}`
-                    : d.state === 'today'
-                      ? `${styles['cal-day']} ${styles['cal-day-today']}`
-                      : d.state === 'selected'
-                        ? `${styles['cal-day']} ${styles['cal-day-selected']}`
-                        : `${styles['cal-day']} ${styles['cal-day-has-slots']}`;
-                return (
-                  <div key={`d-${i}`} className={base}>
-                    {d.n}
-                    {d.avail && <div className={styles['cal-day-avail']}>{d.avail}</div>}
-                  </div>
-                );
-              })}
+            <div className={styles['step-hint']}>
+              {date === '' ? '…' : `${formatMonthDay(date)} · ${slots.length} slot${slots.length === 1 ? '' : 's'}`}
             </div>
           </div>
           <div className={styles['form-group']} style={{ marginBottom: 0 }}>
-            <label>Available slots · Wed, Aug 20</label>
+            <label htmlFor="recep-create-date">Date (within 30 days)</label>
+            <input
+              id="recep-create-date"
+              type="date"
+              value={date}
+              min={date === '' ? undefined : todayLocalIn(branch?.tz ?? 'UTC')}
+              max={maxDate === '' ? undefined : maxDate}
+              onChange={(e) => {
+                setDate(e.target.value);
+                setSelectedStart('');
+              }}
+            />
+            <div className={styles.hint}>
+              Max 30 days ahead (FR-018). Same-day booking is not allowed.
+            </div>
+          </div>
+          <div
+            className={styles['form-group']}
+            style={{ marginTop: 'var(--space-7)', marginBottom: 0 }}
+          >
+            <label>Available slots</label>
             <div className={styles.slots}>
-              {SLOTS.map((s) => (
-                <div
-                  key={s.time}
-                  className={
-                    s.disabled
-                      ? `${styles.slot} ${styles['slot-disabled']}`
-                      : s.selected
-                        ? `${styles.slot} ${styles['slot-selected']}`
-                        : styles.slot
-                  }
-                >
-                  {s.time}
+              {slots.length === 0 && (
+                <div className={styles.hint}>
+                  No open slots for this doctor and type on that day.
                 </div>
+              )}
+              {slots.map((s) => (
+                <button
+                  key={s.start}
+                  type="button"
+                  className={
+                    s.selected
+                      ? `${styles.slot} ${styles['slot-selected']}`
+                      : styles.slot
+                  }
+                  onClick={() => setSelectedStart(s.start)}
+                >
+                  {formatTimeLocal(s.start, branch?.tz ?? 'UTC')}
+                </button>
               ))}
             </div>
           </div>
@@ -271,38 +550,49 @@ export function ReceptionistCreate(): ReactNode {
             <div className={styles['step-hint']}>Existing or new patient</div>
           </div>
           <div className={styles['form-group']}>
-            <label>
+            <label htmlFor="recep-create-phone">
               Patient phone <span className={styles.req}>*</span>
             </label>
-            <input type="tel" defaultValue="+966 5XX XXX 1234" />
+            <div className={styles['phone-row']}>
+              <PhoneCountryPicker
+                countryCode={countryCode}
+                onCountryChange={onCountryChange}
+              />
+              <input
+                id="recep-create-phone"
+                type="tel"
+                value={nationalNumber}
+                placeholder="5XX XXX 5555"
+                onChange={(e) => setNationalNumber(e.target.value)}
+              />
+            </div>
             <div className={styles.hint}>
-              Existing patients prefill from F-02 (BR-016). New patients: enter phone + name.
+              {patientPhone === ''
+                ? `Country code ${countryName}. Existing patients match on phone (BR-016).`
+                : `Will book as ${patientPhone}. Existing patients match on phone (BR-016).`}
             </div>
-          </div>
-          <div className={styles['patient-match']}>
-            <div className={styles['patient-match-avatar']}>FS</div>
-            <div className={styles['patient-match-body']}>
-              <div className={styles['patient-match-name']}>
-                Fatima Al-Sayed{' '}
-                <span className={styles['patient-match-name-muted']}>(known patient)</span>
-              </div>
-              <div className={styles['patient-match-meta']}>
-                3 prior appointments · last visit 2 months ago
-              </div>
-            </div>
-            <span className={styles['patient-match-badge']}>✓ MATCHED</span>
           </div>
           <div className={styles['form-group']} style={{ marginTop: 'var(--space-7)' }}>
-            <label>
+            <label htmlFor="recep-create-name">
               Patient name <span className={styles.req}>*</span>
             </label>
-            <input type="text" defaultValue="Fatima Al-Sayed" />
+            <input
+              id="recep-create-name"
+              type="text"
+              value={patientName}
+              onChange={(e) => setPatientName(e.target.value)}
+            />
           </div>
           <div className={styles['form-group']} style={{ marginBottom: 0 }}>
-            <label>Notes for the doctor (optional)</label>
+            <label htmlFor="recep-create-notes">
+              Notes for the doctor (optional)
+            </label>
             <textarea
+              id="recep-create-notes"
               rows={3}
+              value={notes}
               placeholder="e.g. patient prefers afternoon calls, has mobility issues…"
+              onChange={(e) => setNotes(e.target.value)}
             />
           </div>
         </div>
@@ -318,28 +608,40 @@ export function ReceptionistCreate(): ReactNode {
           <div className={styles['confirm-box']}>
             <div className={styles['confirm-grid']}>
               <div>
-                <span className={styles.k}>Branch:</span> <strong>Riyadh Olaya</strong>
+                <span className={styles.k}>Branch:</span>{' '}
+                <strong>{branch?.name ?? '—'}</strong>
               </div>
               <div>
-                <span className={styles.k}>Doctor:</span> <strong>Dr. Al-Rashid</strong>
+                <span className={styles.k}>Doctor:</span>{' '}
+                <strong>{selectedDoctor?.full_name ?? '—'}</strong>
               </div>
               <div>
                 <span className={styles.k}>Type:</span>{' '}
-                <strong>{selectedType.name}</strong> · {selectedType.dur}
+                <strong>{selectedType?.name ?? '—'}</strong>
+                {selectedType !== null && (
+                  <> · {selectedType.duration_minutes} min</>
+                )}
               </div>
               <div>
-                <span className={styles.k}>When:</span> <strong>Wed, Aug 20 · 10:00</strong>
+                <span className={styles.k}>When:</span>{' '}
+                <strong>
+                  {selectedSlot === null
+                    ? '—'
+                    : `${formatMonthDay(selectedSlot.start.slice(0, 10))} · ${formatTimeLocal(selectedSlot.start, branch?.tz ?? 'UTC')}`}
+                </strong>
               </div>
               <div className={styles['confirm-grid-row-full']}>
                 <span className={styles.k}>Patient:</span>{' '}
-                <strong>Fatima Al-Sayed</strong> · +966 5XX XXX 1234
+                <strong>{patientName.trim() === '' ? '—' : patientName}</strong>
+                {patientPhone !== '' && <> · {patientPhone}</>}
               </div>
             </div>
           </div>
 
           <div className={styles['info-note']}>
             ℹ️ This booking will be marked as{' '}
-            <strong>created on behalf of patient</strong>. audit.creator_role = "receptionist".
+            <strong>created on behalf of patient</strong>. audit.creator_role =
+            &quot;receptionist&quot;.
           </div>
 
           <div className={styles['step-foot']}>
@@ -348,11 +650,25 @@ export function ReceptionistCreate(): ReactNode {
               <code>appointment.created</code>
             </div>
             <div className={styles['btn-row']}>
-              <button type="button" className={styles['btn-ghost']}>
+              <button
+                type="button"
+                className={styles['btn-ghost']}
+                onClick={() => setSelectedStart('')}
+              >
                 Back
               </button>
-              <button type="submit" className={styles['btn-primary']}>
-                Confirm booking
+              <button
+                type="submit"
+                className={styles['btn-primary']}
+                disabled={
+                  busy ||
+                  selectedSlot === null ||
+                  selectedType === null ||
+                  patientPhone === '' ||
+                  patientName.trim() === ''
+                }
+              >
+                {busy ? 'Booking…' : 'Confirm booking'}
               </button>
             </div>
           </div>

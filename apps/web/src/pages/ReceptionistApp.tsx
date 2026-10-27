@@ -14,6 +14,10 @@
  *
  * `onBackToToday` returns to the today view. `onOpenCancel` from
  * the today view navigates to cancel with the preselected appt.
+ *
+ * The availability browser hands its chosen slot to the create flow
+ * (mock 16 → mock 14): the create page opens pre-filled with the
+ * doctor, type, date and slot.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { ReceptionistToday } from './ReceptionistToday';
@@ -22,6 +26,14 @@ import { ReceptionistCreate } from './ReceptionistCreate';
 import { ReceptionistAvailability } from './ReceptionistAvailability';
 
 type RecepView = 'today' | 'cancel' | 'create' | 'availability';
+
+interface SlotPrefill {
+  doctor_id: string;
+  appointment_type_id: string;
+  date: string;
+  start_datetime: string;
+  end_datetime: string;
+}
 
 function readPageParam(): RecepView | null {
   if (typeof window === 'undefined') return null;
@@ -35,6 +47,7 @@ export function ReceptionistApp() {
   const [preselectedId, setPreselectedId] = useState<string | undefined>(
     undefined,
   );
+  const [prefill, setPrefill] = useState<SlotPrefill | undefined>(undefined);
 
   useEffect(() => {
     const v = readPageParam();
@@ -51,14 +64,34 @@ export function ReceptionistApp() {
     setPreselectedId(undefined);
   }, []);
 
+  const onOpenCreate = useCallback((): void => {
+    setPrefill(undefined);
+    setView('create');
+  }, []);
+
+  const onOpenAvailability = useCallback((): void => {
+    setView('availability');
+  }, []);
+
+  const onBookSlot = useCallback((slot: SlotPrefill): void => {
+    setPrefill(slot);
+    setView('create');
+  }, []);
+
   if (view === 'today') {
-    return <ReceptionistToday onOpenCancel={onOpenCancel} />;
+    return (
+      <ReceptionistToday
+        onOpenCancel={onOpenCancel}
+        onOpenCreate={onOpenCreate}
+        onOpenAvailability={onOpenAvailability}
+      />
+    );
   }
   if (view === 'create') {
-    return <ReceptionistCreate />;
+    return <ReceptionistCreate prefill={prefill} />;
   }
   if (view === 'availability') {
-    return <ReceptionistAvailability />;
+    return <ReceptionistAvailability onBookSlot={onBookSlot} />;
   }
   return (
     <ReceptionistCancel

@@ -105,11 +105,15 @@ function doctorToken(email: string, doctorId: string, branchId: string): string 
   });
 }
 
-async function lookupIds(name: string, branch: string): Promise<{ doctorId: string; branchId: string }> {
+async function lookupIds(name: string, branch: string): Promise<{ doctorId: string; branchId: string; typeId: string }> {
   const { rows: drows } = await db.pool.query<{ id: string }>(`SELECT id FROM doctor WHERE full_name = $1`, [name]);
   const { rows: brows } = await db.pool.query<{ id: string }>(`SELECT id FROM branch WHERE name = $1`, [branch]);
+  const { rows: trows } = await db.pool.query<{ id: string }>(
+    `SELECT id FROM appointment_type WHERE is_active = true ORDER BY created_at LIMIT 1`,
+  );
   if (!drows[0] || !brows[0]) throw new Error(`seed missing: ${name}/${branch}`);
-  return { doctorId: drows[0].id, branchId: brows[0].id };
+  if (!trows[0]) throw new Error('seed missing: appointment_type');
+  return { doctorId: drows[0].id, branchId: brows[0].id, typeId: trows[0].id };
 }
 
 /** Standard 7-row hours array for an East-branch work week. */
@@ -420,6 +424,125 @@ test('PATCH /admin/branches/:id (activate an inactive branch) → 200', async ()
   assert.equal(r.body.active, true);
 });
 
+// ─── address + tz (the branch editor's Address field) ──────────────
+//
+// `branch.address` exists (0015) and the branch editor's Address input
+// posts to this route. The route used to reject `address` as an
+// unknown field, so the field could not be saved at all.
+
+test('PATCH /admin/branches/:id (set address) → 200 and persists', async () => {
+  const { branchId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  const address = '12 King St, Riyadh';
+  const res = await request(createApp())
+    .patch(`/admin/branches/${branchId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ address });
+  assert.equal(res.status, 200, `body=${JSON.stringify(res.body)}`);
+  assert.equal(res.body.address, address);
+
+  // The write must be durable, not just echoed back.
+  const reread = await db.pool.query<{ address: string | null }>(
+    `SELECT address FROM branch WHERE id = $1`,
+    [branchId],
+  );
+  assert.equal(reread.rows[0]!.address, address);
+
+  // Restore
+  await request(createApp())
+    .patch(`/admin/branches/${branchId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ address: null });
+});
+
+test('PATCH /admin/branches/:id (clear address with null) → 200', async () => {
+  const { branchId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  await request(createApp())
+    .patch(`/admin/branches/${branchId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ address: 'temporary' });
+  const res = await request(createApp())
+    .patch(`/admin/branches/${branchId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ address: null });
+  assert.equal(res.status, 200, `body=${JSON.stringify(res.body)}`);
+  assert.equal(res.body.address, null);
+});
+
+test('PATCH /admin/branches/:id (address of a non-string type) → 400 invalid_address', async () => {
+  const { branchId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  const res = await request(createApp())
+    .patch(`/admin/branches/${branchId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ address: 42 });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error, 'invalid_address');
+});
+
+test('PATCH /admin/branches/:id (address over 500 chars) → 400 invalid_address', async () => {
+  const { branchId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  const res = await request(createApp())
+    .patch(`/admin/branches/${branchId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ address: 'x'.repeat(501) });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error, 'invalid_address');
+});
+
+test('PATCH /admin/branches/:id (set tz) → 200 and persists', async () => {
+  const { branchId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  const res = await request(createApp())
+    .patch(`/admin/branches/${branchId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ tz: 'Asia/Riyadh' });
+  assert.equal(res.status, 200, `body=${JSON.stringify(res.body)}`);
+  assert.equal(res.body.tz, 'Asia/Riyadh');
+
+  const reread = await db.pool.query<{ tz: string }>(
+    `SELECT tz FROM branch WHERE id = $1`,
+    [branchId],
+  );
+  assert.equal(reread.rows[0]!.tz, 'Asia/Riyadh');
+
+  // Restore
+  await request(createApp())
+    .patch(`/admin/branches/${branchId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ tz: 'America/New_York' });
+});
+
+test('PATCH /admin/branches/:id (bogus tz) → 400 invalid_timezone', async () => {
+  const { branchId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  const res = await request(createApp())
+    .patch(`/admin/branches/${branchId}`)
+    .set('Authorization', `Bearer ${adminToken()}`)
+    .send({ tz: 'Not/AZone' });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error, 'invalid_timezone');
+});
+
+test('GET /admin/branches exposes address and tz on every row', async () => {
+  const res = await request(createApp())
+    .get('/admin/branches')
+    .set('Authorization', `Bearer ${adminToken()}`);
+  assert.equal(res.status, 200);
+  assert.ok(res.body.length > 0, 'expected at least one branch');
+  for (const b of res.body) {
+    assert.ok('address' in b, `branch ${b.id} is missing address`);
+    assert.ok('tz' in b, `branch ${b.id} is missing tz`);
+    assert.equal(typeof b.tz, 'string');
+  }
+});
+
+test('GET /admin/branches/:id exposes address and tz', async () => {
+  const { branchId } = await lookupIds(DR_EAST_LEAD, EAST_BRANCH);
+  const res = await request(createApp())
+    .get(`/admin/branches/${branchId}`)
+    .set('Authorization', `Bearer ${adminToken()}`);
+  assert.equal(res.status, 200);
+  assert.ok('address' in res.body, 'address missing from branch detail');
+  assert.ok('tz' in res.body, 'tz missing from branch detail');
+});
+
 test('PATCH /admin/branches/:id (deactivate with no future appts) → 200', async () => {
   const { branchId } = await lookupIds(DR_WEST_LEAD, WEST_BRANCH);
   const res = await request(createApp())
@@ -691,6 +814,3 @@ test('GET /admin/clinic (doctor role) → 403 forbidden_role', async () => {
   assert.equal(res.status, 403);
   assert.equal(res.body.error, 'forbidden_role');
 });
-
-// Silences unused warning
-void db;

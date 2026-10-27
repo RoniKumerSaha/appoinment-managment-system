@@ -54,9 +54,11 @@ import {
 import {
   ApiError,
   createDoctor,
+  getAdminStats,
   listBranches,
   listDoctors,
   patchDoctor,
+  type AdminStats,
   type BranchDto,
   type DoctorPatchResponse,
   type DoctorWithBranchesDto,
@@ -148,25 +150,9 @@ function isValidUuidClient(s: string): boolean {
   return UUID_RE.test(s);
 }
 
-// Mockup 18 — DTO doesn't expose `future_appointment_count` or specialty.
-// Derive deterministic values from a hash of the doctor id so the stats
-// look real and stable across renders.
-function hashOfId(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-const DOCTOR_SPECIALTIES = [
-  'Cardiology',
-  'Family medicine',
-  'Pediatrics',
-  'Dermatology',
-  'Internal medicine',
-  'Endocrinology',
-  'Orthopedics',
-  'ENT',
-];
+// Mockup 18 — the future-appointment count and the specialty both come
+// from `GET /admin/stats`, which reads them from the doctor and
+// appointment tables.
 
 export function AdminDoctors({
   onOpenDoctorAssign,
@@ -179,6 +165,7 @@ export function AdminDoctors({
 }) {
   const [doctors, setDoctors] = useState<DoctorWithBranchesDto[]>([]);
   const [branches, setBranches] = useState<BranchDto[]>([]);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadErr, setLoadErr] = useState<FormError | null>(null);
 
@@ -202,11 +189,24 @@ export function AdminDoctors({
 
   const modalRef = useRef<HTMLDivElement | null>(null);
 
+  // The future-appointment count and specialty are a separate read —
+  // the doctor list DTO does not carry them.
+  const reloadStats = useCallback(async (): Promise<void> => {
+    try {
+      setStats(await getAdminStats());
+    } catch {
+      // The tiles are decorative; a failed stats read must not take the
+      // doctor list down with it.
+      setStats(null);
+    }
+  }, []);
+
   const reload = useCallback(async (): Promise<void> => {
     const [doc, br] = await Promise.all([listDoctors(), listBranches()]);
     setDoctors(doc);
     setBranches(br);
-  }, []);
+    void reloadStats();
+  }, [reloadStats]);
 
   useEffect(() => {
     let cancelled = false;
@@ -640,12 +640,11 @@ export function AdminDoctors({
           const cardClass = d.active
             ? styles['doc-card']
             : `${styles['doc-card']} ${styles['doc-card--inactive']}`;
-          // Mockup 18 lines 174-181 — API DTO does not include
-          // future_appointment_count or specialty. Derive plausible values
-          // from a hash of the doctor id so the card looks real.
-          const dHash = hashOfId(d.id);
-          const futureAppts = d.active ? dHash % 37 : 0;
-          const specialty = DOCTOR_SPECIALTIES[dHash % DOCTOR_SPECIALTIES.length];
+          // Mockup 18 lines 174-181 — the future-appointment count and
+          // the specialty both come from `GET /admin/stats`.
+          const dStats = stats?.doctors.find((s) => s.id === d.id);
+          const futureAppts = dStats?.future_appointment_count ?? 0;
+          const specialty = dStats?.specialty ?? 'Not set';
           return (
             <div key={d.id} className={cardClass}>
               <div className={styles['head']}>

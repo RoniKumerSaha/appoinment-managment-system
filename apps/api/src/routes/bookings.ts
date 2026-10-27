@@ -75,6 +75,8 @@ import {
   branchLocalMidnightMs,
   branchLocalDayOfWeek,
 } from './recurring-helpers.js';
+import { patientCreatedBy, staffCreatedBy } from './created-by.js';
+import { inc } from '../metrics/counters.js';
 
 const VALIDATION_ERROR_MAP: Record<CreateBookingValidationError, string> = {
   unknown_field: 'unknown_field',
@@ -177,9 +179,15 @@ const SELECT_PATIENT_TIME_OVERLAP_SQL = `
    LIMIT 1;
 `;
 
+// The arbiter is named by CONSTRAINT, not by column. `ON CONFLICT
+// (phone_number)` makes Postgres infer an index, and while a redundant
+// plain btree on the same column existed it could infer that one — two
+// concurrent upserts of DIFFERENT phones then landed on the same index
+// leaf and deadlocked (40P01). Naming the constraint removes the
+// inference entirely. See migration 0021.
 const INSERT_PATIENT_SQL = `
   INSERT INTO patient (phone_number, full_name) VALUES ($1, $2)
-  ON CONFLICT (phone_number) DO NOTHING
+  ON CONFLICT ON CONSTRAINT patient_phone_number_key DO NOTHING
   RETURNING id::text AS id;
 `;
 
@@ -403,9 +411,24 @@ bookingsRouter.post(
       return;
     }
 
+    // Every request that gets past auth is a booking attempt, whatever
+    // its outcome.
+    inc('booking.attempt');
+
+    // Single response boundary: classify the outcome into the
+    // success / conflict / failure counters so no exit path can be
+    // forgotten. A 409 means the slot or the patient was already taken;
+    // every other non-2xx is a failure.
+    const respond = (status: number, body: unknown): void => {
+      if (status === 201) inc('booking.success');
+      else if (status === 409) inc('booking.conflict');
+      else inc('booking.failure');
+      res.status(status).json(body);
+    };
+
     const validated = validateCreateBookingBody(req.body);
     if (!validated.ok) {
-      res.status(400).json({ error: VALIDATION_ERROR_MAP[validated.error] });
+      respond(400, { error: VALIDATION_ERROR_MAP[validated.error] });
       return;
     }
     const body = validated.value;
@@ -421,7 +444,7 @@ bookingsRouter.post(
       claim.role === 'receptionist' &&
       !claim.branch_ids.includes(body.branch_id)
     ) {
-      res.status(403).json({ error: 'outside_branch_scope' });
+      respond(403, { error: 'outside_branch_scope' });
       return;
     }
     const isReceptionist = claim.role === 'receptionist';
@@ -437,7 +460,7 @@ bookingsRouter.post(
       !Number.isFinite(endMs) ||
       endMs - startMs !== body.slot_duration_minutes * 60_000
     ) {
-      res.status(400).json({ error: 'invalid_time_range' });
+      respond(400, { error: 'invalid_time_range' });
       return;
     }
 
@@ -445,7 +468,7 @@ bookingsRouter.post(
     // are unchanged from `checkBookingWindow`.
     const windowCheck = checkBookingWindow(startMs, nowMs);
     if (!windowCheck.ok) {
-      res.status(409).json({ error: windowCheck.code });
+      respond(409, { error: windowCheck.code });
       return;
     }
 
@@ -484,7 +507,7 @@ bookingsRouter.post(
       );
       if (tzRows.length === 0) {
         await client.query('ROLLBACK');
-        res.status(404).json({ error: 'branch_not_found' });
+        respond(404, { error: 'branch_not_found' });
         return;
       }
       const branchTz = tzRows[0]!.tz;
@@ -502,7 +525,7 @@ bookingsRouter.post(
         );
         await client.query('COMMIT');
         if (docOnly.length === 0) {
-          res.status(404).json({ error: 'doctor_not_found' });
+          respond(404, { error: 'doctor_not_found' });
           return;
         }
         const { rows: branchOnly } = await client.query<{ id: string }>(
@@ -510,21 +533,21 @@ bookingsRouter.post(
           [body.branch_id, clinicId],
         );
         if (branchOnly.length === 0) {
-          res.status(404).json({ error: 'branch_not_found' });
+          respond(404, { error: 'branch_not_found' });
           return;
         }
-        res.status(400).json({ error: 'doctor_not_at_branch' });
+        respond(400, { error: 'doctor_not_at_branch' });
         return;
       }
       const docInfo = docRows[0]!;
       if (!docInfo.doctor_active) {
         await client.query('COMMIT');
-        res.status(400).json({ error: 'doctor_inactive' });
+        respond(400, { error: 'doctor_inactive' });
         return;
       }
       if (!docInfo.branch_active) {
         await client.query('COMMIT');
-        res.status(400).json({ error: 'branch_inactive' });
+        respond(400, { error: 'branch_inactive' });
         return;
       }
 
@@ -542,7 +565,7 @@ bookingsRouter.post(
       // them. Documented in spec SC2.
       if (typeRows.length === 0 || !typeRows[0]!.is_active) {
         await client.query('COMMIT');
-        res.status(404).json({ error: 'appointment_type_not_found' });
+        respond(404, { error: 'appointment_type_not_found' });
         return;
       }
       const apptType = typeRows[0]!;
@@ -550,7 +573,7 @@ bookingsRouter.post(
       // Duration mismatch — caught BEFORE the in-txn recheck.
       if (apptType.duration_minutes !== body.slot_duration_minutes) {
         await client.query('COMMIT');
-        res.status(409).json({ error: 'duration_mismatch' });
+        respond(409, { error: 'duration_mismatch' });
         return;
       }
 
@@ -561,7 +584,7 @@ bookingsRouter.post(
       );
       if (pdRows.length > 0) {
         await client.query('COMMIT');
-        res.status(409).json({ error: 'patient_has_future_with_doctor' });
+        respond(409, { error: 'patient_has_future_with_doctor' });
         return;
       }
       const { rows: poRows } = await client.query<{ exists: boolean }>(
@@ -570,7 +593,7 @@ bookingsRouter.post(
       );
       if (poRows.length > 0) {
         await client.query('COMMIT');
-        res.status(409).json({ error: 'patient_time_conflict' });
+        respond(409, { error: 'patient_time_conflict' });
         return;
       }
 
@@ -594,10 +617,10 @@ bookingsRouter.post(
       if (!recheck.ok) {
         await client.query('COMMIT');
         if (recheck.code === 'slot_raced') {
-          res.status(409).json(SLOT_RACED_ENVELOPE);
+          respond(409, SLOT_RACED_ENVELOPE);
           return;
         }
-        res.status(409).json({ error: recheck.code });
+        respond(409, { error: recheck.code });
         return;
       }
 
@@ -647,7 +670,14 @@ bookingsRouter.post(
       // The actor role + actor_id on the audit row below are derived
       // from the same predicate, so an audit consumer can reconstruct
       // who pressed the button without joining to the JWT.
+      // The `created_by` column is CHECK-constrained to a controlled
+      // token alphabet, so the actor identity is encoded into it. The
+      // audit row's `actor_id` has no such constraint and keeps the
+      // readable form.
       const createdBy = isReceptionist
+        ? staffCreatedBy(actorSub)
+        : patientCreatedBy(body.patient_phone);
+      const auditActorId = isReceptionist
         ? `staff:${actorSub}`
         : `patient:${body.patient_phone}`;
       let apptRow: {
@@ -680,14 +710,46 @@ bookingsRouter.post(
         const code = (err as { code?: string }).code;
         if (code === '23P01') {
           await client.query('ROLLBACK');
-          res.status(409).json(SLOT_RACED_ENVELOPE);
+          respond(409, SLOT_RACED_ENVELOPE);
+          return;
+        }
+        if (code === '40P01' || code === '40001') {
+          // 40P01 (deadlock) and 40001 (serialization failure) are the two
+          // SQLSTATEs Postgres documents as retryable. A booking txn that
+          // aborts on either has lost the race for the slot just as surely
+          // as one aborted by the 0008 GIST exclusion — the concurrent
+          // writer committed first. Surfacing 500 here would tell the
+          // patient "try again later" for what is really "someone else
+          // booked that slot", and would leave the web client unable to
+          // render the ConflictModal path (E7-S4) that consumes the
+          // `slot_raced` envelope.
+          await client.query('ROLLBACK');
+          getLogger().warn(
+            { err: err instanceof Error ? err.message : String(err), code },
+            'booking_insert_retryable_conflict',
+          );
+          respond(409, SLOT_RACED_ENVELOPE);
           return;
         }
         if (code === '23505') {
           // The partial unique idx_appointment_patient_doctor_scheduled
           // caught a second Scheduled row for the same (patient, doctor).
           await client.query('ROLLBACK');
-          res.status(409).json({ error: 'patient_has_future_with_doctor' });
+          respond(409, { error: 'patient_has_future_with_doctor' });
+          return;
+        }
+        if (code === '23514') {
+          // A CHECK violation (e.g. `appointment_created_by_check`) is a
+          // server-side defect, not a client error — but it must not
+          // escape the handler: an unhandled rejection in an async
+          // Express handler terminates the process and takes the whole
+          // API down. Roll back and surface it as a 500.
+          await client.query('ROLLBACK');
+          getLogger().error(
+            { err: err instanceof Error ? err.message : String(err) },
+            'booking_insert_check_violation',
+          );
+          respond(500, { error: 'internal_error' });
           return;
         }
         throw err;
@@ -714,7 +776,7 @@ bookingsRouter.post(
       await client.query(INSERT_AUDIT_SQL, [
         apptRow.id,
         auditActorRole,
-        createdBy,
+        auditActorId,
         'created',
         auditPayload,
       ]);
@@ -722,7 +784,7 @@ bookingsRouter.post(
       await client.query('COMMIT');
 
       // `branchTz` was captured in-txn (P0-1) — no post-COMMIT SELECT.
-      res.status(201).json({
+      respond(201, {
         appointment: {
           id: apptRow.id,
           doctor_id: apptRow.doctor_id,
@@ -745,6 +807,10 @@ bookingsRouter.post(
         { err: err instanceof Error ? err.message : String(err) },
         'bookings_create_failed',
       );
+      // An exception escaping the handler never reaches `respond`, so the
+      // failure counter is incremented here. The rethrow is caught by the
+      // async-handler wrapper, which turns it into a 500 for this client.
+      inc('booking.failure');
       throw err;
     } finally {
       client.release();

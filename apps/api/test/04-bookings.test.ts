@@ -139,6 +139,50 @@ test('POST /bookings happy path → 201 with appointment', async () => {
   assert.equal(audit.rows[0]!.actor_role, 'patient');
 });
 
+test('POST /bookings (FR-027) a second non-recurring booking with the same patient+doctor → 409 patient_has_future_with_doctor', async () => {
+  const { doctorId, branchId, typeId } = await lookupIds();
+  // A dedicated patient so the assertion does not depend on rows left
+  // behind by other test files.
+  const phone = '+15550000991';
+
+  // Pick slots via the availability route so the assertions are not
+  // racing other tests for the same 14:00 slot. Two different days,
+  // so nothing but FR-027 can cause the second booking to fail.
+  const firstSlot = await firstFreeSlot(doctorId, branchId, typeId, 2);
+  const secondSlot = await firstFreeSlot(doctorId, branchId, typeId, 3);
+
+  const firstRes = await request(createApp())
+    .post('/bookings')
+    .set('Authorization', `Bearer ${patientToken(phone)}`)
+    .send({
+      doctor_id: doctorId,
+      branch_id: branchId,
+      appointment_type_id: typeId,
+      start_datetime: firstSlot.start_datetime,
+      end_datetime: firstSlot.end_datetime,
+      slot_duration_minutes: 30,
+      patient_phone: phone,
+      patient_name: 'FR-027 Patient',
+    });
+  assert.equal(firstRes.status, 201, `body=${JSON.stringify(firstRes.body)}`);
+
+  const secondRes = await request(createApp())
+    .post('/bookings')
+    .set('Authorization', `Bearer ${patientToken(phone)}`)
+    .send({
+      doctor_id: doctorId,
+      branch_id: branchId,
+      appointment_type_id: typeId,
+      start_datetime: secondSlot.start_datetime,
+      end_datetime: secondSlot.end_datetime,
+      slot_duration_minutes: 30,
+      patient_phone: phone,
+      patient_name: 'FR-027 Patient',
+    });
+  assert.equal(secondRes.status, 409, `body=${JSON.stringify(secondRes.body)}`);
+  assert.equal(secondRes.body.error, 'patient_has_future_with_doctor');
+});
+
 test('POST /bookings slot_in_past → 409 slot_in_past', async () => {
   const { doctorId, branchId, typeId } = await lookupIds();
   const start = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2h ago
@@ -296,4 +340,31 @@ function nextWeekdayAt14Utc(daysOut: number): Date {
 
 function nextWeekdayIso(): string {
   return nextWeekdayAt14Utc(1).toISOString().slice(0, 10);
+}
+
+/** Returns the first slot the availability route offers on the first
+ *  weekday at or after `daysOut` days from now. Using the route (rather
+ *  than a hard-coded instant) keeps the test from racing other test
+ *  files for the same slot.
+ *
+ *  The query is made on behalf of a patient with NO existing appointment
+ *  with this doctor — otherwise FR-027 filters every slot out. */
+async function firstFreeSlot(
+  doctorId: string,
+  branchId: string,
+  typeId: string,
+  daysOut: number,
+): Promise<{ start_datetime: string; end_datetime: string }> {
+  const date = nextWeekdayAt14Utc(daysOut).toISOString().slice(0, 10);
+  const res = await request(createApp())
+    .get(
+      `/availability?doctor_id=${doctorId}&branch_id=${branchId}&date=${date}&appointment_type_id=${typeId}`,
+    )
+    .set('Authorization', `Bearer ${patientToken('+15550000990')}`);
+  assert.equal(res.status, 200, `body=${JSON.stringify(res.body)}`);
+  const slot = res.body.slots[0] as
+    | { start_datetime: string; end_datetime: string }
+    | undefined;
+  assert.ok(slot, `no slot available on ${date}`);
+  return slot;
 }

@@ -10,7 +10,13 @@
  *   POST   /admin/branches          — create a branch (always active=true)
  *   GET    /admin/branches          — list all branches; optional `?active=true|false`
  *   GET    /admin/branches/:id      — single branch; 404 if unknown
- *   PATCH  /admin/branches/:id      — rename, deactivate, or reactivate
+ *   PATCH  /admin/branches/:id      — rename, edit address/timezone, deactivate,
+ *                                      or reactivate
+ *
+ * `address` and `tz` are also editable on
+ * `PATCH /admin/branches/:id/hours` (admin-branch-hours.ts). Both routes
+ * write the same `branch` columns; the hours route additionally runs the
+ * operating-hours impact check, so an admin editing hours should use it.
  *
  * The PATCH deactivate path runs INSIDE a transaction with
  * `SELECT ... FOR UPDATE` on the branch row. **Scope-of-lock note**
@@ -41,9 +47,11 @@
 import { Router, type Request, type Response } from 'express';
 import { getPool } from '../db/pool.js';
 import { getLogger } from '../middleware/log.js';
+import { isValidTimezone } from './admin-branch-hours-helpers.js';
 
 const NAME_MIN = 1;
 const NAME_MAX = 120;
+const ADDRESS_MAX = 500;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -52,6 +60,8 @@ interface BranchRow {
   clinic_id: string;
   name: string;
   active: boolean;
+  tz: string;
+  address: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -82,11 +92,11 @@ const SELECT_CLINIC_ID_SQL = `SELECT id FROM clinic LIMIT 1`;
 const INSERT_BRANCH_SQL = `
   INSERT INTO branch (clinic_id, name, active)
   VALUES ($1, $2, true)
-  RETURNING id, clinic_id, name, active, created_at, updated_at;
+  RETURNING id, clinic_id, name, active, tz, address, created_at, updated_at;
 `;
 
 const SELECT_BRANCH_LIST_SQL = `
-  SELECT id, clinic_id, name, active, created_at, updated_at
+  SELECT id, clinic_id, name, active, tz, address, created_at, updated_at
     FROM branch
    WHERE clinic_id = $1
      AND ($2::boolean IS NULL OR active = $2)
@@ -94,21 +104,9 @@ const SELECT_BRANCH_LIST_SQL = `
 `;
 
 const SELECT_BRANCH_BY_ID_SQL = `
-  SELECT id, clinic_id, name, active, created_at, updated_at
+  SELECT id, clinic_id, name, active, tz, address, created_at, updated_at
     FROM branch
    WHERE id = $1 AND clinic_id = $2;
-`;
-
-const UPDATE_BRANCH_NAME_SQL = `
-  UPDATE branch SET name = $1
-   WHERE id = $2 AND clinic_id = $3
-   RETURNING id, clinic_id, name, active, created_at, updated_at;
-`;
-
-const UPDATE_BRANCH_ACTIVE_SQL = `
-  UPDATE branch SET active = $1
-   WHERE id = $2 AND clinic_id = $3
-   RETURNING id, clinic_id, name, active, created_at, updated_at;
 `;
 
 const SELECT_BRANCH_FOR_UPDATE_SQL = `
@@ -129,6 +127,8 @@ function branchJson(r: BranchRow) {
     clinic_id: r.clinic_id,
     name: r.name,
     active: r.active,
+    tz: r.tz,
+    address: r.address,
     created_at: r.created_at,
     updated_at: r.updated_at,
   };
@@ -267,11 +267,17 @@ adminBranchesRouter.patch(
 
     const body = (req.body ?? {}) as Record<string, unknown>;
     // Reject unknown top-level fields (P-A1 from E1-S1 review-loop-1).
-    // The route owns exactly two fields; anything else is either a
-    // future feature (address, tz) or an attempted privilege escalation
-    // (role, clinic_id, branch_ids). 400 unknown_field surfaces both
-    // classes loudly rather than silently dropping the field.
-    const allowedKeys = new Set(['name', 'active']);
+    // The route owns exactly these fields; anything else is an attempted
+    // privilege escalation (role, clinic_id, branch_ids). 400
+    // unknown_field surfaces that loudly rather than silently dropping
+    // the field.
+    //
+    // `address` and `tz` were added when 0015 gave `branch` an address
+    // column and the branch-hours editor needed a timezone field the
+    // branch list could also read. They are editable here AND on
+    // `PATCH /admin/branches/:id/hours`; this route is the shortcut for
+    // "edit the branch, not the schedule".
+    const allowedKeys = new Set(['name', 'active', 'address', 'tz']);
     const unknownKeys = Object.keys(body).filter((k) => !allowedKeys.has(k));
     if (unknownKeys.length > 0) {
       res.status(400).json({ error: 'unknown_field', fields: unknownKeys });
@@ -279,8 +285,10 @@ adminBranchesRouter.patch(
     }
     const hasName = 'name' in body;
     const hasActive = 'active' in body;
+    const hasAddress = 'address' in body;
+    const hasTz = 'tz' in body;
 
-    if (!hasName && !hasActive) {
+    if (!hasName && !hasActive && !hasAddress && !hasTz) {
       res.status(400).json({ error: 'no_fields_to_update' });
       return;
     }
@@ -303,6 +311,32 @@ adminBranchesRouter.patch(
       activeValue = body['active'] as boolean;
     }
 
+    let addressValue: string | null = null;
+    if (hasAddress) {
+      const raw = body['address'];
+      // `null` clears the address. `undefined` is rejected explicitly:
+      // it would otherwise bind as NULL and report the field as updated
+      // while silently clearing the value.
+      if (raw === undefined || (raw !== null && typeof raw !== 'string')) {
+        res.status(400).json({ error: 'invalid_address' });
+        return;
+      }
+      if (typeof raw === 'string' && raw.length > ADDRESS_MAX) {
+        res.status(400).json({ error: 'invalid_address' });
+        return;
+      }
+      addressValue = raw === null ? null : (raw as string).trim();
+    }
+
+    let tzValue: string | null = null;
+    if (hasTz) {
+      if (typeof body['tz'] !== 'string' || !isValidTimezone(body['tz'])) {
+        res.status(400).json({ error: 'invalid_timezone' });
+        return;
+      }
+      tzValue = body['tz'] as string;
+    }
+
     const pool = await getPool();
     try {
       const { rows: clinicRows } = await pool.query<{ id: string }>(
@@ -314,14 +348,45 @@ adminBranchesRouter.patch(
       }
       const clinicId = clinicRows[0]!.id;
 
-      // Single-field rename path: just UPDATE (no tx needed; no
-      // appointment table involved).
-      if (hasName && !hasActive) {
-        const { rows } = await pool.query<BranchRow>(UPDATE_BRANCH_NAME_SQL, [
-          normalizedName,
-          id,
-          clinicId,
-        ]);
+      // The SET clause list is built once and used by both the fast path
+      // (no conflict check needed) and the transactional deactivate path.
+      // Placeholder numbering uses ++idx consistently (pre-increment) so
+      // the numbering is unambiguous and a future maintainer adding
+      // another clause can't accidentally reuse a placeholder index
+      // (P-B2 from E1-S1 review-loop-1).
+      const setClauses: string[] = [];
+      const updateParams: unknown[] = [];
+      let placeholder = 0;
+      if (hasName) {
+        setClauses.push(`name = $${++placeholder}`);
+        updateParams.push(normalizedName);
+      }
+      if (hasAddress) {
+        setClauses.push(`address = $${++placeholder}`);
+        updateParams.push(addressValue);
+      }
+      if (hasTz) {
+        setClauses.push(`tz = $${++placeholder}`);
+        updateParams.push(tzValue);
+      }
+      if (hasActive) {
+        setClauses.push(`active = $${++placeholder}`);
+        updateParams.push(activeValue);
+      }
+      const idPlaceholder = ++placeholder;
+      const clinicPlaceholder = ++placeholder;
+      updateParams.push(id);
+      updateParams.push(clinicId);
+      const updateSql = `
+        UPDATE branch SET ${setClauses.join(', ')}
+         WHERE id = $${idPlaceholder} AND clinic_id = $${clinicPlaceholder}
+         RETURNING id, clinic_id, name, active, tz, address, created_at, updated_at;
+      `;
+
+      // Fast path: no deactivation, so no appointment conflict check and
+      // no transaction needed.
+      if (!hasActive || activeValue === true) {
+        const { rows } = await pool.query<BranchRow>(updateSql, updateParams);
         if (rows.length === 0) {
           res.status(404).json({ error: 'branch_not_found' });
           return;
@@ -330,24 +395,9 @@ adminBranchesRouter.patch(
         return;
       }
 
-      // Single-field activate path: no conflict check needed.
-      if (hasActive && !hasName && activeValue === true) {
-        const { rows } = await pool.query<BranchRow>(UPDATE_BRANCH_ACTIVE_SQL, [
-          true,
-          id,
-          clinicId,
-        ]);
-        if (rows.length === 0) {
-          res.status(404).json({ error: 'branch_not_found' });
-          return;
-        }
-        res.status(200).json(branchJson(rows[0]!));
-        return;
-      }
-
-      // Deactivate path (with or without a simultaneous rename).
-      // Run inside a transaction with SELECT ... FOR UPDATE on the
-      // branch row. See file-level comment for the scope-of-lock
+      // Deactivate path (with or without a simultaneous rename / address
+      // / tz change). Run inside a transaction with SELECT ... FOR UPDATE
+      // on the branch row. See file-level comment for the scope-of-lock
       // caveat: the FOR UPDATE blocks admin-vs-admin races but does
       // NOT block booking-vs-deactivate unless the booking path takes
       // a branch-row lock of its own (reopen W35 when E3-S1 lands).
@@ -372,30 +422,7 @@ adminBranchesRouter.patch(
           res.status(409).json({ error: 'branch_has_future_appointments' });
           return;
         }
-        // Build the UPDATE dynamically to handle both fields-updated and
-        // active-only paths under one transaction. Use ++idx consistently
-        // (pre-increment) so the placeholder numbering is unambiguous and
-        // a future maintainer adding another clause can't accidentally
-        // reuse a placeholder index (P-B2 from E1-S1 review-loop-1).
-        const setClauses: string[] = [];
-        const updateParams: unknown[] = [];
-        let placeholder = 0;
-        if (hasName) {
-          setClauses.push(`name = $${++placeholder}`);
-          updateParams.push(normalizedName);
-        }
-        setClauses.push(`active = $${++placeholder}`);
-        updateParams.push(activeValue);
-        const idPlaceholder = ++placeholder;
-        const clinicPlaceholder = ++placeholder;
-        updateParams.push(id);
-        updateParams.push(clinicId);
-        const sql = `
-          UPDATE branch SET ${setClauses.join(', ')}
-           WHERE id = $${idPlaceholder} AND clinic_id = $${clinicPlaceholder}
-           RETURNING id, clinic_id, name, active, created_at, updated_at;
-        `;
-        const { rows } = await client.query<BranchRow>(sql, updateParams);
+        const { rows } = await client.query<BranchRow>(updateSql, updateParams);
         if (rows.length === 0) {
           await client.query('ROLLBACK');
           res.status(404).json({ error: 'branch_not_found' });

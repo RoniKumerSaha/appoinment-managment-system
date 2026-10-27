@@ -204,6 +204,9 @@
   cursor: pointer;
   text-align: center;
   font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  width: 100%;
   transition:
     border-color 120ms ease,
     background 120ms ease,

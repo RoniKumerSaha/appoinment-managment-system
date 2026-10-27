@@ -9,8 +9,10 @@
  *
  * The endpoint is gated only by the caller's knowledge of the seeded
  * email; this is acceptable for the dev web app where the user picks
- * from the seed list. A production deploy MUST swap in a real credential
- * check before this endpoint is exposed.
+ * from the seed list. The route refuses to serve in production
+ * (`staffStubLoginAllowed` is an env allowlist) — a production deploy
+ * MUST swap in a real credential check before this endpoint is
+ * exposed.
  *
  * Response shape mirrors `patient-otp.ts` (`/patient/otp/verify-now`):
  *   {
@@ -31,6 +33,7 @@ import { Router, type Request, type Response } from 'express';
 import { getPool } from '../db/pool.js';
 import { getLogger } from '../middleware/log.js';
 import { signClaim, verifyToken } from '../auth/jwt.js';
+import { loadAuthConfig } from '../auth/config.js';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
@@ -146,6 +149,22 @@ export const authMeRouter: Router = Router();
 
 // Mounted BEFORE authMiddleware — the login route IS its own auth gate.
 authStaffRouter.post('/login/staff', (req: Request, res: Response): void => {
+  // The email-only login proves nothing beyond "the caller knows a
+  // seeded email" — there is no password column on the staff tables.
+  // It is therefore confined to dev/test; production must be served by
+  // the real credential check deferred to W10a.
+  try {
+    if (!loadAuthConfig().staffStubLoginAllowed) {
+      res.status(404).json({ error: 'not_found' });
+      return;
+    }
+  } catch {
+    // A config that fails to load is a boot failure, not a request
+    // failure. Refuse the login rather than minting an unverified token.
+    res.status(503).json({ error: 'auth_unavailable' });
+    return;
+  }
+
   const body = (req.body ?? {}) as Record<string, unknown>;
   const role = body['role'];
   const email = body['email'];

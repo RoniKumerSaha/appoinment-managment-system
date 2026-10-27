@@ -11,17 +11,18 @@
  * masked phone; we don't display a name (E7-S3 — receptionist
  * identifies the patient on arrival by phone).
  *
- * The "+ Book walk-in" button (mock 13) and the per-row "Check in"
- * CTA are rendered as muted placeholders — the receptionist walk-in
- * flow (mock 26) and the check-in state machine are deferred until
- * the back-end "receptionist books on behalf" / mark-status flows
- * expose a single surface. Today they are no-ops with a hint.
+ * The "+ Book walk-in" button (mock 13) opens the receptionist
+ * walk-in flow (mock 14, `ReceptionistCreate`), which POSTs to
+ * `POST /bookings` with the receptionist as the actor of record.
+ * The "Doctor availability" link opens the read-only availability
+ * browser (mock 16, `ReceptionistAvailability`).
+ *
+ * The per-row "Check in" CTA is still a placeholder — the check-in
+ * state machine has no back-end surface yet.
  *
  * The "Cancel appointment" link in the header routes to the
  * `ReceptionistCancel` page (mock 15), which uses the same today
- * data as the picker. The "Doctor availability" link is a placeholder
- * (deferred until the doctor schedule surface ships for the
- * receptionist).
+ * data as the picker.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -37,6 +38,10 @@ import { formatTimeLocal, initialsOf, lastNameOf, maskPhone } from './recep-util
 
 interface ReceptionistTodayProps {
   onOpenCancel: (appointmentId: string) => void;
+  /** Walk-in booking (mock 14). */
+  onOpenCreate: () => void;
+  /** Read-only availability browser (mock 16). */
+  onOpenAvailability: () => void;
 }
 
 const STATUS_FILTERS: Array<{
@@ -155,7 +160,11 @@ function formatDateHeader(isoDate: string): string {
   });
 }
 
-export function ReceptionistToday({ onOpenCancel }: ReceptionistTodayProps) {
+export function ReceptionistToday({
+  onOpenCancel,
+  onOpenCreate,
+  onOpenAvailability,
+}: ReceptionistTodayProps) {
   const [data, setData] = useState<ReceptionistTodayResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [err, setErr] = useState<string | null>(null);
@@ -303,13 +312,7 @@ export function ReceptionistToday({ onOpenCancel }: ReceptionistTodayProps) {
           <button
             type="button"
             className="recep-today__primary-btn"
-            onClick={() => {
-              // Walk-in flow is deferred — surface a hint instead of
-              // opening a non-existent screen.
-              window.alert(
-                'Walk-in booking surface is not yet implemented. The receptionist can cancel an existing appointment from this dashboard.',
-              );
-            }}
+            onClick={onOpenCreate}
           >
             + Book walk-in
           </button>
@@ -327,11 +330,7 @@ export function ReceptionistToday({ onOpenCancel }: ReceptionistTodayProps) {
           <button
             type="button"
             className="recep-today__quicklink recep-today__quicklink--muted"
-            onClick={() => {
-              window.alert(
-                'Doctor availability link is not yet implemented for the receptionist role.',
-              );
-            }}
+            onClick={onOpenAvailability}
           >
             Doctor availability
           </button>

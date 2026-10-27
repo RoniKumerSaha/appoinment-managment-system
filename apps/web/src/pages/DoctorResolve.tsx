@@ -227,7 +227,6 @@ export function DoctorResolve({
   ]);
 
   const apptStart = formatTimeInTz(appointment.start_datetime, appointment.branchTz);
-  const apptEnd = formatTimeInTz(appointment.end_datetime, appointment.branchTz);
   const apptDate = formatDateInTz(appointment.start_datetime, appointment.branchTz);
 
   return (

@@ -49,6 +49,8 @@ import {
   formatLocalDate,
   type SkipReason,
 } from './recurring-helpers.js';
+import { patientCreatedBy, staffCreatedBy } from './created-by.js';
+import { inc } from '../metrics/counters.js';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -137,9 +139,11 @@ recurringConfirmRouter.post(
     const nowMs = Date.now();
     const actorSub = claim.sub;
     const isReceptionist = claim.role === 'receptionist';
+    // The `created_by` column is CHECK-constrained to a controlled token
+    // alphabet, so the actor identity is encoded into it.
     const createdBy = isReceptionist
-      ? `staff:${actorSub}`
-      : `patient:${snapshot.body.patient_phone}`;
+      ? staffCreatedBy(actorSub)
+      : patientCreatedBy(snapshot.body.patient_phone);
 
     const pool = await getPool();
     let client: PoolClient;
@@ -238,6 +242,10 @@ recurringConfirmRouter.post(
           // compares the slot against the branch's local working
           // window in branch-local time.
           branchTz: snapshot.branchTz,
+          // FR-027 must not treat this series' own earlier
+          // occurrences as a conflicting appointment — the series is
+          // one logical appointment with several occurrences.
+          excludeRecurringSeriesId: seriesId,
         });
         if (!recheck.ok) {
           skipped.push({
@@ -285,7 +293,17 @@ recurringConfirmRouter.post(
           // Any other error is a hard failure — the entire batch
           // rolls back (BR-052 — "all or nothing" for the insert;
           // per-occurrence validation may skip, but the batch is
-          // atomic).
+          // atomic). A CHECK violation (23514) is a server-side
+          // defect; it is surfaced as a 500 rather than allowed to
+          // escape as an unhandled rejection, which would terminate
+          // the process.
+          if (code === '23514') {
+            getLogger().error(
+              { err: err instanceof Error ? err.message : String(err) },
+              'recurring_insert_check_violation',
+            );
+            throw new Error('insert_check_violation');
+          }
           throw err;
         }
 
@@ -316,6 +334,12 @@ recurringConfirmRouter.post(
       }
 
       await client.query('COMMIT');
+
+      // Count the batch outcome: one increment per occurrence that was
+      // written, one per occurrence that was skipped (FR-050 — an
+      // occurrence skipped by a race is a skip, not a failure).
+      inc('recurring.created', created.length);
+      inc('recurring.skipped', skipped.length);
 
       res.status(201).json({
         series_id: seriesId,

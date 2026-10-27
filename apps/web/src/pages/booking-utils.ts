@@ -11,6 +11,15 @@
  * the branch.tz field is rendered as a hint, not used for math. The
  * spec pins this behavior (D2 deferral to E7-S6 for proper TZ math).
  */
+import {
+  ALL_COUNTRIES,
+  findCountry,
+} from './phone-countries';
+
+export {
+  DEFAULT_COUNTRY_CODE,
+  findCountry,
+} from './phone-countries';
 
 export function initialsOf(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
@@ -90,6 +99,54 @@ export function isValidName(s: string): boolean {
 
 export function isValidOtpCode(s: string): boolean {
   return /^\d{6}$/.test(s);
+}
+
+// ----------------------------------------------------------------------------
+// Country-code splitting — the phone field is a country chip + a
+// national number, but the API only ever sees one E.164 string.
+//
+
+/** Join a country code + national number into the E.164 string the
+ *  API expects. `OTHER` contributes no prefix — the patient types
+ *  their own full international number in the national field. */
+export function joinPhone(countryCode: string, nationalNumber: string): string {
+  const digits = nationalNumber.replace(/[\s\-().]/g, '');
+  if (digits === '') return '';
+  if (countryCode === 'OTHER') return digits.startsWith('+') ? digits : `+${digits}`;
+  const country = findCountry(countryCode);
+  if (country === undefined || country.dial === '') return digits;
+  // The patient may have pasted the whole number including the
+  // prefix. Strip it so the prefix is not doubled.
+  const bare = digits.startsWith('+') ? digits.slice(1) : digits;
+  const national = bare.startsWith(country.dial.slice(1))
+    ? bare.slice(country.dial.length - 1)
+    : bare;
+  return `${country.dial}${national}`;
+}
+
+/** Split a full phone string back into a country code + national
+ *  number. Returns null when the string does not start with a known
+ *  dial code — the caller then treats it as a raw national number
+ *  (or as `OTHER`, where the patient types their own prefix). */
+export function splitPhone(
+  full: string,
+): { countryCode: string; nationalNumber: string } | null {
+  const bare = full.replace(/[\s\-().]/g, '');
+  if (!bare.startsWith('+')) return null;
+  // Longest dial code first: +1 is a prefix of nothing, but +7 would
+  // shadow +971 if the list were unordered.
+  const candidates = ALL_COUNTRIES.filter((c) => c.dial !== '').sort(
+    (a, b) => b.dial.length - a.dial.length,
+  );
+  for (const c of candidates) {
+    if (bare.startsWith(c.dial)) {
+      return {
+        countryCode: c.code,
+        nationalNumber: bare.slice(c.dial.length),
+      };
+    }
+  }
+  return null;
 }
 
 // ----------------------------------------------------------------------------

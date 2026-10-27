@@ -50,8 +50,10 @@ import {
 import {
   ApiError,
   createAppointmentType,
+  getAdminStats,
   listAppointmentTypes,
   patchAppointmentType,
+  type AdminStats,
   type AppointmentTypeDto,
   type AppointmentTypePatchResponse,
 } from '../api/client';
@@ -61,17 +63,9 @@ const NAME_MAX = 120;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Mockup 11 lists "X bookings (30d)" on each type row. The admin API
-// doesn't expose that count today — until the join lands, derive a stable
-// per-type number from the UUID so the meta line reads as a real number.
-// Range 3..46 keeps the demo list visually plausible.
-function mockBookingsCount(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) {
-    h = (h * 31 + id.charCodeAt(i)) | 0;
-  }
-  return 3 + (Math.abs(h) % 44);
-}
+// Mockup 11 lists "X bookings (30d)" on each type row. The count comes
+// from `GET /admin/stats`, which answers it from the appointment table
+// over the last 30 days.
 
 // "edited 2d ago" / "edited today" / "edited just now" — short form for
 // the type-row meta line. Larger windows collapse to a date.
@@ -152,12 +146,26 @@ export function AdminAppointmentTypes() {
     name: string;
   } | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [stats, setStats] = useState<AdminStats | null>(null);
+
+  // The per-type bookings count is a separate read — the type list DTO
+  // does not carry it.
+  const reloadStats = useCallback(async (): Promise<void> => {
+    try {
+      setStats(await getAdminStats());
+    } catch {
+      // The count is decorative; a failed stats read must not take the
+      // type list down with it.
+      setStats(null);
+    }
+  }, []);
 
   // Initial load.
   const reload = useCallback(async (): Promise<void> => {
     const list = await listAppointmentTypes();
     setTypes(list);
-  }, []);
+    void reloadStats();
+  }, [reloadStats]);
 
   useEffect(() => {
     let cancelled = false;
@@ -449,7 +457,9 @@ export function AdminAppointmentTypes() {
                 <div className={styles['type-item__body']}>
                   <div className={styles['type-item__name']}>{t.name}</div>
                   <div className={styles['type-item__meta']}>
-                    Duration {t.duration_minutes} min · {mockBookingsCount(t.id)}{' '}
+                    Duration {t.duration_minutes} min ·{' '}
+                    {stats?.appointment_types.find((s) => s.id === t.id)
+                      ?.bookings_count ?? 0}{' '}
                     bookings (30d) · edited {relativeDaysShort(t.updated_at)}
                   </div>
                 </div>

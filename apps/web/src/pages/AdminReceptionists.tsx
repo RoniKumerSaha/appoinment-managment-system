@@ -48,9 +48,11 @@ import {
 import {
   ApiError,
   createReceptionist,
+  getAdminStats,
   listBranches,
   listReceptionists,
   patchReceptionist,
+  type AdminStats,
   type BranchDto,
   type ReceptionistWithBranchDto,
 } from '../api/client';
@@ -129,19 +131,16 @@ function isValidUuidClient(s: string): boolean {
   return UUID_RE.test(s);
 }
 
-// Mockup 19 — DTO doesn't expose `appts_today` or `last_login`. Derive
-// deterministic mock values from a hash of the receptionist id so the
-// stats look real and stable across renders.
-function hashOfId(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-function formatRelativeShort(offsetMinutes: number): string {
-  if (offsetMinutes < 1) return 'Just now';
-  if (offsetMinutes < 60) return `${offsetMinutes}m ago`;
-  const hours = Math.floor(offsetMinutes / 60);
+// Mockup 19 — the appointments-today count comes from `GET /admin/stats`.
+// The receptionist table has no `last_login` column, so the second tile
+// shows the row's real `updated_at` instead of a fabricated timestamp.
+function formatRelativeShort(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return 'Unknown';
+  const minutes = Math.floor((Date.now() - then) / 60_000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days === 1) return 'Yesterday';
@@ -156,6 +155,7 @@ export function AdminReceptionists() {
     ReceptionistWithBranchDto[]
   >([]);
   const [branches, setBranches] = useState<BranchDto[]>([]);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadErr, setLoadErr] = useState<FormError | null>(null);
 
@@ -179,6 +179,18 @@ export function AdminReceptionists() {
 
   const modalRef = useRef<HTMLDivElement | null>(null);
 
+  // The appointments-today count is a separate read — the receptionist
+  // list DTO does not carry it.
+  const reloadStats = useCallback(async (): Promise<void> => {
+    try {
+      setStats(await getAdminStats());
+    } catch {
+      // The count is decorative; a failed stats read must not take the
+      // receptionist list down with it.
+      setStats(null);
+    }
+  }, []);
+
   // Reload both lists in parallel; receptionists depend on branches
   // only via the embedded `branch` object (already denormalised in the
   // response), but the filter-bar `<select>` shows live branch names so
@@ -190,7 +202,8 @@ export function AdminReceptionists() {
     ]);
     setReceptionists(recep);
     setBranches(br);
-  }, []);
+    void reloadStats();
+  }, [reloadStats]);
 
   useEffect(() => {
     let cancelled = false;
@@ -592,12 +605,13 @@ export function AdminReceptionists() {
           const cardClass = r.active
             ? styles['rec-card']
             : `${styles['rec-card']} ${styles['rec-card--inactive']}`;
-          // Mockup 19 lines 154-164 — the API DTO does not expose
-          // appts_today / last_login; derive plausible values from a hash
-          // of the receptionist id so the stats look real.
-          const hash = hashOfId(r.id);
-          const apptsToday = r.active ? hash % 13 : 0;
-          const lastLogin = formatRelativeShort(hash % 90);
+          // Mockup 19 lines 154-164 — the appointments-today count comes
+          // from `GET /admin/stats`; the second tile shows the row's
+          // real `updated_at`.
+          const apptsToday =
+            stats?.receptionists.find((s) => s.id === r.id)
+              ?.appointments_today ?? 0;
+          const lastLogin = formatRelativeShort(r.updated_at);
           return (
             <div key={r.id} className={cardClass}>
               <div className={styles['head']}>
@@ -650,7 +664,7 @@ export function AdminReceptionists() {
                   <div className={styles['stat__value']}>{apptsToday}</div>
                 </div>
                 <div className={styles['stat']}>
-                  <div className={styles['stat__label']}>Last login</div>
+                  <div className={styles['stat__label']}>Last updated</div>
                   <div className={styles['stat__value']}>{lastLogin}</div>
                 </div>
               </div>

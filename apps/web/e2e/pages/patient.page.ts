@@ -148,8 +148,8 @@ export class PatientPage {
 
   /**
    * Walks steps 1..5 and returns the new appointment id by reading
-   * the receipt card's "Booking reference" line. The patient app's
-   * receipt shows a static mock reference today, so the more reliable
+   * the receipt card's "Booking reference" line. The receipt renders
+   * from the booking that was actually made, but the more reliable
    * way to capture the id is to call
    * `helpers/api.ts#fetchLatestPatientAppointment(token, phone)` from
    * the test itself.

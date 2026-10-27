@@ -29,7 +29,8 @@
  */
 import type pg from 'pg';
 import { randomInt, timingSafeEqual } from 'node:crypto';
-import { signClaim, verifyToken, type AuthClaim } from '../auth/jwt.js';
+import { signClaim, verifyToken } from '../auth/jwt.js';
+import type { AuthClaim } from '../types/auth.js';
 import type { SmsOtpProvider } from './provider.js';
 import { SmsSendFailed } from './provider.js';
 import type { OtpConfig } from './config.js';

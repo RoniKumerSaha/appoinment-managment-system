@@ -36,6 +36,10 @@ import {
 import {
   timeStringToMinutes,
   utcDayOfWeek,
+  localDateInTz,
+  localDayOfWeek,
+  localMidnightMs,
+  localWallClockToUtcMs,
 } from '../availability/types.js';
 
 // ---------------------------------------------------------------------------
@@ -343,6 +347,7 @@ const SELECT_PATIENT_DOCTOR_FUTURE_SQL = `
    WHERE patient_phone = $1 AND doctor_id = $2
      AND status = 'Scheduled' AND start_datetime > now()
      AND ($3::uuid IS NULL OR id <> $3::uuid)
+     AND ($4::uuid IS NULL OR recurring_series_id IS DISTINCT FROM $4::uuid)
    LIMIT 1;
 `;
 
@@ -395,6 +400,13 @@ export interface RecheckArgs {
    *  sibling. Used by the doctor-move route (E6-S2) and the
    *  recurring-confirm path for the source row. */
   excludeAppointmentId?: string | null;
+  /** When set, FR-027's same-(patient, doctor) future check ignores
+   *  rows belonging to this recurring series.
+   *
+   *  A recurring series is one logical appointment with several
+   *  occurrences, so its own earlier occurrences must not block its
+   *  later ones. Rows from any OTHER series still conflict. */
+  excludeRecurringSeriesId?: string | null;
   /** IANA tz name (e.g. 'America/New_York'). When supplied, the
    *  validator anchors the slot's minutes-of-day in branch-local
    *  time and queries `branch_weekly_hours` / `doctor_schedule`
@@ -579,7 +591,12 @@ export async function validateOccurrenceInTxn(
   // 10. FR-027: same (patient, doctor) future Scheduled.
   const { rows: pdRows } = await client.query<{ exists: boolean }>(
     SELECT_PATIENT_DOCTOR_FUTURE_SQL,
-    [args.patientPhone, args.doctorId, args.excludeAppointmentId ?? null],
+    [
+      args.patientPhone,
+      args.doctorId,
+      args.excludeAppointmentId ?? null,
+      args.excludeRecurringSeriesId ?? null,
+    ],
   );
   if (pdRows.length > 0) {
     return { ok: false, reason: 'patient_has_future_with_doctor' };
@@ -661,154 +678,27 @@ export function formatLocalDate(utc: Date, tz: string): string {
 }
 
 /** Returns the UTC ms epoch of branch-local midnight on the same
- *  branch-local calendar day as `utcMs`. DST-safe (uses
- *  Intl.DateTimeFormat for the probe).
+ *  branch-local calendar day as `utcMs`. DST-safe.
  *
- *  E7-S6 partial: the write-side validators (recurring,
- *  bookings, patient-reschedule, staff-doctor-move) need to
- *  anchor the slot's minutes-of-day in branch-local time so a
- *  14:00 ET slot on East Branch is correctly compared against
- *  the branch's 09:00–17:00 working window. The engine itself
- *  still uses UTC as the working plane (per its docstring);
- *  the boundary-range divergence is contained and E7-S6
- *  reconciles it globally.
- *
- *  Algorithm: compute the tz offset (local→UTC) of `utcMs`
- *  itself, then build `Date.UTC(year, month, day) + offset` as
- *  the initial guess. One correction pass handles the
- *  near-midnight boundary (e.g. 23:30 ET where the day shifts). */
+ *  Delegates to the canonical primitive in `availability/types.ts` so
+ *  the write-side validators and the availability engine anchor
+ *  minutes-of-day identically. */
 export function branchLocalMidnightMs(utcMs: number, tz: string): number {
-  const renderedYmd = formatLocalDate(new Date(utcMs), tz);
-  const year = Number(renderedYmd.slice(0, 4));
-  const month = Number(renderedYmd.slice(5, 7)) - 1;
-  const day = Number(renderedYmd.slice(8, 10));
-
-  // Probe the tz offset (local→UTC) of `utcMs` by comparing the
-  // rendered wall clock to the UTC clock at the same instant.
-  // For EDT (UTC-4): 18:00 UTC renders 14:00 local →
-  //   offset = utc - local = 18:00 - 14:00 = +4h = +240 min.
-  // For EST (UTC-5): 17:00 UTC renders 12:00 local →
-  //   offset = 17:00 - 12:00 = +5h = +300 min.
-  const probeParts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: tz,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(new Date(utcMs));
-  const probeHh = Number(probeParts.find((p) => p.type === 'hour')?.value ?? '0');
-  const probeMm = Number(probeParts.find((p) => p.type === 'minute')?.value ?? '0');
-  const probeUtcH = new Date(utcMs).getUTCHours();
-  const probeUtcM = new Date(utcMs).getUTCMinutes();
-  const offsetMin =
-    (probeUtcH * 60 + probeUtcM) - (probeHh * 60 + probeMm);
-
-  // Initial guess: midnight on the rendered YMD in UTC, then
-  // shift by the offset. For 18:00 UTC on Oct 19 in NY (offset
-  // = +240 min), this is Date.UTC(2026,9,19) + 240 min =
-  // 2026-10-19T04:00:00Z = 00:00 EDT on Oct 19.
-  let candidate = Date.UTC(year, month, day) + offsetMin * 60_000;
-
-  // Up to 3 correction passes for the near-midnight boundary
-  // where the rendered YMD shifts between the probe and the
-  // candidate.
-  for (let i = 0; i < 3; i++) {
-    const ymd = formatLocalDate(new Date(candidate), tz);
-    if (ymd === renderedYmd) {
-      const parts = new Intl.DateTimeFormat('en-GB', {
-        timeZone: tz,
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }).formatToParts(new Date(candidate));
-      const hh = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
-      const mm = Number(parts.find((p) => p.type === 'minute')?.value ?? '0');
-      if (hh === 0 && mm === 0) return candidate;
-      // Off by a few minutes — adjust.
-      candidate -= (hh * 60 + mm) * 60_000;
-    } else {
-      // Day shifted. Re-probe offset at the candidate and try
-      // again.
-      const p = new Intl.DateTimeFormat('en-GB', {
-        timeZone: tz,
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }).formatToParts(new Date(candidate));
-      const phh = Number(p.find((x) => x.type === 'hour')?.value ?? '0');
-      const pmm = Number(p.find((x) => x.type === 'minute')?.value ?? '0');
-      const utcH = new Date(candidate).getUTCHours();
-      const utcM = new Date(candidate).getUTCMinutes();
-      const off = (utcH * 60 + utcM) - (phh * 60 + pmm);
-      const shiftedYmd = formatLocalDate(new Date(candidate), tz);
-      const sy = Number(shiftedYmd.slice(0, 4));
-      const sm = Number(shiftedYmd.slice(5, 7)) - 1;
-      const sd = Number(shiftedYmd.slice(8, 10));
-      candidate = Date.UTC(sy, sm, sd) + off * 60_000;
-    }
-  }
-  return candidate;
+  return localMidnightMs(localDateInTz(utcMs, tz), tz);
 }
 
 /** Returns the branch-local day-of-week (0=Sun..6=Sat) for `utcMs`
  *  in tz. Matches Postgres `EXTRACT(dow FROM (a.start_datetime AT
  *  TIME ZONE tz))::int` (also 0=Sun). */
 export function branchLocalDayOfWeek(utcMs: number, tz: string): number {
-  const weekday = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    weekday: 'short',
-  }).format(new Date(utcMs));
-  switch (weekday) {
-    case 'Sun': return 0;
-    case 'Mon': return 1;
-    case 'Tue': return 2;
-    case 'Wed': return 3;
-    case 'Thu': return 4;
-    case 'Fri': return 5;
-    case 'Sat': return 6;
-    default:
-      throw new Error(`unexpected weekday: ${weekday}`);
-  }
+  return localDayOfWeek(utcMs, tz);
 }
 
 /** Returns the UTC ms epoch of "the calendar day represented by
  *  `dayMs` (a UTC ms for midnight) at (hh, mm) local time in `tz`".
- *  Converges in two passes for any tz (with or without DST).
  *  Used by `expandOccurrences` to compute the slot's UTC start. */
 function localToUtcMs(dayMs: number, hh: number, mm: number, tz: string): number {
-  const targetYmd = formatLocalDate(new Date(dayMs), 'UTC');
-  const targetMonth = Number(targetYmd.slice(5, 7)) - 1;
-  const targetDay = Number(targetYmd.slice(8, 10));
-  const targetYear = Number(targetYmd.slice(0, 4));
-
-  // First guess: treat the wall clock as UTC.
-  let candidate = dayMs + (hh * 60 + mm) * 60_000;
-  for (let i = 0; i < 3; i++) {
-    const renderedYmd = formatLocalDate(new Date(candidate), tz);
-    if (renderedYmd === targetYmd) {
-      const timeParts = new Intl.DateTimeFormat('en-GB', {
-        timeZone: tz,
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }).formatToParts(new Date(candidate));
-      const renderedHh = Number(timeParts.find((p) => p.type === 'hour')?.value ?? '0');
-      const renderedMm = Number(timeParts.find((p) => p.type === 'minute')?.value ?? '0');
-      const renderedMin = renderedHh * 60 + renderedMm;
-      const targetMin = hh * 60 + mm;
-      if (renderedMin === targetMin) return candidate;
-      candidate += (targetMin - renderedMin) * 60_000;
-    } else {
-      // Day mismatch — recompute from the offset between the
-      // rendered day and the target day.
-      const offsetMs = candidate - Date.UTC(
-        Number(renderedYmd.slice(0, 4)),
-        Number(renderedYmd.slice(5, 7)) - 1,
-        Number(renderedYmd.slice(8, 10)),
-      ) - (hh * 60 + mm) * 60_000;
-      candidate = Date.UTC(targetYear, targetMonth, targetDay) + (hh * 60 + mm) * 60_000 - offsetMs;
-    }
-  }
-  return candidate;
+  return localWallClockToUtcMs(formatLocalDate(new Date(dayMs), 'UTC'), hh, mm, tz);
 }
 
 // ---------------------------------------------------------------------------

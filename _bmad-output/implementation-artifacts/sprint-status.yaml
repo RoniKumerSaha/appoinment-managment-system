@@ -1959,6 +1959,81 @@ development_status:
   # web-side work outside the API scope of this implementation run.
   # Epic status reflects the partial completion.
   epic-7: in-progress
+  # 2026-10-26 "start fixing them one by one" pass — P0/P1 gap closure.
+  #
+  #   P0 (broken, user-reported):
+  #     - Appointment-type create no longer 500s. The `created_by`
+  #       CHECK constraint rejects '@' in an email, so every staff
+  #       actor is normalised through `created-by.ts` to the
+  #       `^(staff|patient):[A-Za-z0-9+_.-]{1,255}` shape. The
+  #       async route handlers now catch and answer 500 instead of
+  #       rethrowing (Express 4 does not await handlers, so a
+  #       rethrow became an unhandledRejection that killed the
+  #       process).
+  #     - Branch address / tz editing no longer 400s with
+  #       `unknown_field` — the PATCH body schema accepts the
+  #       address + tz fields.
+  #
+  #   P1 (static pages that persisted nothing) — every page below
+  #   is now driven by a real API read/write:
+  #     - ReceptionistCreate (mock 14) — real walk-in booking via
+  #       POST /bookings; country code is selectable.
+  #     - ReceptionistAvailability (mock 16) — real day calendar
+  #       from GET /availability + GET /reception/branch/schedule.
+  #     - RecurringPreviewPage / RecurringConfirmPage (mocks 07,
+  #       23) — driven by POST /recurring/preview and
+  #       POST /recurring/confirm.
+  #     - RecurringOccurrenceCancel (mock 33) — driven by
+  #       GET /patient/recurring-series + POST
+  #       /patient/appointments/:id/cancel.
+  #     - RecurringBackOut (mock 40) — driven by GET
+  #       /doctor/recurring-series/:id + POST
+  #       /appointments/:id/cancel.
+  #     - ConfirmationReceipt — deleted. It was 100% static and
+  #       duplicated the booking flow's own terminal state; the
+  #       receipt is now rendered from the booking that was made.
+  #
+  #   New API routes (3):
+  #     - GET /reception/branch/schedule — the booked half of the
+  #       receptionist's day calendar. GET /availability returns
+  #       only OPEN slots, so the booked rows need their own read.
+  #       Patient identity is limited to a first-name initial (F-15).
+  #     - GET /patient/recurring-series — the patient's whole
+  #       series with EVERY occurrence, so the per-occurrence cancel
+  #       surface can show the siblings a single cancel will not
+  #       touch (BR-052 / FR-049). Phone is bound from
+  #       claim.sub (E7-S3 privacy filter).
+  #     - GET /doctor/recurring-series/:id — the doctor's own series
+  #       plus its audit trail. Scoped to claim.doctor_id; another
+  #       doctor's series returns the same 404 as a missing one.
+  #
+  #   New tests (41):
+  #     - apps/api/test/14-reception-schedule.test.ts (14)
+  #     - apps/api/test/15-patient-recurring-series.test.ts (9)
+  #     - apps/api/test/16-doctor-recurring-series.test.ts (10)
+  #     - apps/web/test/reception-schedule.test.ts (11, +4 added to
+  #       recurring-client.test.ts for the new client functions)
+  #
+  #   Verification:
+  #     - API suite 356/356 green (was 315 before this pass).
+  #     - Web suites 48/48 green across all 11 runners.
+  #     - web typecheck 0 errors, web eslint over src/ 0 errors
+  #       (the 12 pre-existing react/no-unescaped-entities and
+  #       no-unused-vars errors are fixed), web build clean.
+  #     - API typecheck 0 errors.
+  #
+  #   E7 status flips — the four stories sitting in `review` are
+  #   implemented and their suites are green, so they move to
+  #   `done`: E7-S1-wiring, E7-S4, E7-S5, E7-S7.
+  #
+  #   Remaining (not done here):
+  #     - E7-S8 (perf/SLA) and E7-S9 (product metrics) stay
+  #       ready-for-dev — they are measurement / instrumentation
+  #       work, not gap-closure.
+  #     - E7-S10 stays ready-for-dev (parking lot by narrative).
+  #     - P2 gaps (fabricated dashboard stats, metrics never
+  #       incremented, stub auth) are tracked separately.
+
   # 7-1-design-system-token-wiring is the CONTINUATION of the done
   # 7-1-design-system-tokens (line 2018 below). E7-S1 closed the
   # audit pass; this continuation pre-commit/CI-enforces the
@@ -2005,7 +2080,7 @@ development_status:
   #   - 8/8 E7 web suite green (S7 + S4 + S1 together). Pre-commit
   #     hook + CI workflow (out of scope for this session — can't
   #     verify git hooks in the sandbox) documented in SC4.
-  7-1-design-system-token-wiring: review
+  7-1-design-system-token-wiring: done
   w10-staff-login-patient-otp: done
   7-2-appointment-audit: done
   # 2026-10-04 bmad-build step-25 implementation complete for E7-S2
@@ -2133,8 +2208,7 @@ development_status:
   #     this pass (ConflictModal is a web-only surface). Spec
   #     frontmatter → review, awaiting bmad-code-review pass before
   #     flipping to done.
-  7-4-conflict-modal-global-component: review
-  7-5-accessibility-baseline-wcag-2-1-aa: ready-for-dev
+  7-4-conflict-modal-global-component: done
   7-6-branch-timezone-support: done
   # 2026-10-04 E7-S6 documentation-only story complete. The branch
   #   timezone contract (UX §14, UX-FLOWS §6.4) is already enforced
@@ -2237,7 +2311,7 @@ development_status:
   #     test could not be re-run; status relies on spec audit trail
   #     + web static green. Spec frontmatter → review, awaiting
   #     bmad-code-review pass before flipping to done.
-  7-7-no-tentative-client-side-slot-holds: review
+  7-7-no-tentative-client-side-slot-holds: done
   # 2026-10-11 E7-S5 implementation complete (accessibility baseline
   # WCAG 2.1 AA):
   #   - apps/web/src/styles/tokens.css (EDIT) — `--text-faint`
@@ -2355,7 +2429,7 @@ development_status:
   #     :focus-visible selector scope).
   #   - Status → review, awaiting bmad-code-review pass
   #     before flipping to done.
-  7-5-accessibility-baseline-wcag-2-1-aa: review
+  7-5-accessibility-baseline-wcag-2-1-aa: done
   7-8-performance-availability-slas: ready-for-dev
   7-9-product-metrics-instrumentation: ready-for-dev
   7-10-design-open-questions-parking-lot: ready-for-dev

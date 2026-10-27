@@ -30,7 +30,6 @@ import {
 } from '../availability/engine.js';
 import {
   parseIsoDate,
-  datePlusMinutes,
 } from '../availability/types.js';
 
 const UUID_RE =
@@ -137,10 +136,11 @@ availabilityRouter.get(
     }
 
     const { slots, reason } = outcome.result;
-    const dayStartMs = date.getTime();
+    // The engine resolves each slot's branch-local minutes-of-day into
+    // absolute UTC instants (branch timezone aware).
     const jsonSlots = slots.map((s) => ({
-      start_datetime: datePlusMinutes(dayStartMs, s.startMin).toISOString(),
-      end_datetime: datePlusMinutes(dayStartMs, s.endMin).toISOString(),
+      start_datetime: new Date(s.startMs!).toISOString(),
+      end_datetime: new Date(s.endMs!).toISOString(),
     }));
     const body: Record<string, unknown> = { slots: jsonSlots };
     if (reason !== null) {

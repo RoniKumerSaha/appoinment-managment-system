@@ -50,6 +50,7 @@ import {
 import { PatientFrame } from './PatientFrame';
 import { useAuth } from '../auth/store';
 import {
+  DEFAULT_COUNTRY_CODE,
   formatDayOfWeek,
   formatLongDate,
   formatMonthDay,
@@ -59,8 +60,10 @@ import {
   isValidName,
   isValidPhone,
   isoDateOffset,
+  joinPhone,
   normalizePhoneE164,
 } from './booking-utils';
+import { PhoneCountryPicker } from './PhoneCountryPicker';
 import styles from './PatientBooking.module.css';
 
 // FR-018 30-day window + 1-day buffer. Pickers iterate `tomorrow`..`today+30`.
@@ -192,7 +195,19 @@ export function PatientBooking({
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
 
   // Form state.
-  const [patientPhone, setPatientPhone] = useState('');
+  // The phone is two parts: the country dial code (chosen from the
+  // picker) and the national number. `patientPhone` is the joined
+  // E.164 string the rest of the flow reads.
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
+  const [nationalNumber, setNationalNumber] = useState('');
+  const patientPhone = joinPhone(countryCode, nationalNumber);
+  const onCountryChange = useCallback((code: string): void => {
+    setCountryCode(code);
+    // The national number belongs to the country, not the other way
+    // round — keeping a number typed against the old country would
+    // produce a valid-looking but wrong E.164 string.
+    setNationalNumber('');
+  }, []);
   const [patientName, setPatientName] = useState('');
   const [returningName, setReturningName] = useState<string | null>(null);
   const [profileCheckErr, setProfileCheckErr] = useState<FormError | null>(null);
@@ -371,7 +386,8 @@ export function PatientBooking({
 
   const onStartOver = useCallback(() => {
     setDraft(EMPTY_DRAFT);
-    setPatientPhone('');
+    setCountryCode(DEFAULT_COUNTRY_CODE);
+    setNationalNumber('');
     setPatientName('');
     setReturningName(null);
     setSubmitErr(null);
@@ -503,7 +519,10 @@ export function PatientBooking({
       {step === 4 && (
         <DetailsStep
           patientPhone={patientPhone}
-          setPatientPhone={setPatientPhone}
+          countryCode={countryCode}
+          onCountryChange={onCountryChange}
+          nationalNumber={nationalNumber}
+          setNationalNumber={setNationalNumber}
           patientName={patientName}
           setPatientName={setPatientName}
           returningName={returningName}
@@ -1152,7 +1171,10 @@ function DateTimeStep({
 
 function DetailsStep({
   patientPhone,
-  setPatientPhone,
+  countryCode,
+  onCountryChange,
+  nationalNumber,
+  setNationalNumber,
   patientName,
   setPatientName,
   returningName,
@@ -1163,7 +1185,10 @@ function DetailsStep({
   onContinue,
 }: {
   patientPhone: string;
-  setPatientPhone: (s: string) => void;
+  countryCode: string;
+  onCountryChange: (code: string) => void;
+  nationalNumber: string;
+  setNationalNumber: (s: string) => void;
   patientName: string;
   setPatientName: (s: string) => void;
   returningName: string | null;
@@ -1215,31 +1240,29 @@ function DetailsStep({
                     Phone number<span className={styles['field__req']}>*</span>
                   </label>
                   <div className={styles['phone-row']}>
-                    <button
-                      type="button"
-                      className={styles['cc-chip']}
-                      title="Country code (default +966)"
-                      aria-label="Country code"
-                    >
-                      <span aria-hidden="true">🇸🇦</span>
-                      <span className={styles['cc-chip__code']}>+966</span>
-                      <span aria-hidden="true" className={styles['cc-chip__caret']}>▾</span>
-                    </button>
+                    <PhoneCountryPicker
+                      countryCode={countryCode}
+                      onCountryChange={onCountryChange}
+                    />
                     <input
                       id="phone"
                       className={styles['field__input']}
                       type="tel"
                       inputMode="tel"
                       autoComplete="tel"
-                      placeholder="+966 5XX XXX 5555"
-                      value={patientPhone}
+                      placeholder={
+                        countryCode === 'OTHER'
+                          ? '+CC 5XX XXX 5555'
+                          : '5XX XXX 5555'
+                      }
+                      value={nationalNumber}
                       data-testid="patient-booking-phone-input"
-                      onChange={(e) => setPatientPhone(e.target.value)}
+                      onChange={(e) => setNationalNumber(e.target.value)}
                     />
                   </div>
                   <span className={styles['field__hint']}>
-                    Default <strong>+966</strong> (P-03 / SC-04). Enter the
-                    full number including the country code.
+                    Default <strong>+966</strong> (P-03 / SC-04). Tap the
+                    chip to pick another country code.
                   </span>
                 </div>
               </div>

@@ -10,10 +10,12 @@
  *   - Step 1: branch list (radio-selectable rows + "+ Create new branch")
  *   - Step 2: edit form (name + status toggle) — also used for create
  *
- * Mockup 17 also shows an address input, an operating-hours editor, and
- * an impact banner; those are out of scope for E1-S1 (deferred to E1-S2
- * #29). They render as labelled placeholder rows so the visual layout
- * matches the mockup without pretending to ship functionality.
+ * Mockup 17 also shows an operating-hours editor and an impact banner;
+ * those are out of scope for E1-S1 (deferred to E1-S2 #29) and render as
+ * labelled placeholder rows so the visual layout matches the mockup
+ * without pretending to ship functionality. The address input IS
+ * functional: `branch.address` exists (0015) and
+ * `PATCH /admin/branches/:id` accepts it.
  *
  * BR-059 conflict: when PATCH `{active: false}` returns 409
  * `branch_has_future_appointments`, an inline ConflictModal opens with
@@ -30,8 +32,10 @@ import {
 import {
   ApiError,
   createBranch,
+  getAdminStats,
   listBranches,
   patchBranch,
+  type AdminStats,
   type BranchDto,
 } from '../api/client';
 import styles from './AdminBranches.module.css';
@@ -39,6 +43,7 @@ import { ConflictModal } from '../components/ConflictModal';
 import { Link, buildPath } from '../router/usePathRoute';
 
 const NAME_MAX = 120;
+const ADDRESS_MAX = 500;
 
 type Mode = 'edit' | 'create';
 
@@ -71,31 +76,9 @@ function describeApiError(err: unknown): FormError {
   return { status: 0, code: 'unknown_error', message: 'Unknown error.' };
 }
 
-function formatCreated(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  const yyyy = d.getUTCFullYear();
-  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(d.getUTCDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-// Mockup 17 lines 84-92 — `X doctors · Y future appts`. The BranchDto
-// doesn't carry doctor counts or future-appointment counts; derive
-// plausible values from a hash of the branch id so the meta looks real.
-function hashOfId(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-function mockBranchDoctorCount(id: string): number {
-  return (hashOfId(id) % 14) + 2; // 2..15
-}
-
-function mockBranchFutureAppts(id: string): number {
-  return (hashOfId(id) >> 4) % 240; // 0..239
-}
+// Mockup 17 lines 84-92 — `X doctors · Y future appts`. The counts
+// come from `GET /admin/stats`, which answers them from the real
+// tables (doctor_branch and appointment).
 
 export function AdminBranches({
   onOpenBranchHours,
@@ -103,11 +86,13 @@ export function AdminBranches({
   onOpenBranchHours?: (branchId: string) => void;
 } = {}) {
   const [branches, setBranches] = useState<BranchDto[]>([]);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadErr, setLoadErr] = useState<FormError | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('edit');
   const [editName, setEditName] = useState('');
+  const [editAddress, setEditAddress] = useState('');
   const [editActive, setEditActive] = useState(true);
   const [busy, setBusy] = useState(false);
   const [formErr, setFormErr] = useState<FormError | null>(null);
@@ -115,13 +100,32 @@ export function AdminBranches({
   const [conflictName, setConflictName] = useState('');
   const [conflictCount, setConflictCount] = useState<number>(0);
 
+  // The doctor / future-appointment counts are a separate read — the
+  // branch list DTO does not carry them.
+  const reloadStats = useCallback(async (): Promise<void> => {
+    try {
+      setStats(await getAdminStats());
+    } catch {
+      // The counts are decorative; a failed stats read must not take
+      // the branch list down with it.
+      setStats(null);
+    }
+  }, []);
+
   // Initial load + refetch after every successful save so the list
   // stays in sync with the server's `updated_at`.
   const reload = useCallback(async (): Promise<BranchDto[]> => {
     const list = await listBranches();
     setBranches(list);
+    void reloadStats();
     return list;
-  }, []);
+  }, [reloadStats]);
+
+  // Lookup helper for the per-branch counts.
+  const statsFor = useCallback(
+    (branchId: string) => stats?.branches.find((b) => b.id === branchId),
+    [stats],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -135,6 +139,7 @@ export function AdminBranches({
           setSelectedId(first.id);
           setMode('edit');
           setEditName(first.name);
+          setEditAddress(first.address ?? '');
           setEditActive(first.active);
         }
       })
@@ -172,6 +177,7 @@ export function AdminBranches({
       setSelectedId(id);
       setMode('edit');
       setEditName(branch.name);
+      setEditAddress(branch.address ?? '');
       setEditActive(branch.active);
       setFormErr(null);
       setConflictOpen(false);
@@ -183,6 +189,7 @@ export function AdminBranches({
     setSelectedId(null);
     setMode('create');
     setEditName('');
+    setEditAddress('');
     setEditActive(true);
     setFormErr(null);
     setConflictOpen(false);
@@ -198,6 +205,7 @@ export function AdminBranches({
         setMode('edit');
         setSelectedId(null);
         setEditName('');
+        setEditAddress('');
         setEditActive(true);
       }
     } else if (selectedId) {
@@ -229,6 +237,7 @@ export function AdminBranches({
           if (present) {
             setSelectedId(present.id);
             setEditName(present.name);
+            setEditAddress(present.address ?? '');
             setEditActive(present.active);
           }
           setMode('edit');
@@ -238,9 +247,19 @@ export function AdminBranches({
             setFormErr(describeApiError(new ApiError(404, 'branch_not_found')));
             return;
           }
-          const patch: { name?: string; active?: boolean } = {};
+          const patch: {
+            name?: string;
+            active?: boolean;
+            address?: string | null;
+          } = {};
           if (trimmed !== original.name) patch.name = trimmed;
           if (editActive !== original.active) patch.active = editActive;
+          // An empty address clears the column, so the comparison is
+          // against the null-normalized original.
+          const trimmedAddress = editAddress.trim();
+          if (trimmedAddress !== (original.address ?? '')) {
+            patch.address = trimmedAddress === '' ? null : trimmedAddress;
+          }
           if (Object.keys(patch).length === 0) {
             setFormErr({
               status: 400,
@@ -255,6 +274,7 @@ export function AdminBranches({
             const present = list.find((b) => b.id === selectedId);
             if (present) {
               setEditName(present.name);
+              setEditAddress(present.address ?? '');
               setEditActive(present.active);
             }
           } catch (caught) {
@@ -279,7 +299,7 @@ export function AdminBranches({
         setBusy(false);
       }
     },
-    [editName, editActive, mode, selectedId, branches, reload],
+    [editName, editAddress, editActive, mode, selectedId, branches, reload],
   );
 
   // (Escape + scrim dismissal handled by ConflictModal directly.)
@@ -397,8 +417,8 @@ export function AdminBranches({
                   <div className={styles['name']}>{b.name}</div>
                   <div className={styles['meta']}>
                     {b.active
-                      ? `${mockBranchDoctorCount(b.id)} doctors · ${mockBranchFutureAppts(b.id)} future appts`
-                      : `Inactive · ${mockBranchDoctorCount(b.id)} doctors previously`}
+                      ? `${statsFor(b.id)?.doctor_count ?? 0} doctors · ${statsFor(b.id)?.future_appointment_count ?? 0} future appts`
+                      : `Inactive · ${statsFor(b.id)?.doctor_count ?? 0} doctors previously`}
                   </div>
                 </div>
                 {b.active ? (
@@ -465,15 +485,32 @@ export function AdminBranches({
           </div>
         </div>
 
-        {/* Placeholder rows for fields that ship with E1-S2 — they
-            preserve the mockup 17 layout without pretending to ship
-            functionality. */}
         <div className={styles['form-group']}>
-          <label>Address</label>
+          <label htmlFor="branch-address">Address</label>
+          <input
+            id="branch-address"
+            type="text"
+            value={editAddress}
+            onChange={(e) => setEditAddress(e.target.value)}
+            maxLength={ADDRESS_MAX}
+            disabled={busy}
+            placeholder="e.g. 12 King St, Riyadh"
+            autoComplete="off"
+          />
+          <div className={styles['hint']}>
+            Up to {ADDRESS_MAX} characters. Optional — leave blank to clear.
+          </div>
+        </div>
+
+        {/* Operating hours + impact preview live on the branch-hours
+            screen (E1-S2). The mockup 17 layout row is preserved by the
+            link below, which navigates there. */}
+        <div className={styles['form-group']}>
+          <label>Operating hours</label>
           <div className={styles['placeholder-row']}>
             <span className={styles['placeholder-row__tag']}>E1-S2</span>
-            Address, operating hours, and impact preview ship with branch
-            hours (#29).
+            Weekly hours, timezone, and the impact preview are edited on
+            the branch hours screen.
           </div>
         </div>
 

@@ -64,17 +64,6 @@ interface DoctorAffectedProps {
   }) => void;
 }
 
-interface CompletedMove {
-  appointment_id: string;
-  patient_phone: string;
-  appointment_type_id: string;
-  branch_id: string;
-  from_start: string;
-  to_start: string;
-  to_end: string;
-  branchName: string;
-}
-
 function describeError(err: unknown): string {
   if (err instanceof ApiError) {
     if (err.status === 401) return 'Session expired. Please sign in again.';
@@ -484,10 +473,13 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
     return `Branch ··${id.slice(-4)}`;
   };
 
-  const tzForRow = (row: DoctorAffectedAppointment): string => {
-    const b = branches.get(row.branch_id);
-    return b?.tz ?? 'UTC';
-  };
+  const tzForRow = useCallback(
+    (row: DoctorAffectedAppointment): string => {
+      const b = branches.get(row.branch_id);
+      return b?.tz ?? 'UTC';
+    },
+    [branches],
+  );
 
   // Was the row's start_datetime in the past (mark-status precond)?
   // Past rows are markable; future rows surface
@@ -573,7 +565,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-  }, [rows]);
+  }, [rows, tzForRow]);
 
   return (
     <DoctorFrame>

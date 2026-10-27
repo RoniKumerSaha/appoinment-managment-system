@@ -27,6 +27,13 @@ export interface AuthConfig {
   allowDebugHeader: boolean;
   /** True when the mock-OTP route should be registered (allowlist: dev/test). */
   mockOtpAllowed: boolean;
+  /**
+   * True when the email-only staff login is permitted (allowlist: dev/test).
+   * The staff tables carry no password column, so this endpoint proves
+   * only that the caller knows a seeded email. It is therefore refused
+   * in production, where a real credential check (W10a) must replace it.
+   */
+  staffStubLoginAllowed: boolean;
   /** JWT `aud` claim — verified by `verifyToken` to prevent confused-deputy. */
   audience: string;
   /** JWT `iss` claim — verified by `verifyToken` to prevent confused-deputy. */
@@ -34,6 +41,7 @@ export interface AuthConfig {
 }
 
 const MOCK_OTP_ALLOWED_ENVS = new Set(['development', 'test']);
+const STAFF_STUB_LOGIN_ALLOWED_ENVS = new Set(['development', 'test']);
 
 let memoized: AuthConfig | null = null;
 
@@ -51,6 +59,10 @@ function parseTtl(raw: string | undefined): number {
 
 function isMockOtpAllowed(): boolean {
   return MOCK_OTP_ALLOWED_ENVS.has(process.env['NODE_ENV'] ?? '');
+}
+
+function isStaffStubLoginAllowed(): boolean {
+  return STAFF_STUB_LOGIN_ALLOWED_ENVS.has(process.env['NODE_ENV'] ?? '');
 }
 
 /**
@@ -76,12 +88,14 @@ export function loadAuthConfig(): AuthConfig {
   const mockOtpCode = process.env['MOCK_OTP_CODE'] ?? '123456';
   const allowDebugHeader = process.env['NODE_ENV'] !== 'production';
   const mockOtpAllowed = isMockOtpAllowed();
+  const staffStubLoginAllowed = isStaffStubLoginAllowed();
   const cfg: AuthConfig = {
     secret: Buffer.from(secretRaw, 'utf8'),
     ttlSeconds,
     mockOtpCode,
     allowDebugHeader,
     mockOtpAllowed,
+    staffStubLoginAllowed,
     audience: 'clinic-api',
     issuer: 'clinic-api',
   };

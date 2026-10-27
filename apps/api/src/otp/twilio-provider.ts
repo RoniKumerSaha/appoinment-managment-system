@@ -88,8 +88,12 @@ export class TwilioSmsOtpProvider implements SmsOtpProvider {
   }
 
   private async bindClient(): Promise<TwilioClientLike> {
-    // Lazy import so dev/test installs do not require `twilio`.
-    const twilioModule = (await import('twilio')) as unknown as {
+    // Lazy import so dev/test installs do not require `twilio`. The specifier
+    // is held in a variable so TypeScript does not statically resolve the
+    // module — the package is an optional production dependency and must not
+    // be a build-time requirement for dev/test/CI.
+    const specifier = 'twilio';
+    const twilioModule = (await import(specifier)) as unknown as {
       default: (sid: string, token: string) => TwilioClientLike;
     };
     return twilioModule.default(this.accountSid, this.authToken);

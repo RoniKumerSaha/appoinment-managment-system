@@ -89,8 +89,8 @@ const at = (daysFromNow: number, hourEt: number, minute = 0): string => {
       Number(ymd.slice(0, 4)),
       Number(ymd.slice(5, 7)) - 1,
       Number(ymd.slice(8, 10)),
-      hh,
-      mm,
+      Number(hh),
+      Number(mm),
     ) + offsetMin * 60_000;
   return new Date(utcMs).toISOString();
 };

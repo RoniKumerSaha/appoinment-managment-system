@@ -23,16 +23,32 @@ export interface Interval {
 export interface Slot {
   startMin: number;
   endMin: number;
+  /** UTC epoch ms of the slot's start. Set by the engine once the
+   *  slot's branch-local minutes-of-day have been anchored to the
+   *  branch's timezone. */
+  startMs?: number;
+  /** UTC epoch ms of the slot's end. */
+  endMs?: number;
 }
 
 /** The 30-day fixed window (FR-018). Both bounds are inclusive.
- *  Returns true iff `dateMs` is in `[nowMs + 1d, nowMs + 30d]`
- *  measured in UTC. Same-day (FR-019 / BR-021) is excluded. */
+ *
+ *  The window is a range of CALENDAR DAYS, not instants: `dateMs` is
+ *  the UTC midnight of the requested date, while `nowMs` is an instant.
+ *  Comparing them directly rejected every date before `now + 24h` —
+ *  which made tomorrow (whose midnight falls earlier in the day than
+ *  `now + 24h`) unbookable for the whole day.
+ *
+ *  Both sides are therefore floored to UTC midnight before comparison:
+ *  the requested date must be within `today+1 … today+30` inclusive.
+ *  Same-day (FR-019 / BR-021) is excluded. */
 export function isWithin30DayWindow(dateMs: number, nowMs: number): boolean {
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-  const min = nowMs + ONE_DAY_MS; // today+1
-  const max = nowMs + 30 * ONE_DAY_MS; // today+30 (inclusive)
-  return dateMs >= min && dateMs <= max;
+  const todayMidnight = Math.floor(nowMs / ONE_DAY_MS) * ONE_DAY_MS;
+  const dateMidnight = Math.floor(dateMs / ONE_DAY_MS) * ONE_DAY_MS;
+  const min = todayMidnight + ONE_DAY_MS; // today+1
+  const max = todayMidnight + 30 * ONE_DAY_MS; // today+30 (inclusive)
+  return dateMidnight >= min && dateMidnight <= max;
 }
 
 /** Convert a Date (UTC midnight of the requested date) + minutes-of-day
@@ -53,6 +69,162 @@ export function parseIsoDate(iso: string): Date | null {
  *  Postgres EXTRACT(DOW FROM ...) which also returns 0=Sunday. */
 export function utcDayOfWeek(d: Date): number {
   return d.getUTCDay();
+}
+
+/** Render the calendar date (`YYYY-MM-DD`) of `utcMs` in `tz`. */
+export function localDateInTz(utcMs: number, tz: string): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(utcMs));
+  const y = parts.find((p) => p.type === 'year')?.value ?? '0000';
+  const m = parts.find((p) => p.type === 'month')?.value ?? '01';
+  const d = parts.find((p) => p.type === 'day')?.value ?? '01';
+  return `${y}-${m}-${d}`;
+}
+
+/** Wall-clock hours/minutes of `utcMs` in `tz`. */
+function localHmInTz(utcMs: number, tz: string): { hh: number; mm: number } {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: tz,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(utcMs));
+  return {
+    hh: Number(parts.find((p) => p.type === 'hour')?.value ?? '0'),
+    mm: Number(parts.find((p) => p.type === 'minute')?.value ?? '0'),
+  };
+}
+
+/** Offset of `tz` from UTC at the instant `utcMs`, in minutes
+ *  (positive east of UTC, i.e. `offset = utc - local`).
+ *
+ *  Derived from the time-of-day only: the local clock is compared
+ *  against the UTC clock, and any calendar-day difference is folded
+ *  in separately so a date-line shift cannot corrupt the offset. */
+function offsetMinutesAt(utcMs: number, tz: string): number {
+  const local = localHmInTz(utcMs, tz);
+  const d = new Date(utcMs);
+  const utcMin = d.getUTCHours() * 60 + d.getUTCMinutes();
+  const localMin = local.hh * 60 + local.mm;
+  let offset = utcMin - localMin;
+  // The local date may be a day ahead of or behind the UTC date; the
+  // offset must be within ±24h, so shift by whole days until it is.
+  while (offset > 720) offset -= 1440;
+  while (offset < -720) offset += 1440;
+  return offset;
+}
+
+/** UTC ms epoch of `isoDate` (YYYY-MM-DD) at local midnight in `tz`.
+ *  DST-safe: the offset is probed at the candidate instant and
+ *  re-probed once, which resolves the two candidate offsets around a
+ *  DST transition.
+ *
+ *  This is the anchor every availability computation uses: branch
+ *  hours and doctor schedules are wall-clock values, so minutes-of-day
+ *  must be measured from the branch's local midnight, not UTC
+ *  midnight. */
+export function localMidnightMs(isoDate: string, tz: string): number {
+  const year = Number(isoDate.slice(0, 4));
+  const month = Number(isoDate.slice(5, 7)) - 1;
+  const day = Number(isoDate.slice(8, 10));
+  const wallMs = Date.UTC(year, month, day);
+
+  // Guess with the offset at the wall-clock instant, then correct with
+  // the offset that actually applies at the candidate.
+  let candidate = wallMs + offsetMinutesAt(wallMs, tz) * 60_000;
+  for (let i = 0; i < 3; i++) {
+    const offset = offsetMinutesAt(candidate, tz);
+    const next = wallMs + offset * 60_000;
+    if (next === candidate) return candidate;
+    candidate = next;
+  }
+  return candidate;
+}
+
+/** UTC ms epoch of `isoDate` at wall-clock (hh, mm) in `tz`. DST-safe:
+ *  the offset is re-probed at the candidate until the rendered local
+ *  clock matches the target. */
+export function localWallClockToUtcMs(
+  isoDate: string,
+  hh: number,
+  mm: number,
+  tz: string,
+): number {
+  const year = Number(isoDate.slice(0, 4));
+  const month = Number(isoDate.slice(5, 7)) - 1;
+  const day = Number(isoDate.slice(8, 10));
+  const wallMs = Date.UTC(year, month, day) + (hh * 60 + mm) * 60_000;
+
+  let candidate = wallMs + offsetMinutesAt(wallMs, tz) * 60_000;
+  for (let i = 0; i < 3; i++) {
+    const rendered = localHmInTz(candidate, tz);
+    const renderedDate = localDateInTz(candidate, tz);
+    if (renderedDate !== isoDate) {
+      // The instant fell outside the requested calendar day in local
+      // time (rare, near a date-line shift) — re-anchor and retry.
+      const offset = offsetMinutesAt(candidate, tz);
+      candidate = wallMs + offset * 60_000;
+      continue;
+    }
+    const deltaMin = hh * 60 + mm - (rendered.hh * 60 + rendered.mm);
+    if (deltaMin === 0) return candidate;
+    candidate += deltaMin * 60_000;
+  }
+  return candidate;
+}
+
+/** Branch-local day-of-week (0=Sun..6=Sat) of the UTC instant
+ *  `utcMs` in `tz`. Matches Postgres
+ *  `EXTRACT(dow FROM (ts AT TIME ZONE tz))::int`. */
+export function localDayOfWeek(utcMs: number, tz: string): number {
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    weekday: 'short',
+  }).format(new Date(utcMs));
+  switch (weekday) {
+    case 'Sun':
+      return 0;
+    case 'Mon':
+      return 1;
+    case 'Tue':
+      return 2;
+    case 'Wed':
+      return 3;
+    case 'Thu':
+      return 4;
+    case 'Fri':
+      return 5;
+    case 'Sat':
+      return 6;
+    default:
+      throw new Error(`unexpected weekday: ${weekday}`);
+  }
+}
+
+/** Minutes-of-day of `utcMs` measured from branch-local midnight of
+ *  the same branch-local calendar day. */
+export function localMinutesOfDay(utcMs: number, tz: string): number {
+  const isoDate = localDateInTz(utcMs, tz);
+  const anchor = localMidnightMs(isoDate, tz);
+  return Math.round((utcMs - anchor) / 60_000);
+}
+
+/** Minutes-of-day of `utcMs` measured from the branch-local midnight
+ *  of the *given* calendar day. Use this when the day is already
+ *  known (the availability engine's requested date) so the value is
+ *  always anchored to that day, even for instants that land just
+ *  outside it. */
+export function localMinutesOfDayOn(
+  utcMs: number,
+  isoDate: string,
+  tz: string,
+): number {
+  const anchor = localMidnightMs(isoDate, tz);
+  return Math.round((utcMs - anchor) / 60_000);
 }
 
 /** Convert a Postgres `time` value (e.g. `'09:30:00'`, `'09:30'`)

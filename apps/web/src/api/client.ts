@@ -68,13 +68,33 @@ export interface ClinicDto {
 
 // ─── Error envelope ────────────────────────────────────────────────────
 
+/** The body of a failed API response. Only the fields the API actually
+ *  sends are typed; `error` is the machine-readable code, and the rest
+ *  are route-specific payloads (e.g. the `impact` block on a 409 from
+ *  `PATCH /admin/branches/:id/hours`). */
+export interface ApiErrorBody {
+  error?: unknown;
+  fields?: unknown;
+  impact?: unknown;
+  warning?: unknown;
+  future_appointment_count?: unknown;
+  [key: string]: unknown;
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
-  constructor(status: number, code: string) {
+  /** The parsed response body. Carries route-specific payloads that the
+   *  status + code alone cannot express — the 409 `impact` summary is
+   *  the case that matters: the conflict screen needs the affected
+   *  appointment count and the list of affected doctors, and neither is
+   *  derivable from `code`. */
+  readonly body: ApiErrorBody;
+  constructor(status: number, code: string, body: ApiErrorBody = {}) {
     super(`api_${status}:${code}`);
     this.status = status;
     this.code = code;
+    this.body = body;
   }
 }
 
@@ -138,27 +158,34 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   if (res.status === 401) {
     onUnauthorized?.();
-    let code = 'unauthenticated';
-    try {
-      const body = (await res.json()) as { error?: unknown };
-      if (typeof body.error === 'string') code = body.error;
-    } catch {
-      // Body wasn't JSON — keep the default.
-    }
-    throw new ApiError(401, code);
+    const body = await readErrorBody(res);
+    const code =
+      typeof body['error'] === 'string' ? (body['error'] as string) : 'unauthenticated';
+    throw new ApiError(401, code, body);
   }
 
   if (!res.ok) {
-    let code = 'unknown_error';
-    try {
-      const body = (await res.json()) as { error?: unknown };
-      if (typeof body.error === 'string') code = body.error;
-    } catch {
-      // Body wasn't JSON — keep `unknown_error`.
-    }
-    throw new ApiError(res.status, code);
+    const body = await readErrorBody(res);
+    const code =
+      typeof body['error'] === 'string' ? (body['error'] as string) : 'unknown_error';
+    throw new ApiError(res.status, code, body);
   }
   return (await res.json()) as T;
+}
+
+/** Parse a failed response's body. A non-JSON body (an HTML error page
+ *  from a proxy, an empty 204-shaped body) yields an empty object rather
+ *  than throwing — the status + code are still useful on their own. */
+async function readErrorBody(res: Response): Promise<ApiErrorBody> {
+  try {
+    const parsed = (await res.json()) as unknown;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as ApiErrorBody;
+    }
+  } catch {
+    // Body wasn't JSON — fall through to the empty body.
+  }
+  return {};
 }
 
 // ─── Endpoints ─────────────────────────────────────────────────────────
@@ -205,6 +232,10 @@ export interface BranchDto {
   clinic_id: string;
   name: string;
   active: boolean;
+  /** IANA timezone. The branch's wall-clock zone for hours + slots. */
+  tz: string;
+  /** Street address. Nullable — a branch may not have one yet. */
+  address: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -214,6 +245,46 @@ export function listBranches(
 ): Promise<BranchDto[]> {
   const qs = filter ? `?active=${filter === 'active' ? 'true' : 'false'}` : '';
   return request<BranchDto[]>(`/admin/branches${qs}`, { method: 'GET' });
+}
+
+// ─── Admin dashboard stats ─────────────────────────────────────
+//
+// The admin dashboards used to derive their counts from a hash of
+// the entity id, so the numbers looked plausible but were not
+// real. `GET /admin/stats` answers the same questions from the
+// actual tables.
+
+export interface AdminStatsBranch {
+  id: string;
+  doctor_count: number;
+  future_appointment_count: number;
+}
+
+export interface AdminStatsDoctor {
+  id: string;
+  specialty: string | null;
+  future_appointment_count: number;
+}
+
+export interface AdminStatsReceptionist {
+  id: string;
+  appointments_today: number;
+}
+
+export interface AdminStatsAppointmentType {
+  id: string;
+  bookings_count: number;
+}
+
+export interface AdminStats {
+  branches: AdminStatsBranch[];
+  doctors: AdminStatsDoctor[];
+  receptionists: AdminStatsReceptionist[];
+  appointment_types: AdminStatsAppointmentType[];
+}
+
+export function getAdminStats(): Promise<AdminStats> {
+  return request<AdminStats>('/admin/stats', { method: 'GET' });
 }
 
 export function getBranch(id: string): Promise<BranchDto> {
@@ -229,7 +300,7 @@ export function createBranch(name: string): Promise<BranchDto> {
 
 export function patchBranch(
   id: string,
-  body: { name?: string; active?: boolean },
+  body: { name?: string; active?: boolean; address?: string | null; tz?: string },
 ): Promise<BranchDto> {
   return request<BranchDto>(`/admin/branches/${id}`, {
     method: 'PATCH',
@@ -315,6 +386,98 @@ export function patchBranchHours(
       body: JSON.stringify(body),
     },
   );
+}
+
+// ─── Recurring series (E6-S1) ────────────────────────────────
+//
+// The preview route is READ-ONLY: it validates every occurrence of the
+// series in isolation and returns which ones would be created and which
+// would be skipped (with a reason). The confirm route takes the
+// `preview_id` the preview returned — it re-validates and creates the
+// rows, so the client never re-sends the series shape.
+
+export type RecurrenceKind = 'weekly' | 'every_two_weeks' | 'custom_days';
+
+export interface RecurringSeriesInput {
+  doctor_id: string;
+  branch_id: string;
+  appointment_type_id: string;
+  patient_phone: string;
+  patient_first_name: string | null;
+  recurrence_kind: RecurrenceKind;
+  recurrence_interval_days: number;
+  /** YYYY-MM-DD in the branch's timezone. */
+  start_date: string;
+  /** HH:MM in the branch's timezone. */
+  time_of_day: string;
+  duration_minutes: number;
+  occurrences_or_until_date: number;
+}
+
+export interface RecurringOccurrence {
+  index: number;
+  start_datetime: string;
+  end_datetime: string;
+  local_date: string;
+}
+
+export interface RecurringSkippedOccurrence extends RecurringOccurrence {
+  reason: string;
+}
+
+export interface RecurringPreviewResponse {
+  /** Handle for `POST /recurring/confirm`. */
+  preview_id: string;
+  branch: { id: string; tz: string };
+  recurrence: {
+    kind: RecurrenceKind;
+    interval_days: number;
+    start_date: string;
+    time_of_day: string;
+    duration_minutes: number;
+  };
+  will_create: RecurringOccurrence[];
+  skipped_with_reason: RecurringSkippedOccurrence[];
+}
+
+export interface RecurringCreatedOccurrence {
+  id: string;
+  occurrence_index: number;
+  start_datetime: string;
+  end_datetime: string;
+  local_date: string;
+}
+
+export interface RecurringSkippedAtConfirm {
+  occurrence_index: number;
+  start_datetime: string;
+  end_datetime: string;
+  local_date: string;
+  reason: string;
+}
+
+export interface RecurringConfirmResponse {
+  series_id: string;
+  created: RecurringCreatedOccurrence[];
+  skipped: RecurringSkippedAtConfirm[];
+}
+
+export function previewRecurringSeries(
+  body: RecurringSeriesInput,
+): Promise<RecurringPreviewResponse> {
+  return request<RecurringPreviewResponse>('/recurring/preview', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function confirmRecurringSeries(
+  previewId: string,
+): Promise<RecurringConfirmResponse> {
+  return request<RecurringConfirmResponse>('/recurring/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ preview_id: previewId }),
+  });
 }
 
 // ─── Receptionists (E1-S4) ─────────────────────────────────────
@@ -900,6 +1063,45 @@ export function getReceptionistToday(
   );
 }
 
+// ─── Receptionist day schedule (F-15) ────────────────────────────
+
+/** One booked slot in the receptionist's day calendar.
+ *
+ *  The patient is identified by first-name initial only (F-15) —
+ *  there is no name and no phone on this shape. */
+export interface ReceptionScheduleBooked {
+  id: string;
+  doctor_id: string;
+  doctor_name: string;
+  appointment_type_id: string | null;
+  appointment_type_name: string | null;
+  patient_initial: string;
+  start_datetime: string;
+  end_datetime: string;
+}
+
+export interface ReceptionScheduleResponse {
+  date: string; // YYYY-MM-DD in branch.tz
+  branch: { id: string; name: string; tz: string };
+  booked: ReceptionScheduleBooked[];
+}
+
+export function getReceptionSchedule(input: {
+  date?: string;
+  doctor_id?: string;
+} = {}): Promise<ReceptionScheduleResponse> {
+  const params: string[] = [];
+  if (input.date) params.push(`date=${encodeURIComponent(input.date)}`);
+  if (input.doctor_id) {
+    params.push(`doctor_id=${encodeURIComponent(input.doctor_id)}`);
+  }
+  const qs = params.length > 0 ? `?${params.join('&')}` : '';
+  return request<ReceptionScheduleResponse>(
+    `/reception/branch/schedule${qs}`,
+    { method: 'GET' },
+  );
+}
+
 // ─── Receptionist cancel (E5-S3) ─────────────────────────────────
 
 export interface ReceptionistCancelInput {
@@ -978,6 +1180,86 @@ export function patientCancel(
   return request<PatientCancelResponse>(
     `/patient/appointments/${encodeURIComponent(appointmentId)}/cancel`,
     { method: 'POST' },
+  );
+}
+
+// ─── Patient recurring series (E6-S4, mock 33) ───────────────────
+
+export interface RecurringSeriesOccurrence {
+  id: string;
+  start_datetime: string;
+  end_datetime: string;
+  status: 'Scheduled' | 'Cancelled' | 'Completed' | 'No-Show';
+}
+
+export interface PatientRecurringSeries {
+  series_id: string;
+  doctor_id: string;
+  doctor_name: string;
+  branch_id: string;
+  branch_name: string;
+  tz: string;
+  appointment_type_id: string | null;
+  appointment_type_name: string | null;
+  duration_minutes: number | null;
+  occurrence_count: number;
+  series_start: string;
+  occurrences: RecurringSeriesOccurrence[];
+}
+
+export function getPatientRecurringSeries(): Promise<{
+  series: PatientRecurringSeries[];
+}> {
+  return request<{ series: PatientRecurringSeries[] }>(
+    '/patient/recurring-series',
+    { method: 'GET' },
+  );
+}
+
+// ─── Doctor recurring series (mock 40) ──────────────────────────
+
+export interface DoctorRecurringSeries {
+  series_id: string;
+  doctor_id: string;
+  doctor_name: string;
+  branch_id: string;
+  branch_name: string;
+  tz: string;
+  appointment_type_id: string | null;
+  appointment_type_name: string | null;
+  duration_minutes: number | null;
+  patient_phone: string;
+  series_start: string;
+  created_at: string;
+  created_by: string;
+  occurrence_count: number;
+  scheduled_count: number;
+  cancelled_count: number;
+  completed_count: number;
+  occurrences: RecurringSeriesOccurrence[];
+}
+
+export interface DoctorRecurringAuditRow {
+  id: string;
+  appointment_id: string | null;
+  actor_role: string;
+  actor_id: string;
+  event: string;
+  payload: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface DoctorRecurringSeriesResponse {
+  series: DoctorRecurringSeries;
+  audit: DoctorRecurringAuditRow[];
+}
+
+export function getDoctorRecurringSeries(
+  seriesId: string,
+): Promise<DoctorRecurringSeriesResponse> {
+  return request<DoctorRecurringSeriesResponse>(
+    `/doctor/recurring-series/${encodeURIComponent(seriesId)}`,
+    { method: 'GET' },
   );
 }
 

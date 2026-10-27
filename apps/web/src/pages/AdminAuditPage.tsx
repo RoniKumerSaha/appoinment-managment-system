@@ -169,35 +169,53 @@ export function AdminAuditPage() {
       <section className={styles.card}>
         <header className={styles['card-head']}>
           <div className={styles['card-head__title']}>
-            What you (the admin) can see
+            Configuration change history
           </div>
           <div className={styles['card-head__hint']}>
-            Resource-level change events on branch / appointment
-            type / doctor / receptionist rows.
+            Not yet captured. The audit table today covers appointments
+            only.
           </div>
         </header>
         <div className={styles['card-body']}>
           <ul className={styles.list}>
             <li>
               <strong>Branch</strong> create / patch / status change
-              (active ⇄ inactive).{' '}
-              <code>GET /admin/branches/:id/audit</code>.
+              (active ⇄ inactive).
             </li>
             <li>
-              <strong>Appointment type</strong> create / patch.{' '}
-              <code>GET /admin/appointment-types/:id/audit</code>.
+              <strong>Appointment type</strong> create / patch.
             </li>
             <li>
               <strong>Doctor</strong> create / patch / branch
-              assignment / status change.{' '}
-              <code>GET /admin/doctors/:id/audit</code>.
+              assignment / status change.
             </li>
             <li>
               <strong>Receptionist</strong> create / patch / branch
-              assignment / status change.{' '}
-              <code>GET /admin/receptionists/:id/audit</code>.
+              assignment / status change.
             </li>
           </ul>
+          <div className={styles['card-row']}>
+            <div className={styles['card-row__label']}>Status</div>
+            <div className={styles['card-row__value']}>
+              <span
+                className={`${styles.pill} ${styles['pill--rejected']}`}
+              >
+                ✕ Not implemented
+              </span>
+            </div>
+          </div>
+          <div className={styles['card-row']}>
+            <div className={styles['card-row__label']}>Planned route</div>
+            <div className={styles['card-row__value']}>
+              <code>GET /admin/configuration-audit</code>
+            </div>
+          </div>
+          <div className={styles['card-row']}>
+            <div className={styles['card-row__label']}>Note</div>
+            <div className={styles['card-row__value']}>
+              {envelope.future_work}
+            </div>
+          </div>
         </div>
       </section>
     </div>

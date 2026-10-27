@@ -83,6 +83,7 @@ async function bootstrap(): Promise<void> {
   const smsOtpService = new SmsOtpService(pool, provider, otpCfg);
   const app = createApp({ smsOtpService });
   const server = app.listen(PORT, () => {
+    booted = true;
     getLogger().info({ port: PORT, otp_provider: otpCfg.provider }, 'api_listening');
     // E0-S6 observability baseline: emit the single `service_started` line
     // carrying build version + commit sha so operators can correlate the
@@ -134,10 +135,21 @@ async function bootstrap(): Promise<void> {
 // F5: surface unhandled bootstrap rejections with a structured log line so
 // a misconfigured boot is visible in deployment logs (not just an opaque
 // process exit).
+//
+// A rejection that arrives AFTER a successful boot is a runtime fault in
+// one request path, not a boot failure. Exiting there would take the whole
+// API down for a single bad request, so the process logs it and stays up.
+// The `wrapRouter` wrapper in `app.ts` means request handlers do not
+// normally reach this point at all.
+let booted = false;
+
 process.on('unhandledRejection', (reason: unknown) => {
   const message = reason instanceof Error ? reason.message : String(reason);
-  getLogger().error({ err: message, event: 'bootstrap_unhandled_rejection' }, 'bootstrap_failed');
-  process.exit(1);
+  if (!booted) {
+    getLogger().error({ err: message, event: 'bootstrap_unhandled_rejection' }, 'bootstrap_failed');
+    process.exit(1);
+  }
+  getLogger().error({ err: message, event: 'runtime_unhandled_rejection' }, 'runtime_unhandled_rejection');
 });
 
 void bootstrap();

@@ -196,6 +196,26 @@ test('POST /auth/login/staff ignores body branch_ids/doctor_id (body-claim invar
   assert.equal(res.body.claim.doctor_id, undefined, 'admin should not have doctor_id');
 });
 
+test('POST /auth/login/staff is refused in production (email-only stub)', async () => {
+  // The staff tables carry no password column, so the email-only login
+  // proves nothing beyond "the caller knows a seeded email". It must not
+  // be reachable in production.
+  const prior = process.env['NODE_ENV'];
+  process.env['NODE_ENV'] = 'production';
+  __resetAuthConfigForTests();
+  try {
+    const res = await request(createApp())
+      .post('/auth/login/staff')
+      .send({ role: 'admin', email: 'admin-main@clinic.local' });
+    assert.equal(res.status, 404);
+    assert.equal(res.body.error, 'not_found');
+    assert.equal(res.body.token, undefined, 'no token may be minted');
+  } finally {
+    process.env['NODE_ENV'] = prior;
+    __resetAuthConfigForTests();
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════════
 // /auth/me — rehydrate
 // ═══════════════════════════════════════════════════════════════════

@@ -10,47 +10,134 @@
  * date-block column (month/day/dow) + title + meta + ok/reason
  * pill — same shape as the appointment card (DESIGN-SYSTEM §7.10).
  *
- * No tests in this pass (per user instruction).
+ * The page is fed by the REAL confirm response
+ * (`POST /recurring/confirm`) — the owner (DoctorApp) holds the
+ * request that produced it and passes it down. The page is
+ * presentational: it renders what the server said and reports
+ * button intent back through props.
  */
 import { useState, type ReactNode } from 'react';
 import { DoctorFrame } from './DoctorFrame';
 import styles from './RecurringConfirmPage.module.css';
+import type {
+  RecurringConfirmResponse,
+  RecurringCreatedOccurrence,
+  RecurringSkippedAtConfirm,
+} from '../api/client';
 
 type Tab = 'create' | 'skip';
 
-interface Occurrence {
-  month: string;
-  day: number;
-  dow: string;
-  time: string;
+export interface RecurringConfirmLabels {
   patient: string;
-  meta?: string;
-  state: 'ok' | 'skip';
-  reason?: string;
+  doctor: string;
+  branch: string;
+  type: string;
+  pattern: string;
 }
 
-const OCCURRENCES: Occurrence[] = [
-  { month: 'AUG', day: 25, dow: 'Sat', time: '11:15 – 12:00 · Riyadh Olaya', patient: 'Fatima A. Al-Sayed · +966 5XX XXX 5555', state: 'ok' },
-  { month: 'SEP', day: 1, dow: 'Sat', time: '11:15 – 12:00 · Riyadh Olaya', patient: 'Fatima A. Al-Sayed', state: 'ok' },
-  { month: 'SEP', day: 8, dow: 'Sat', time: '11:15 – 12:00 · Riyadh Olaya', patient: 'Fatima A. Al-Sayed', state: 'ok' },
-  { month: 'SEP', day: 15, dow: 'Sat', time: '11:15 – 12:00 · Riyadh Olaya', patient: 'Fatima A. Al-Sayed', state: 'ok' },
-  { month: 'SEP', day: 22, dow: 'Sat', time: '11:15 – 12:00 · Riyadh Olaya', patient: 'Fatima A. Al-Sayed', state: 'ok' },
-  { month: 'SEP', day: 29, dow: 'Sat', time: '11:15 – 12:00 · Riyadh Olaya', patient: 'Fatima A. Al-Sayed', state: 'ok' },
-  { month: 'OCT', day: 6, dow: 'Sat', time: '11:15 – 12:00 · Riyadh Olaya', patient: 'Fatima A. Al-Sayed', state: 'ok' },
-  { month: 'OCT', day: 13, dow: 'Sat', time: '11:15 – 12:00 · Riyadh Olaya', patient: 'Fatima A. Al-Sayed', state: 'ok' },
-  { month: 'OCT', day: 20, dow: 'Sat', time: '11:15 – 12:00 · Riyadh Olaya', patient: 'Fatima A. Al-Sayed', state: 'ok' },
-  { month: 'SEP', day: 8, dow: 'Sat', time: '11:15 – 12:00 · Riyadh Olaya', patient: 'Fatima A. Al-Sayed', state: 'skip', reason: 'Doctor blocked: cardiology conference' },
-  { month: 'OCT', day: 27, dow: 'Sat', time: '11:15 – 12:00 · Riyadh Olaya', patient: 'Fatima A. Al-Sayed', state: 'skip', reason: 'Outside 30-day window' },
-  { month: 'NOV', day: 17, dow: 'Sat', time: '11:15 – 12:00 · Riyadh Olaya', patient: 'Fatima A. Al-Sayed', state: 'skip', reason: 'Branch holiday' },
-];
+export interface RecurringConfirmPageProps {
+  result: RecurringConfirmResponse;
+  labels: RecurringConfirmLabels;
+  requested: number;
+  error: string | null;
+  busy: boolean;
+  onEditSchedule: () => void;
+  onDone: () => void;
+  /** Open the back-out screen for the series that was just created
+   *  (mock 40). Optional so the page can be rendered without it. */
+  onBackOut?: () => void;
+}
 
-export function RecurringConfirmPage(): ReactNode {
+/** `2026-11-04` → the month/day/weekday triple the date-block
+ *  column renders. The local_date is already in the branch's
+ *  timezone, so it is read as a plain calendar date. */
+function dateBlock(iso: string): {
+  month: string;
+  day: string;
+  dow: string;
+} {
+  const [y, m, d] = iso.split('-');
+  if (!y || !m || !d) return { month: '', day: '', dow: '' };
+  const date = new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)));
+  return {
+    month: date
+      .toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })
+      .toUpperCase(),
+    day: String(Number(d)),
+    dow: date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      timeZone: 'UTC',
+    }),
+  };
+}
+
+/** The server's skip reasons are snake_case codes (`outside_branch_hours`,
+ *  `doctor_blocked`, …). They are rendered as-is — the server owns the
+ *  vocabulary, and inventing a display label here would let the two
+ *  drift apart. */
+function humanizeReason(reason: string): string {
+  return reason.replace(/_/g, ' ');
+}
+
+export function RecurringConfirmPage({
+  result,
+  labels,
+  requested,
+  error,
+  busy,
+  onEditSchedule,
+  onDone,
+  onBackOut,
+}: RecurringConfirmPageProps): ReactNode {
   const [tab, setTab] = useState<Tab>('create');
-  const visible = OCCURRENCES.filter((o) =>
-    tab === 'create' ? o.state === 'ok' : o.state === 'skip',
-  );
-  const creates = OCCURRENCES.filter((o) => o.state === 'ok').length;
-  const skips = OCCURRENCES.filter((o) => o.state === 'skip').length;
+  const created: RecurringCreatedOccurrence[] = result.created;
+  const skipped: RecurringSkippedAtConfirm[] = result.skipped;
+  const creates = created.length;
+  const skips = skipped.length;
+
+  const renderCreated = (o: RecurringCreatedOccurrence): ReactNode => {
+    const block = dateBlock(o.local_date);
+    return (
+      <div key={`c-${o.occurrence_index}`} className={styles['occ-row']}>
+        <div className={styles['occ-date']}>
+          <div className={styles['occ-date-month']}>{block.month}</div>
+          <div className={styles['occ-date-day']}>{block.day}</div>
+          <div className={styles['occ-date-dow']}>{block.dow}</div>
+        </div>
+        <div className={styles['occ-body']}>
+          <div className={styles['occ-body-title']}>
+            {labels.patient} · {labels.type}
+          </div>
+          <div className={styles['occ-body-meta']}>
+            {labels.doctor} · {labels.branch}
+          </div>
+        </div>
+        <span className={styles['occ-ok']}>✓ Created</span>
+      </div>
+    );
+  };
+
+  const renderSkipped = (o: RecurringSkippedAtConfirm): ReactNode => {
+    const block = dateBlock(o.local_date);
+    return (
+      <div key={`s-${o.occurrence_index}`} className={styles['occ-row']}>
+        <div className={styles['occ-date']}>
+          <div className={styles['occ-date-month']}>{block.month}</div>
+          <div className={styles['occ-date-day']}>{block.day}</div>
+          <div className={styles['occ-date-dow']}>{block.dow}</div>
+        </div>
+        <div className={styles['occ-body']}>
+          <div className={styles['occ-body-title']}>
+            {labels.patient} · {labels.type}
+          </div>
+          <div className={styles['occ-body-meta']}>
+            {labels.doctor} · {labels.branch}
+          </div>
+        </div>
+        <span className={styles['occ-reason']}>{humanizeReason(o.reason)}</span>
+      </div>
+    );
+  };
 
   return (
     <DoctorFrame>
@@ -59,26 +146,37 @@ export function RecurringConfirmPage(): ReactNode {
           <div className={styles.crumb}>Recurring → Confirm</div>
           <h1>Recurring series ready</h1>
           <p className={styles.sub}>
-            12 occurrences requested · weekly · Aug 25 – Nov 17 · 11:15 with Dr. Al-Rashid
+            {requested} occurrences requested · {labels.pattern} ·{' '}
+            {labels.doctor}
           </p>
         </header>
+
+        {error !== null && (
+          <div className={styles.audit} role="alert">
+            {error}
+          </div>
+        )}
 
         <div className={styles.hero}>
           <div className={styles['hero-summary']}>
             <div className={styles['hero-stat']}>
-              <div className={`${styles['hero-stat-num']} ${styles['hero-stat-num-created']}`}>
+              <div
+                className={`${styles['hero-stat-num']} ${styles['hero-stat-num-created']}`}
+              >
                 {creates}
               </div>
               <div className={styles['hero-stat-lbl']}>Will be created</div>
             </div>
             <div className={styles['hero-stat']}>
-              <div className={`${styles['hero-stat-num']} ${styles['hero-stat-num-skipped']}`}>
+              <div
+                className={`${styles['hero-stat-num']} ${styles['hero-stat-num-skipped']}`}
+              >
                 {skips}
               </div>
               <div className={styles['hero-stat-lbl']}>Skipped</div>
             </div>
             <div className={styles['hero-stat']}>
-              <div className={styles['hero-stat-num']}>{OCCURRENCES.length}</div>
+              <div className={styles['hero-stat-num']}>{requested}</div>
               <div className={styles['hero-stat-lbl']}>Requested</div>
             </div>
           </div>
@@ -87,18 +185,14 @@ export function RecurringConfirmPage(): ReactNode {
         <div className={styles.tabs}>
           <button
             type="button"
-            className={
-              tab === 'create' ? styles['tabs-button-active'] : ''
-            }
+            className={tab === 'create' ? styles['tabs-button-active'] : ''}
             onClick={() => setTab('create')}
           >
             To be created ({creates})
           </button>
           <button
             type="button"
-            className={
-              tab === 'skip' ? styles['tabs-button-active'] : ''
-            }
+            className={tab === 'skip' ? styles['tabs-button-active'] : ''}
             onClick={() => setTab('skip')}
           >
             Skipped ({skips})
@@ -109,39 +203,56 @@ export function RecurringConfirmPage(): ReactNode {
           <div className={styles['list-head']}>
             <div className={styles['list-head-title']}>Scheduled occurrences</div>
             <div className={styles['list-head-count']}>
-              {creates} of {OCCURRENCES.length} valid
+              {creates} of {requested} valid
             </div>
           </div>
-          {visible.map((o, i) => (
-            <div key={`${o.month}-${o.day}-${i}`} className={styles['occ-row']}>
-              <div className={styles['occ-date']}>
-                <div className={styles['occ-date-month']}>{o.month}</div>
-                <div className={styles['occ-date-day']}>{o.day}</div>
-                <div className={styles['occ-date-dow']}>{o.dow}</div>
-              </div>
+          {tab === 'create' ? created.map(renderCreated) : skipped.map(renderSkipped)}
+          {tab === 'create' && created.length === 0 && (
+            <div className={styles['occ-row']}>
               <div className={styles['occ-body']}>
-                <div className={styles['occ-body-title']}>{o.time}</div>
-                <div className={styles['occ-body-meta']}>{o.patient}</div>
+                <div className={styles['occ-body-meta']}>No occurrences created.</div>
               </div>
-              {o.state === 'ok' ? (
-                <span className={styles['occ-ok']}>✓ Valid</span>
-              ) : (
-                <span className={styles['occ-reason']}>{o.reason}</span>
-              )}
             </div>
-          ))}
+          )}
+          {tab === 'skip' && skipped.length === 0 && (
+            <div className={styles['occ-row']}>
+              <div className={styles['occ-body']}>
+                <div className={styles['occ-body-meta']}>No occurrences skipped.</div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className={styles['step-foot']}>
           <span className={styles.audit}>
-            {creates} audit rows will be created · <code>recurring_created</code>
+            {creates} audit rows created · <code>recurring_created</code>
           </span>
           <div className={styles['btn-row']}>
-            <button type="button" className={styles['btn-ghost']}>
+            {onBackOut !== undefined && (
+              <button
+                type="button"
+                className={styles['btn-ghost']}
+                onClick={onBackOut}
+                disabled={busy}
+              >
+                Back out
+              </button>
+            )}
+            <button
+              type="button"
+              className={styles['btn-ghost']}
+              onClick={onEditSchedule}
+              disabled={busy}
+            >
               Edit schedule
             </button>
-            <button type="button" className={styles['btn-primary']}>
-              Create {creates} appointments
+            <button
+              type="button"
+              className={styles['btn-primary']}
+              onClick={onDone}
+              disabled={busy}
+            >
+              {busy ? 'Creating…' : `Create ${creates} appointments`}
             </button>
           </div>
         </div>

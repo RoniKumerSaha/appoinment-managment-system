@@ -36,11 +36,13 @@ import { adminBranchReceptionistsRouter } from './routes/admin-branch-receptioni
 import { adminDoctorScheduleRouter } from './routes/admin-doctor-schedule.js';
 import { adminDoctorBlockRouter } from './routes/admin-doctor-block.js';
 import { adminAppointmentTypesRouter } from './routes/admin-appointment-types.js';
+import { adminStatsRouter } from './routes/admin-stats.js';
 import { availabilityRouter } from './routes/availability.js';
 import { publicCatalogRouter } from './routes/public-catalog.js';
 import { bookingsRouter } from './routes/bookings.js';
 import { patientProfileRouter } from './routes/patient-profile.js';
 import { patientAppointmentsRouter } from './routes/patient-appointments.js';
+import { patientRecurringSeriesRouter } from './routes/patient-recurring-series.js';
 import { patientCancelRouter } from './routes/patient-cancel.js';
 import { patientRescheduleRouter } from './routes/patient-reschedule.js';
 import { patientDeepLinkRouter } from './routes/patient-deep-link.js';
@@ -48,14 +50,17 @@ import { staffMarkStatusRouter } from './routes/staff-mark-status.js';
 import { staffDoctorCancelRouter } from './routes/staff-doctor-cancel.js';
 import { staffReceptionistCancelRouter } from './routes/staff-receptionist-cancel.js';
 import { receptionistTodayRouter } from './routes/receptionist-today.js';
+import { receptionScheduleRouter } from './routes/reception-schedule.js';
 import { recurringPreviewRouter } from './routes/recurring-preview.js';
 import { recurringConfirmRouter } from './routes/recurring-confirm.js';
 import { staffDoctorMoveRouter } from './routes/staff-doctor-move.js';
 import { doctorAffectedRouter } from './routes/doctor-affected.js';
+import { doctorRecurringSeriesRouter } from './routes/doctor-recurring-series.js';
 import { doctorAppointmentAuditRouter } from './routes/doctor-appointment-audit.js';
 import { receptionAppointmentAuditRouter } from './routes/reception-appointment-audit.js';
 import { adminAuditRouter } from './routes/admin-audit.js';
 import { authMiddleware } from './middleware/auth.js';
+import { wrapRouter } from './middleware/async-handler.js';
 import { adminScope } from './middleware/admin-scope.js';
 import { getLogger, requestLogger } from './middleware/log.js';
 import { loadAuthConfig } from './auth/config.js';
@@ -64,6 +69,51 @@ import type { SmsOtpService } from './otp/service.js';
 export interface CreateAppOptions {
   requestLogger?: RequestHandler;
   smsOtpService?: SmsOtpService;
+}
+
+// Express 4 does not await route handlers, so a `throw` after an `await`
+// becomes an unhandled rejection — and this codebase's `unhandledRejection`
+// handler calls `process.exit(1)`. Wrapping every router's handlers makes
+// a failed request answer 500 for that client alone instead of taking the
+// whole API down. The wrapper is idempotent, so `createApp()` may be
+// called more than once (the test suite does).
+for (const router of [
+  healthRouter,
+  metricsRouter,
+  patientOtpRouter,
+  authStaffRouter,
+  authMeRouter,
+  publicCatalogRouter,
+  availabilityRouter,
+  bookingsRouter,
+  patientProfileRouter,
+  patientAppointmentsRouter,
+  patientCancelRouter,
+  patientRescheduleRouter,
+  patientDeepLinkRouter,
+  staffMarkStatusRouter,
+  staffDoctorCancelRouter,
+  staffReceptionistCancelRouter,
+  receptionistTodayRouter,
+  recurringPreviewRouter,
+  recurringConfirmRouter,
+  staffDoctorMoveRouter,
+  doctorAffectedRouter,
+  doctorRecurringSeriesRouter,
+  doctorAppointmentAuditRouter,
+  receptionAppointmentAuditRouter,
+  adminAuditRouter,
+  adminClinicRouter,
+  adminBranchesRouter,
+  adminBranchHoursRouter,
+  adminBranchDoctorsRouter,
+  adminBranchReceptionistsRouter,
+  adminDoctorScheduleRouter,
+  adminDoctorBlockRouter,
+  adminAppointmentTypesRouter,
+  adminStatsRouter,
+]) {
+  wrapRouter(router);
 }
 
 export function createApp(opts: CreateAppOptions = {}): express.Express {
@@ -81,7 +131,7 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // gate (the OTP is the credential). Body-parser is also above this
   // point so the routes can read `req.body`.
   if (opts.smsOtpService) {
-    app.use('/patient', createSmsOtpRouter({ service: opts.smsOtpService }));
+    app.use('/patient', wrapRouter(createSmsOtpRouter({ service: opts.smsOtpService })));
   }
 
   // Mock-OTP router mounts BEFORE authMiddleware for backward compatibility
@@ -137,6 +187,14 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // query param (E7-S3 privacy filter). Mounted AFTER authMiddleware
   // since the route requires a verified patient JWT.
   app.use(patientAppointmentsRouter);
+
+  // Patient recurring series — GET /patient/recurring-series.
+  // Lists the patient's recurring series with EVERY occurrence
+  // (E6-S4, mock 33) so the per-occurrence cancel surface can show
+  // the siblings that a single cancel will not touch (BR-052 /
+  // FR-049). Phone is bound from req.auth.claim.sub — E7-S3
+  // privacy filter. Mounted AFTER authMiddleware.
+  app.use(patientRecurringSeriesRouter);
 
   // Patient self-service cancel — POST /patient/appointments/:id/cancel.
   // Verified patient cancels their own Scheduled appointment (F-04,
@@ -201,6 +259,15 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // (Scenario 11). Mounted AFTER authMiddleware.
   app.use(receptionistTodayRouter);
 
+  // Receptionist day schedule — GET /reception/branch/schedule.
+  // The booked half of the receptionist's availability calendar
+  // (F-15). `GET /availability` returns only open slots, so the
+  // booked slots need their own read. Patient identity is limited
+  // to a first-name initial (F-15). Branch is locked to
+  // claim.branch_ids[0] server-side. Mounted AFTER authMiddleware;
+  // the route is the receptionist-only role gate.
+  app.use(receptionScheduleRouter);
+
   // Recurring preview — POST /recurring/preview. Doctor or
   // receptionist previews a recurring series (E6-S1, F-11,
   // BR-047…053, FR-044…050). Read-only: validates every
@@ -235,6 +302,16 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // doctor-only role gate.
   app.use(doctorAffectedRouter);
 
+  // Doctor recurring series read — GET
+  // /doctor/recurring-series/:id (mock 40). Lists the
+  // occurrences of a recurring series the doctor created, plus the
+  // audit trail, so the back-out screen can show what is already on
+  // the books. Scoped to the doctor's OWN series — another
+  // doctor's series returns the same 404 as a non-existent one.
+  // Mounted AFTER authMiddleware; the route is the doctor-only
+  // role gate.
+  app.use(doctorRecurringSeriesRouter);
+
   // Doctor appointment audit read — GET
   // /doctor/appointments/:id/audit (E7-S2, FR-051, NFR-005).
   // Doctor reads audit rows for their OWN appointments (cross-
@@ -264,7 +341,7 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // The mount order mirrors the E0-S3 convention: authenticated routers
   // (admin) come after the auth middleware, public routers (health,
   // metrics, OTP) before it.
-  app.use('/admin', adminScope, adminClinicRouter, adminBranchesRouter, adminBranchHoursRouter, adminBranchDoctorsRouter, adminBranchReceptionistsRouter, adminDoctorScheduleRouter, adminDoctorBlockRouter, adminAppointmentTypesRouter);
+  app.use('/admin', adminScope, adminClinicRouter, adminBranchesRouter, adminBranchHoursRouter, adminBranchDoctorsRouter, adminBranchReceptionistsRouter, adminDoctorScheduleRouter, adminDoctorBlockRouter, adminAppointmentTypesRouter, adminStatsRouter);
 
   // JSON 404 fallthrough — kept after the routers so a matching route wins;
   // every other path returns a stable JSON error envelope (no HTML default).

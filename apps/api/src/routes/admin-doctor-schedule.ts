@@ -66,6 +66,7 @@ import {
   tomorrowIsoUtc,
   type ScheduleRow,
 } from './admin-doctor-schedule-helpers.js';
+import { staffCreatedBy } from './created-by.js';
 
 interface DoctorScheduleRow {
   branch_id: string;
@@ -460,7 +461,7 @@ adminDoctorScheduleRouter.post(
         return;
       }
       await client.query(DELETE_SCHEDULE_BY_DOCTOR_SQL, [id]);
-      const createdBy = `staff:${req.auth?.claim?.sub ?? 'admin-main'}`;
+      const createdBy = staffCreatedBy(req.auth?.claim?.sub);
       const inserted: DoctorScheduleRow[] = [];
       for (const row of validated) {
         const { rows } = await client.query<DoctorScheduleRow>(

@@ -256,7 +256,7 @@ export function ClinicSettings({
         <div className={styles['page-header__title']}>
           <h1>Clinic settings</h1>
           <div className={styles['page-header__sub']}>
-            Edit clinic identity and review what's running across every branch.
+            Edit clinic identity and review what&rsquo;s running across every branch.
           </div>
         </div>
         <div className={styles['page-header__actions']}>
@@ -329,21 +329,18 @@ export function ClinicSettings({
             </p>
             <ul className={styles['audit-card__list']}>
               <li>
-                <strong>What you can see:</strong> branch / doctor /
-                receptionist / appointment-type change events (the
-                actor&apos;s audit log on each resource).
-              </li>
-              <li>
                 <strong>What you can&apos;t see:</strong> appointment create /
                 cancel / reschedule / status-marked / recurring-created
-                audit rows. Those live on the doctor&apos;s per-appointment
-                drawer and the patient&apos;s appointment detail.
+                audit rows, or branch / doctor / receptionist /
+                appointment-type change events — configuration audit is
+                not captured yet.
               </li>
               <li>
-                <strong>Who can see them:</strong> the assigned doctor
-                (via <code>GET /doctor/audit</code> on the affected
-                appointment or the per-appointment drawer) and the
-                patient (via <code>GET /patient/appointments/:id/audit</code>).
+                <strong>Who can see appointment audit:</strong> the
+                assigned doctor (via{' '}
+                <code>GET /doctor/appointments/:id/audit</code>) and the
+                receptionist at that branch (via{' '}
+                <code>GET /reception/appointments/:id/audit</code>).
               </li>
             </ul>
             <p className={styles['audit-card__foot']}>
@@ -628,7 +625,7 @@ export function ClinicSettings({
               <div className={styles['danger-body__t']}>Deactivate this clinic</div>
               <div className={styles['danger-body__s']}>
                 Stops every booking across every branch. Existing appointments
-                remain Scheduled; you'll need to cancel them individually.
+                remain Scheduled; you&rsquo;ll need to cancel them individually.
               </div>
             </div>
             <button

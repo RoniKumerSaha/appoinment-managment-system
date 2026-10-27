@@ -8,24 +8,24 @@
  *  - 'find-doctor' → <PatientBooking /> (the 5-step E3 flow)
  *  - 'my-appointments' → <MyAppointments onGoFindDoctor={…} />
  *  - 'cancel-occurrence' → <RecurringOccurrenceCancel /> (mock 33)
- *  - 'receipt' → <ConfirmationReceipt /> (mock 36)
+ *
+ * The confirmation receipt (mock 36) is not a route of its own — it
+ * is the terminal state of the booking flow inside `PatientBooking`,
+ * rendered from the booking that was actually made.
  *
  * E4-S2 deep-link landing: if the patient arrived via a deep link
  * (`?action=cancel|reschedule&id=<uuid>`), we probe the appointment
  * and pre-open the matching surface. After handling, the URL is
  * scrubbed via `history.replaceState` so the browser back button
- * doesn't re-trigger. The new screens are also reachable via
- * `?page=cancel-occurrence|receipt`.
- *
- * No tests in this pass (per user instruction).
+ * doesn't re-trigger. The cancel-occurrence screen is also
+ * reachable via `?page=cancel-occurrence`.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { PatientBooking } from './PatientBooking';
 import { MyAppointments } from './MyAppointments';
 import { RecurringOccurrenceCancel } from './RecurringOccurrenceCancel';
-import { ConfirmationReceipt } from './ConfirmationReceipt';
 
-type PatientView = 'find-doctor' | 'my-appointments' | 'cancel-occurrence' | 'receipt';
+type PatientView = 'find-doctor' | 'my-appointments' | 'cancel-occurrence';
 
 interface PatientAppProps {
   initialView?: PatientView;
@@ -50,9 +50,7 @@ function readQuery(): DeepLink {
       ? rawAction
       : undefined;
   const page: PatientView | undefined =
-    rawPage === 'cancel-occurrence' || rawPage === 'receipt'
-      ? rawPage
-      : undefined;
+    rawPage === 'cancel-occurrence' ? rawPage : undefined;
   return { action, id: rawId, page };
 }
 
@@ -108,9 +106,6 @@ export function PatientApp({
 
   if (view === 'cancel-occurrence') {
     return <RecurringOccurrenceCancel />;
-  }
-  if (view === 'receipt') {
-    return <ConfirmationReceipt />;
   }
   if (view === 'my-appointments') {
     return (

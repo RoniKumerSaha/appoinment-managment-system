@@ -282,7 +282,7 @@ export function DoctorCancel({
             </span>
             <span>
               <strong>Slot will be released</strong> and become bookable
-              again immediately. The patient will see "Cancelled by clinic"
+              again immediately. The patient will see &quot;Cancelled by clinic&quot;
               and can rebook from the booking page.
             </span>
           </div>

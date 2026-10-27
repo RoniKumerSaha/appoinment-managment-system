@@ -1,0 +1,47 @@
+-- E7-S7 follow-up: remove the redundant `patient.phone_number` index that
+-- made concurrent bookings deadlock.
+--
+-- The deadlock:
+--
+--   `0001` created `patient.phone_number text NOT NULL UNIQUE`, which
+--   already builds a unique btree index on that column. `0004` then added
+--   a SECOND, non-unique btree on the same column:
+--
+--     CREATE INDEX idx_patient_phone_number ON patient(phone_number);
+--
+--   `POST /bookings` upserts the patient with
+--
+--     INSERT INTO patient (phone_number, full_name) VALUES ($1, $2)
+--     ON CONFLICT (phone_number) DO NOTHING
+--
+--   `ON CONFLICT (phone_number)` makes Postgres INFER an arbiter index.
+--   Two indexes are candidates, and the inference is free to pick either
+--   one. When it picks the plain (non-unique) `idx_patient_phone_number`,
+--   the speculative insertion token lands in that index, and the
+--   conflict check has to scan it for an equal tuple. Two concurrent
+--   bookings that insert DIFFERENT phones still land on the same index
+--   leaf page, so each waits on the other's uncommitted tuple: a
+--   wait cycle, reported as SQLSTATE 40P01 "deadlock detected".
+--
+--   The symptom was a 500 on the booking route (the deadlock was raised
+--   by the patient upsert, not by the appointment INSERT, so it escaped
+--   the appointment-level 23P01 → 409 slot_raced mapping). The documented
+--   contract is one 201 + one 409 slot_raced.
+--
+-- The fix has two halves:
+--
+--   1. Drop the redundant index. The UNIQUE constraint's own index
+--      already serves every query that `idx_patient_phone_number` was
+--      added for (the migration comment calls it a "hot-path index",
+--      but the unique index on the same column is a strict superset of
+--      what it can do, with the same leading column).
+--
+--   2. Pin the arbiter explicitly to the unique constraint's index, so
+--      the inference can never pick the plain btree again. `ON CONFLICT
+--      ON CONSTRAINT` names the constraint directly and is immune to
+--      index-selection changes.
+--
+-- Idempotent: the index drop is guarded; the constraint is already
+-- present from 0001 and is not recreated here.
+
+DROP INDEX IF EXISTS idx_patient_phone_number;
