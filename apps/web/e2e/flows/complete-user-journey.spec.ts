@@ -164,23 +164,42 @@ test.describe.serial('Complete user journey — patient books, reschedules, canc
     const patient = new PatientPage(page);
     await patient.expectMounted();
 
-    // Cancel any existing rows for this patient+doctor pair to dodge
-    // FR-027 (one future appointment per (patient, doctor) Scheduled).
-    // The auth.setup reset already cleared test data; we just confirm
-    // there's exactly one to reschedule.
+    // The booking from step 2 is the one we move. The auth.setup
+    // reset clears test data before the suite, and step 2 is the only
+    // thing that books for this patient, so there is exactly one row.
     const token = await readTokenFromStorage(page);
     const { appointments } = await listPatientAppointments(token);
     expect(appointments.length).toBeGreaterThanOrEqual(1);
     const target = appointments[0]!;
+    const originalStart = target.start_datetime;
 
     // Open the reschedule flow.
     await patient.goToMyAppointments();
     await patient.clickApptRowReschedule(target.id);
-    // The reschedule flow opens an inline view. We don't re-walk the
-    // 5-step wizard here — that would be a separate spec. Instead we
-    // just confirm the reschedule surface appeared.
-    // (A more thorough reschedule-e2e lives in the per-feature specs
-    // that were archived to docs/archive/.)
+    await patient.expectRescheduleOpen();
+
+    // The slot grid MUST offer slots. This is the regression: the
+    // availability preview applied FR-027 without excluding the
+    // appointment being moved, so the grid came back empty and the
+    // patient was told to cancel first.
+    await patient.waitForRescheduleSlots();
+    const newStart = await patient.firstRescheduleSlot();
+    expect(
+      newStart,
+      'the reschedule preview offers slots to the patient who holds the appointment',
+    ).not.toBeNull();
+
+    // Pick the slot and confirm the move.
+    await patient.confirmReschedule(newStart!);
+
+    // The move is real: the appointment now starts at the new time.
+    const after = await listPatientAppointments(token);
+    const moved = after.appointments.find((a) => a.id === target.id);
+    expect(moved, 'the appointment still exists after the reschedule').toBeTruthy();
+    expect(
+      moved!.start_datetime,
+      'the appointment moved to the new slot',
+    ).not.toBe(originalStart);
   });
 
   test('5. Patient cancels the appointment', async ({ browser }) => {

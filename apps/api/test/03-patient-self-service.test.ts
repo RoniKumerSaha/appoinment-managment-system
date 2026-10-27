@@ -341,3 +341,164 @@ test('GET /patient/appointments/:id/deep-link (other patient) → 404 privacy fi
   assert.equal(res.status, 404);
   assert.equal(res.body.error, 'not_found');
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// GET /availability — the reschedule preview
+//
+// The bug this pins: the availability preview applied FR-027 ("this
+// patient already has a future appointment with this doctor → zero
+// slots") WITHOUT excluding the appointment being moved. The row
+// being rescheduled IS a future Scheduled row for that patient+doctor,
+// so the preview returned zero slots to exactly the patient who was
+// trying to reschedule — and the UI told them to cancel first.
+//
+// The commit-time recheck in routes/patient-reschedule.ts has always
+// excluded it (`id <> $3`). The preview must agree, or the server
+// contradicts itself.
+// ═══════════════════════════════════════════════════════════════════
+
+/** A date inside the 30-day window, as YYYY-MM-DD (UTC).
+ *
+ *  The seed closes every branch on Sundays (`is_closed` for DOW 0) and
+ *  gives no doctor a Sunday schedule, so a Sunday date would come back
+ *  `branch_closed` before the patient filters ever run. Walk forward
+ *  until we land on an open day. */
+function dateInWindow(daysOut: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + daysOut);
+  while (d.getUTCDay() === 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+/** The same date helper, but as a `current_date + N` offset that the
+ *  appointment insert can use — so the appointment lands on an OPEN
+ *  day too. Keeps the fixture and the queried date in step. */
+function openDayOffset(daysOut: number): number {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + daysOut);
+  let offset = daysOut;
+  while (d.getUTCDay() === 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    offset += 1;
+  }
+  return offset;
+}
+
+/** Insert an appointment on an open (non-Sunday) day at a distinct
+ *  hour, so the `appointment_no_overlap` constraint (doctor, branch,
+ *  time) never collides with another fixture in this file. */
+async function insertOpenDayAppt(
+  patientPhone: string,
+  doctorName: string,
+  branchName: string,
+  daysOut: number,
+  hourUtc: number,
+): Promise<{ id: string; branchId: string; typeId: string }> {
+  return insertFutureAppt(
+    patientPhone,
+    doctorName,
+    branchName,
+    openDayOffset(daysOut),
+    hourUtc,
+  );
+}
+
+test('GET /availability for a patient who HOLDS the appointment → zero slots (FR-027, no exclusion)', async () => {
+  // Patient B + East Lead. This is the plain availability lookup —
+  // no exclude_appointment_id — so FR-027 correctly fires: the
+  // patient may not book a second appointment with the same doctor.
+  const appt = await insertOpenDayAppt(PATIENT_B, 'Dr. East Lead', 'East Branch', 6, 15);
+  const doctor = await db.pool.query<{ id: string }>(
+    `SELECT d.id FROM doctor d WHERE d.full_name = 'Dr. East Lead'`,
+  );
+
+  const res = await request(createApp())
+    .get('/availability')
+    .query({
+      doctor_id: doctor.rows[0]!.id,
+      branch_id: appt.branchId,
+      date: dateInWindow(5),
+      appointment_type_id: appt.typeId,
+    })
+    .set('Authorization', `Bearer ${patientToken(PATIENT_B)}`);
+
+  assert.equal(res.status, 200, `body=${JSON.stringify(res.body)}`);
+  assert.equal(res.body.slots.length, 0);
+  assert.equal(res.body.reason, 'patient_has_future_with_doctor');
+});
+
+test('GET /availability with exclude_appointment_id → slots are offered (reschedule preview)', async () => {
+  // The regression: the same patient, the same doctor, the same
+  // request — but excluding the row being moved. The preview must
+  // now offer slots, otherwise the patient can only cancel and
+  // rebook.
+  const appt = await insertOpenDayAppt(PATIENT_C, 'Dr. East Lead', 'East Branch', 3, 12);
+  const doctor = await db.pool.query<{ id: string }>(
+    `SELECT d.id FROM doctor d WHERE d.full_name = 'Dr. East Lead'`,
+  );
+
+  const res = await request(createApp())
+    .get('/availability')
+    .query({
+      doctor_id: doctor.rows[0]!.id,
+      branch_id: appt.branchId,
+      date: dateInWindow(5),
+      appointment_type_id: appt.typeId,
+      exclude_appointment_id: appt.id,
+    })
+    .set('Authorization', `Bearer ${patientToken(PATIENT_C)}`);
+
+  assert.equal(res.status, 200, `body=${JSON.stringify(res.body)}`);
+  assert.ok(
+    res.body.slots.length > 0,
+    `expected slots for the reschedule preview, got ${JSON.stringify(res.body)}`,
+  );
+  assert.equal(res.body.reason, undefined);
+});
+
+test('GET /availability with exclude_appointment_id does not clear FR-027 for OTHER patients', async () => {
+  // The exclusion must be narrow: it removes exactly the row being
+  // moved, not every row for this patient — and certainly not other
+  // patients' rows. Patient D asks to exclude Patient C's
+  // appointment; FR-027 must still fire on Patient D's OWN
+  // appointment with the same doctor.
+  const cAppt = await insertOpenDayAppt(PATIENT_C, 'Dr. East Support', 'East Branch', 3, 10);
+  const dAppt = await insertOpenDayAppt(PATIENT_D, 'Dr. East Support', 'East Branch', 4, 13);
+  const doctor = await db.pool.query<{ id: string }>(
+    `SELECT d.id FROM doctor d WHERE d.full_name = 'Dr. East Support'`,
+  );
+
+  const res = await request(createApp())
+    .get('/availability')
+    .query({
+      doctor_id: doctor.rows[0]!.id,
+      branch_id: dAppt.branchId,
+      date: dateInWindow(5),
+      appointment_type_id: dAppt.typeId,
+      // Excluding somebody ELSE's appointment must not help.
+      exclude_appointment_id: cAppt.id,
+    })
+    .set('Authorization', `Bearer ${patientToken(PATIENT_D)}`);
+
+  assert.equal(res.status, 200, `body=${JSON.stringify(res.body)}`);
+  assert.equal(res.body.slots.length, 0);
+  assert.equal(res.body.reason, 'patient_has_future_with_doctor');
+});
+
+test('GET /availability with a malformed exclude_appointment_id → 400', async () => {
+  const res = await request(createApp())
+    .get('/availability')
+    .query({
+      doctor_id: '00000000-0000-0000-0000-000000000001',
+      branch_id: '00000000-0000-0000-0000-000000000002',
+      date: dateInWindow(5),
+      appointment_type_id: '00000000-0000-0000-0000-000000000003',
+      exclude_appointment_id: 'not-a-uuid',
+    })
+    .set('Authorization', `Bearer ${patientToken(PATIENT_A)}`);
+
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error, 'invalid_exclude_appointment_id');
+});

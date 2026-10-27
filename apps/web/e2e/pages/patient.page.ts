@@ -253,6 +253,100 @@ export class PatientPage {
     ).click();
   }
 
+  // ─── ReschedulePage ────────────────────────────────────────────
+
+  get rescheduleDialog() {
+    return this.page.locator('[data-testid="reschedule-dialog"]');
+  }
+
+  get rescheduleSlotGrid() {
+    return this.page.locator('[data-testid="reschedule-slots"]');
+  }
+
+  get rescheduleNoSlots() {
+    return this.page.locator('[data-testid="reschedule-no-slots"]');
+  }
+
+  get rescheduleConfirmBtn() {
+    return this.page.locator('[data-testid="reschedule-confirm-btn"]');
+  }
+
+  get rescheduleError() {
+    return this.page.locator('[data-testid="reschedule-error"]');
+  }
+
+  rescheduleDateCell(date: string) {
+    return this.page.locator(`[data-testid="reschedule-date-${date}"]`);
+  }
+
+  rescheduleSlot(startDatetime: string) {
+    return this.page.locator(
+      `[data-testid="reschedule-slot-${startDatetime}"]`,
+    );
+  }
+
+  /** Wait for the reschedule dialog to mount. */
+  async expectRescheduleOpen() {
+    await expect(this.rescheduleDialog).toBeVisible();
+  }
+
+  /**
+   * The slot grid is populated by an async GET /availability. Wait for
+   * a slot button to actually appear — waiting for the grid to be
+   * visible is not enough, because the grid renders before the fetch
+   * starts (the "Loading slots…" text only appears once the effect
+   * runs, which is a tick later).
+   */
+  async waitForRescheduleSlots() {
+    await expect(this.rescheduleSlotGrid).toBeVisible();
+    await expect(this.rescheduleSlotButtons().first()).toBeVisible({
+      timeout: 15_000,
+    });
+  }
+
+  /** The slot buttons. Scoped to `button` so the grid container (which
+   *  shares the `reschedule-slot-` prefix) can never be picked up. */
+  rescheduleSlotButtons() {
+    return this.page.locator('button[data-testid^="reschedule-slot-"]');
+  }
+
+  /** The first slot the server offered, as its start datetime. */
+  async firstRescheduleSlot(): Promise<string | null> {
+    const slot = this.rescheduleSlotButtons().first();
+    if ((await slot.count()) === 0) return null;
+    const testId = await slot.getAttribute('data-testid');
+    return testId?.replace('reschedule-slot-', '') ?? null;
+  }
+
+  /**
+   * Pick a slot and confirm the move.
+   *
+   * Clicking "Confirm move" kicks off POST
+   * /patient/appointments/:id/reschedule. The click returns long before
+   * the POST resolves, so a caller that immediately re-reads the
+   * appointments list sees the OLD start time and concludes the move
+   * failed. Wait for the dialog to close (the parent's `onDone` closes
+   * it once the move has landed) before returning.
+   */
+  async confirmReschedule(startDatetime: string) {
+    await this.rescheduleSlot(startDatetime).click();
+    await expect(this.rescheduleConfirmBtn).toBeEnabled();
+    await this.rescheduleConfirmBtn.click();
+    // The dialog unmounts when the move succeeds. If the move fails,
+    // an inline error appears instead and the dialog stays open —
+    // surface that rather than timing out with no explanation.
+    await expect(this.rescheduleDialog).toHaveCount(0, { timeout: 15_000 });
+  }
+
+  /**
+   * The inline error the dialog shows when the move was rejected
+   * (e.g. `slot_raced`). Empty string when there is no error.
+   */
+  async rescheduleErrorText(): Promise<string> {
+    if ((await this.rescheduleError.count()) === 0) return '';
+    return (await this.rescheduleError.innerText()) ?? '';
+  }
+
   // ─── CancelModal ──────────────────────────────────────────────
 
   get cancelModal() {

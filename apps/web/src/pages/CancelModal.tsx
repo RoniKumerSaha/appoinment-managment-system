@@ -30,6 +30,14 @@ interface CancelModalProps {
 function describeError(err: unknown): string {
   if (err instanceof ApiError) {
     if (err.status === 401) return 'Session expired. Please sign in again.';
+    if (err.status === 403) {
+      // `forbidden_role` means the request did not carry a PATIENT
+      // claim — a broken session, not a cancellation rule.
+      if (err.code === 'forbidden_role') {
+        return 'Your session is not recognised. Please sign in again and retry.';
+      }
+      return `Could not cancel (${err.code}).`;
+    }
     if (err.status === 404) {
       if (err.code === 'not_found_appointment_in_terminal_state') {
         return 'This appointment is no longer Scheduled.';

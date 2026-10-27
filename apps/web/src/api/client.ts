@@ -112,22 +112,51 @@ const ADMIN_CLAIM_HEADER = JSON.stringify(ADMIN_CLAIM);
 
 const TOKEN_KEY = 'medislot.auth';
 
-function readTokenFromStorage(): string | null {
+/**
+ * What the stored session looks like to the transport.
+ *
+ *   'none'     — no `medislot.auth` key at all. A cold load with no
+ *                previous session; the dev admin fallback may apply.
+ *   'expired'  — a session exists but its token is unusable (expired,
+ *                malformed, or within 60s of expiry). The session is
+ *                REAL, so the dev fallback must NOT apply: sending the
+ *                admin claim instead would silently impersonate a
+ *                privileged role and the call would be rejected with
+ *                a confusing `forbidden_role` (or worse, succeed with
+ *                the wrong authority). We send no credential and let
+ *                the API answer 401, which the store turns into a
+ *                sign-out.
+ *   'valid'    — a usable token; the value is the token itself.
+ */
+type StoredSession =
+  | { kind: 'none' }
+  | { kind: 'expired' }
+  | { kind: 'valid'; token: string };
+
+function readSession(): StoredSession {
   try {
     const raw = localStorage.getItem(TOKEN_KEY);
-    if (!raw) return null;
+    if (!raw) return { kind: 'none' };
     const parsed = JSON.parse(raw) as { token?: unknown; expires_at?: unknown };
-    if (typeof parsed.token !== 'string' || typeof parsed.expires_at !== 'string') {
-      return null;
+    if (
+      typeof parsed.token !== 'string' ||
+      typeof parsed.expires_at !== 'string'
+    ) {
+      // The key exists but is not a usable session. Treat it as a real
+      // (broken) session rather than "no session" — the user believes
+      // they are signed in and must be told to sign in again.
+      return { kind: 'expired' };
     }
     // Drop tokens 60s before they expire so a request in flight doesn't get
     // 401'd mid-call.
     if (Date.parse(parsed.expires_at) - 60_000 < Date.now()) {
-      return null;
+      return { kind: 'expired' };
     }
-    return parsed.token;
+    return { kind: 'valid', token: parsed.token };
   } catch {
-    return null;
+    // Unparseable JSON in the key → same reasoning as above: a broken
+    // session, not an absent one.
+    return { kind: 'expired' };
   }
 }
 
@@ -142,10 +171,23 @@ export function setOnUnauthorized(cb: (() => void) | null): void {
 // ─── request() ─────────────────────────────────────────────────────────
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const bearer = readTokenFromStorage();
-  const authHeader: HeadersInit = bearer
-    ? { authorization: `Bearer ${bearer}` }
-    : { 'x-auth-claim': ADMIN_CLAIM_HEADER };
+  const session = readSession();
+  const authHeader: HeadersInit =
+    session.kind === 'valid'
+      ? { authorization: `Bearer ${session.token}` }
+      : session.kind === 'none'
+        ? // Dev fallback: no session at all. Lets the UI boot against a
+          // backend that has no auth requirement (the E1-S0-ui
+          // scaffolding). NEVER used when a session exists — see
+          // `StoredSession` for why.
+          { 'x-auth-claim': ADMIN_CLAIM_HEADER }
+        : // A session exists but is unusable. Send NO credential: the
+          // API answers 401, `onUnauthorized` fires, and the store
+          // clears the session and re-routes to the login page. Sending
+          // the admin claim here would impersonate a privileged role
+          // and surface as a baffling `forbidden_role` (or, worse,
+          // succeed with authority the user does not have).
+          {};
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -873,6 +915,7 @@ export interface AvailabilityResponse {
     | 'no_fit'
     | 'all_booked'
     | 'all_blocked'
+    | 'patient_has_future_with_doctor'
     | null;
 }
 
@@ -882,6 +925,11 @@ export function getAvailability(input: {
   date: string; // YYYY-MM-DD UTC
   appointment_type_id: string;
   patient_phone?: string;
+  /** The appointment being rescheduled. The server excludes this row
+   *  from the FR-027 / FR-029 / existing-appointment checks so the
+   *  appointment does not collide with itself. Without it the preview
+   *  returns zero slots for the patient who holds the appointment. */
+  exclude_appointment_id?: string;
 }): Promise<AvailabilityResponse> {
   const params: string[] = [
     `doctor_id=${encodeURIComponent(input.doctor_id)}`,
@@ -891,6 +939,11 @@ export function getAvailability(input: {
   ];
   if (input.patient_phone) {
     params.push(`patient_phone=${encodeURIComponent(input.patient_phone)}`);
+  }
+  if (input.exclude_appointment_id) {
+    params.push(
+      `exclude_appointment_id=${encodeURIComponent(input.exclude_appointment_id)}`,
+    );
   }
   return request<AvailabilityResponse>(
     `/availability?${params.join('&')}`,

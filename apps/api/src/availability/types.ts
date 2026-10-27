@@ -258,7 +258,15 @@ export interface AvailabilityResult {
 
 /** Inputs to the engine. `patientPhone` is optional — when supplied,
  *  FR-027 (no future appt for same patient+doctor) and FR-029 (no
- *  patient time overlap) filters apply. */
+ *  patient time overlap) filters apply.
+ *
+ *  `excludeAppointmentId` is the row the caller is *moving* (a
+ *  reschedule preview). The row being moved is itself a future
+ *  Scheduled appointment for this patient+doctor, so without the
+ *  exclusion FR-027 fires against the caller's own appointment and
+ *  the preview returns zero slots — the patient is told to cancel
+ *  first. The commit-time recheck in `routes/patient-reschedule.ts`
+ *  already excludes it (`id <> $3`); the preview must agree. */
 export interface AvailabilityQuery {
   doctorId: string;
   branchId: string;
@@ -267,4 +275,7 @@ export interface AvailabilityQuery {
   durationMinutes: number;
   patientPhone: string | null;
   nowMs: number;
+  /** The appointment being rescheduled — excluded from the FR-027
+   *  and FR-029 checks. Null for a normal availability lookup. */
+  excludeAppointmentId: string | null;
 }

@@ -8,6 +8,11 @@
  *   - date (required, YYYY-MM-DD; UTC; must be in [today+1, today+30])
  *   - appointment_type_id (required, UUID)
  *   - patient_phone (optional, E.164 form; when supplied applies FR-027 + FR-029)
+ *   - exclude_appointment_id (optional, UUID; the row being moved by a
+ *     reschedule preview — excluded from the FR-027 / FR-029 / existing
+ *     -appointment checks so the appointment does not collide with
+ *     itself). See `routes/patient-reschedule.ts` for the commit-time
+ *     equivalent; the two must agree.
  *
  * Returns 200 with `{slots: [{start_datetime, end_datetime}, ...], reason?: ...}`.
  *
@@ -53,6 +58,7 @@ availabilityRouter.get(
     const dateRaw = req.query['date'];
     const typeIdRaw = req.query['appointment_type_id'];
     const patientPhoneRaw = req.query['patient_phone'];
+    const excludeAppointmentIdRaw = req.query['exclude_appointment_id'];
 
     const doctorId = typeof doctorIdRaw === 'string' ? doctorIdRaw : '';
     const branchId = typeof branchIdRaw === 'string' ? branchIdRaw : '';
@@ -77,6 +83,23 @@ availabilityRouter.get(
       claim.role === 'patient'
         ? claim.sub
         : explicitPatientPhone;
+
+    // The row being moved by a reschedule preview. It is excluded from
+    // the FR-027 / FR-029 / existing-appointment checks so the
+    // appointment does not collide with itself. Optional — a plain
+    // availability lookup passes null.
+    const excludeAppointmentId =
+      typeof excludeAppointmentIdRaw === 'string' &&
+      excludeAppointmentIdRaw.length > 0
+        ? excludeAppointmentIdRaw
+        : null;
+    if (
+      excludeAppointmentId !== null &&
+      !UUID_RE.test(excludeAppointmentId)
+    ) {
+      res.status(400).json({ error: 'invalid_exclude_appointment_id' });
+      return;
+    }
 
     if (!UUID_RE.test(doctorId)) {
       res.status(400).json({ error: 'invalid_doctor_id' });
@@ -126,6 +149,7 @@ availabilityRouter.get(
       durationMinutes: 0, // engine overwrites with stored duration
       patientPhone,
       nowMs: Date.now(),
+      excludeAppointmentId,
     });
 
     if (outcome.kind === 'err') {

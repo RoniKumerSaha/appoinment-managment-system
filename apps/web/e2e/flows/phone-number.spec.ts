@@ -13,10 +13,17 @@ import { PatientPage } from '../pages/patient.page.ts';
 import { LoginPage } from '../pages/login.page.ts';
 import { FIXTURE } from '../helpers/ids.ts';
 
-/** Sign in as a patient so the booking wizard is reachable. */
+/**
+ * Sign in as a patient so the booking wizard is reachable.
+ *
+ * This spec owns patient-04 exclusively. The journey spec uses
+ * patient-02 and the reschedule spec uses patient-05; sharing a
+ * patient would let one spec's Scheduled booking trip FR-027
+ * ("one future appointment per patient per doctor") in another.
+ */
 async function signIn(page: Page): Promise<void> {
-  const phone = FIXTURE.patient02.phone;
-  const code = FIXTURE.patient02.code;
+  const phone = FIXTURE.patient04.phone;
+  const code = FIXTURE.patient04.code;
   const login = new LoginPage(page);
   await page.goto('/');
   await login.signInAsPatient(phone, code);
@@ -98,7 +105,7 @@ test.describe('phone number input', () => {
     // The number the e2e patient signed in with — the booking must
     // be stored under the same phone, or the claim-bound appointments
     // list cannot see it.
-    const phone = FIXTURE.patient02.phone;
+    const phone = FIXTURE.patient04.phone;
     await patient.phoneInput.fill(phone);
     await expect(patient.phoneInput).toHaveValue(phone);
     await patient.nameInput.fill('Manual Test Patient');

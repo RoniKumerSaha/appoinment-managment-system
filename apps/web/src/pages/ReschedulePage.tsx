@@ -56,6 +56,17 @@ interface ReschedulePageProps {
 function describeError(err: unknown): string {
   if (err instanceof ApiError) {
     if (err.status === 401) return 'Session expired. Please sign in again.';
+    if (err.status === 403) {
+      // `forbidden_role` means the request did not carry a PATIENT
+      // claim. That is a broken session, not a booking rule — the
+      // patient can move this appointment, they just are not
+      // recognised as themselves right now. Say so, and say what to
+      // do, instead of leaking an internal code.
+      if (err.code === 'forbidden_role') {
+        return 'Your session is not recognised. Please sign in again and retry.';
+      }
+      return `Could not reschedule (${err.code}).`;
+    }
     if (err.status === 404) {
       if (err.code === 'not_found_appointment_in_terminal_state') {
         return 'This appointment is no longer Scheduled.';
@@ -67,7 +78,10 @@ function describeError(err: unknown): string {
         return 'That slot was just booked by another patient. Pick another.';
       }
       if (err.code === 'patient_has_future_with_doctor') {
-        return 'You already have a future appointment with this doctor.';
+        // The commit-time recheck excludes the row being moved, so
+        // this means a SECOND appointment with the same doctor — not
+        // the one the patient is rescheduling.
+        return 'You already have another future appointment with this doctor.';
       }
       if (err.code === 'patient_time_conflict') {
         return 'You already have another appointment at that time.';
@@ -216,6 +230,17 @@ export function ReschedulePage({
           // where the slot grid shows 28 open slots but the move
           // fails with `patient_has_future_with_doctor` after the
           // user picks one.
+          //
+          // exclude_appointment_id tells the server which row we are
+          // moving so it can exclude it from those same checks. The
+          // appointment being rescheduled IS a future Scheduled row
+          // for this patient+doctor — without the exclusion FR-027
+          // fires against the patient's own appointment, the grid
+          // comes back empty, and the only way forward is to cancel
+          // and rebook. The commit-time recheck already excludes it
+          // (`id <> $3` in routes/patient-reschedule.ts); the preview
+          // must agree.
+          exclude_appointment_id: appointment.id,
         });
         if (cancelled) return;
         setSlots(res.slots);
@@ -231,7 +256,15 @@ export function ReschedulePage({
     return () => {
       cancelled = true;
     };
-  }, [branchId, typeId, date, appointment.doctor_id, branches.length, types.length]);
+  }, [
+    branchId,
+    typeId,
+    date,
+    appointment.doctor_id,
+    appointment.id,
+    branches.length,
+    types.length,
+  ]);
 
   // Build a 30-day date rail starting from today (UTC). The first
   // date is excluded if it would be a same-day booking (FR-019);
@@ -279,7 +312,12 @@ export function ReschedulePage({
   const apptDb = dateBlock(appointment.start_datetime, appointment.tz);
 
   return (
-    <div className="reschedule__backdrop" role="dialog" aria-modal="true">
+    <div
+      className="reschedule__backdrop"
+      role="dialog"
+      aria-modal="true"
+      data-testid="reschedule-dialog"
+    >
       <div className="reschedule__frame">
         <div className="reschedule__page">
           <div className="reschedule__header">
@@ -385,6 +423,7 @@ export function ReschedulePage({
                         : 'reschedule__rail-cell'
                     }
                     onClick={() => setDate(d.iso)}
+                    data-testid={`reschedule-date-${d.iso}`}
                   >
                     <div className="reschedule__rail-dow">{d.dow}</div>
                     <div className="reschedule__rail-num">{d.day}</div>
@@ -403,12 +442,12 @@ export function ReschedulePage({
                     : `${slots.length} open`}
               </span>
             </div>
-            <div className="reschedule__slot-grid">
+            <div className="reschedule__slot-grid" data-testid="reschedule-slots">
               {loadingSlots && (
                 <div className="reschedule__empty">Loading slots…</div>
               )}
               {!loadingSlots && slots !== null && slots.length === 0 && (
-                <div className="reschedule__empty">
+                <div className="reschedule__empty" data-testid="reschedule-no-slots">
                   {slotReason === 'past_date'
                     ? 'That date is in the past.'
                     : slotReason === 'outside_30d_window'
@@ -418,7 +457,7 @@ export function ReschedulePage({
                         : slotReason === 'doctor_unavailable'
                           ? "The doctor isn't available that day."
                           : slotReason === 'patient_has_future_with_doctor'
-                            ? 'You already have a future appointment with this doctor. Cancel it first or pick a different doctor.'
+                            ? 'You already have another future appointment with this doctor. Reschedule or cancel that one first.'
                             : 'No slots available.'}
                 </div>
               )}
@@ -436,6 +475,7 @@ export function ReschedulePage({
                           : 'reschedule__slot'
                       }
                       onClick={() => setSelectedSlot(s)}
+                      data-testid={`reschedule-slot-${s.start_datetime}`}
                     >
                       {formatTime(s.start_datetime, appointment.tz)}
                     </button>
@@ -474,7 +514,9 @@ export function ReschedulePage({
             )}
 
             {submitErr && (
-              <div className="reschedule__error">{submitErr}</div>
+              <div className="reschedule__error" data-testid="reschedule-error">
+                {submitErr}
+              </div>
             )}
 
             <div className="reschedule__step-foot">
@@ -483,6 +525,7 @@ export function ReschedulePage({
                 className="reschedule__btn-ghost"
                 onClick={onClose}
                 disabled={submitting}
+                data-testid="reschedule-back-btn"
               >
                 Back
               </button>
@@ -493,6 +536,7 @@ export function ReschedulePage({
                   void onConfirm();
                 }}
                 disabled={selectedSlot === null || submitting}
+                data-testid="reschedule-confirm-btn"
               >
                 {submitting ? 'Moving…' : 'Confirm move'}
               </button>

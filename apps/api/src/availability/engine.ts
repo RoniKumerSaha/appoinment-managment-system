@@ -89,28 +89,57 @@ const SELECT_DOCTOR_BLOCKS_SQL = `
          tstzrange($3::timestamptz, $4::timestamptz, '[)');
 `;
 
+// Scheduled rows for this doctor + branch that overlap the candidate
+// day. Excludes the row being moved (`$5 = excludeAppointmentId`) so
+// the appointment does not collide with itself — the row is still in
+// the table until the reschedule commits, and the commit-time
+// recheck in routes/patient-reschedule.ts excludes it too.
+// `IS DISTINCT FROM` so a NULL $5 leaves the check unchanged.
 const SELECT_EXISTING_APPOINTMENTS_SQL = `
   SELECT start_datetime, end_datetime
     FROM appointment
    WHERE doctor_id = $1 AND branch_id = $2
      AND status = 'Scheduled'
+     AND id IS DISTINCT FROM $5::uuid
      AND tstzrange(start_datetime, end_datetime, '[)') &&
          tstzrange($3::timestamptz, $4::timestamptz, '[)');
 `;
 
+// FR-027: any future Scheduled row for (patient, doctor)? The row
+// being rescheduled is itself one, so `excludeAppointmentId` removes
+// it from the check — otherwise the preview rejects the caller's own
+// appointment.
+//
+// `IS DISTINCT FROM` (not `<>`) is essential: `id <> NULL::uuid`
+// evaluates to NULL, which is not true, so every row would be
+// filtered out and FR-027 would never fire at all for a plain
+// (non-reschedule) lookup. `IS DISTINCT FROM` is true when the ids
+// differ AND when one side is NULL, so passing NULL leaves the check
+// exactly as it was.
+//
+// The commit-time recheck in routes/patient-reschedule.ts uses the
+// same shape; the two must agree, or the preview shows slots that the
+// commit then rejects (or, as before this fix, hides slots that the
+// commit would happily accept).
 const SELECT_PATIENT_DOCTOR_OVERLAP_SQL = `
   SELECT 1 FROM appointment
  WHERE patient_phone = $1 AND doctor_id = $2
    AND status = 'Scheduled' AND start_datetime > now()
+   AND id IS DISTINCT FROM $3::uuid
  LIMIT 1;
 `;
 
+// FR-029: any Scheduled row for the patient overlapping the candidate
+// slot? The row being moved must not overlap *itself* — same
+// `IS DISTINCT FROM` exclusion as above ($4 is the excluded id; $2/$3
+// are the candidate slot's start/end).
 const SELECT_PATIENT_TIME_OVERLAP_SQL = `
   SELECT a.start_datetime, a.end_datetime
     FROM appointment a
    WHERE a.patient_phone = $1
      AND a.status = 'Scheduled'
      AND a.start_datetime > now()
+     AND a.id IS DISTINCT FROM $4::uuid
      AND tstzrange(a.start_datetime, a.end_datetime, '[)') &&
          tstzrange($2::timestamptz, $3::timestamptz, '[)');
 `;
@@ -389,6 +418,7 @@ export async function computeAvailability(
         query.branchId,
         new Date(dayStart.startMs),
         dayEndDate,
+        query.excludeAppointmentId,
       ],
     );
     const existingIntervals: Interval[] = [];
@@ -408,9 +438,13 @@ export async function computeAvailability(
     let patientSkip: Interval[] = [];
     if (query.patientPhone !== null) {
       // FR-027: same patient + same doctor + future Scheduled → empty.
+      // The row being rescheduled is excluded — it is a future
+      // Scheduled row for this same patient+doctor, and without the
+      // exclusion the preview rejects the caller's own appointment
+      // and the patient is told to cancel before they can reschedule.
       const { rows: pdRows } = await client.query<{ exists: boolean }>(
         SELECT_PATIENT_DOCTOR_OVERLAP_SQL,
-        [query.patientPhone, query.doctorId],
+        [query.patientPhone, query.doctorId, query.excludeAppointmentId],
       );
       if (pdRows.length > 0) {
         await client.query('COMMIT');
@@ -426,6 +460,7 @@ export async function computeAvailability(
           query.patientPhone,
           new Date(dayStart.startMs),
           dayEndDate,
+          query.excludeAppointmentId,
         ],
       );
       patientSkip = [];
