@@ -1,7 +1,7 @@
 /**
  * Receptionist day schedule — `GET /reception/branch/schedule`.
  *
- * Per F-15 (UX-FLOWS §4) + E5-S4 + BR-004: the receptionist's
+ * Per F-15 (UX-FLOWS §5) + E5-S4 + BR-004: the receptionist's
  * read-only availability browser shows BOTH open and booked slots
  * for a day. `GET /availability` returns only the open slots, so
  * the booked half of the calendar has to come from somewhere else —

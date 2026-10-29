@@ -13,7 +13,7 @@ source_story: planning-artifacts/epics-and-stories.md §E7-S4
 
 ## Intent
 
-A single shared `ConflictModal` component with three slots — **what happened**, **why**, **what you can do** — used by every flow that surfaces a 409 from the server. UX-FLOWS §8 (Conflict Patterns) and architecture §5 both forbid "OK"-only conflict surfaces and bespoke-modal drift.
+A single shared `ConflictModal` component with three slots — **what happened**, **why**, **what you can do** — used by every flow that surfaces a 409 from the server. UX-FLOWS §7.1 (ConflictModal pattern) and architecture §5 both forbid "OK"-only conflict surfaces and bespoke-modal drift.
 
 Today the codebase has **two bespoke modal implementations** that diverge in shape:
 

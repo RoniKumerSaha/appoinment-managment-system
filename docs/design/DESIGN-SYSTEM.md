@@ -311,7 +311,7 @@ Step number is **filled** for current step, **outlined** for future steps, **fil
 
 ### 7.6 Modal (ConflictModal pattern)
 
-UX-FLOWS §6.1. The canonical modal. Three slots:
+UX-FLOWS §7.1. The canonical modal. Three slots:
 
 1. **What happened** — one sentence in present tense. "That slot was just booked."
 2. **Why** — the rule. "Dr. Al-Rashid's 10:00 Saturday slot was claimed by another patient 12 seconds ago."
@@ -462,7 +462,7 @@ For production, replace these literal glyphs with a single icon library (Lucide 
 
 ### 10.3 Errors
 
-Always three parts: **what happened**, **why**, **what you can do**. From UX-FLOWS §6.1, applied:
+Always three parts: **what happened**, **why**, **what you can do**. From UX-FLOWS §7.1, applied:
 
 - ✗ "Slot not available."
 - ✓ "That slot was just booked. Dr. Al-Rashid's Saturday 10:00 was claimed 12 seconds ago. Pick another time →"

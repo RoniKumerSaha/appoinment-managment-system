@@ -296,7 +296,7 @@ A pure server-side function (see architecture §3.2). Slot generation must:
 - Honor `(branch_hours ∩ doctor_hours) − blocks − existing`.
 - Use the appointment-type duration (FR-015).
 - Insert **no buffer** between consecutive slots (FR-016, BR-017).
-- Apply the **30-day fixed window** (FR-018) — calendar grays out dates outside the window with a tooltip explaining the limit (UX-FLOWS §6.5).
+- Apply the **30-day fixed window** (FR-018) — calendar grays out dates outside the window with a tooltip explaining the limit (UX-FLOWS §7.5).
 - Exclude same-day (FR-019, BR-021).
 - If remaining working time at the end of a day cannot fit a complete appointment duration, the partial remainder is unused (FR-017).
 - Back-to-back appointments are allowed across branches (FR-030) — no travel-time calculation.
@@ -375,7 +375,7 @@ Same as E3-S2 with:
 **When**
   they pick a doctor (assigned to their branch only), an appointment type, and a date range within the 30-day window
 **Then**
-  they see a read-only `AvailabilityCalendar` showing bookable slots. No patient PII beyond first-name initial. The calendar grays out dates outside the window with a tooltip explaining the limit (UX-FLOWS §6.5).
+  they see a read-only `AvailabilityCalendar` showing bookable slots. No patient PII beyond first-name initial. The calendar grays out dates outside the window with a tooltip explaining the limit (UX-FLOWS §7.5).
 
 The receptionist cannot modify the schedule from this surface (per role capability matrix).
 
@@ -629,7 +629,7 @@ See E1-S2; called out here because it's the doctor-facing counterpart of the res
 
 ### E6-S4 — Per-occurrence recurring cancel / reschedule
 
-**Rules:** PRD FR-049 ("individual occurrences shall be independently cancellable or reschedulable"), FR-050 ("cancelling one occurrence shall immediately release its slot"), UX-FLOWS §4.7 (per-occurrence independence)
+**Rules:** PRD FR-049 ("individual occurrences shall be independently cancellable or reschedulable"), FR-050 ("cancelling one occurrence shall immediately release its slot"), UX-FLOWS F-11 (per-occurrence independence)
 
 **Given**
   an occurrence exists as part of a created recurring series
@@ -717,7 +717,7 @@ A single `ConflictModal` component with three slots: what happened / why / what 
 
 ### E7-S6 — Branch timezone support
 
-**Rules:** UX §14, UX-FLOWS §6.4
+**Rules:** UX §14, UX-FLOWS §7.4
 
 Add `tz` to `Branch`. All branch-local times (operating hours, slot starts/ends) are stored as UTC and converted at the branch tz for display. UI labels always carry tz or are unambiguously local.
 
@@ -725,7 +725,7 @@ Add `tz` to `Branch`. All branch-local times (operating hours, slot starts/ends)
 
 ### E7-S7 — No tentative client-side slot holds
 
-**Rules:** UX-FLOWS §6.2 (atomicity discipline), Architecture principle 2
+**Rules:** UX-FLOWS §7.2 (atomicity discipline), Architecture principle 2
 
 The UI never assumes a slot is bookable based on stale data, never holds tentative slots client-side, and surfaces "slot was just taken" gracefully (ConflictModal) rather than as a system error. The availability calendar's "still showing" state must reconcile to server truth on every action.
 
@@ -761,7 +761,7 @@ Emit metrics covering: booking success rate, failed booking rate, slot conflict 
 
 ### E7-S10 — Design open questions parking lot
 
-The following items from UX-FLOWS §7 are **not yet decided** and need design input before the relevant story can be built:
+The following items from UX-FLOWS §8 are **not yet decided** and need design input before the relevant story can be built:
 
 1. Calendar visualization: day / week / month view for doctor and receptionist dashboards?
 2. Bulk conflict resolution: can F-09 / E6-S2 resolve multiple affected rows in one go, or only one at a time?
@@ -816,11 +816,11 @@ Each item above should be answered or explicitly deferred before its story start
 | E7-S3 | (horizontal) | FR-022, FR-031, FR-032 / NFR-007 | — | [Mockup 05 — Patient self-service](../../docs/design/mockups/v1/mockups/05-patient-self-service.html) |
 | E7-S4 | (horizontal) | UX §8 | — | [Mockup 29 — Conflict modal](../../docs/design/mockups/v1/mockups/29-conflict-modal.html) |
 | E7-S5 | (horizontal) | WCAG 2.1 AA | — | [Design system reference](../../docs/design/design-system.html); [Mockup 29 — Conflict modal](../../docs/design/mockups/v1/mockups/29-conflict-modal.html) |
-| E7-S6 | (horizontal) | UX-FLOWS §6.4 | — | [Mockup 01 — Layout direction](../../docs/design/mockups/v1/mockups/01-layout-direction.html) |
-| E7-S7 | (horizontal) | UX-FLOWS §6.2, Arch principle 2 | — | — |
+| E7-S6 | (horizontal) | UX-FLOWS §7.4 | — | [Mockup 01 — Layout direction](../../docs/design/mockups/v1/mockups/01-layout-direction.html) |
+| E7-S7 | (horizontal) | UX-FLOWS §7.2, Arch principle 2 | — | — |
 | E7-S8 | (horizontal) | NFR-008, NFR-009, NFR-010 | — | — |
 | E7-S9 | (horizontal) | PRD §16 | — | — |
-| E7-S10 | (parking lot) | UX-FLOWS §7 | — | — |
+| E7-S10 | (parking lot) | UX-FLOWS §8 | — | — |
 
 ---
 
@@ -878,10 +878,10 @@ All 15 MVP criteria are covered by the story set above.
   - Added **E4-S4** (deep-link entry to cancel/reschedule).
   - Added **E5-S5** (no deletion, Scenario 15).
   - Added **E6-S4** (per-occurrence recurring cancel/reschedule, FR-049/050).
-  - Added **E7-S7** (no tentative client-side holds, UX-FLOWS §6.2).
+  - Added **E7-S7** (no tentative client-side holds, UX-FLOWS §7.2).
   - Added **E7-S8** (performance / availability / consistency SLAs, NFR-008/009/010).
   - Added **E7-S9** (product metrics, PRD §16).
-  - Added **E7-S10** (UX-FLOWS §7 design open questions parking lot).
+  - Added **E7-S10** (UX-FLOWS §8 design open questions parking lot).
   - Sharpened ACs throughout: phone-uniqueness FR-022, immediate confirmation FR-024, FR-017 partial-time, FR-018 fixed-window tooltip, FR-027 same-doctor future, FR-030 back-to-back, FR-040 doctor-locked reschedule, FR-048 full skip-reason list, audit metadata per F-05 / F-09, branch-hours "doctor no longer at branch" edge case (F-17), doctor-initiated conflict move `action = "moved_by_doctor"` (F-09), audit audience per role.
   - Fixed header note: `S-<epic>-<n>` → `E<n>-S<m>` to match actual IDs.
   - Replaced the traceability table and added a PRD §15 scenario → story coverage matrix.

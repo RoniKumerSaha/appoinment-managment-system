@@ -1,7 +1,7 @@
 /**
  * no-tentative-holds.test.ts — static, file-walking test for E7-S7.
  *
- * Per spec-7-7 (Architecture §2 "atomicity over clever UX" + UX-FLOWS §6.2):
+ * Per spec-7-7 (Architecture §2 "atomicity over clever UX" + UX-FLOWS §7.2):
  *   "The UI may display slots; it may not assume a slot is still
  *    bookable, and it may not hold tentative reservations outside the
  *    server's booking transaction."

@@ -14,6 +14,7 @@
 
 | ID | Actor | Flow | Primary rules |
 |----|-------|------|---------------|
+| F-00 | Any | Sign in (choose audience → staff or patient form) | FR-052, FR-053 |
 | F-01 | Patient | First-time booking | BR-012…024, BR-025, BR-026, BR-031, BR-033 / FR-020…026, FR-027, FR-029 |
 | F-02 | Patient | Returning booking (known phone) | BR-027 / FR-023 |
 | F-03 | Patient | OTP verification → upcoming list | BR-029, BR-030 / FR-031, FR-032 |
@@ -50,6 +51,15 @@
 | **RecurrenceResultPanel** | Created vs. skipped summary | F-11 |
 | **AppointmentCard** | Single appointment with status, time, actions | F-03, F-04, F-05, F-10, F-12, F-14 |
 | **AuditLogDrawer** | Actor + timestamp history (staff-only) | F-10, F-14 |
+| **LoginChooser** | Entry screen — choose Staff or Patient | F-00 |
+| **StaffLoginPage** | Role + email + password (password required) | F-00 |
+| **PatientLoginPage** | Phone + 6-digit OTP | F-00, F-03 |
+
+> **Reconciliation (2026-10-29).** The three login primitives were added by the
+> W12 pass. The login used to be a single page rendering the staff form and the
+> patient OTP form as two cards side by side, so each audience was shown the
+> other's form — and on a narrow screen each had to scroll past it first. The
+> chooser splits them into separate screens.
 
 ### 1.3 Legend for flow diagrams
 
@@ -67,7 +77,66 @@ audit: action              Writes one audit record
 
 ---
 
-## 2. Patient Flows
+## 2. Sign-in Flows
+
+### F-00 — Sign In
+
+**Goal.** An unauthenticated visitor reaches the right sign-in form without
+being shown the other audience's form.
+
+```
+[Start] Visitor opens the app
+   ↓
+Screen: LoginChooser
+   - "Who are you signing in as?"
+   - [Staff sign-in]  →  Screen: StaffLoginPage
+   - [Patient sign-in] → Screen: PatientLoginPage
+   ↓
+Each screen carries ONE form, and offers a link back to the chooser
+and across to the other audience.
+```
+
+**Staff sign-in (`#/login/staff`).** Role + email + password.
+
+```
+StaffLoginPage
+   - Role (Administrator | Doctor | Receptionist)
+   - Email
+   - Password          ← REQUIRED
+   [Sign in]           ← disabled until email and password are both non-empty
+   ↓ submit
+   ├── password blank → error "password_required"; no session
+   ├── wrong password → error "invalid_credentials"; no session
+   ├── unknown email  → error; no session
+   └── valid          → the role's shell mounts
+```
+
+**Patient sign-in (`#/login/patient`).** Phone + 6-digit OTP.
+
+```
+PatientLoginPage
+   - Phone (full international number, E.164)
+   - 6-digit OTP entry
+   ↓ verify
+   └── valid → the patient booking flow mounts
+```
+
+**Rules.**
+
+* Neither screen shows the other audience's fields (`FR-053`).
+* A blank staff password is refused in the UI, not only by the API — the submit
+  button stays disabled and a forced submit still refuses (`FR-052`).
+* An unrecognised hash falls back to the chooser, which is always reachable.
+
+> **Reconciliation (2026-10-29).** Added by the W12 pass. There was no sign-in
+> flow before: the login was one page with both forms on it, described in §1.2
+> of this document only implicitly. The staff password field was also optional,
+> and a blank password fell through to a development-only email-only path that
+> minted a valid session for anyone who knew a seeded staff address.
+
+---
+
+## 3. Patient Flows
 
 ### F-01 — First-Time Booking
 
@@ -244,7 +313,7 @@ Screen: RescheduleSuccess
 
 ---
 
-## 3. Doctor Flows
+## 4. Doctor Flows
 
 ### F-06 — Manage Weekly Schedule
 
@@ -421,7 +490,7 @@ Trigger: DoctorAppointmentList → row → action
 
 ---
 
-## 4. Receptionist Flows
+## 5. Receptionist Flows
 
 ### F-11 — Create Recurring Series
 
@@ -529,6 +598,27 @@ Toast: "Cancelled. Slot released."
 [End]
 ```
 
+**Audit drawer (FR-051, §7.3).** The receptionist can open the audit
+trail for an appointment at their branch. This is a **separate** trigger
+from the cancel modal — it is read-only and is available on any
+appointment in the branch list, not only on a cancelled one.
+
+```
+Trigger: ReceptionistToday → AppointmentCard → [Audit]
+   ↓
+Drawer: ReceptionistAuditDrawer (slide-in, mirrors DoctorAuditDrawer)
+   - GET /reception/appointments/:id/audit
+   - Filter chips: all · status · cancel · block · resolve
+   - Each row: time (branch tz) · actor · action · metadata
+   [Close]
+```
+
+**Scope.** Events for appointments **at the receptionist's branch** — not
+for one particular doctor. Unlike F-15's availability browser, this is
+an internal audit surface (NFR-005), so the full patient phone and the
+actor behind each event are visible. The receptionist still cannot see
+audit events for another branch's appointments.
+
 ### F-15 — View Doctor Availability
 
 **Goal.** Receptionist checks open slots before booking.
@@ -552,7 +642,7 @@ Screen: DoctorAvailability
 
 ---
 
-## 5. Administrator Flows
+## 6. Administrator Flows
 
 ### F-16 — Manage Branches
 
@@ -669,9 +759,9 @@ Atomic: persist + audit
 
 ---
 
-## 6. Cross-Cutting Concerns
+## 7. Cross-Cutting Concerns
 
-### 6.1 ConflictModal pattern
+### 7.1 ConflictModal pattern
 
 All conflict errors surface through a single pattern with three parts:
 
@@ -681,7 +771,7 @@ All conflict errors surface through a single pattern with three parts:
 
 Used by: F-01, F-02, F-05, F-06, F-07, F-13, F-16.
 
-### 6.2 Atomicity discipline
+### 7.2 Atomicity discipline
 
 The server is the single source of truth for availability. The UI must:
 
@@ -689,19 +779,35 @@ The server is the single source of truth for availability. The UI must:
 - Show "slot was just taken" gracefully, not as a system error
 - Never hold tentative slots client-side
 
-### 6.3 Audit visibility
+### 7.3 Audit visibility
 
 Audit records are **internal only**. Surfaces:
 
-- **Doctors and receptionists** — audit history for appointments they own
-- **Administrators** — configuration audit events
+- **Doctors** — audit history for appointments they own.
+  `GET /doctor/appointments/:id/audit`, surfaced by `DoctorAuditDrawer`
+- **Receptionists** — audit history for appointments at their branch.
+  `GET /reception/appointments/:id/audit`, surfaced by
+  `ReceptionistAuditDrawer` (see F-14)
+- **Administrators** — configuration audit events.
+  `GET /admin/audit`, surfaced by `AdminAuditPage`
 - **Patients** — never see audit logs
 
-### 6.4 Time zone
+**Scope rule (FR-051).** Each role's read scope is bounded: a doctor
+sees events for their own appointments, a receptionist sees events for
+appointments at their own branch, and an admin sees configuration
+events but **not** individual patient appointments. Patients have no
+audit surface at all.
+
+**Privacy.** The doctor and receptionist drawers are internal audit
+surfaces (NFR-005), so the full patient phone and the acting user are
+visible. This is narrower than the F-15 availability browser, which
+shows a first-name initial only.
+
+### 7.4 Time zone
 
 Branch operating hours and slots are in the **branch's local time zone**. The data model should store `tz` per branch (recommend adding to architecture phase). All UI timestamps are labeled with branch tz.
 
-### 6.5 No buffer, fixed window
+### 7.5 No buffer, fixed window
 
 - **No buffer between appointments** (BR-017, FR-016) — slots are back-to-back
 - **30-day fixed window** (BR-020, FR-018) — calendar grays out dates outside the window with a tooltip explaining the limit
@@ -709,7 +815,7 @@ Branch operating hours and slots are in the **branch's local time zone**. The da
 
 ---
 
-## 7. Open Questions for Design
+## 8. Open Questions for Design
 
 1. **Calendar visualization.** Day / week / month view? Recurring series rendering on the agenda?
 2. **Bulk conflict resolution.** F-09 resolves one appointment at a time. Bulk mode for many affected rows?
@@ -720,10 +826,11 @@ Branch operating hours and slots are in the **branch's local time zone**. The da
 
 ---
 
-## 8. Traceability Summary
+## 9. Traceability Summary
 
 | Flow | BRD | PRD |
 |------|-----|-----|
+| F-00 | — | FR-052, FR-053 |
 | F-01 | BR-012…024, BR-025, BR-026, BR-031, BR-033 | FR-020…026, FR-027, FR-029 |
 | F-02 | BR-027 | FR-023 |
 | F-03 | BR-029, BR-030 | FR-031, FR-032 |
@@ -737,15 +844,21 @@ Branch operating hours and slots are in the **branch's local time zone**. The da
 | F-11 | BR-047…053 | FR-044, FR-046…050 |
 | F-12 | BR-063 | §2.3 |
 | F-13 | BR-019, BR-031, BR-033 | FR-019, FR-027, FR-029 |
-| F-14 | BR-036, BR-040 | FR-034, FR-037 |
+| F-14 | BR-036, BR-040 | FR-034, FR-037, FR-051 |
 | F-15 | BR-012, BR-013 | §2.3, §5 |
 | F-16 | BR-001, BR-005, BR-059 | FR-002, FR-003 |
 | F-17 | BR-060, BR-061, BR-062 | §4.6 |
 | F-18 | BR-002, BR-003 | FR-004 |
 | F-19 | BR-004 | FR-005 |
 
+**Audit visibility (§7.3).** F-10 (doctor marks status), F-12
+(receptionist today), F-14 (receptionist cancel), and F-18/F-19
+(administrator configuration) all write audit rows; the read surfaces
+are `DoctorAuditDrawer` (F-10), `ReceptionistAuditDrawer` (F-12/F-14)
+and `AdminAuditPage` (F-18/F-19). All three are governed by FR-051.
+
 ---
 
 **End of document.**
 
-Next recommended step: hand to design for wireframes on the highest-uncertainty flows (F-09 conflict resolution, F-11 recurring preview, F-17 branch-hours affected flow), or run `/bmad-create-epics-and-stories` to break these 19 flows into sprintable stories.
+Next recommended step: hand to design for wireframes on the highest-uncertainty flows (F-09 conflict resolution, F-11 recurring preview, F-17 branch-hours affected flow), or run `/bmad-create-epics-and-stories` to break these 20 flows into sprintable stories.

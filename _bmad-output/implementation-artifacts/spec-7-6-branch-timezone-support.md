@@ -16,7 +16,7 @@ context:
 
 ## Intent
 
-**Problem:** Per PRD UX §14 + UX-FLOWS §6.4, all
+**Problem:** Per PRD UX §14 + UX-FLOWS §7.4, all
 branch-local times (operating hours, slot starts/ends,
 doctor schedule) are stored as UTC and converted at the
 branch's timezone for display. The UI labels always carry
@@ -92,7 +92,7 @@ across:
 
 **Ask First:**
 - (none — scope resolved at plan-time via epics-and-stories.md
-  E7-S6 + PRD UX §14 / UX-FLOWS §6.4.)
+  E7-S6 + PRD UX §14 / UX-FLOWS §7.4.)
 
 **Never:**
 - Never store a wall-clock time as a `timestamptz`. The

@@ -57,7 +57,7 @@ caller's `claim.role === 'receptionist'`:
 
 **Ask First:**
 - (none — scope resolved at plan-time via epics-and-stories.md E3-S4 +
-  UX-FLOWS §F-13 + UX-FLOWS §508.)
+  UX-FLOWS F-13.)
 
 **Never:**
 - No new route. E3-S4 stays on `POST /bookings`; role is determined from

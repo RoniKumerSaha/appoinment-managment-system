@@ -51,7 +51,7 @@ question is never silently forgotten.
 
 ## Traceability
 
-| UX-FLOWS §7 # | Question (abbreviated) | Parking-lot status | Consuming story / file |
+| UX-FLOWS §8 # | Question (abbreviated) | Parking-lot status | Consuming story / file |
 |---|---|---|---|
 | 1 | Calendar visualization | OPEN | — |
 | 2 | Bulk conflict resolution | DECIDED | E6-S2 — `DoctorAffected.tsx` |

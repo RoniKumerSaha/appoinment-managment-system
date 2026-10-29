@@ -17,7 +17,7 @@
 
 ## 1. Architectural principles
 
-1. **The server is the single source of truth for availability.** UI shows slots; only the server may grant or release one. (UX-FLOWS §6.2)
+1. **The server is the single source of truth for availability.** UI shows slots; only the server may grant or release one. (UX-FLOWS §7.2)
 2. **Atomicity over clever UX.** Booking and rescheduling use transactional slot reservation. No tentative holds client-side.
 3. **Never silently invalidate an appointment.** Schedule/block changes that would conflict are **rejected**; branch-hours changes **save and flag** for manual resolution.
 4. **Patient identity is a phone number.** No passwords, no accounts. Identity verification is SMS OTP, server-side filtered. **Prevents:** a patient from seeing or being matched to another patient's appointments.
@@ -214,7 +214,7 @@ Derived from PRD §8 and design constraints:
 - `created_by` is either a staff user id or a patient phone number (guest booking).
 - `Appointment` rows are never deleted — `Cancelled` is the terminal state.
 - `AppointmentAudit` is append-only. Retention: at least 7 years (F18); specifics (cold storage, encryption-at-rest, PII scrubbing) deferred to §9.1.
-- `Branch.tz` is required for production (UX-FLOWS §6.4). All appointment timestamps are stored UTC and rendered in `appointment.branch.tz` (AD-9); session branch tz never relabels another branch's event.
+- `Branch.tz` is required for production (UX-FLOWS §7.4). All appointment timestamps are stored UTC and rendered in `appointment.branch.tz` (AD-9); session branch tz never relabels another branch's event.
 - `Branch.active` is required. Inactive branches are excluded from `/availability` and `/bookings` at the data layer; existing `Scheduled` appointments remain Scheduled and resolvable (F17).
 - `DoctorSchedule` is keyed by `(doctor_id, branch_id, day_of_week, effective_from)` with multiple periods per day.
 - `DoctorPatientLink` is populated on first booking; required for AD-8 doctor self-scope.

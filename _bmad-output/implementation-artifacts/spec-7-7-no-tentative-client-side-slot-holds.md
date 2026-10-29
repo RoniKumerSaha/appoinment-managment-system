@@ -13,7 +13,7 @@ source_story: planning-artifacts/epics-and-stories.md §E7-S7
 
 ## Intent
 
-Architecture principle 2 (atomicity over clever UX) and UX-FLOWS §6.2 forbid the UI from treating availability responses as anything more than advisory. The UI may display slots; it may **not** assume a slot is still bookable, and it may **not** hold tentative reservations outside the server's booking transaction.
+Architecture principle 2 (atomicity over clever UX) and UX-FLOWS §7.2 forbid the UI from treating availability responses as anything more than advisory. The UI may display slots; it may **not** assume a slot is still bookable, and it may **not** hold tentative reservations outside the server's booking transaction.
 
 This story is the **static + dynamic test pair** that locks the invariant at the source level and at the booking-transaction level. Mirrors the E2-S4 (`doctor-cannot-reschedule`) static-test pattern.
 

@@ -198,7 +198,7 @@ Matrix: 21 matrix rows covered by 21 sms-otp tests; one row each for provider-fa
 - **W22** — Twilio webhook for delivery status — out of scope. SMS delivery is fire-and-forget; delivery failures surface only via the synchronous `send()` exception.
 - **W23** — Real Twilio credentials in CI — out of scope. The Twilio provider is wired but never invoked in the test suite (a stub client is injected).
 - **W24** — Per-phone rolling rate limit (e.g. max 10 sends per hour) beyond the 3-attempts-per-10-min lockout — future hardening story. The lockout covers the brute-force case; this would cover SMS-cost abuse.
-- **W25** — OTP code via voice call as fallback for users without signal — UX-FLOWS §7 parking lot item 4.
+- **W25** — OTP code via voice call as fallback for users without signal — UX-FLOWS §8 parking lot item 4.
 
 ## Open Questions for Human
 

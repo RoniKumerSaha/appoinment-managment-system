@@ -13,7 +13,7 @@ source_story: planning-artifacts/epics-and-stories.md §E7-S10
 
 ## Intent
 
-UX-FLOWS §7 lists six items that were "not yet decided" at the time the planning artifact was written. This story doesn't **answer** the questions — that's UX / PM work — but it ships the **parking lot**: a single, queryable, dated document that captures the current state, the decision owner, the target epic/story, and the explicit deferral rationale.
+UX-FLOWS §8 lists six items that were "not yet decided" at the time the planning artifact was written. This story doesn't **answer** the questions — that's UX / PM work — but it ships the **parking lot**: a single, queryable, dated document that captures the current state, the decision owner, the target epic/story, and the explicit deferral rationale.
 
 **Why a parking lot rather than a series of stories:** some items will turn into stories once decided (e.g., "day / week / month view for doctor dashboard" becomes a `7-12` story). Others are intentional deferred-then-never decisions (e.g., "SMS-only OTP" is fine for MVP and unlikely to need a separate work item). The parking lot is the source of truth; stories are spawned from it, not the other way around.
 
@@ -66,8 +66,8 @@ The document is a *living* parking lot. New items get appended; "OPEN" items mov
 
 ## Verification
 
-1. `docs/design/open-questions.md` is committed and lists every UX-FLOWS §7 item.
-2. The 6 items from UX-FLOWS §7 are present, each with a status (DECIDED or OPEN), an owner, and a cross-link to the story that resolved or will resolve it.
+1. `docs/design/open-questions.md` is committed and lists every UX-FLOWS §8 item.
+2. The 6 items from UX-FLOWS §8 are present, each with a status (DECIDED or OPEN), an owner, and a cross-link to the story that resolved or will resolve it.
 3. The document is dated 2026-10-07 (authoring date).
 4. `pnpm --filter @clinic/web typecheck` — 0 new errors (this is docs-only; typecheck unchanged).
 5. `pnpm --filter @clinic/api typecheck` — 0 new errors (3 pre-existing baseline unchanged).

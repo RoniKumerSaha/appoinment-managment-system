@@ -19,7 +19,7 @@ context:
 **Problem:** Per PRD FR-049 ("individual occurrences shall
 be independently cancellable or reschedulable") + FR-050
 ("cancelling one occurrence shall immediately release its
-slot") + UX-FLOWS §4.7, when a recurring series is created
+slot") + UX-FLOWS F-11 (per-occurrence independence), when a recurring series is created
 (E6-S1), each occurrence is an independent appointment
 thereafter. Cancelling one occurrence must NOT cancel its
 siblings; rescheduling one must NOT touch its siblings.
@@ -89,7 +89,7 @@ audit payloads.
 
 **Ask First:**
 - (none — scope resolved at plan-time via epics-and-stories.md
-  E6-S4 + PRD FR-049 / FR-050 / UX-FLOWS §4.7.)
+  E6-S4 + PRD FR-049 / FR-050 / UX-FLOWS F-11 (per-occurrence independence).)
 
 **Never:**
 - Never include `occurrence_index` in the payload. The

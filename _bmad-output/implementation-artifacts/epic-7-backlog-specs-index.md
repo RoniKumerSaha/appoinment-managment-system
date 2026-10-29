@@ -14,7 +14,7 @@ Drafted on 2026-10-07 to convert the E7 backlog from "no spec, build when ready"
 | `7-5-accessibility-baseline-wcag-2-1-aa` | Focus ring, modal a11y, status-pill icons, contrast, touch targets, reduced-motion. | [spec-7-5-accessibility-baseline-wcag-2-1-aa.md](spec-7-5-accessibility-baseline-wcag-2-1-aa.md) | **4** |
 | `7-8-performance-availability-slas` | k6 load test, chaos test, per-route perf budgets, SLO metrics. | [spec-7-8-performance-availability-slas.md](spec-7-8-performance-availability-slas.md) | **5** |
 | `7-9-product-metrics-instrumentation` | 8 missing counters/histograms from PRD §16; dashboard JSON. | [spec-7-9-product-metrics-instrumentation.md](spec-7-9-product-metrics-instrumentation.md) | **6** |
-| `7-10-design-open-questions-parking-lot` | `docs/design/open-questions.md` capturing UX-FLOWS §7 items. | [spec-7-10-design-open-questions-parking-lot.md](spec-7-10-design-open-questions-parking-lot.md) | **7 (last)** |
+| `7-10-design-open-questions-parking-lot` | `docs/design/open-questions.md` capturing UX-FLOWS §8 items. | [spec-7-10-design-open-questions-parking-lot.md](spec-7-10-design-open-questions-parking-lot.md) | **7 (last)** |
 
 ## Why this order
 

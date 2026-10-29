@@ -1803,7 +1803,7 @@ development_status:
   #   BR-054…058), E6-S3 (doctor affected queue — read-side
   #   counterpart of E1-S2's impact preview), E6-S4 (per-occurrence
   #   audit enrichment for cancel/reschedule, FR-049, FR-050,
-  #   UX-FLOWS §4.7). Migration footprint: 1 new migration
+  #   UX-FLOWS F-11 (per-occurrence independence). Migration footprint: 1 new migration
   #   (0018_recurring_series.sql) adding recurring_series_id +
   #   partial index.
   # Highlights:
@@ -2360,6 +2360,61 @@ development_status:
   #     `pnpm --filter @clinic/api run db:reset`, not by the baseline
   #     `db:seed`. The baseline seed still leaves password_hash NULL,
   #     so the dev-only email-only login path remains reachable there.
+  #
+  # DOC RECONCILIATION (2026-10-29) — the AI-DLC artifact set for W12
+  # was missing; the shipped code had no spec file, and the spec docs
+  # did not describe the shipped behaviour. Both are now closed:
+  #
+  #   - NEW spec file:
+  #     implementation-artifacts/spec-w12-login-split-staff-catalog-audit-drawer.md
+  #     Follows the standard section order (Intent → Boundaries →
+  #     I/O matrix → Code Map → Reuse → Verification → Spec Change Log
+  #     → Deferrals → Cross-References). Records SC1 (new FR IDs, no
+  #     renumbering), SC2 (the UX-FLOWS section renumbering and the
+  #     cross-reference repair), SC3/SC4 (the two casing bugs), SC4
+  #     (audit visibility was documented but not built — the CODE was
+  #     the gap), and SC5 (the dev-only email-only path is retained).
+  #
+  #   - README.md (NEW) — repo orientation. Stack, repo layout, where
+  #     to start reading code, the TWO documentation flows and when to
+  #     use each, local setup, the three seeds, dev credentials, the
+  #     test tiers, the API surface (incl. why there are two catalogs),
+  #     roles and authorization, the login screens, the design-system
+  #     contract, and the known deferrals. Every claim was verified
+  #     against the source before it was written.
+  #
+  #   - docs/specs/PRD.md — FR-051 extended with an explicit read-scope
+  #     list; FR-052 (Staff Authentication) and FR-053 (Login Screen
+  #     Separation) added with dated reconciliation notes; the doctor
+  #     and receptionist capability lists gained the audit trail;
+  #     §2.1's "no password account" note now says it is a PATIENT
+  #     restriction and does not apply to staff. Scenarios 16–20 were
+  #     appended — numbering continues from 1–15, nothing renumbered.
+  #
+  #   - docs/specs/UX-FLOWS.md — F-00 (Sign In) added as a first-class
+  #     flow with its own §2; the downstream sections shifted (§2→§3 …
+  #     §8→§9). Section numbers are STRUCTURAL and may shift; the
+  #     F-NN / FR-NNN / BR-NNN IDs are STABLE and were not renumbered.
+  #     Every inbound §N cross-reference across the repository was
+  #     repaired in the same pass. TWO of them were stale BEFORE this
+  #     work and pointed at sections that never existed ("§8 Conflict
+  #     Patterns" → §7.1; "§4.7" → F-11); they were corrected at the
+  #     same time. See SC2 in the spec file for the full table.
+  #
+  #   - The receptionist audit drawer was added to F-14 and §7.3, and
+  #     §7.3 now names the three shipped audit surfaces with their
+  #     exact routes and scopes (doctor → own appointments; receptionist
+  #     → own branch; admin → configuration events only).
+  #
+  # RE-VERIFICATION AFTER THE DOC PASS (2026-10-29):
+  #   - API 425/425 pass (unchanged — no product code was touched by
+  #     the doc pass; only comments in three route files and two test
+  #     files changed).
+  #   - Web typecheck 0 errors; API typecheck 0 errors.
+  #   - Web lint 0 errors; API lint 0 errors (same 14 pre-existing
+  #     no-unused-vars warnings, none in files this work touches).
+  #   - E7-S1 token-only-CSS 3/3 pass; E7-S4 ConflictModal singleton
+  #     3/3 pass; web production build succeeds.
   w12-login-split-staff-catalog-audit-drawer: done
   7-2-appointment-audit: done
   # 2026-10-04 bmad-build step-25 implementation complete for E7-S2
@@ -2490,7 +2545,7 @@ development_status:
   7-4-conflict-modal-global-component: done
   7-6-branch-timezone-support: done
   # 2026-10-04 E7-S6 documentation-only story complete. The branch
-  #   timezone contract (UX §14, UX-FLOWS §6.4) is already enforced
+  #   timezone contract (UX §14, UX-FLOWS §7.4) is already enforced
   #   across the codebase:
   #   - branch.tz (IANA name) column on `branch` (E1-S1).
   #   - branch_weekly_hours.open_time/close_time as `time` (no tz in

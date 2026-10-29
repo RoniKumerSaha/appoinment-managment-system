@@ -1,7 +1,7 @@
 /**
  * conflict-modal-singleton.test.ts — static singleton test for E7-S4.
  *
- * Per spec-7-4 (UX-FLOWS §8 + architecture §5):
+ * Per spec-7-4 (UX-FLOWS §7.1 + architecture §5):
  *   "A single shared ConflictModal component...used by every flow that
  *    surfaces a 409 from the server."
  *   "OK"-only conflict surfaces and bespoke-modal drift are forbidden.

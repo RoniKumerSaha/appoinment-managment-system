@@ -47,6 +47,12 @@ The system should also protect existing appointments when schedules or branch op
 * Cannot change doctor during rescheduling.
 * Cannot directly create recurring appointments.
 
+> **Note (2026-10-29).** "No password account" is a **patient** restriction and
+> is unchanged: a patient is identified by their phone number and authenticated by
+> SMS OTP (`FR-031`). It does not apply to staff — staff sign in with a password
+> under `FR-052`. The distinction is worth stating because the two rules look
+> contradictory on the page.
+
 ---
 
 ## 2.2 Doctor
@@ -65,6 +71,7 @@ The system should also protect existing appointments when schedules or branch op
 * Cancel appointments with a reason.
 * Resolve appointments affected by schedule changes.
 * Move affected appointments between branches where the doctor works.
+* View the audit trail for their own appointments.
 
 ### Restrictions
 
@@ -86,6 +93,7 @@ The system should also protect existing appointments when schedules or branch op
 * Mark appointments Completed.
 * Mark appointments No-show.
 * View relevant doctor availability.
+* View the audit trail for appointments at their branch.
 
 ### Restrictions
 
@@ -495,6 +503,49 @@ The system shall maintain internal audit records for important appointment event
 * Timestamp
 
 Detailed historical appointment versions are not required.
+
+Audit records are internal. They are readable by:
+
+* **Doctors** — for appointments they own.
+* **Receptionists** — for appointments at their own branch.
+* **Administrators** — configuration events only. An administrator does not read
+  individual appointments' audit trails.
+
+Patients never see audit records.
+
+## FR-052 — Staff Authentication
+
+Staff (administrators, doctors, receptionists) shall authenticate with a role, an
+email address, and a password.
+
+A staff sign-in shall be refused when the password is absent, empty, or does not
+match the credential stored for that account.
+
+An email address alone shall not be sufficient to obtain a session.
+
+> **Reconciliation (2026-10-29).** Added by the W12 pass. This requirement was
+> previously implicit: `FR-031` covers *patient* authentication only, and the
+> staff sign-in had no requirement of its own. In practice the staff password
+> field was optional, and a blank password fell through to a development-only
+> email-only path that minted a valid session for anyone who knew a seeded staff
+> address. The path is now closed in the UI, and every seeded staff account
+> carries a credential.
+
+## FR-053 — Login Screen Separation
+
+The system shall present staff sign-in and patient sign-in as separate screens.
+
+A staff sign-in screen shall not present a patient authentication form, and a
+patient sign-in screen shall not present a staff authentication form. Neither
+screen shall require the user to scroll past the other audience's form.
+
+The entry point shall offer a choice between the two before either form is shown.
+
+> **Reconciliation (2026-10-29).** Added by the W12 pass. The login was one page
+> with two cards — staff sign-in on the left, patient OTP on the right — so each
+> audience was shown the other's form, and on a narrow screen each had to scroll
+> past it first. The screens are now `#/login` (a chooser), `#/login/staff`, and
+> `#/login/patient`.
 
 ---
 
@@ -1102,6 +1153,42 @@ Appointments are never deleted.
 **Given** an existing appointment
 **When** a user attempts to delete it
 **Then** the system does not provide a normal delete operation.
+
+### Scenario 16 — Staff Password Required
+
+**Given** a staff member opens the staff sign-in screen
+**When** they submit with the password field blank
+**Then** the sign-in is refused with a `password_required` error and no session is created.
+
+### Scenario 17 — Staff Sign-In Without a Credential
+
+**Given** a staff email address that exists in the clinic
+**When** a sign-in is attempted with no password
+**Then** no session is created.
+
+### Scenario 18 — Login Screen Separation
+
+**Given** an unauthenticated visitor opens the application
+**When** they choose "Patient"
+**Then** a patient sign-in screen is shown with no staff fields, and a staff sign-in screen is shown with no patient fields.
+
+### Scenario 19 — Receptionist Audit Visibility
+
+**Given** a receptionist belongs to Branch A
+**When** they view the audit trail for an appointment at Branch A
+**Then** the trail is shown.
+
+**When** they view the audit trail for an appointment at another branch
+**Then** the trail is refused.
+
+### Scenario 20 — Admin Audit Visibility
+
+**Given** an administrator requests individual appointment audit data
+**Then** the request is refused under the role policy, and configuration audit events remain readable.
+
+> **Scenarios 16–20 (2026-10-29).** Added by the W12 pass to cover `FR-051`'s
+> read scopes, `FR-052`, and `FR-053`. Scenario numbering continues from the
+> existing 1–15; no earlier scenario was renumbered.
 
 ---
 

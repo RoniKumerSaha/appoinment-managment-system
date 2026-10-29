@@ -154,7 +154,7 @@ Plus an axe-core integration smoke: `apps/web/test/a11y-axe-smoke.test.ts` — r
 
 - **D1 — Per-page AA audit.** This story ships the global tokens + the modal + status-pill rules. A future "P7-12: per-page AA audit" story must run axe-core against every reachable URL and fix per-page violations (reading order, ARIA labels, alt text).
 - **D2 — Screen reader labels for status badges.** Covered by the icon-prefix rule, but a manual NVDA / VoiceOver pass per page is recommended.
-- **D3 — Keyboard navigation through `AvailabilityCalendar`.** UX-FLOWS §7 lists this as open. A separate follow-up story once a calendar component lands.
+- **D3 — Keyboard navigation through `AvailabilityCalendar`.** UX-FLOWS §8 lists this as open. A separate follow-up story once a calendar component lands.
 
 ## Spec Change Log
 

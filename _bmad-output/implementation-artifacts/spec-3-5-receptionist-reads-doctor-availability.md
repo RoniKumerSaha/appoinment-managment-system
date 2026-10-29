@@ -54,7 +54,7 @@ gate used in E3-S4's `POST /bookings`:
 
 **Ask First:**
 - (none — scope resolved at plan-time via epics-and-stories.md E3-S5 +
-  UX-FLOWS §F-15.)
+  UX-FLOWS F-15.)
 
 **Never:**
 - No new route. E3-S5 stays on `GET /availability`.

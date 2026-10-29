@@ -47,7 +47,7 @@ The persona **Fatima A. Al-Sayed** (`+966 5XX XXX 5555`) is the patient througho
 
 ## 2. No ConflictModal primitive anywhere (Blocker) — **FIXED**
 
-**Where:** UX-FLOWS §6.1 declares `ConflictModal` a shared primitive used by F-01, F-02, F-05, F-06, F-07, F-13, F-16. The mockups render conflict paths as inline warning cards instead.
+**Where:** UX-FLOWS §7.1 declares `ConflictModal` a shared primitive used by F-01, F-02, F-05, F-06, F-07, F-13, F-16. The mockups render conflict paths as inline warning cards instead.
 
 **Fix:** Built `winners/29-conflict-modal.html` — a 4-variant showcase (patient slot-just-booked, patient already-booked, patient overlap, admin branch-deactivation). Three-part shape: `what happened` · `why (rule citation)` · `what you can do`. Wired into `app/shell.js` at `/conflict` and mirrored in `standalone-router.js`. Source-of-truth component template lives at `app/components.html`.
 
@@ -63,7 +63,7 @@ The persona **Fatima A. Al-Sayed** (`+966 5XX XXX 5555`) is the patient througho
 
 ## 4. No Audit log surface (Blocker) — **FIXED**
 
-**Where:** Persona files for all four roles reference audit logs (Salem's Act 6, Dr. Ahmed's Act 4, Reem's edge cases). UX-FLOWS §6.3 specifies audit visibility. No mockup showed an audit log.
+**Where:** Persona files for all four roles reference audit logs (Salem's Act 6, Dr. Ahmed's Act 4, Reem's edge cases). UX-FLOWS §7.3 specifies audit visibility. No mockup showed an audit log.
 
 **Fix:** Built three audit surfaces, each scoped by role:
 - `winners/27-admin-audit-log.html` — admin-only: clinic-structure events (branch hours / doctor assignments / branch state).
@@ -198,7 +198,7 @@ UX-FLOWS F-06 calls for `[Adjust]` `[Continue anyway]`. `09` shows the warning t
 
 ## 19. Branch-hours "Notify doctors by SMS" leaks patient PII (Medium)
 
-`08-branch-hours-impact.html` checkbox: opt-in to SMS notify. UX-FLOWS §6.3 says "Patients — never see audit logs." SMS with affected appointment list = PII leak.
+`08-branch-hours-impact.html` checkbox: opt-in to SMS notify. UX-FLOWS §7.3 says "Patients — never see audit logs." SMS with affected appointment list = PII leak.
 
 **Decision:** replace SMS with in-app notification only. No PII leaves the system.
 
@@ -295,6 +295,6 @@ All 12 wired into `app/shell.js` ROUTES + `app/standalone-router.js` mirror. `ap
 3. **Outside-branch-hours warning had no buttons (#17).** `09-doctor-schedule.html` warning now has `[Adjust periods]` (smooth-scrolls to first period, brief amber halo) and `[Continue anyway]` (fades the warning, focuses Save).
 4. **Recurring route collision (#13).** `/doctor/recurring-preview` was → `07-recurring-preview.html` (the **patient** screen — wrong perspective). Re-routed to `23-recurring-confirm.html` (the doctor recurring preview/confirmation). Updated in standalone-router.js + shell.js ROUTES + ROUTE_META. Also fixed `23`'s `Edit pattern` button which had `data-route="/doctor/recurring-preview"` (self-loop) → now `/doctor/schedule` (upstream).
 5. **Branch-hours editor/preview routing (#14).** `08`'s `Back to editor` was → `/admin/branches` (the branches list — wrong). Re-routed to `/admin/branch-hours-editor` (28, the editor). Cancel + Save-anyway still → `/admin/branches` (correct).
-6. **Branch-hours SMS PII leak (#19).** `08` had a "Notify doctors by SMS" opt-in checkbox — sending appointment details by SMS violates UX-FLOWS §6.3 ("PII never leaves the system"). Replaced with a read-only info row: "In-app notification only. Affected doctors are notified in-app on next login. **No SMS** — appointment details (patient names, times) stay inside the system."
+6. **Branch-hours SMS PII leak (#19).** `08` had a "Notify doctors by SMS" opt-in checkbox — sending appointment details by SMS violates UX-FLOWS §7.3 ("PII never leaves the system"). Replaced with a read-only info row: "In-app notification only. Affected doctors are notified in-app on next login. **No SMS** — appointment details (patient names, times) stay inside the system."
 
 The pattern: build the shared component once, wire it everywhere it should appear.
