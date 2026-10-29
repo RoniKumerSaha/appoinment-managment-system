@@ -335,3 +335,23 @@ api-test-out.txt
 # The real browser coverage lives in apps/web/e2e/flows/*.spec.ts.
 apps/web/probe-*.mjs
 apps/web/shot-*.png
+
+# ---------- AI-DLC (specsmd) ----------
+# `.specsmd/aidlc/` is the methodology source (templates, scripts, the
+# memory-bank schema) and IS committed — the memory bank in
+# `memory-bank/` depends on it.
+#
+# `npx specsmd install` also renders per-tool copies of that source
+# into sibling dotfolders (.claude/, .cursor/, .github/agents/, …).
+# Those are generated artifacts of the install, not source, and this
+# repo does not use them: the AI-DLC agents ship globally with
+# puku-cli under ~/.puku-cli/skills/. Ignore them so a re-run of the
+# installer cannot silently reintroduce 11 duplicate trees.
+.specsmd/tool-*/
+.claude/
+.cursor/
+.aider/
+.windsurf/
+.continue/
+.codex/
+.roo/
