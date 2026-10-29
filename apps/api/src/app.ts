@@ -40,6 +40,7 @@ import { adminStatsRouter } from './routes/admin-stats.js';
 import { adminStaffPasswordRouter } from './routes/admin-staff-password.js';
 import { availabilityRouter } from './routes/availability.js';
 import { publicCatalogRouter } from './routes/public-catalog.js';
+import { staffCatalogRouter } from './routes/staff-catalog.js';
 import { bookingsRouter } from './routes/bookings.js';
 import { patientProfileRouter } from './routes/patient-profile.js';
 import { patientAppointmentsRouter } from './routes/patient-appointments.js';
@@ -170,6 +171,20 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // no adminScope. Returns only active rows.
   app.use(publicCatalogRouter);
 
+  // Staff catalog routes — `GET /staff-catalog/{doctors,branches,appointment-types}`.
+  // Mounted AFTER authMiddleware so req.auth.claim is populated. Open to
+  // any authenticated caller (no adminScope), but returns the SAME DTO
+  // shapes as the admin catalog routes.
+  //
+  // The doctor / receptionist screens need a doctor picker and an
+  // appointment-type picker, and they used to call the `/admin/*` routes
+  // for that — which are gated by adminScope and return 403
+  // `forbidden_role` for a doctor or receptionist. The pickers silently
+  // stayed empty, so the walk-in booking flow, the availability browser
+  // and the doctor's recurring-series form were unusable for the two
+  // roles that use them.
+  app.use('/staff-catalog', staffCatalogRouter);
+
   // Availability route — mounted AFTER authMiddleware so req.auth.claim
   // is populated. Open to any authenticated caller (no adminScope).
   app.use(availabilityRouter);
@@ -230,7 +245,7 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
 
   // Staff mark-status — POST /appointments/:id/mark-status.
   // Doctor or receptionist marks an appointment as Completed or
-  // No-Show (E5-S1, F-10). Mounted AFTER authMiddleware; the route
+  // No-show (E5-S1, F-10). Mounted AFTER authMiddleware; the route
   // is the role gate. Body schema is the only input.
   app.use(staffMarkStatusRouter);
 

@@ -32,6 +32,7 @@ import {
   type DoctorRecurringSeries,
 } from '../api/client';
 import { DoctorFrame } from './DoctorFrame';
+import { readDeepLinkParam } from './deep-link';
 import styles from './RecurringBackOut.module.css';
 
 interface RecurringBackOutProps {
@@ -92,8 +93,9 @@ function stamp(iso: string, tz: string): string {
 
 /** Read `?series_id=` from the URL — the deep-link entry point. */
 function seriesIdFromUrl(): string {
-  if (typeof window === 'undefined') return '';
-  return new URLSearchParams(window.location.search).get('series_id') ?? '';
+  // Read from the HASH fragment, not `location.search` — the routes
+  // are hash-based (`#/doctor?page=backout&series_id=…`).
+  return readDeepLinkParam('series_id') ?? '';
 }
 
 function describeError(err: unknown): string {

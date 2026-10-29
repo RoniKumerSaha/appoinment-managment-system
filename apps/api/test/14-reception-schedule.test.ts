@@ -95,7 +95,7 @@ function nextPatientFor(doctorName: string): string {
 
 interface InsertOpts {
   patientName?: string | null;
-  status?: 'Scheduled' | 'Cancelled' | 'Completed' | 'No-Show';
+  status?: 'Scheduled' | 'Cancelled' | 'Completed' | 'No-show';
   offsetHours?: number;
 }
 

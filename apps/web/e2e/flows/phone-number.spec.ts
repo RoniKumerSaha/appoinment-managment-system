@@ -25,7 +25,6 @@ async function signIn(page: Page): Promise<void> {
   const phone = FIXTURE.patient04.phone;
   const code = FIXTURE.patient04.code;
   const login = new LoginPage(page);
-  await page.goto('/');
   await login.signInAsPatient(phone, code);
 }
 

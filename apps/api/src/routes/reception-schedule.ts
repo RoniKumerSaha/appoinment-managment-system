@@ -37,7 +37,7 @@ const SELECT_BRANCH_SQL = `
 `;
 
 /** Only Scheduled appointments occupy a slot. A Cancelled /
- *  Completed / No-Show row is not "booked" — the slot is free
+ *  Completed / No-show row is not "booked" — the slot is free
  *  again, and the availability engine treats it as such.
  *
  *  `patient` is joined on phone_number (not an id — the

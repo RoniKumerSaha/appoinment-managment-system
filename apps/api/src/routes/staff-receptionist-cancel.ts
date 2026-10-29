@@ -23,7 +23,7 @@
  *     reason_too_long. Same envelope as E5-S2 — both staff
  *     flows share the same reason-validation contract.
  *   - Status gate: only `Scheduled` rows are cancellable.
- *     Already-Cancelled / Completed / No-Show → 422
+ *     Already-Cancelled / Completed / No-show → 422
  *     already_in_terminal_state (same envelope as E5-S1 /
  *     E5-S2 — staff flows share this terminal-state envelope).
  *   - UPDATE appointment SET status = 'Cancelled'.

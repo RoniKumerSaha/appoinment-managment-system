@@ -14,6 +14,7 @@
 import { useState } from 'react';
 import { ApiError, patientCancel } from '../api/client';
 import './CancelModal.css';
+import { withDoctorTitle } from './doctor-name';
 
 interface CancelModalProps {
   appointmentId: string;
@@ -127,7 +128,7 @@ export function CancelModal({
             ⚠
           </div>
           <div className="cancel-modal__title" data-testid="cancel-modal-title">
-            Cancel your appointment with Dr. {lastName(doctorName)} on{' '}
+            Cancel your appointment with {withDoctorTitle(lastName(doctorName))} on{' '}
             {formatLongDate(startDatetime, tz)}?
           </div>
         </div>

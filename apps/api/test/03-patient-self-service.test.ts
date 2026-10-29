@@ -205,7 +205,7 @@ test('GET /patient/appointments without auth → 401', async () => {
 // ═══════════════════════════════════════════════════════════════════
 test('POST /patient/appointments/:id/cancel (own) → 200, status=Cancelled', async () => {
   // Use patient B + Dr. East Support (different doctor to avoid FR-027)
-  const appt = await insertFutureAppt(PATIENT_B, 'Dr. East Support', 'East Branch', 2, 14);
+  const appt = await insertOpenDayAppt(PATIENT_B, 'Dr. East Support', 'East Branch', 2, 14);
   const res = await request(createApp())
     .post(`/patient/appointments/${appt.id}/cancel`)
     .set('Authorization', `Bearer ${patientToken(PATIENT_B)}`);
@@ -242,10 +242,9 @@ test('POST /patient/appointments/:id/cancel (non-UUID id) → 404 not_found', as
 // ═══════════════════════════════════════════════════════════════════
 test('POST /patient/appointments/:id/reschedule (own) → 200 with new time', async () => {
   // Patient D + East Lead
-  const appt = await insertFutureAppt(PATIENT_D, 'Dr. East Lead', 'East Branch', 3, 10);
+  const appt = await insertOpenDayAppt(PATIENT_D, 'Dr. East Lead', 'East Branch', 3, 10);
   // Pick a new time on a different day (still within doctor's 09-17 schedule)
-  const newStart = new Date(Date.now() + 4 * 24 * 60 * 60 * 1000);
-  newStart.setUTCHours(15, 0, 0, 0);
+  const newStart = openDayInstant(4, 15);
   const newEnd = new Date(newStart.getTime() + 30 * 60 * 1000);
 
   const res = await request(createApp())
@@ -264,9 +263,8 @@ test('POST /patient/appointments/:id/reschedule (own) → 200 with new time', as
 
 test('POST /patient/appointments/:id/reschedule rejects new_doctor_id (FR-040)', async () => {
   // Patient E + East Lead
-  const appt = await insertFutureAppt(PATIENT_E, 'Dr. East Lead', 'East Branch', 5, 11);
-  const newStart = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
-  newStart.setUTCHours(15, 0, 0, 0);
+  const appt = await insertOpenDayAppt(PATIENT_E, 'Dr. East Lead', 'East Branch', 5, 11);
+  const newStart = openDayInstant(6, 15);
   const newEnd = new Date(newStart.getTime() + 30 * 60 * 1000);
 
   const res = await request(createApp())
@@ -291,8 +289,7 @@ test('POST /patient/appointments/:id/reschedule (other patient) → 404 privacy 
     [PATIENT_D],
   );
   const appt = ownRow.rows[0]!;
-  const newStart = new Date(Date.now() + 8 * 24 * 60 * 60 * 1000);
-  newStart.setUTCHours(15, 0, 0, 0);
+  const newStart = openDayInstant(8, 15);
 
   const res = await request(createApp())
     .post(`/patient/appointments/${appt.id}/reschedule`)
@@ -403,6 +400,26 @@ async function insertOpenDayAppt(
     openDayOffset(daysOut),
     hourUtc,
   );
+}
+
+/** A UTC instant `daysOut` days from now, at `hourUtc`, rolled forward
+ *  off a Sunday.
+ *
+ *  The seed closes every branch on Sundays (`is_closed` for DOW 0) and
+ *  gives no doctor a Sunday schedule, so a Sunday target comes back
+ *  `outside_branch_hours` — a correct rejection of a slot that is not
+ *  actually inside the branch's hours. The reschedule tests used a raw
+ *  `Date.now() + N days`, which lands on a Sunday once every 7 days
+ *  and fails for a reason that has nothing to do with what they
+ *  assert. */
+function openDayInstant(daysOut: number, hourUtc: number): Date {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + daysOut);
+  while (d.getUTCDay() === 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  d.setUTCHours(hourUtc, 0, 0, 0);
+  return d;
 }
 
 test('GET /availability for a patient who HOLDS the appointment → zero slots (FR-027, no exclusion)', async () => {

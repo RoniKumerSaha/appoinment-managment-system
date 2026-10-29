@@ -46,6 +46,7 @@ import { CancelModal } from './CancelModal';
 import { ReschedulePage } from './ReschedulePage';
 import { useAuth } from '../auth/store';
 import './MyAppointments.css';
+import { withDoctorTitle } from './doctor-name';
 
 interface MyAppointmentsProps {
   initialAction?: 'cancel' | 'reschedule';
@@ -205,11 +206,13 @@ export function MyAppointments({
       } finally {
         if (!cancelled) {
           try {
-            window.history.replaceState(
-              {},
-              '',
-              window.location.pathname,
-            );
+            // Keep the HASH — the patient app routes on it, and
+            // dropping it would reset the view.
+            const { pathname, hash } = window.location;
+            const qIndex = hash.indexOf('?');
+            const cleanHash =
+              qIndex === -1 ? hash : hash.slice(0, qIndex);
+            window.history.replaceState({}, '', `${pathname}${cleanHash}`);
           } catch {
             // ignore
           }
@@ -378,7 +381,7 @@ export function MyAppointments({
                   </div>
                   <div className="my-appts__row-body">
                     <div className="my-appts__row-doctor">
-                      Dr. {a.doctorName} · {a.typeName}
+                      {withDoctorTitle(a.doctorName)} · {a.typeName}
                     </div>
                     <div className="my-appts__row-meta">
                       {a.branchName} · {formatTime(a.start_datetime)} –{' '}

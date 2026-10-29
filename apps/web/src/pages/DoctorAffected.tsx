@@ -30,6 +30,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ApiError,
   getDoctorAffected,
+  getDoctorAppointmentAudit,
   listPublicBranches,
   type DoctorAffectedAppointment,
   type DoctorAffectedResponse,
@@ -128,7 +129,7 @@ function describeMarkError(err: unknown): string {
       return 'That appointment no longer exists.';
     }
     if (err.status === 400 && err.code === 'invalid_status') {
-      return 'Pick Completed or No-Show.';
+      return 'Pick Completed or No-show.';
     }
     return `Could not mark status (${err.code}).`;
   }
@@ -215,36 +216,67 @@ interface ResolvedRow {
   fromStart: string;
   toStart: string;
   toEnd: string;
+  /** The destination branch's timezone (IANA). */
+  tz: string;
 }
 
-// Mockup 37 — the audit-block on the resolution-saved modal is supposed
-// to echo the most recent events for the affected appointment. The full
-// audit-log endpoint is wired in E7-S2; until that lands we render 4
-// deterministic mock events so the audit block is not empty.
-function mockSavedAuditEvents(info: ResolvedRow): SavedAuditEvent[] {
-  const fromIso = info.fromStart;
-  return [
-    {
-      at: new Date(Date.parse(fromIso) - 60 * 60 * 1000).toISOString(),
-      label: `Branch impact recorded`,
-      tone: 'config',
-    },
-    {
-      at: new Date(Date.parse(fromIso) - 30 * 60 * 1000).toISOString(),
-      label: 'Affected appointment created',
-      tone: 'create',
-    },
-    {
-      at: new Date(Date.parse(info.toStart) - 5 * 60 * 1000).toISOString(),
-      label: 'Slot offered to patient',
-      tone: 'resolve',
-    },
-    {
-      at: new Date(Date.parse(info.toStart)).toISOString(),
-      label: 'Appointment moved',
-      tone: 'resolve',
-    },
-  ];
+// Mockup 37 — the audit-block on the resolution-saved modal echoes the
+// most recent events for the affected appointment.
+//
+// These used to be 4 FABRICATED events ("Branch impact recorded",
+// "Affected appointment created", "Slot offered to patient",
+// "Appointment moved") with timestamps back-dated from the slot time.
+// Nothing in the system ever wrote those events, so the block showed a
+// history that did not exist. Now that E7-S2 has landed, the real
+// `GET /doctor/appointments/:id/audit` endpoint backs this.
+function auditToneFor(event: string): SavedAuditEvent['tone'] {
+  switch (event) {
+    case 'created':
+    case 'recurring_created':
+      return 'create';
+    case 'cancelled':
+      return 'cancel';
+    case 'moved_by_doctor':
+    case 'marked_completed':
+    case 'marked_no_show':
+    case 'rescheduled':
+      return 'resolve';
+    default:
+      return 'config';
+  }
+}
+
+function auditLabelFor(event: string): string {
+  switch (event) {
+    case 'created':
+      return 'Appointment created';
+    case 'recurring_created':
+      return 'Created in a recurring series';
+    case 'cancelled':
+      return 'Appointment cancelled';
+    case 'rescheduled':
+      return 'Appointment rescheduled';
+    case 'moved_by_doctor':
+      return 'Appointment moved';
+    case 'marked_completed':
+      return 'Marked as completed';
+    case 'marked_no_show':
+      return 'Marked as no-show';
+    default:
+      return event.replace(/_/g, ' ');
+  }
+}
+
+/** Fetch the real audit trail for an appointment, newest first. */
+async function fetchSavedAuditEvents(
+  appointmentId: string,
+): Promise<SavedAuditEvent[]> {
+  const res = await getDoctorAppointmentAudit(appointmentId);
+  return res.audit.map((row) => ({
+    at: row.created_at,
+    label: auditLabelFor(row.event),
+    tone: auditToneFor(row.event),
+  }));
 }
 
 export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProps) {
@@ -264,6 +296,12 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
   const [resolved, setResolved] = useState<ResolvedRow[]>([]);
   const [completionModal, setCompletionModal] = useState<ResolvedRow | null>(
     null,
+  );
+  // The real audit trail for the appointment in the resolution-saved
+  // modal. Loaded when the modal opens (E7-S2 endpoint); empty until
+  // the fetch resolves.
+  const [completionAudit, setCompletionAudit] = useState<SavedAuditEvent[]>(
+    [],
   );
 
   // Cancel + mark-status flow state (E5-S1, E5-S2).
@@ -337,6 +375,33 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
     },
     [],
   );
+
+  // Load the REAL audit trail for the appointment in the
+  // resolution-saved modal. The audit block used to render 4
+  // fabricated events; the E7-S2 endpoint
+  // (`GET /doctor/appointments/:id/audit`) is the source of truth now.
+  useEffect(() => {
+    if (completionModal === null) {
+      setCompletionAudit([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const events = await fetchSavedAuditEvents(
+          completionModal.appointment_id,
+        );
+        if (!cancelled) setCompletionAudit(events);
+      } catch {
+        // The audit block is supplementary — if the fetch fails, show
+        // an empty block rather than blocking the resolution modal.
+        if (!cancelled) setCompletionAudit([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [completionModal]);
 
   const refreshAfter = useCallback(async (): Promise<void> => {
     await refresh();
@@ -458,7 +523,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
   }, []);
 
   const onMarked = useCallback(
-    async (status: 'Completed' | 'No-Show'): Promise<void> => {
+    async (status: 'Completed' | 'No-show'): Promise<void> => {
       setMarkId(null);
       setToast(`Marked as ${status}.`);
       await refresh();
@@ -826,7 +891,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
             loading={false}
             rows={resolved.map((r) => ({
               id: r.appointment_id,
-              tz: branches.get(r.branch_id)?.tz ?? 'UTC',
+              tz: r.tz,
               branch: r.branchName,
               typeId: r.appointment_type_id,
               start: r.toStart,
@@ -904,7 +969,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
         <DoctorResolutionSaved
           info={completionModal}
           remaining={open.length - 1}
-          recent={mockSavedAuditEvents(completionModal)}
+          recent={completionAudit}
           onOpenAuditDrawer={
             onOpenAudit
               ? () => {
@@ -912,7 +977,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                   onOpenAudit({
                     appointmentId: completionModal.appointment_id,
                     appointmentLabel: `Appointment ···${completionModal.patient_phone.slice(-4)}`,
-                    branchTz: 'UTC',
+                    branchTz: completionModal.tz,
                   });
                 }
               : undefined
@@ -959,6 +1024,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
               patientLabel: patientLabelFromPhone(target.patient_phone),
               maskedPhone: maskPhone(target.patient_phone),
               branchName: maskedBranch(target.branch_id),
+              createdAt: target.created_at,
             }}
             onCancel={onCloseMark}
             onMarked={onMarked}
@@ -982,6 +1048,8 @@ interface ColumnRow {
   reason?: string;
   patientLabel?: string;
   maskedPhone: string;
+  /** When the appointment was booked (ISO UTC) — the REAL booking age. */
+  createdAt?: string;
   resolved?: boolean;
 }
 

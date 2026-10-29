@@ -25,8 +25,8 @@ import {
   createBooking,
   getAvailability,
   getReceptionSchedule,
-  listAppointmentTypes,
-  listDoctors,
+  listStaffAppointmentTypes,
+  listStaffDoctors,
   type AppointmentTypeDto,
   type DoctorWithBranchesDto,
 } from '../api/client';
@@ -136,7 +136,11 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
       .then((res) => {
         if (cancelled) return;
         setBranch(res.branch);
-        if (date === '') setDate(todayLocalIn(res.branch.tz));
+        // FR-019: same-day booking is NOT allowed — the availability
+        // route's window is [today+1, today+30]. The old default was
+        // today, which the API rejected with `past_date` the moment
+        // the page loaded.
+        if (date === '') setDate(addDays(todayLocalIn(res.branch.tz), 1));
         setLoading(false);
       })
       .catch((e: unknown) => {
@@ -158,8 +162,8 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
     void (async () => {
       try {
         const [d, t] = await Promise.all([
-          listDoctors({ active: true, branch_id: branch.id }),
-          listAppointmentTypes({ active: true }),
+          listStaffDoctors({ active: true, branch_id: branch.id }),
+          listStaffAppointmentTypes({ active: true }),
         ]);
         if (cancelled) return;
         const branchDoctors = d.filter((doc) =>
@@ -490,7 +494,11 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
               id="recep-create-date"
               type="date"
               value={date}
-              min={date === '' ? undefined : todayLocalIn(branch?.tz ?? 'UTC')}
+              min={
+                date === ''
+                  ? undefined
+                  : addDays(todayLocalIn(branch?.tz ?? 'UTC'), 1)
+              }
               max={maxDate === '' ? undefined : maxDate}
               onChange={(e) => {
                 setDate(e.target.value);
@@ -498,7 +506,8 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
               }}
             />
             <div className={styles.hint}>
-              Max 30 days ahead (FR-018). Same-day booking is not allowed.
+              Max 30 days ahead (FR-018). Same-day booking is not allowed,
+              so the earliest date is tomorrow.
             </div>
           </div>
           <div

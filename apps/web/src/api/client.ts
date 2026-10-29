@@ -902,6 +902,58 @@ export function listPublicAppointmentTypes(): Promise<{
   );
 }
 
+// ─── Staff catalog (doctor / receptionist pickers) ───────────────
+//
+// The doctor and receptionist screens need a doctor picker and an
+// appointment-type picker. They used to call the `/admin/*` catalog
+// routes for that, but those are gated by `adminScope` and return 403
+// `forbidden_role` for a doctor or receptionist — so the pickers
+// silently stayed EMPTY and the walk-in booking flow, the availability
+// browser, and the doctor's recurring-series form were unusable for
+// exactly the two roles that use them.
+//
+// `/staff-catalog/*` returns the SAME DTO shapes as the admin catalog
+// routes (so the existing filtering logic is unchanged) but is open to
+// any authenticated caller.
+
+export function listStaffDoctors(filter?: {
+  active?: boolean;
+  branch_id?: string;
+}): Promise<DoctorWithBranchesDto[]> {
+  const params: string[] = [];
+  if (typeof filter?.active === 'boolean') {
+    params.push(`active=${filter.active ? 'true' : 'false'}`);
+  }
+  if (filter?.branch_id) {
+    params.push(`branch_id=${encodeURIComponent(filter.branch_id)}`);
+  }
+  const qs = params.length > 0 ? `?${params.join('&')}` : '';
+  return request<DoctorWithBranchesDto[]>(`/staff-catalog/doctors${qs}`, {
+    method: 'GET',
+  });
+}
+
+export function listStaffAppointmentTypes(filter?: {
+  active?: boolean;
+}): Promise<AppointmentTypeDto[]> {
+  const qs =
+    typeof filter?.active === 'boolean'
+      ? `?active=${filter.active ? 'true' : 'false'}`
+      : '';
+  return request<AppointmentTypeDto[]>(`/staff-catalog/appointment-types${qs}`, {
+    method: 'GET',
+  });
+}
+
+export function listStaffBranches(
+  filter?: 'active' | 'inactive',
+): Promise<BranchDto[]> {
+  const qs = filter ? `?active=${filter === 'active' ? 'true' : 'false'}` : '';
+  return request<BranchDto[]>(`/staff-catalog/branches${qs}`, {
+    method: 'GET',
+  });
+}
+
 // ─── Availability + bookings (E3-S1 / E3-S2) ───────────────────
 
 export interface AvailabilitySlot {
@@ -1072,7 +1124,7 @@ export type ReceptionistAppointmentStatus =
   | 'Scheduled'
   | 'Cancelled'
   | 'Completed'
-  | 'No-Show';
+  | 'No-show';
 
 export interface ReceptionistTodayAppointment {
   id: string;
@@ -1255,7 +1307,7 @@ export interface RecurringSeriesOccurrence {
   id: string;
   start_datetime: string;
   end_datetime: string;
-  status: 'Scheduled' | 'Cancelled' | 'Completed' | 'No-Show';
+  status: 'Scheduled' | 'Cancelled' | 'Completed' | 'No-show';
 }
 
 export interface PatientRecurringSeries {
@@ -1414,6 +1466,9 @@ export interface DoctorAffectedAppointment {
   start_datetime: string; // ISO UTC
   end_datetime: string;   // ISO UTC
   status: string;
+  /** When the appointment was booked (ISO UTC). Lets the doctor surface
+   *  show the REAL booking age. */
+  created_at: string;
   reason: DoctorAffectedReason;
 }
 
@@ -1483,11 +1538,18 @@ export function doctorMove(
   );
 }
 
-// E5-S1 — staff mark-status (Completed | No-Show). The body
-// schema accepts `{status: 'Completed' | 'No-Show'}` only.
+// E5-S1 — staff mark-status (Completed | No-show). The body
+// schema accepts `{status: 'Completed' | 'No-show'}` only.
+//
+// The casing is NOT cosmetic: the DB column is the
+// `appointment_status` enum {Scheduled, Completed, Cancelled,
+// No-show} — lowercase 's'. The API mirrors the enum verbatim, so
+// sending 'No-Show' (capital S) is rejected with 400
+// `invalid_status` before the SQL ever runs.
+//
 // Atomic + GIST-protected (E5-S1 spec). Returns the updated
 // appointment row.
-export type MarkStatus = 'Completed' | 'No-Show';
+export type MarkStatus = 'Completed' | 'No-show';
 
 export interface MarkStatusInput {
   status: MarkStatus;

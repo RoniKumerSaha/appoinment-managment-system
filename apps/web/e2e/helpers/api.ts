@@ -116,11 +116,23 @@ async function getJson<T>(path: string, token: string | null, label: string): Pr
   return payload as T;
 }
 
-/** POST /auth/login/staff. */
-export function loginStaff(role: 'admin' | 'doctor' | 'receptionist', email: string): Promise<StoredAuth> {
+/**
+ * POST /auth/login/staff.
+ *
+ * The password is REQUIRED. It used to be optional — a blank
+ * password fell through to the API's dev-only email-only path, which
+ * minted a valid token for anyone who knew a seeded address. The
+ * login form now refuses a blank password, and the setup does the
+ * same, so the suite exercises the real credential path.
+ */
+export function loginStaff(
+  role: 'admin' | 'doctor' | 'receptionist',
+  email: string,
+  password: string,
+): Promise<StoredAuth> {
   return postJson<StoredAuth>(
     '/auth/login/staff',
-    { role, email },
+    { role, email, password },
     `POST /auth/login/staff role=${role} email=${email}`,
   );
 }
@@ -420,7 +432,11 @@ export function doctorCancel(
 export function markAppointmentStatus(
   token: string,
   appointmentId: string,
-  status: 'Completed' | 'No-Show',
+  // 'No-show' with a lowercase 's' — the `appointment_status` DB
+  // enum spells it that way and POST /appointments/:id/mark-status
+  // mirrors the enum verbatim. Sending 'No-Show' (capital S) is
+  // rejected with 400 invalid_status.
+  status: 'Completed' | 'No-show',
 ): Promise<{ appointment: { id: string; status: string } }> {
   return postJson(
     `/appointments/${encodeURIComponent(appointmentId)}/mark-status`,

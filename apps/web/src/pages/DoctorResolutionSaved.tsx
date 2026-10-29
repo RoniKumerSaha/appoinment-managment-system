@@ -46,10 +46,11 @@ export function DoctorResolutionSaved({
   recent,
   onOpenAuditDrawer,
 }: DoctorResolutionSavedProps) {
-  // The summary card uses the destination branch's tz; we don't
-  // store it on the resolve info, so we render in UTC for the
-  // peek row. Future hardening can carry the tz in the info.
-  const tzGuess = 'UTC';
+  // The summary card uses the DESTINATION branch's timezone, which the
+  // resolve flow now carries on the info. It used to hardcode 'UTC',
+  // which displayed the wrong wall-clock time for every branch that
+  // is not on UTC (the seeded branches are on America/New_York).
+  const tzGuess = info.tz ?? 'UTC';
   const toStart = formatTimeInTz(info.toStart, tzGuess);
   const toDate = formatDateInTz(info.toStart, tzGuess);
   const fromDate = formatDateInTz(info.fromStart, tzGuess);
@@ -147,7 +148,12 @@ export function DoctorResolutionSaved({
                           : 'CONFIG'}
                   </span>
                   <span className="doc-saved__audit-time">
-                    {formatTimeInTz(ev.at, 'UTC')}
+                    {/* The audit timestamps use the SAME timezone as the
+                        summary above (the destination branch's). They
+                        used to be hardcoded to UTC, so the modal showed
+                        the slot at 09:00 local next to an audit event
+                        at 17:04 — two different clocks side by side. */}
+                    {formatTimeInTz(ev.at, tzGuess)}
                   </span>
                   <span className="doc-saved__audit-label">{ev.label}</span>
                 </li>

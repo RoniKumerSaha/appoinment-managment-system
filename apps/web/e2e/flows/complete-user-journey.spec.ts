@@ -55,7 +55,6 @@ const TYPE_NAME_INCLUDES = 'General';
 /** Sign in as a patient by driving the LoginPage. */
 async function patientSignIn(page: Page, phone: string, code: string): Promise<void> {
   const login = new LoginPage(page);
-  await page.goto('/');
   await login.signInAsPatient(phone, code);
 }
 
@@ -66,8 +65,7 @@ async function staffSignIn(
   email: string,
 ): Promise<void> {
   const login = new LoginPage(page);
-  await page.goto('/');
-  await login.signInAsStaff(role, email);
+  await login.signInAsStaff(role, email, FIXTURE.staffPassword);
 }
 
 /** Sign out via the app's nav. */
@@ -230,10 +228,13 @@ test.describe.serial('Complete user journey — patient books, reschedules, canc
     const patient = new PatientPage(page);
     await patient.expectMounted();
     await signOut(page);
-    // After sign-out the LoginPage is the landing page.
+    // After sign-out the login CHOOSER is the landing page — the
+    // staff and patient forms are separate screens now, reachable
+    // from the chooser.
     const login = new LoginPage(page);
-    await expect(login.staffRoleSelect).toBeVisible();
-    await expect(login.patientPhoneInput).toBeVisible();
+    await expect(login.chooserRoot()).toBeVisible();
+    await expect(login.chooserStaffCard()).toBeVisible();
+    await expect(login.chooserPatientCard()).toBeVisible();
   });
 
   test('7. Doctor signs in via staff email and lands on the kanban', async ({ browser }) => {
@@ -262,8 +263,9 @@ test.describe.serial('Complete user journey — patient books, reschedules, canc
     const doctor = new DoctorPage(page);
     await doctor.expectMounted();
     await signOut(page);
+    // Signing out returns to the login chooser.
     const login = new LoginPage(page);
-    await expect(login.staffRoleSelect).toBeVisible();
+    await expect(login.chooserRoot()).toBeVisible();
   });
 
   test('10. A different patient cannot see the first patient\'s appointments', async ({ browser }) => {

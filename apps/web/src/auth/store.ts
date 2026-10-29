@@ -26,6 +26,7 @@ import {
   type AuthClaim,
   type Profile,
 } from '../api/client';
+import { LOGIN_CHOOSE_HASH } from './login-hashes';
 
 export interface StoredAuth {
   token: string;
@@ -140,6 +141,27 @@ export async function verifyPatientOtp(input: {
   return res;
 }
 
+/**
+ * Sign out.
+ *
+ * The URL is reset to the login chooser (`#/login`).
+ *
+ * This matters because the login is hash-routed: signing out from the
+ * patient screen left the hash at `#/login/patient`, so the app
+ * rendered the PATIENT FORM again instead of a neutral landing
+ * screen — the user was bounced straight back to the thing they had
+ * just signed out of. The doctor and receptionist frames were less
+ * affected (their hashes are `#/doctor?page=…` and
+ * `#/reception?page=…`, which the login reader does not recognise,
+ * so they fell through to the chooser on their own) — but the patient
+ * route is a login route, so it needed the explicit reset.
+ */
 export function logout(): void {
   clearAuth();
+  if (typeof window !== 'undefined') {
+    const next = LOGIN_CHOOSE_HASH;
+    if (window.location.hash !== next) {
+      window.location.hash = next;
+    }
+  }
 }

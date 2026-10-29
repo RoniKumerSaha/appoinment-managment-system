@@ -1,9 +1,16 @@
 /*
  * Login page — staff + patient entry points.
  *
- * Pixel-perfect port of mockup 21 (patient OTP) + a parallel staff card
- * on the same 760px-stacked frame. Every value references a token from
- * tokens.css (E7-S1 invariant). No hex literal in this file.
+ * The login is now THREE screens (chooser / staff / patient) rather
+ * than one page with two cards on it. This module holds the shared
+ * chrome and the form styles they all draw from.
+ *
+ * Every value references a token from tokens.css (E7-S1 invariant).
+ * No hex literal in this file.
+ *
+ * NOTE: `.btn-primary` / `.btn-ghost` here are mirrored into the admin
+ * CSS modules (AdminBranches.module.css, AdminBranchHours.module.css).
+ * Do not delete or rename them.
  */
 
 .frame {
@@ -54,17 +61,24 @@
   letter-spacing: 0.06em;
 }
 
+/*
+ * The page body holds ONE screen now — the chooser, the staff form
+ * or the patient form — never two side by side. It was a 2-column
+ * grid when the staff and patient cards shared a page; on a narrow
+ * screen that stacked them, so each audience scrolled past the
+ * other's form first.
+ */
 .page {
   padding: var(--space-12);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-9);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
-@media (max-width: 920px) {
-  .page {
-    grid-template-columns: 1fr;
-  }
+/* The one card on a login screen. */
+.page > .card {
+  width: 100%;
+  max-width: 460px;
 }
 
 .card {
@@ -342,4 +356,128 @@
   text-align: center;
   color: var(--text-muted);
   font-size: var(--text-sm);
+}
+
+/* ─── chooser (the root's landing screen) ─────────────────────────── */
+
+.chooser {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.chooser__title {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-heading);
+  margin: 0;
+  text-align: center;
+}
+
+.chooser__sub {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: 0;
+  text-align: center;
+}
+
+.chooser__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 620px) {
+  .chooser__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chooser__card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-9) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 120ms ease, box-shadow 120ms ease,
+    transform 120ms ease;
+}
+
+.chooser__card:hover {
+  border-color: var(--brand-border);
+  box-shadow: var(--elev-2);
+  transform: translateY(-2px);
+}
+
+.chooser__card:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+.chooser__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--brand-light-50);
+  color: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-2xl);
+}
+
+.chooser__label {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.chooser__desc {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.chooser__cta {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--brand-primary);
+}
+
+/* ─── cross-links between the login screens ───────────────────────── */
+
+.switch {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--text-xs);
+  border-top: 1px solid var(--surface-divider);
+  padding-top: var(--space-5);
+}
+
+.switch a {
+  color: var(--brand-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.switch a:hover {
+  text-decoration: underline;
+}
+
+.switch a:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+  border-radius: var(--radius-xs);
 }

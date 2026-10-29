@@ -65,6 +65,9 @@ interface AffectedRow {
   start_datetime: Date;
   end_datetime: Date;
   status: string;
+  /** When the appointment was booked. Lets the doctor surface show the
+   *  REAL booking age instead of a fabricated one. */
+  created_at: Date;
   reason: 'closed_day' | 'before_open_or_after_close';
 }
 
@@ -93,6 +96,7 @@ const LIST_SQL = `
          a.start_datetime,
          a.end_datetime,
          a.status,
+         a.created_at,
          ${outsideBranchHoursReasonCaseColumnRef()} AS reason
     FROM appointment a
     JOIN branch b ON b.id = a.branch_id
@@ -216,6 +220,7 @@ doctorAffectedRouter.get(
           start_datetime: r.start_datetime.toISOString(),
           end_datetime: r.end_datetime.toISOString(),
           status: r.status,
+          created_at: r.created_at.toISOString(),
           reason: r.reason,
         })),
       });

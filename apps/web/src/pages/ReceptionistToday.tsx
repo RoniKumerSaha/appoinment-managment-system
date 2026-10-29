@@ -34,7 +34,9 @@ import {
 } from '../api/client';
 import './ReceptionistToday.css';
 import { ReceptionistFrame } from './ReceptionistFrame';
+import { ReceptionistAuditDrawer } from './ReceptionistAuditDrawer';
 import { formatTimeLocal, initialsOf, lastNameOf, maskPhone } from './recep-utils';
+import { withDoctorTitle } from './doctor-name';
 
 interface ReceptionistTodayProps {
   onOpenCancel: (appointmentId: string) => void;
@@ -52,11 +54,31 @@ const STATUS_FILTERS: Array<{
   { value: 'Scheduled', label: 'Scheduled' },
   { value: 'Cancelled', label: 'Cancelled' },
   { value: 'Completed', label: 'Completed' },
-  { value: 'No-Show', label: 'No-show' },
+  { value: 'No-show', label: 'No-show' },
 ];
 
-const HOUR_LABELS: Array<{ hour: number; label: string }> = [
-  { hour: 8, label: 'Morning' },
+/**
+ * The appointment length, derived from the slot the API returned.
+ *
+ * This slot used to render the literal text "· view" — a leftover
+ * placeholder from the mockup that made the type column read like
+ * "General Consultation · view" and wrapped awkwardly onto a second
+ * line. The real duration is computable from the start/end datetimes
+ * the response already carries.
+ */
+function durationLabel(startIso: string, endIso: string): string | null {
+  const start = Date.parse(startIso);
+  const end = Date.parse(endIso);
+  if (Number.isNaN(start) || Number.isNaN(end)) return null;
+  const minutes = Math.round((end - start) / 60000);
+  if (!Number.isFinite(minutes) || minutes <= 0) return null;
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
+}
+
+const HOUR_LABELS: Array<{ hour: number; label: string }> = [  { hour: 8, label: 'Morning' },
   { hour: 9, label: 'Mid-morning' },
   { hour: 10, label: 'Late morning' },
   { hour: 11, label: 'Approaching noon' },
@@ -97,7 +119,7 @@ function statusPillClass(s: ReceptionistAppointmentStatus): string {
       return 'recep-today__pill recep-today__pill--completed';
     case 'Cancelled':
       return 'recep-today__pill recep-today__pill--cancelled';
-    case 'No-Show':
+    case 'No-show':
       return 'recep-today__pill recep-today__pill--no-show';
   }
 }
@@ -110,7 +132,7 @@ function statusPillLabel(s: ReceptionistAppointmentStatus): string {
       return '✓ Done';
     case 'Cancelled':
       return '✕ Cancelled';
-    case 'No-Show':
+    case 'No-show':
       return '⚠ No-show';
   }
 }
@@ -120,7 +142,7 @@ function rowModifierClass(
   now: Date,
   branchTz: string,
 ): string {
-  if (appt.status === 'Cancelled' || appt.status === 'No-Show') {
+  if (appt.status === 'Cancelled' || appt.status === 'No-show') {
     return 'recep-today__row recep-today__row--dim';
   }
   if (appt.status === 'Completed') {
@@ -175,6 +197,10 @@ export function ReceptionistToday({
     ReceptionistAppointmentStatus | 'all'
   >('all');
   const [now, setNow] = useState<Date>(new Date());
+  /** The appointment whose audit trail is open in the drawer. */
+  const [auditId, setAuditId] = useState<string>('');
+  /** Transient message shown as a toast. */
+  const [toast, setToast] = useState<{ message: string } | null>(null);
 
   // On mount, anchor the date to "today" in the branch.tz once we have
   // a branch. We initialize date only when the response arrives; the
@@ -290,6 +316,12 @@ export function ReceptionistToday({
     [onOpenCancel],
   );
 
+  /** The row whose audit drawer is open — for the drawer's title. */
+  const auditAppointment = useMemo(() => {
+    if (data === null || auditId === '') return undefined;
+    return data.appointments.find((a) => a.id === auditId);
+  }, [data, auditId]);
+
   return (
     <ReceptionistFrame>
       <div className="recep-today__page">
@@ -329,8 +361,9 @@ export function ReceptionistToday({
           </button>
           <button
             type="button"
-            className="recep-today__quicklink recep-today__quicklink--muted"
+            className="recep-today__quicklink"
             onClick={onOpenAvailability}
+            title="Browse open slots"
           >
             Doctor availability
           </button>
@@ -357,7 +390,7 @@ export function ReceptionistToday({
             <option value="all">All doctors</option>
             {doctors.map((d) => (
               <option key={d.id} value={d.id}>
-                Dr. {d.name}
+                {withDoctorTitle(d.name)}
               </option>
             ))}
           </select>
@@ -429,8 +462,15 @@ export function ReceptionistToday({
                     {lastNameOf(a.doctor_name)}
                   </div>
                   <div className="recep-today__type">
-                    {a.appointment_type_name}{' '}
-                    <span className="recep-today__type-dur">· view</span>
+                    {a.appointment_type_name}
+                    {durationLabel(a.start_datetime, a.end_datetime) !== null && (
+                      <>
+                        {' · '}
+                        <span className="recep-today__type-dur">
+                          {durationLabel(a.start_datetime, a.end_datetime)}
+                        </span>
+                      </>
+                    )}
                   </div>
                   <div>
                     <span className={statusPillClass(a.status)}>
@@ -445,14 +485,31 @@ export function ReceptionistToday({
                     >
                       View
                     </button>
+                    <button
+                      type="button"
+                      className="recep-today__qa-btn"
+                      onClick={() => setAuditId(a.id)}
+                      title="View the audit trail for this appointment"
+                    >
+                      Audit
+                    </button>
                     {a.status === 'Scheduled' && (
                       <button
                         type="button"
                         className="recep-today__qa-btn recep-today__qa-btn--primary"
                         onClick={() => {
-                          window.alert(
-                            'Patient check-in flow is not yet wired. The receptionist can cancel or view the appointment.',
-                          );
+                          // The check-in state machine has no
+                          // back-end surface yet, so this is a
+                          // notice rather than a mutation. It used
+                          // to be a `window.alert`, which blocked
+                          // the page and looked like a browser
+                          // error; an inline toast keeps the
+                          // receptionist in the list.
+                          setToast({
+                            message:
+                              'Check-in is not available yet — the receptionist can view or cancel the appointment.',
+                          });
+                          window.setTimeout(() => setToast(null), 5000);
                         }}
                       >
                         Check in
@@ -464,6 +521,37 @@ export function ReceptionistToday({
             </section>
           ))}
       </div>
+      {auditId !== '' && data !== null && (
+        <ReceptionistAuditDrawer
+          appointmentId={auditId}
+          appointmentLabel={
+            auditAppointment === undefined
+              ? 'Appointment'
+              : `Patient ···${auditAppointment.patient_phone.slice(-4)}`
+          }
+          branchTz={data.branch.tz}
+          onClose={() => setAuditId('')}
+        />
+      )}
+      {toast && (
+        <div className="recep-today__toast-stack">
+          <div className="recep-today__toast" role="status">
+            <span className="recep-today__toast-icon" aria-hidden="true">
+              ℹ
+            </span>
+            <span className="recep-today__toast-text">{toast.message}</span>
+            <button
+              type="button"
+              className="recep-today__toast-x"
+              onClick={() => setToast(null)}
+              title="Dismiss"
+              aria-label="Dismiss message"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
     </ReceptionistFrame>
   );
 }

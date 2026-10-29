@@ -43,7 +43,15 @@
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 
 generated: 09-08-2026 12:00
-last_updated: 2026-10-11
+last_updated: 2026-10-29
+# 2026-10-29 W12 pass: the login split (chooser + staff + patient),
+# the staff-catalog route, the receptionist audit drawer and the rich
+# operational seed. Also fixed two latent 'No-Show' vs 'No-show' enum
+# casing bugs (receptionist-today's status filter returned 400
+# invalid_status; doctor-recurring-series' completedCount never
+# counted a no-show). Added apps/api/test/20-staff-catalog.test.ts
+# (17 tests). API 425/425 pass, web unit 44/44 pass, typecheck and
+# lint clean on both packages. See the W12 entry below for detail.
 # 2026-10-11 cleanup pass: removed three stale duplicate backlog
 # keys (superseded by their done siblings). No code or test changes;
 # only sprint-status.yaml edits:
@@ -2250,6 +2258,109 @@ development_status:
   #     verify git hooks in the sandbox) documented in SC4.
   7-1-design-system-token-wiring: done
   w10-staff-login-patient-otp: done
+  # 2026-10-29 W12 — the login split, the staff catalog route and the
+  # receptionist audit drawer. One umbrella entry covering four
+  # user-visible gaps that shipped together.
+  #
+  # (a) THE LOGIN WAS ONE PAGE WITH TWO CARDS. Staff sign-in sat on
+  #     the left, patient OTP on the right. Each audience was forced
+  #     to look at the other's form — a patient saw a role dropdown
+  #     and a staff password field, a staff member saw an OTP
+  #     widget. On a narrow screen the two cards stacked, so each
+  #     audience scrolled past the other's form first.
+  #     Now three screens:
+  #       `#/login`         → LoginChooser   (the app root's landing)
+  #       `#/login/staff`   → StaffLoginPage (role + email + password)
+  #       `#/login/patient` → PatientLoginPage (phone + 6-digit OTP)
+  #     New: apps/web/src/pages/{LoginChooser,LoginFrame,StaffLoginPage,
+  #     PatientLoginPage}.tsx, apps/web/src/pages/login-routes.ts,
+  #     apps/web/src/auth/login-hashes.ts. LoginPage.tsx shrank from
+  #     ~450 to 33 lines — it is now a dispatcher over the three.
+  #     The hash constants live in auth/ rather than pages/ so the
+  #     auth store can reset the URL on sign-out without importing
+  #     from pages/ (a layering inversion).
+  #
+  # (b) THE STAFF PASSWORD WAS OPTIONAL. A blank password fell
+  #     through to the API's dev/test-only email-only login path,
+  #     which minted a VALID token for anyone who knew a seeded
+  #     staff address — no credential required. Every seeded staff
+  #     account now carries a bcrypt `password_hash` (the new rich
+  #     seed, 03_rich_operations.ts), so the stub path serves no
+  #     purpose and only widens the hole. The form now refuses it in
+  #     the UI: the submit button stays disabled until a password is
+  #     typed, and a forced submit still refuses with
+  #     `password_required` without authenticating.
+  #
+  # (c) THE DOCTOR / RECEPTIONIST PICKERS WERE EMPTY. The doctor
+  #     and appointment-type pickers on the doctor and receptionist
+  #     screens read from the ADMIN catalog routes
+  #     (`GET /admin/doctors`, `/admin/appointment-types`,
+  #     `/admin/branches`). Those are gated by `adminScope`, which
+  #     requires role === 'admin'. A doctor or receptionist got 403
+  #     `forbidden_role`, so the pickers silently stayed empty and
+  #     the walk-in booking flow, the availability browser and the
+  #     doctor's recurring-series form were unusable for exactly the
+  #     two roles that use them.
+  #     New: apps/api/src/routes/staff-catalog.ts —
+  #     `GET /staff-catalog/{doctors,branches,appointment-types}`,
+  #     open to any authenticated caller, returning the SAME DTO
+  #     shapes as the admin routes so the screens' filtering logic is
+  #     unchanged. The `?active=` / `?branch_id=` filters mirror the
+  #     admin routes. New web wrappers listStaffDoctors /
+  #     listStaffBranches / listStaffAppointmentTypes; DoctorApp,
+  #     ReceptionistAvailability, ReceptionistCreate and
+  #     RecurringSeriesForm now call them.
+  #     New test: apps/api/test/20-staff-catalog.test.ts (17 tests —
+  #     401 anonymous, 200 for doctor/receptionist/admin, DTO shape,
+  #     the ?active and ?branch_id filters, invalid_active_filter and
+  #     invalid_branch_id 400s, and a no-patient-PII assertion).
+  #
+  # (d) THE RECEPTIONIST HAD NO AUDIT DRAWER. The receptionist-scoped
+  #     audit endpoint (GET /reception/appointments/:id/audit) and its
+  #     client wrapper both existed, but nothing in the UI called
+  #     them — even though PRD FR-051 grants exactly that scope.
+  #     New: apps/web/src/pages/ReceptionistAuditDrawer.tsx (+ .css),
+  #     mirroring DoctorAuditDrawer's slide-in shape and filter-chip
+  #     vocabulary so the two role surfaces read as one feature.
+  #
+  # TWO LATENT CASING BUGS FIXED IN THE SAME PASS:
+  #   - apps/api/src/routes/receptionist-today.ts — VALID_STATUSES
+  #     accepted 'No-Show', but the DB enum stores 'No-show' and the
+  #     web UI's own filter sends 'No-show'. Filtering by No-show
+  #     therefore returned 400 invalid_status.
+  #   - apps/api/src/routes/doctor-recurring-series.ts — the
+  #     `completedCount` tally compared against 'No-Show', so a
+  #     no-show occurrence was never counted as completed.
+  #   The DB column is the `appointment_status` enum {Scheduled,
+  #   Completed, Cancelled, No-show} — lowercase 's' — and the API
+  #   mirrors the enum verbatim. Both now say 'No-show'. The same
+  #   literal was corrected in three API test helpers and in the
+  #   web e2e helper markAppointmentStatus.
+  #
+  # VERIFICATION:
+  #   - API 425/425 pass (was 408 before the new staff-catalog file;
+  #     +17 from apps/api/test/20-staff-catalog.test.ts). Run with
+  #     Docker available — testcontainers needs a container runtime.
+  #   - Web unit runners all green (44 tests across the ten
+  #     `test:*` scripts: e7-s1 3, e7-s4 3, e7-s5-focus 2,
+  #     e7-s5-pills 1, e7-s5-touch 2, e7-s7 2, phone-number 10,
+  #     api-error-body 3, recurring-client 7, reception-schedule 11).
+  #   - Web typecheck 0 errors; API typecheck 0 errors.
+  #   - Web lint 0 errors; API lint 0 errors (14 pre-existing
+  #     no-unused-vars warnings in other files, none in this work).
+  #   - E7-S1 token-only-CSS invariant green.
+  #   - New e2e specs added but NOT run in this session (they need a
+  #     seeded API on :3001): login-split.spec.ts, staff-login.spec.ts,
+  #     staff-nav.spec.ts, receptionist-audit.spec.ts.
+  #
+  # DEFERRED:
+  #   - The e2e specs above are written but unverified against a live
+  #     API. They are the next thing to run once the dev stack is up.
+  #   - The rich seed (03_rich_operations.ts) is applied by
+  #     `pnpm --filter @clinic/api run db:reset`, not by the baseline
+  #     `db:seed`. The baseline seed still leaves password_hash NULL,
+  #     so the dev-only email-only login path remains reachable there.
+  w12-login-split-staff-catalog-audit-drawer: done
   7-2-appointment-audit: done
   # 2026-10-04 bmad-build step-25 implementation complete for E7-S2
   #   (appointment audit reads — FR-051, NFR-005):

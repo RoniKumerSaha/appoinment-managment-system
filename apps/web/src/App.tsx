@@ -13,6 +13,10 @@
  * we POST `/auth/me` once with the token from localStorage to confirm it
  * hasn't been invalidated since the last visit; on 401 the auth store is
  * cleared and the LoginPage renders.
+ *
+ * The LoginPage is a dispatcher over THREE screens — the chooser
+ * (`#/login`), the staff form (`#/login/staff`) and the patient form
+ * (`#/login/patient`). See `pages/login-routes.ts`.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -34,7 +38,7 @@ import { PatientApp } from './pages/PatientApp';
 import { ReceptionistApp } from './pages/ReceptionistApp';
 import { DoctorApp } from './pages/DoctorApp';
 import { LoginPage } from './pages/LoginPage';
-import { useAuth, clearAuth } from './auth/store';
+import { useAuth, logout } from './auth/store';
 import { setOnUnauthorized, getMe, ApiError } from './api/client';
 import {
   buildPath,
@@ -52,22 +56,32 @@ export function App() {
 
   // Wire the 401-triggered auth-clear at app boot. The store is the
   // single source of truth; the client just publishes events.
+  //
+  // This calls `logout()` rather than `clearAuth()` because the
+  // session can expire while the user is ON a login screen — the
+  // patient URL is `#/login/patient`, so without the URL reset the
+  // app would drop straight back to the patient form instead of the
+  // chooser.
   useEffect(() => {
     setOnUnauthorized(() => {
-      clearAuth();
+      logout();
     });
     return () => setOnUnauthorized(null);
   }, []);
 
   // On boot, if we have a stored token, confirm it is still valid via
   // GET /auth/me. If the call 4xxs, clear and show LoginPage.
+  //
+  // These use `logout()` rather than `clearAuth()` so the URL is
+  // reset to the chooser too — otherwise an expired session on
+  // `#/login/patient` would land back on the patient form.
   useEffect(() => {
     if (stored === null) {
       setBootStatus('ok');
       return;
     }
     if (expired) {
-      clearAuth();
+      logout();
       setBootStatus('ok');
       return;
     }
@@ -77,7 +91,7 @@ export function App() {
       })
       .catch((err: unknown) => {
         if (err instanceof ApiError && err.status === 401) {
-          clearAuth();
+          logout();
         }
         // For any other error (network down, 500), keep the session and
         // let the inner page surface the error itself.

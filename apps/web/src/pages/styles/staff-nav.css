@@ -1,0 +1,48 @@
+/*
+ * Staff nav links — shared by the doctor + receptionist top nav.
+ *
+ * Token-only CSS (E7-S1 invariant): no hex literals.
+ *
+ * The visual language matches the admin AppShell nav (`.nav__link`):
+ * a quiet label that turns teal + underlined when it is the active
+ * section. Keeping the two surfaces identical means a doctor who has
+ * used the admin console already knows where the links are.
+ */
+
+.staff-nav__links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.staff-nav__link {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.staff-nav__link:hover {
+  color: var(--brand-primary);
+}
+
+.staff-nav__link--active {
+  color: var(--brand-primary);
+  font-weight: 600;
+  border-bottom-color: var(--brand-primary);
+}
+
+.staff-nav__link:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}

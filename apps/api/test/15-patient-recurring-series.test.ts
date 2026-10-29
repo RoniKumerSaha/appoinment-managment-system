@@ -100,7 +100,7 @@ async function insertOccurrence(
   seriesId: string,
   patientPhone: string,
   start: Date,
-  status: 'Scheduled' | 'Cancelled' | 'Completed' | 'No-Show' = 'Scheduled',
+  status: 'Scheduled' | 'Cancelled' | 'Completed' | 'No-show' = 'Scheduled',
 ): Promise<string> {
   const { doctorId, branchId, typeId } = await lookupIds();
   const ins = await db.pool.query<{ id: string }>(

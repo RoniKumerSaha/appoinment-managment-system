@@ -31,6 +31,7 @@ import {
   isoDateOffset,
 } from './booking-utils';
 import './ReschedulePage.css';
+import { withDoctorTitle } from './doctor-name';
 
 interface RescheduleAppointment {
   id: string;
@@ -348,7 +349,7 @@ export function ReschedulePage({
               </div>
               <div className="reschedule__appt-body">
                 <div className="reschedule__appt-name">
-                  Dr. {appointment.doctorName} · {appointment.typeName}
+                  {withDoctorTitle(appointment.doctorName)} · {appointment.typeName}
                 </div>
                 <div className="reschedule__appt-meta">
                   {formatTime(appointment.start_datetime, appointment.tz)} –{' '}
@@ -501,7 +502,7 @@ export function ReschedulePage({
                 <div className="reschedule__row">
                   <span className="reschedule__k">Doctor</span>
                   <span className="reschedule__v">
-                    Dr. {appointment.doctorName}
+                    {withDoctorTitle(appointment.doctorName)}
                   </span>
                 </div>
                 <div className="reschedule__row">

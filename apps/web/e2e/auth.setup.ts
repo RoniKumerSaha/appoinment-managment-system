@@ -104,12 +104,21 @@ interface SetupTarget {
 const TARGETS: SetupTarget[] = [
   {
     name: 'admin',
-    obtain: () => loginStaff(FIXTURE.admin.role, FIXTURE.admin.email),
+    obtain: () =>
+      loginStaff(
+        FIXTURE.admin.role,
+        FIXTURE.admin.email,
+        FIXTURE.staffPassword,
+      ),
   },
   {
     name: 'doctor-east',
     obtain: () =>
-      loginStaff(FIXTURE.doctorEastLead.role, FIXTURE.doctorEastLead.email),
+      loginStaff(
+        FIXTURE.doctorEastLead.role,
+        FIXTURE.doctorEastLead.email,
+        FIXTURE.staffPassword,
+      ),
   },
   {
     name: 'receptionist-east',
@@ -117,6 +126,7 @@ const TARGETS: SetupTarget[] = [
       loginStaff(
         FIXTURE.receptionistEast.role,
         FIXTURE.receptionistEast.email,
+        FIXTURE.staffPassword,
       ),
   },
   {

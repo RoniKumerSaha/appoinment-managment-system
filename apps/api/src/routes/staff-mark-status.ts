@@ -17,7 +17,7 @@
  *     'receptionist', `appt.branch_id ∈ claim.branch_ids`
  *     (BR-004). Otherwise → 403 outside_branch_scope.
  *   - Status gate: only `Scheduled` rows are markable. Terminal
- *     states (Cancelled / Completed / No-Show) → 422
+ *     states (Cancelled / Completed / No-show) → 422
  *     already_in_terminal_state (a distinct envelope from the
  *     patient-facing not_found_appointment_in_terminal_state
  *     because the staff flow has DIFFERENT semantics: the row

@@ -152,7 +152,8 @@ export function DoctorAuditDrawer({
 
         <div className="doc-audit__summary" data-testid="doc-audit-summary">
           <span>
-            <strong>{data?.count ?? 0}</strong> events
+            <strong>{data?.count ?? 0}</strong>{' '}
+            {(data?.count ?? 0) === 1 ? 'event' : 'events'}
           </span>
           <span>·</span>
           <span>
@@ -402,14 +403,24 @@ function toDisplayedRow(row: DoctorAuditRow, branchTz: string): DisplayedRow {
         .join(' · ');
       break;
     }
-    case 'status_marked': {
+    // The mark-status route writes TWO distinct event names —
+    // 'marked_completed' and 'marked_no_show' (see
+    // staff-mark-status.ts) — not a single 'status_marked'. The old
+    // case label never matched any row the server can produce, so
+    // every mark-status audit entry fell through to `default` and
+    // rendered the raw event string.
+    //
+    // The audit payload is `{}` for these rows (BR-039 / BR-040: no
+    // reason is recorded), so the status is derived from the event
+    // name itself rather than read from the payload.
+    case 'marked_completed':
+    case 'marked_no_show': {
       pillLabel = '● Status';
       pillTone = 'status';
       const status =
-        typeof row.payload?.['new_status'] === 'string'
-          ? (row.payload['new_status'] as string)
-          : 'updated';
+        row.event === 'marked_completed' ? 'Completed' : 'No-show';
       actionLine = `marked status · ${status}`;
+      metaLine = 'no reason required';
       break;
     }
     case 'recurring_created': {
@@ -499,8 +510,28 @@ function metaFromPayload(
   if (keys.length === 0) return null;
   return keys
     .slice(0, 3)
-    .map((k) => `${k}: ${String(payload[k])}`)
+    .map((k) => `${k}: ${readableValue(payload[k])}`)
     .join(' · ');
+}
+
+/**
+ * Render a payload value for the meta line.
+ *
+ * The raw payload carries full UUIDs (`branch_id`, `doctor_id`,
+ * `recurring_series_id`) which are 36 characters of noise in a
+ * 480px drawer — they pushed the useful values (the source, the
+ * reason) off the line. A UUID is shown as its last 4 characters
+ * (`·1d97`) so the reader can still correlate it with the detail
+ * view without the line wrapping into a paragraph.
+ */
+function readableValue(value: unknown): string {
+  if (typeof value !== 'string') return String(value);
+  if (
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+  ) {
+    return `·${value.slice(-4)}`;
+  }
+  return value;
 }
 
 function formatHm(iso: string, tz: string): string {

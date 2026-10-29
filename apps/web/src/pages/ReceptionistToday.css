@@ -197,7 +197,12 @@
 
 .recep-today__row {
   display: grid;
-  grid-template-columns: 70px 1fr 110px 100px 120px 90px;
+  /* The type column holds "<name> · <duration>" (e.g. "General
+     Consultation · 30 min"). At 100px it wrapped onto three lines,
+     which made every row twice as tall as it needed to be. The last
+     column holds the three quick-action buttons ("View" + "Audit" +
+     "Check in") and needs room for all three on one line. */
+  grid-template-columns: 70px 1fr 110px 190px 120px 210px;
   gap: var(--space-5);
   align-items: center;
   background: var(--surface-card);
@@ -346,6 +351,9 @@
   font-weight: 600;
   font-family: inherit;
   transition: all 120ms ease;
+  /* The action column is tight — without this the "Check in" label
+     wrapped onto two lines ("Check" / "in") and the row grew. */
+  white-space: nowrap;
 }
 
 .recep-today__qa-btn:hover {
@@ -363,6 +371,54 @@
   background: var(--brand-primary);
   color: var(--on-brand);
   border-color: var(--brand-primary);
+}
+
+/* ── Toast ──────────────────────────────────────────────────────── */
+
+.recep-today__toast-stack {
+  position: fixed;
+  top: 70px;
+  right: var(--space-7);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.recep-today__toast {
+  background: var(--surface-card);
+  border: 1px solid var(--brand-border);
+  border-left: 4px solid var(--brand-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-6);
+  box-shadow: 0 4px 12px var(--elev-1);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 280px;
+  max-width: 380px;
+  font-size: var(--text-sm);
+  color: var(--text-default);
+}
+
+.recep-today__toast-icon {
+  color: var(--brand-primary);
+  font-weight: 700;
+  font-size: var(--text-md);
+}
+
+.recep-today__toast-text {
+  flex: 1;
+}
+
+.recep-today__toast-x {
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px var(--space-2);
+  font-size: var(--text-lg);
+  line-height: 1;
 }
 
 /* ── Status / loading / empty ──────────────────────────────────── */

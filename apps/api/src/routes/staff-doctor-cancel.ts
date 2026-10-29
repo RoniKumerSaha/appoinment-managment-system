@@ -19,7 +19,7 @@
  *     whitespace-only → 400 reason_required. > 500 chars → 400
  *     reason_too_long.
  *   - Status gate: only `Scheduled` rows are cancellable.
- *     Already-Cancelled / Completed / No-Show → 422
+ *     Already-Cancelled / Completed / No-show → 422
  *     already_in_terminal_state (a distinct envelope from the
  *     patient-facing not_found_appointment_in_terminal_state
  *     because the staff flow sees the row in their queue).

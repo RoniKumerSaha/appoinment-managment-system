@@ -8,7 +8,7 @@
  *
  * Filter is server-side (FR-032): only `status='Scheduled' AND
  * start_datetime > now()` rows appear. Cancelled / Completed /
- * No-Show / past rows are excluded at the DB layer. The response is
+ * No-show / past rows are excluded at the DB layer. The response is
  * sorted by `start_datetime ASC` so the patient dashboard can render
  * a deterministic, time-ordered list.
  *
@@ -25,7 +25,7 @@ import { Router, type Request, type Response } from 'express';
 import { getPool } from '../db/pool.js';
 import { getLogger } from '../middleware/log.js';
 
-// FR-032 filter — Cancelled / Completed / No-Show / past all excluded
+// FR-032 filter — Cancelled / Completed / No-show / past all excluded
 // at the DB layer. Phone is bound from claim.sub, never from the body
 // or a query param (E7-S3 privacy filter).
 const SELECT_UPCOMING_APPOINTMENTS_SQL = `

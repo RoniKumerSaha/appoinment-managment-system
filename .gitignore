@@ -325,3 +325,13 @@ api-test-out.txt
 #     `*` wildcard absorbs the variable-width UTF-8 replacement char.
 *UsersBS01719*
 
+
+# Ad-hoc debugging artifacts dropped in apps/web by past sessions:
+#   - `probe-*.mjs` — one-off Playwright/CDP scripts used to poke at the
+#     running dev server while diagnosing a screen. They are not tests
+#     (no runner, no assertions, no teardown) and would rot.
+#   - `shot-*.png` — screenshots captured by those probes for eyeball
+#     comparison against the mockups. Binary noise in the repo.
+# The real browser coverage lives in apps/web/e2e/flows/*.spec.ts.
+apps/web/probe-*.mjs
+apps/web/shot-*.png

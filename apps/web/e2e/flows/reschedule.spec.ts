@@ -46,7 +46,6 @@ const PATIENT_CODE = FIXTURE.patient05.code;
 /** Sign in as a patient so "My appointments" is reachable. */
 async function signIn(page: Page): Promise<void> {
   const login = new LoginPage(page);
-  await page.goto('/');
   await login.signInAsPatient(PATIENT_PHONE, PATIENT_CODE);
 }
 
@@ -227,7 +226,7 @@ test.describe.serial('patient reschedule', () => {
 
     const login = new LoginPage(page);
     await expect(
-      login.patientPhoneInput,
+      login.chooserRoot(),
       'the patient is routed back to the sign-in screen',
     ).toBeVisible({ timeout: 15_000 });
 

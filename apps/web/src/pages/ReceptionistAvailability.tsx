@@ -28,8 +28,8 @@ import {
   ApiError,
   getAvailability,
   getReceptionSchedule,
-  listAppointmentTypes,
-  listDoctors,
+  listStaffAppointmentTypes,
+  listStaffDoctors,
   type AppointmentTypeDto,
   type DoctorWithBranchesDto,
   type ReceptionScheduleResponse,
@@ -125,7 +125,12 @@ export function ReceptionistAvailability({ onBookSlot }: Props): ReactNode {
       .then((res) => {
         if (cancelled) return;
         setSchedule(res);
-        const from = res.date;
+        // FR-019: same-day booking is NOT allowed — the availability
+        // route's window is [today+1, today+30]. The range used to
+        // start on `res.date` (today), so the first day could only
+        // ever 400 `past_date`, and the last 30 days of the grid
+        // fell outside the API window and showed "No slots".
+        const from = addDays(res.date, 1);
         setFromDate(from);
         setToDate(addDays(from, WINDOW_DAYS - 1));
         setLoading(false);
@@ -148,8 +153,8 @@ export function ReceptionistAvailability({ onBookSlot }: Props): ReactNode {
     void (async () => {
       try {
         const [d, t] = await Promise.all([
-          listDoctors({ active: true, branch_id: schedule.branch.id }),
-          listAppointmentTypes({ active: true }),
+          listStaffDoctors({ active: true, branch_id: schedule.branch.id }),
+          listStaffAppointmentTypes({ active: true }),
         ]);
         if (cancelled) return;
         const branchDoctors = d.filter((doc) =>
@@ -185,6 +190,11 @@ export function ReceptionistAvailability({ onBookSlot }: Props): ReactNode {
       const days = daysInRange(fromDate, toDate, WINDOW_DAYS);
       const results = await Promise.all(
         days.map(async (day) => {
+          // FR-019: the availability window is [today+1, today+30] —
+          // same-day is not bookable, so the route answers `past_date`
+          // for today. Skip it rather than firing a request that can
+          // only 400.
+          if (day <= schedule.date) return [day, [] as string[]] as const;
           try {
             const res = await getAvailability({
               doctor_id: doctorId,

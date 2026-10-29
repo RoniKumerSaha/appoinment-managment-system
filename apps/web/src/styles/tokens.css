@@ -176,6 +176,23 @@ body {
   line-height: 1.5;
 }
 
+/*
+ * The React mount point must span the viewport.
+ *
+ * A bare `<div id="root">` is a block box, so it fills the width by
+ * default — but the login frame sets `margin: 0 auto` on a
+ * `max-width` container, and the container's own `margin: 0 auto`
+ * only centres it WITHIN its parent. The root div was sizing itself
+ * to the frame's width (because the frame's children overflowed it),
+ * so the login page rendered left-of-centre with a dead gutter on the
+ * right. `min-height: 100vh` also matters: without it the frame's
+ * `min-height: 100vh` overflows the root and the page scrolls twice.
+ */
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
 * {
   box-sizing: border-box;
 }

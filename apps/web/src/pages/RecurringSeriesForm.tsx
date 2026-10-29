@@ -14,9 +14,9 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { DoctorFrame } from './DoctorFrame';
 import styles from './RecurringSeriesForm.module.css';
 import {
-  listAppointmentTypes,
-  listBranches,
-  listDoctors,
+  listStaffAppointmentTypes,
+  listStaffBranches,
+  listStaffDoctors,
   type AppointmentTypeDto,
   type BranchDto,
   type DoctorWithBranchesDto,
@@ -36,11 +36,17 @@ const KINDS: Array<{ value: RecurrenceKind; label: string }> = [
   { value: 'custom_days', label: 'Custom interval' },
 ];
 
-function todayLocal(): string {
-  // The start date is a branch-local calendar date. The browser's
-  // own local date is the closest approximation available before the
-  // branch is chosen.
+/**
+ * FR-019: same-day booking is not allowed. The recurring validator
+ * rejects an occurrence whose branch-local date equals today's with
+ * `same_day_exclusion` (see `recurring-helpers.ts` step 4), so the
+ * form's default start date has to be TOMORROW. It used to default to
+ * today, which meant the first occurrence was skipped before the
+ * user touched anything.
+ */
+function tomorrowLocal(): string {
   const now = new Date();
+  now.setDate(now.getDate() + 1);
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
@@ -64,19 +70,22 @@ export function RecurringSeriesForm({
   const [firstName, setFirstName] = useState('');
   const [kind, setKind] = useState<RecurrenceKind>('weekly');
   const [intervalDays, setIntervalDays] = useState('7');
-  const [startDate, setStartDate] = useState(todayLocal);
+  const [startDate, setStartDate] = useState(tomorrowLocal);
   const [timeOfDay, setTimeOfDay] = useState('09:00');
   const [duration, setDuration] = useState('30');
   const [occurrences, setOccurrences] = useState('6');
+  /** True once the user has manually edited the duration. After that
+   *  the type's default no longer overwrites their choice. */
+  const [durationTouched, setDurationTouched] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
         const [b, d, t] = await Promise.all([
-          listBranches('active'),
-          listDoctors({ active: true }),
-          listAppointmentTypes({ active: true }),
+          listStaffBranches('active'),
+          listStaffDoctors({ active: true }),
+          listStaffAppointmentTypes({ active: true }),
         ]);
         if (cancelled) return;
         setBranches(b);
@@ -85,6 +94,17 @@ export function RecurringSeriesForm({
         setBranchId((prev) => prev || (b[0]?.id ?? ''));
         setDoctorId((prev) => prev || (d[0]?.id ?? ''));
         setTypeId((prev) => prev || (t[0]?.id ?? ''));
+        // The duration field used to keep a hardcoded '30' while the
+        // type was picked programmatically — the select's onChange
+        // never fired, so the form showed "30" next to the hint
+        // "Type default: 15 min". The server requires
+        // `duration_minutes` to EQUAL the type's duration
+        // (`recurring-helpers.ts` step 2 returns
+        // `outside_branch_hours` on a mismatch), so the field had to
+        // follow the type. Seed it from the first type here, and let
+        // the effect below keep it in sync.
+        const firstType = t[0];
+        if (firstType) setDuration(String(firstType.duration_minutes));
       } catch {
         if (!cancelled) {
           setLookupError('Could not load doctors, branches, and appointment types.');
@@ -105,6 +125,17 @@ export function RecurringSeriesForm({
     () => types.find((t) => t.id === typeId),
     [types, typeId],
   );
+
+  // Keep the duration field aligned with the selected type. The
+  // server rejects a mismatch (`submittedDuration !==
+  // type.duration_minutes` → `outside_branch_hours`), so a stale
+  // value is a guaranteed preview failure. A manual edit wins until
+  // the user picks a different type.
+  useEffect(() => {
+    if (durationTouched) return;
+    if (selectedType === undefined) return;
+    setDuration(String(selectedType.duration_minutes));
+  }, [selectedType, durationTouched]);
 
   const onSubmitForm = useCallback(
     (e: React.FormEvent<HTMLFormElement>): void => {
@@ -200,8 +231,15 @@ export function RecurringSeriesForm({
               value={typeId}
               onChange={(e) => {
                 setTypeId(e.target.value);
+                // Picking a type re-seeds the duration — the type
+                // owns the slot length. This also clears the
+                // "manually edited" flag so the duration follows the
+                // type again.
                 const next = types.find((t) => t.id === e.target.value);
-                if (next) setDuration(String(next.duration_minutes));
+                if (next) {
+                  setDurationTouched(false);
+                  setDuration(String(next.duration_minutes));
+                }
               }}
               required
             >
@@ -269,9 +307,14 @@ export function RecurringSeriesForm({
               id="rec-start"
               type="date"
               value={startDate}
+              min={tomorrowLocal()}
               onChange={(e) => setStartDate(e.target.value)}
               required
             />
+            <div className={styles.hint}>
+              Same-day series are not allowed (FR-019) — the earliest
+              start is tomorrow.
+            </div>
           </div>
 
           <div className={styles['field']}>
@@ -293,11 +336,18 @@ export function RecurringSeriesForm({
               min={5}
               max={480}
               value={duration}
-              onChange={(e) => setDuration(e.target.value)}
+              onChange={(e) => {
+                setDurationTouched(true);
+                setDuration(e.target.value);
+              }}
               required
             />
             {selectedType !== undefined && (
-              <div className={styles.hint}>Type default: {selectedType.duration_minutes} min</div>
+              <div className={styles.hint}>
+                {durationTouched
+                  ? `Type default: ${selectedType.duration_minutes} min · must match to book`
+                  : `Type default: ${selectedType.duration_minutes} min`}
+              </div>
             )}
           </div>
 

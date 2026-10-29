@@ -24,6 +24,7 @@ import { ReceptionistToday } from './ReceptionistToday';
 import { ReceptionistCancel } from './ReceptionistCancel';
 import { ReceptionistCreate } from './ReceptionistCreate';
 import { ReceptionistAvailability } from './ReceptionistAvailability';
+import { useDeepLinkParam } from './deep-link';
 
 type RecepView = 'today' | 'cancel' | 'create' | 'availability';
 
@@ -35,11 +36,29 @@ interface SlotPrefill {
   end_datetime: string;
 }
 
-function readPageParam(): RecepView | null {
-  if (typeof window === 'undefined') return null;
-  const raw = new URLSearchParams(window.location.search).get('page');
-  if (raw === 'create' || raw === 'availability') return raw;
+function toRecepView(raw: string | null): RecepView | null {
+  // Every section in RECEPTIONIST_NAV has to be parseable here, or the
+  // nav link that sets it would be ignored and the view would fall
+  // back to 'today'. 'cancel' was missing once already (a deep link
+  // to the cancel screen silently landed on Today); 'today' was
+  // missing too — harmless by accident, because 'today' IS the
+  // default, but it meant the URL and the view state could disagree.
+  if (
+    raw === 'today' ||
+    raw === 'create' ||
+    raw === 'availability' ||
+    raw === 'cancel'
+  ) {
+    return raw;
+  }
   return null;
+}
+
+/** Write the current section into the URL. */
+function pushView(view: RecepView): void {
+  if (typeof window === 'undefined') return;
+  const next = `#/reception?page=${view}`;
+  if (window.location.hash !== next) window.location.hash = next;
 }
 
 export function ReceptionistApp() {
@@ -49,33 +68,47 @@ export function ReceptionistApp() {
   );
   const [prefill, setPrefill] = useState<SlotPrefill | undefined>(undefined);
 
+  // The deep link is read from the HASH fragment, not
+  // `location.search` — the routes are hash-based
+  // (`#/reception?page=create`), so the query string lives inside
+  // the fragment and `location.search` is always empty.
+  //
+  // This is a REACTIVE read: the app component stays mounted across a
+  // hash-only navigation (no remount), so a mount-only effect never
+  // re-ran and the view never changed.
+  const pageParam = useDeepLinkParam('page');
   useEffect(() => {
-    const v = readPageParam();
+    const v = toRecepView(pageParam);
     if (v !== null) setView(v);
-  }, []);
+  }, [pageParam]);
 
   const onOpenCancel = useCallback((appointmentId: string): void => {
     setPreselectedId(appointmentId === '' ? undefined : appointmentId);
     setView('cancel');
+    pushView('cancel');
   }, []);
 
   const onBackToToday = useCallback((): void => {
     setView('today');
     setPreselectedId(undefined);
+    pushView('today');
   }, []);
 
   const onOpenCreate = useCallback((): void => {
     setPrefill(undefined);
     setView('create');
+    pushView('create');
   }, []);
 
   const onOpenAvailability = useCallback((): void => {
     setView('availability');
+    pushView('availability');
   }, []);
 
   const onBookSlot = useCallback((slot: SlotPrefill): void => {
     setPrefill(slot);
     setView('create');
+    pushView('create');
   }, []);
 
   if (view === 'today') {

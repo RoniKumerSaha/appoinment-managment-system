@@ -58,6 +58,9 @@ export interface ResolvedInfo {
   fromStart: string;
   toStart: string;
   toEnd: string;
+  /** The destination branch's timezone (IANA). Used to render the new
+   *  slot in local wall-clock time. */
+  tz: string;
 }
 
 interface DoctorResolveProps {
@@ -124,6 +127,18 @@ export function DoctorResolve({
   // Load availability when (branch, type, date) change. The TYPE is
   // locked to the source row (BR-058), so we pass appointment.appointment_type_id
   // — not a state variable.
+  //
+  // `patient_phone` + `exclude_appointment_id` are REQUIRED here, not
+  // optional. The move route re-checks the destination slot against
+  // FR-027 / FR-029 (the patient's own appointments) at commit time.
+  // Without them the availability route applies no patient filter, so
+  // the picker offered slots that the move then rejected with a 409
+  // `patient_time_conflict` — the doctor picked a "free" slot and
+  // got an opaque error instead of the slot simply not being offered.
+  //
+  // `exclude_appointment_id` stops the appointment conflicting with
+  // ITSELF: its current (out-of-hours) slot would otherwise collide
+  // with every candidate in the same window.
   useEffect(() => {
     if (branches.length === 0 || types.size === 0 || doctorId === null) return;
     let cancelled = false;
@@ -137,6 +152,8 @@ export function DoctorResolve({
           branch_id: branchId,
           date,
           appointment_type_id: appointment.appointment_type_id,
+          patient_phone: appointment.patient_phone,
+          exclude_appointment_id: appointment.id,
         });
         if (cancelled) return;
         setSlots(res.slots);
@@ -156,6 +173,8 @@ export function DoctorResolve({
     branchId,
     date,
     appointment.appointment_type_id,
+    appointment.patient_phone,
+    appointment.id,
     branches.length,
     types.size,
     doctorId,
@@ -202,15 +221,21 @@ export function DoctorResolve({
         new_start_datetime: selectedSlot.start_datetime,
         new_end_datetime: selectedSlot.end_datetime,
       });
+      const destBranch = branches.find((b) => b.id === branchId);
       const info: ResolvedInfo = {
         appointment_id: appointment.id,
         patient_phone: appointment.patient_phone,
         appointment_type_id: appointment.appointment_type_id,
         branch_id: branchId,
-        branchName: branches.find((b) => b.id === branchId)?.name ?? '—',
+        branchName: destBranch?.name ?? '—',
         fromStart: appointment.start_datetime,
         toStart: selectedSlot.start_datetime,
         toEnd: selectedSlot.end_datetime,
+        // The destination branch's timezone, so the resolution-saved
+        // summary renders the new slot in LOCAL wall-clock time. It
+        // used to guess 'UTC', which showed the wrong time for every
+        // branch outside UTC.
+        tz: destBranch?.tz ?? appointment.branchTz,
       };
       await onMoved(info);
     } catch (e: unknown) {

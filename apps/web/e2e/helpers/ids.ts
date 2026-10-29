@@ -57,6 +57,15 @@ export function pickFutureSlotIso(daysAhead = 7, hour = 10): string {
 }
 
 export const FIXTURE = {
+  /**
+   * The shared dev password for every seeded staff account.
+   *
+   * The login form REQUIRES a password (the email-only staff login was
+   * a dev-only stub that minted a valid token for anyone who knew a
+   * seeded address — see `apps/web/src/pages/LoginPage.tsx`). Every
+   * spec that signs in as staff now sends this.
+   */
+  staffPassword: 'Clinic@12345678',
   admin: { role: 'admin', email: 'admin-main@clinic.local' },
   doctorEastLead: { role: 'doctor', email: 'dr.-east-lead@clinic.local' },
   doctorEastSupport: { role: 'doctor', email: 'dr.-east-support@clinic.local' },

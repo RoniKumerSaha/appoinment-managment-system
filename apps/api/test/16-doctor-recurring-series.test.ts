@@ -111,7 +111,7 @@ async function insertOccurrence(
   seriesId: string,
   patientPhone: string,
   start: Date,
-  status: 'Scheduled' | 'Cancelled' | 'Completed' | 'No-Show' = 'Scheduled',
+  status: 'Scheduled' | 'Cancelled' | 'Completed' | 'No-show' = 'Scheduled',
   doctorId?: string,
 ): Promise<string> {
   const ids = await lookupIds();

@@ -10,6 +10,7 @@ import './_load-env.js';
 import { getPool, closePool } from '../src/db/pool.js';
 import { default as runMigrate } from 'node-pg-migrate';
 import { seedWith } from '../db/seeds/01_minimum.js';
+import { seedRichWith } from '../db/seeds/03_rich_operations.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -63,10 +64,30 @@ async function runBaselineSeed(): Promise<void> {
   }
 }
 
+/**
+ * Apply the rich operational seed (03_rich_operations.ts) on top of
+ * the baseline seed. It adds the extra catalog rows, doctor blocks,
+ * the full-status appointment history, the recurring series and the
+ * audit trail. Idempotent — a second run inserts nothing.
+ */
+async function runRichSeed(): Promise<void> {
+  const pool = await getPool();
+  const c = await pool.connect();
+  try {
+    await c.query('BEGIN');
+    await seedRichWith(c);
+    await c.query('COMMIT');
+    console.log('db-reset: rich operational seed applied');
+  } finally {
+    c.release();
+  }
+}
+
 async function main(): Promise<void> {
   await resetSchema();
   await runMigrations();
   await runBaselineSeed();
+  await runRichSeed();
   await closePool();
 }
 main().catch(async (err) => {

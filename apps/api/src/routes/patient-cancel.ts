@@ -17,7 +17,7 @@
  * by id. The response is identical for "doesn't exist" and "exists
  * but you don't own it": `404 not_found`.
  *
- * Terminal states (Cancelled / Completed / No-Show) return a
+ * Terminal states (Cancelled / Completed / No-show) return a
  * distinct envelope `404 not_found_appointment_in_terminal_state`
  * because it is a separate code: the row exists, you own it, but
  * the cancel would be a no-op. The envelope surfaces WHY to the

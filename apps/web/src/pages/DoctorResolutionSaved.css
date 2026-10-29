@@ -265,11 +265,19 @@
 
 .doc-saved__audit-row {
   display: grid;
-  grid-template-columns: 80px 60px 1fr;
+  /* The pill column sizes to its CONTENT. It used to be a fixed
+     80px, which was too narrow for the wider pill labels
+     (e.g. "RESOLVE") — the pill overflowed its track and its
+     background bled across the timestamp and label columns. */
+  grid-template-columns: max-content 60px 1fr;
   gap: var(--space-3);
   align-items: center;
   font-size: var(--text-xs);
   color: var(--text-strong);
+}
+
+.doc-saved__audit-row > .doc-saved__pill {
+  justify-self: start;
 }
 
 .doc-saved__audit-time {

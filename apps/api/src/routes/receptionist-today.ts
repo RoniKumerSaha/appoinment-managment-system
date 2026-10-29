@@ -17,7 +17,9 @@
  *
  * Filters (all optional):
  *   - `status` (one of 'Scheduled', 'Cancelled', 'Completed',
- *     'No-Show'): filter by appointment status.
+ *     'No-show'): filter by appointment status. The literals mirror
+ *     the `appointment_status` DB enum verbatim — 'No-show', with a
+ *     lowercase 's'.
  *   - `doctor_id` (UUID): filter to one doctor at the branch.
  *   - `date` (YYYY-MM-DD): navigate to a specific calendar day.
  *
@@ -39,7 +41,12 @@ const VALID_STATUSES = new Set([
   'Scheduled',
   'Cancelled',
   'Completed',
-  'No-Show',
+  // The DB column is the `appointment_status` enum {Scheduled,
+  // Completed, Cancelled, No-show} — lowercase 's'. The API mirrors
+  // the enum verbatim, so this list must spell it 'No-show' too.
+  // It used to say 'No-Show', which meant the web UI's own
+  // `?status=No-show` filter was rejected with 400 invalid_status.
+  'No-show',
 ] as const);
 
 const SELECT_BRANCH_SQL = `

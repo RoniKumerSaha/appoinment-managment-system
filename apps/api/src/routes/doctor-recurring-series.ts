@@ -151,7 +151,11 @@ doctorRecurringSeriesRouter.get(
         (r) => r.status === 'Cancelled',
       ).length;
       const completedCount = rows.filter(
-        (r) => r.status === 'Completed' || r.status === 'No-Show',
+        // 'No-show' with a lowercase 's' — the `appointment_status`
+        // DB enum spells it that way, and the API mirrors the enum
+        // verbatim. It used to say 'No-Show' here, so a no-show
+        // occurrence was never counted as completed.
+        (r) => r.status === 'Completed' || r.status === 'No-show',
       ).length;
 
       res.status(200).json({

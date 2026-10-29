@@ -36,6 +36,7 @@ import {
   maskPhone,
 } from './recep-utils';
 import './ReceptionistCancel.css';
+import { withDoctorTitle } from './doctor-name';
 
 interface ReceptionistCancelProps {
   preselectedAppointmentId?: string;
@@ -98,7 +99,7 @@ function statusPillClass(s: ReceptionistAppointmentStatus): string {
       return 'recep-cancel__pill recep-cancel__pill--completed';
     case 'Cancelled':
       return 'recep-cancel__pill recep-cancel__pill--cancelled';
-    case 'No-Show':
+    case 'No-show':
       return 'recep-cancel__pill recep-cancel__pill--no-show';
   }
 }
@@ -114,7 +115,7 @@ function statusPillLabel(s: ReceptionistAppointmentStatus): string {
       return '✓ Done';
     case 'Cancelled':
       return '✕ Cancelled';
-    case 'No-Show':
+    case 'No-show':
       return '⊘ No-show';
   }
 }
@@ -290,7 +291,7 @@ export function ReceptionistCancel({
                         {maskPhone(a.patient_phone)}
                       </div>
                       <div className="recep-cancel__meta">
-                        Dr. {a.doctor_name} · {a.appointment_type_name}
+                        {withDoctorTitle(a.doctor_name)} · {a.appointment_type_name}
                       </div>
                     </div>
                     <span className={statusPillClass(a.status)}>
@@ -341,7 +342,7 @@ export function ReceptionistCancel({
               </div>
               <div className="recep-cancel__row">
                 <span className="recep-cancel__k">Doctor</span>
-                <span className="recep-cancel__v">Dr. {selected.doctor_name}</span>
+                <span className="recep-cancel__v">{withDoctorTitle(selected.doctor_name)}</span>
               </div>
               <div className="recep-cancel__row">
                 <span className="recep-cancel__k">Branch</span>

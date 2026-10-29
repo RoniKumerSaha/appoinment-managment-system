@@ -22,15 +22,19 @@
  * the default and is what the doctor sees on every day-to-day
  * login.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { DoctorAffected } from './DoctorAffected';
 import { DoctorAuditDrawer } from './DoctorAuditDrawer';
 import { RecurringSeriesForm } from './RecurringSeriesForm';
 import { RecurringPreviewPage } from './RecurringPreviewPage';
 import { RecurringConfirmPage } from './RecurringConfirmPage';
 import { RecurringBackOut } from './RecurringBackOut';
+import { useDeepLinkParam } from './deep-link';
 import {
   confirmRecurringSeries,
+  listStaffAppointmentTypes,
+  listStaffBranches,
+  listStaffDoctors,
   previewRecurringSeries,
   type RecurringConfirmResponse,
   type RecurringPreviewResponse,
@@ -68,11 +72,27 @@ const EMPTY_RECURRING: RecurringState = {
   busy: false,
 };
 
-function readPageParam(): DoctorView | null {
-  if (typeof window === 'undefined') return null;
-  const params = new URLSearchParams(window.location.search);
-  const raw = params.get('page');
+/** Id → display name, resolved once from the staff catalogue. */
+interface Catalogue {
+  doctors: Map<string, string>;
+  branches: Map<string, string>;
+  types: Map<string, string>;
+}
+
+const EMPTY_CATALOGUE: Catalogue = {
+  doctors: new Map(),
+  branches: new Map(),
+  types: new Map(),
+};
+
+function toDoctorView(raw: string | null): DoctorView | null {
+  // 'affected' is the doctor's default view. It was missing here, so
+  // the URL and the view state could disagree: the nav link for
+  // "Affected" set `#/doctor?page=affected`, which parsed to null
+  // and fell back to the default state — the right screen by luck,
+  // but the URL was never in sync with the view.
   if (
+    raw === 'affected' ||
     raw === 'series' ||
     raw === 'preview' ||
     raw === 'confirm' ||
@@ -83,16 +103,87 @@ function readPageParam(): DoctorView | null {
   return null;
 }
 
+/** Write the current view into the URL. */
+function pushView(view: DoctorView): void {
+  if (typeof window === 'undefined') return;
+  const next = `#/doctor?page=${view}`;
+  if (window.location.hash !== next) window.location.hash = next;
+}
+
 export function DoctorApp({ initialView }: DoctorAppProps) {
   const [view, setView] = useState<DoctorView>(initialView ?? 'affected');
   const [auditTarget, setAuditTarget] = useState<AuditTarget | null>(null);
   const [recurring, setRecurring] = useState<RecurringState>(EMPTY_RECURRING);
+  const [catalogue, setCatalogue] = useState<Catalogue>(EMPTY_CATALOGUE);
 
-  // Honour a one-shot ?page=… deep-link so the new screens are
-  // reachable from a URL paste.
+  // Honour a ?page=… deep-link so the new screens are reachable from
+  // a URL paste.
+  //
+  // The deep link is read from the HASH fragment, not
+  // `location.search` — the routes are hash-based
+  // (`#/doctor?page=series`), so the query string lives inside the
+  // fragment and `location.search` is always empty.
+  //
+  // This is a REACTIVE read: the app component stays mounted across a
+  // hash-only navigation (no remount), so a mount-only effect never
+  // re-ran and the view never changed.
+  const pageParam = useDeepLinkParam('page');
   useEffect(() => {
-    const v = readPageParam();
+    const v = toDoctorView(pageParam);
     if (v !== null) setView(v);
+  }, [pageParam]);
+
+  // Start each step of the recurring flow at the top of the page.
+  //
+  // The flow swaps the whole view (form → preview → confirm) inside
+  // one mounted component, so the browser keeps the previous step's
+  // scroll offset. After "Preview series →" the preview page opened
+  // 331px down — the "Series details" heading and its first two rows
+  // were already scrolled off the top, which is exactly the content
+  // the doctor clicked to see.
+  //
+  // `useLayoutEffect` (not `useEffect`): it runs synchronously after
+  // the DOM mutation and BEFORE the browser paints, so the new step
+  // is never painted at the stale offset. A passive effect was
+  // flushed late enough that the intermediate scroll position was
+  // visible (and could be measured by a screenshot) first.
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [view]);
+
+  // Resolve the ids the recurring flow submits into display names.
+  //
+  // `POST /recurring/preview` answers with ids only (`branch.id`,
+  // and the doctor/type ids are only in the request we sent), so the
+  // preview and confirm screens used to render raw UUIDs in their
+  // "Series details" tiles — a 36-character id where "Dr. East
+  // Lead" belongs. The staff catalogue is open to every
+  // authenticated caller, so the doctor can resolve the names
+  // client-side without a new API route.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [doctors, branches, types] = await Promise.all([
+          listStaffDoctors({ active: true }),
+          listStaffBranches('active'),
+          listStaffAppointmentTypes({ active: true }),
+        ]);
+        if (cancelled) return;
+        setCatalogue({
+          doctors: new Map(doctors.map((d) => [d.id, d.full_name])),
+          branches: new Map(branches.map((b) => [b.id, b.name])),
+          types: new Map(types.map((t) => [t.id, t.name])),
+        });
+      } catch {
+        // A catalogue failure is non-fatal — the labels fall back to
+        // a shortened id so the screen still reads.
+        if (!cancelled) setCatalogue(EMPTY_CATALOGUE);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const openAudit = useCallback((t: AuditTarget): void => {
@@ -110,6 +201,7 @@ export function DoctorApp({ initialView }: DoctorAppProps) {
         const preview = await previewRecurringSeries(input);
         setRecurring({ input, preview, result: null, error: null, busy: false });
         setView('preview');
+        pushView('preview');
       } catch (err) {
         const message =
           err instanceof Error ? err.message : 'preview_failed';
@@ -127,6 +219,7 @@ export function DoctorApp({ initialView }: DoctorAppProps) {
         const result = await confirmRecurringSeries(preview.preview_id);
         setRecurring((prev) => ({ ...prev, result, busy: false }));
         setView('confirm');
+        pushView('confirm');
       } catch (err) {
         const message =
           err instanceof Error ? err.message : 'confirm_failed';
@@ -138,6 +231,7 @@ export function DoctorApp({ initialView }: DoctorAppProps) {
   const backToSeries = useCallback((): void => {
     setRecurring(EMPTY_RECURRING);
     setView('series');
+    pushView('series');
   }, []);
 
   if (view === 'series') {
@@ -153,7 +247,7 @@ export function DoctorApp({ initialView }: DoctorAppProps) {
     return (
       <RecurringPreviewPage
         preview={recurring.preview}
-        labels={recurringLabels(recurring)}
+        labels={recurringLabels(recurring, catalogue)}
         requested={recurring.input?.occurrences_or_until_date ?? 0}
         error={recurring.error}
         busy={recurring.busy}
@@ -167,13 +261,16 @@ export function DoctorApp({ initialView }: DoctorAppProps) {
     return (
       <RecurringConfirmPage
         result={recurring.result}
-        labels={recurringLabels(recurring)}
+        labels={recurringLabels(recurring, catalogue)}
         requested={recurring.input?.occurrences_or_until_date ?? 0}
         error={recurring.error}
         busy={recurring.busy}
         onEditSchedule={backToSeries}
         onDone={backToSeries}
-        onBackOut={() => setView('backout')}
+        onBackOut={() => {
+          setView('backout');
+          pushView('backout');
+        }}
       />
     );
   }
@@ -195,11 +292,17 @@ export function DoctorApp({ initialView }: DoctorAppProps) {
   );
 }
 
-/** The preview/confirm screens label the series in prose. The labels
- *  are derived from the ids the form submitted, so a name lookup is
- *  not needed for the flow to read correctly — the id is shown
- *  alongside the human-readable bits the server gave us. */
-function recurringLabels(state: RecurringState): {
+/** The preview/confirm screens label the series in prose.
+ *
+ *  The ids are resolved against the staff catalogue so the tiles read
+ *  "Dr. East Lead" / "East Branch" / "General Consultation". When the
+ *  catalogue lookup has not landed (or failed), the id is shortened to
+ *  its last 4 characters — a full UUID in a 160px tile is noise, and
+ *  a 4-character tail is still correlatable with the detail view. */
+function recurringLabels(
+  state: RecurringState,
+  catalogue: Catalogue,
+): {
   patient: string;
   doctor: string;
   branch: string;
@@ -214,11 +317,26 @@ function recurringLabels(state: RecurringState): {
       : kind === 'custom_days'
         ? `every ${preview?.recurrence.interval_days ?? state.input?.recurrence_interval_days ?? 1} days`
         : 'weekly';
+  const doctorId = state.input?.doctor_id;
+  const branchId = preview?.branch.id ?? state.input?.branch_id;
+  const typeId = state.input?.appointment_type_id;
   return {
     patient: state.input?.patient_first_name ?? state.input?.patient_phone ?? '—',
-    doctor: state.input?.doctor_id ?? '—',
-    branch: preview?.branch.id ?? state.input?.branch_id ?? '—',
-    type: state.input?.appointment_type_id ?? '—',
+    doctor:
+      (doctorId === undefined ? undefined : catalogue.doctors.get(doctorId)) ??
+      shortId(doctorId),
+    branch:
+      (branchId === undefined ? undefined : catalogue.branches.get(branchId)) ??
+      shortId(branchId),
+    type:
+      (typeId === undefined ? undefined : catalogue.types.get(typeId)) ??
+      shortId(typeId),
     pattern,
   };
+}
+
+/** `993febc2-4a62-423c-90e8-a7ed1b27e6b4` → `·1b27`. */
+function shortId(id: string | undefined): string {
+  if (id === undefined || id === '') return '—';
+  return `·${id.slice(-4)}`;
 }

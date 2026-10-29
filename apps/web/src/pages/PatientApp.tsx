@@ -24,6 +24,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { PatientBooking } from './PatientBooking';
 import { MyAppointments } from './MyAppointments';
 import { RecurringOccurrenceCancel } from './RecurringOccurrenceCancel';
+import { readDeepLinkParams, useDeepLinkParam } from './deep-link';
 
 type PatientView = 'find-doctor' | 'my-appointments' | 'cancel-occurrence';
 
@@ -40,8 +41,11 @@ interface DeepLink {
 }
 
 function readQuery(): DeepLink {
-  if (typeof window === 'undefined') return {};
-  const params = new URLSearchParams(window.location.search);
+  // Read from the HASH fragment, not `location.search` — the routes
+  // are hash-based (`#/patient?page=cancel-occurrence`), so the query
+  // string lives inside the fragment and `location.search` is always
+  // empty.
+  const params = readDeepLinkParams();
   const rawAction = params.get('action');
   const rawId = params.get('id') ?? undefined;
   const rawPage = params.get('page');
@@ -57,7 +61,12 @@ function readQuery(): DeepLink {
 function scrubQuery(): void {
   if (typeof window === 'undefined') return;
   try {
-    window.history.replaceState({}, '', window.location.pathname);
+    // Keep the HASH — the patient app routes on it, and dropping it
+    // would reset the view on every scrub.
+    const { pathname, hash } = window.location;
+    const qIndex = hash.indexOf('?');
+    const cleanHash = qIndex === -1 ? hash : hash.slice(0, qIndex);
+    window.history.replaceState({}, '', `${pathname}${cleanHash}`);
   } catch {
     // ignore
   }
@@ -87,6 +96,19 @@ export function PatientApp({
     }
     return readQuery();
   });
+
+  // `?page=…` is a VIEW selector (e.g. `cancel-occurrence`), so it
+  // must follow the URL — a hash-only navigation doesn't remount this
+  // component, so a mount-only effect would miss it. The
+  // `action`/`id` pair above stays one-shot on purpose: `scrubQuery()`
+  // wipes the URL so the back button can't re-trigger the action.
+  const pageParam = useDeepLinkParam('page');
+  useEffect(() => {
+    if (pageParam === 'cancel-occurrence') {
+      scrubQuery();
+      setView('cancel-occurrence');
+    }
+  }, [pageParam]);
 
   useEffect(() => {
     if (deepLink.page) {
