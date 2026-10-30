@@ -3,13 +3,19 @@
  *
  * The login is now three separate screens (chooser / staff /
  * patient). They all sit on the same 760px frame with the same
- * MediSlot wordmark and the same "Sign in" pill, so that chrome
- * lives here rather than being copied into each screen.
+ * MediSlot wordmark, so that chrome lives here rather than being
+ * copied into each screen.
  *
  * The screens differ in what they render INSIDE `.page`: the chooser
  * renders its two big cards, the staff screen renders the staff
  * form, the patient screen renders the OTP form. Each owns its own
  * content — this component only owns the frame.
+ *
+ * There is no pill in the top-right. It used to read "Sign in", which
+ * was true of all three screens and therefore told the visitor
+ * nothing — and on the chooser it was actively misleading, because the
+ * visitor has not chosen WHO to sign in as yet. The brand mark alone
+ * is enough chrome.
  */
 import type { ReactNode } from 'react';
 import { BrandMark } from '../brand/BrandMark';
@@ -18,11 +24,9 @@ import styles from './LoginPage.module.css';
 
 interface LoginFrameProps {
   children: ReactNode;
-  /** The pill text in the top-right. Defaults to "Sign in". */
-  pill?: string;
 }
 
-export function LoginFrame({ children, pill = 'Sign in' }: LoginFrameProps) {
+export function LoginFrame({ children }: LoginFrameProps) {
   return (
     <div className={styles['frame']}>
       <nav className={styles['nav']}>
@@ -30,7 +34,6 @@ export function LoginFrame({ children, pill = 'Sign in' }: LoginFrameProps) {
           <BrandMark size={28} className={styles['brand__logo']} />
           MediSlot
         </div>
-        <div className={styles['nav__pill']}>{pill}</div>
       </nav>
 
       <div className={styles['page']}>{children}</div>

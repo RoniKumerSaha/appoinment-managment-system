@@ -115,7 +115,7 @@ function ChooserIcon({ name }: { name: 'staff' | 'patient' }) {
 
 export function LoginChooser() {
   return (
-    <LoginFrame pill="Sign in">
+    <LoginFrame>
       <div className={styles['chooser']} data-testid="login-chooser">
         {/* ── Brand panel ─────────────────────────────────────────── */}
         <aside className={styles['chooser__hero']}>
@@ -210,8 +210,10 @@ export function LoginChooser() {
               strokeWidth="1.5"
               opacity="0.35"
             />
-            {/* Filled slots — the "booked" state. */}
+            {/* Filled slots — the "booked" state. Each one lands in
+                turn, so the calendar fills up as you watch it. */}
             <rect
+              className={styles['chooser__slot']}
               x="36"
               y="80"
               width="34"
@@ -221,6 +223,7 @@ export function LoginChooser() {
               opacity="0.55"
             />
             <rect
+              className={styles['chooser__slot']}
               x="96"
               y="80"
               width="34"
@@ -230,6 +233,7 @@ export function LoginChooser() {
               opacity="0.9"
             />
             <rect
+              className={styles['chooser__slot']}
               x="156"
               y="118"
               width="34"
@@ -239,6 +243,7 @@ export function LoginChooser() {
               opacity="0.55"
             />
             <rect
+              className={styles['chooser__slot']}
               x="216"
               y="118"
               width="34"
@@ -247,10 +252,35 @@ export function LoginChooser() {
               fill="currentColor"
               opacity="0.9"
             />
-            {/* Slot rings */}
-            <circle cx="103" cy="145" r="13" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
-            <circle cx="163" cy="80" r="13" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
-            <circle cx="283" cy="80" r="13" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
+            {/* Slot rings — the open slots. Each breathes on its own
+                clock. */}
+            <circle
+              className={styles['chooser__ring']}
+              cx="103"
+              cy="145"
+              r="13"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              opacity="0.5"
+            />
+            <circle
+              className={styles['chooser__ring']}
+              cx="163"
+              cy="80"
+              r="13"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              opacity="0.5"
+            />
+            <circle
+              className={styles['chooser__ring']}
+              cx="283"
+              cy="80"
+              r="13"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              opacity="0.5"
+            />
           </svg>
         </aside>
 

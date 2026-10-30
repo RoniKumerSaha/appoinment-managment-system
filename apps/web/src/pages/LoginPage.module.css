@@ -53,18 +53,6 @@
   flex-shrink: 0;
 }
 
-.nav__pill {
-  background: var(--brand-light-50);
-  color: var(--brand-primary);
-  border: 1px solid var(--brand-border);
-  padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-pill);
-  font-size: var(--text-2xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
 /*
  * The page body holds ONE screen now — the chooser, the staff form
  * or the patient form — never two side by side. It was a 2-column
@@ -649,6 +637,57 @@
   z-index: -1;
 }
 
+/* ── Hero motion ───────────────────────────────────────────────── */
+
+/* The calendar texture breathes: the whole grid sways a couple of
+ * pixels and its opacity lifts, so the panel reads as alive without
+ * anything visibly sliding past the copy. */
+@keyframes hero-art-pulse {
+  0%,
+  100% {
+    opacity: 0.26;
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    opacity: 0.42;
+    transform: translateY(-50%) scale(1.035);
+  }
+}
+
+/* A booked slot lands: it scales up from nothing and settles. The
+ * fill is the story — the calendar fills up as you watch. */
+@keyframes hero-slot-fill {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  55% {
+    transform: scale(1);
+  }
+  85%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* An open slot pulses — the "available" marker in the grid. */
+@keyframes hero-ring-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.14);
+  }
+}
+
 .chooser__eyebrow {
   align-self: flex-start;
   font-size: var(--text-3xs);
@@ -735,6 +774,52 @@
   opacity: 0.3;
   pointer-events: none;
   z-index: -1;
+  animation: hero-art-pulse 9s ease-in-out infinite;
+}
+
+/* A booked slot lands in turn. The grid reads as filling up. Each
+   slot's transform origin is its own centre, so it grows from where
+   it sits rather than from the SVG's top-left corner. */
+.chooser__slot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hero-slot-fill 6s ease-in-out infinite;
+}
+
+/* Staggered so the four booked slots light up one after another. */
+.chooser__slot:nth-of-type(1) {
+  animation-delay: 0s;
+}
+
+.chooser__slot:nth-of-type(2) {
+  animation-delay: -1.5s;
+}
+
+.chooser__slot:nth-of-type(3) {
+  animation-delay: -3s;
+}
+
+.chooser__slot:nth-of-type(4) {
+  animation-delay: -4.5s;
+}
+
+/* An open slot pulses — the "available" marker. */
+.chooser__ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hero-ring-pulse 3.6s ease-in-out infinite;
+}
+
+.chooser__ring:nth-of-type(1) {
+  animation-delay: -0.6s;
+}
+
+.chooser__ring:nth-of-type(2) {
+  animation-delay: -1.8s;
+}
+
+.chooser__ring:nth-of-type(3) {
+  animation-delay: -3s;
 }
 
 /* ── Chooser panel ──────────────────────────────────────────────── */

@@ -89,7 +89,6 @@ function findPillMatches(text: string, rel: string): PillMatch[] {
     // (pill--active, pill--inactive, pill--cancelled, etc.) or are
     // the bare `pill` class used inside status lists.
     if (
-      className === 'nav__pill' ||
       className.startsWith('doctor-pill') ||
       className === 'returning-pill' ||
       className === 'target-pill' ||
