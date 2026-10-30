@@ -13,6 +13,7 @@
  * the service + provider wiring exists). `LogSmsOtpProvider` for dev/test,
  * `TwilioSmsOtpProvider` for production (lazy-imported).
  */
+import '../scripts/_load-env.js';
 import { createApp } from './app.js';
 import { getLogger } from './middleware/log.js';
 import { closePool, getPool } from './db/pool.js';

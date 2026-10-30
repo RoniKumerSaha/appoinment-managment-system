@@ -219,7 +219,7 @@ export function RecurringBackOut({ seriesId }: RecurringBackOutProps): ReactNode
 
   if (loading) {
     return (
-      <DoctorFrame>
+      <DoctorFrame activeNav="series">
         <div className={styles['page']}>
           <header className={styles['page-header']}>
             <div className={styles.crumb}>Recurring &rarr; Back-out</div>
@@ -232,7 +232,7 @@ export function RecurringBackOut({ seriesId }: RecurringBackOutProps): ReactNode
 
   if (series === null) {
     return (
-      <DoctorFrame>
+      <DoctorFrame activeNav="series">
         <div className={styles['page']}>
           <header className={styles['page-header']}>
             <div className={styles.crumb}>Recurring &rarr; Back-out</div>
@@ -250,7 +250,7 @@ export function RecurringBackOut({ seriesId }: RecurringBackOutProps): ReactNode
   const skipped = Math.max(0, total - scheduled.length);
 
   return (
-    <DoctorFrame>
+    <DoctorFrame activeNav="series">
       <div className={styles['page']}>
         <header className={styles['page-header']}>
           <div className={styles.crumb}>Recurring &rarr; Back-out</div>

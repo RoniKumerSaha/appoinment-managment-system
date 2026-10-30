@@ -19,6 +19,10 @@
   background: var(--surface-card);
   min-height: 100vh;
   box-shadow: var(--elev-1);
+  /* Column layout so the privacy footer can be pushed to the bottom
+     of the viewport instead of floating directly under the content. */
+  display: flex;
+  flex-direction: column;
 }
 
 .nav {
@@ -73,6 +77,20 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  /* Grow to fill the space between the nav and the footer. */
+  flex: 1;
+}
+
+/* The chooser screen renders its own two-column layout, so it needs
+   the full frame width — the 460px single-card measure is for the
+   staff and patient form screens only.
+   `margin: auto 0` centres the band vertically in the space between
+   the nav and the footer, so the composition sits as one block rather
+   than hugging the top of a tall empty page. */
+.page > .chooser {
+  width: 100%;
+  max-width: none;
+  margin: auto 0;
 }
 
 /* The one card on a login screen. */
@@ -89,6 +107,28 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-7);
+  /* Lift the card off the page. Without it the form read as a flat
+     outline floating on the page background. */
+  box-shadow: var(--elev-4);
+}
+
+/* A hairline accent along the top edge, tinted by the card's role.
+   Gives the card a "capped" look and a second identity cue. */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: linear-gradient(
+    90deg,
+    var(--brand-primary) 0%,
+    var(--brand-primary-dark) 100%
+  );
+}
+
+.card {
+  position: relative;
 }
 
 .card__head {
@@ -97,17 +137,38 @@
   gap: var(--space-5);
 }
 
+/*
+ * The icon tile is a gradient-filled rounded square with a soft halo,
+ * matching the chooser cards. It used to hold a glyph character
+ * (`◆`, `🔒`) which could not be tinted — see LoginIcons.tsx.
+ */
 .card__icon {
-  width: 48px;
-  height: 48px;
-  background: var(--brand-light-50);
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(
+    150deg,
+    var(--brand-light-50) 0%,
+    var(--brand-light) 100%
+  );
   color: var(--brand-primary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-2xl);
   flex-shrink: 0;
+  box-shadow: var(--elev-1);
+}
+
+/* The patient form gets the blue family so the two screens are
+   distinguishable at a glance, mirroring the chooser cards. */
+.card__icon--patient {
+  background: linear-gradient(150deg, var(--info-bg) 0%, var(--surface-soft) 100%);
+  color: var(--info-text);
+}
+
+.card__icon svg {
+  width: 26px;
+  height: 26px;
 }
 
 .card__title {
@@ -115,6 +176,7 @@
   font-weight: 700;
   color: var(--text-heading);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .card__sub {
@@ -150,6 +212,10 @@
   background: var(--surface-card);
   color: var(--text-heading);
   font-weight: 500;
+  /* The field is an interactive surface — give it a hairline of depth
+     so it does not read as a flat outlined rectangle. */
+  box-shadow: var(--elev-1);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
 .field__input:focus,
@@ -159,9 +225,89 @@
   box-shadow: var(--ring-focus);
 }
 
+.field__input:disabled,
+.field__select:disabled {
+  background: var(--surface-soft);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
 .field__input::placeholder {
   color: var(--text-disabled);
   font-weight: 400;
+}
+
+/* ── Inputs with a leading icon ─────────────────────────────────── */
+
+/*
+ * The input and its leading icon share one bordered shell, so the
+ * icon sits INSIDE the field rather than floating beside it. The
+ * native input keeps its own border and is laid over the shell.
+ */
+.field__shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.field__shellIcon {
+  position: absolute;
+  left: var(--space-5);
+  width: 17px;
+  height: 17px;
+  color: var(--text-muted);
+  pointer-events: none;
+  transition: color 120ms ease;
+}
+
+.field__shell:focus-within .field__shellIcon {
+  color: var(--brand-primary);
+}
+
+.field__shell .field__input {
+  width: 100%;
+  /* Clear the leading icon: it sits at left 12px and is 17px wide,
+     so the text needs ~40px of gutter to avoid overlapping it. */
+  padding-left: 40px;
+  padding-right: var(--space-5);
+}
+
+/* The password field also carries a trailing visibility toggle, so
+   it needs room on the right as well. */
+.field__shell--action .field__input {
+  padding-right: var(--space-12);
+}
+
+.field__toggle {
+  position: absolute;
+  right: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.field__toggle:hover {
+  color: var(--brand-primary);
+  background: var(--brand-light-50);
+}
+
+.field__toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+.field__toggle svg {
+  width: 17px;
+  height: 17px;
 }
 
 .field__hint {
@@ -169,15 +315,26 @@
   color: var(--text-muted);
 }
 
+/*
+ * The six cells sit on a shared track rather than floating as six
+ * disconnected boxes — the track reads as ONE input split into
+ * segments, which is what it actually is.
+ */
 .otp {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  /* Six equal columns with a gap — the cells fill the track edge to
+     edge instead of leaving a ragged gap on the right. */
+  grid-template-columns: repeat(6, 1fr);
   gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface-soft);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
 }
 
 .otp__cell {
-  width: 44px;
-  height: 56px;
+  width: 100%;
+  height: 58px;
   border: 1.5px solid var(--border-default);
   border-radius: var(--radius-md);
   font-size: var(--text-2xl);
@@ -187,6 +344,9 @@
   font-family: var(--font-mono);
   background: var(--surface-card);
   padding: 0;
+  box-shadow: var(--elev-1);
+  transition: border-color 120ms ease, background 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .otp__cell.filled {
@@ -199,6 +359,7 @@
   outline: none;
   border-color: var(--brand-primary);
   box-shadow: var(--ring-focus);
+  background: var(--surface-card);
 }
 
 .otp__cell.error {
@@ -220,17 +381,39 @@
   font-size: var(--text-2xs);
   color: var(--text-muted);
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
 }
 
+/*
+ * The resend link is disabled while the cooldown timer runs. It is
+ * rendered as a chip so it reads as a control with a state, not as
+ * dead grey text.
+ */
 .resend a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   color: var(--text-disabled);
   cursor: not-allowed;
   font-weight: 500;
   text-decoration: none;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-5);
 }
 
 .resend .timer {
   font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: var(--surface-card);
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-default);
 }
 
 .error-banner {
@@ -251,24 +434,40 @@
   border: 0;
   cursor: pointer;
   font: inherit;
-  font-weight: 500;
+  font-weight: 600;
   border-radius: var(--radius-sm);
   padding: var(--space-4) var(--space-9);
   font-size: var(--text-md);
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease,
+    box-shadow 120ms ease, transform 120ms ease;
 }
 
 .btn-primary {
   background: var(--brand-primary);
   color: var(--on-brand);
+  box-shadow: var(--elev-3);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--brand-primary-hover);
+  box-shadow: var(--elev-2);
+  transform: translateY(-1px);
 }
 
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/*
+ * A disabled primary used to be the brand teal at 50% opacity, which
+ * still read as "a teal button" and pulled the eye. A neutral fill
+ * reads unmistakably as unavailable.
+ */
 .btn-primary:disabled {
-  opacity: 0.5;
+  background: var(--surface-soft);
+  color: var(--text-disabled);
+  border: 1px solid var(--border-default);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -280,6 +479,8 @@
 
 .btn-ghost:hover:not(:disabled) {
   background: var(--surface-page);
+  border-color: var(--border-strong);
+  color: var(--text-heading);
 }
 
 .btn-ghost:disabled {
@@ -322,14 +523,15 @@
   color: var(--text-muted);
   background: var(--surface-soft);
   border: 1px solid var(--surface-divider);
+  border-left: 3px solid var(--brand-border);
   border-radius: var(--radius-md);
-  padding: var(--space-4) var(--space-5);
-  line-height: 1.6;
+  padding: var(--space-5) var(--space-6);
+  line-height: 1.7;
 }
 
 .hint-block strong {
   color: var(--text-strong);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .hint-block code {
@@ -337,9 +539,10 @@
   font-size: 11px;
   color: var(--text-heading);
   background: var(--surface-card);
-  padding: 1px 4px;
+  padding: 1px 5px;
   border-radius: var(--radius-xs);
-  border: 1px solid var(--surface-divider);
+  border: 1px solid var(--border-default);
+  white-space: nowrap;
 }
 
 .privacy {
@@ -349,6 +552,20 @@
   border-top: 1px solid var(--surface-divider);
   line-height: 1.6;
   text-align: center;
+  /* Sit at the bottom of the frame, not directly under the content. */
+  margin-top: auto;
+  /* Centre the reassurance copy with a shield mark. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.privacy svg {
+  width: 15px;
+  height: 15px;
+  color: var(--brand-primary);
+  flex-shrink: 0;
 }
 
 .status {
@@ -360,98 +577,415 @@
 
 /* ─── chooser (the root's landing screen) ─────────────────────────── */
 
+/*
+ * Split hero: a brand panel on the left carrying the product story,
+ * the chooser cards on the right. The cards are no longer floating in
+ * a wide empty column — the hero panel anchors the left third and the
+ * cards sit in a tighter measure, so the screen reads as one composed
+ * layout instead of a centred form with a void under it.
+ */
 .chooser {
   width: 100%;
-  max-width: 640px;
+  max-width: 1080px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
+  /* Stretch, not centre: the hero panel should match the height of the
+     card column so the two sides read as one band. Centring left the
+     panel floating in a tall empty column. */
+  align-items: stretch;
+}
+
+/* ── Brand panel ────────────────────────────────────────────────── */
+
+.chooser__hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  padding: var(--space-12) var(--space-11);
+  color: var(--on-brand);
+  background: linear-gradient(
+    155deg,
+    var(--brand-primary) 0%,
+    var(--brand-primary-hover) 55%,
+    var(--brand-primary-dark) 100%
+  );
+  box-shadow: var(--elev-4);
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-6);
+  isolation: isolate;
+}
+
+/* A soft light bloom in the upper-right corner — gives the panel
+ * depth so it does not read as a flat rectangle of colour. Kept faint
+ * so it never competes with the copy. */
+.chooser__hero::before {
+  content: '';
+  position: absolute;
+  top: -90px;
+  right: -90px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: var(--brand-light);
+  opacity: 0.09;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* A second, lower bloom in the brand's pale tone. */
+.chooser__hero::after {
+  content: '';
+  position: absolute;
+  bottom: -140px;
+  left: -80px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: var(--brand-primary-dark);
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.chooser__eyebrow {
+  align-self: flex-start;
+  font-size: var(--text-3xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand-light);
+  background: var(--brand-primary-hover);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-5);
+}
+
+.chooser__headline {
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin: 0;
+  color: var(--on-brand);
+}
+
+.chooser__lede {
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  margin: 0;
+  color: var(--brand-light);
+  max-width: 34ch;
+}
+
+/* The three proof points along the bottom of the panel. Pushed to the
+   bottom so they anchor the panel rather than bunching under the
+   lede — the panel is stretched to match the card column. */
+.chooser__stats {
+  list-style: none;
+  margin: auto 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  /* The decorative art passes behind this row, so the stats need
+     their own contrast. A translucent dark wash keeps them legible
+     without reading as a solid box. */
+  position: relative;
+  z-index: 1;
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--brand-primary-hover);
+  box-shadow: var(--elev-1);
+}
+
+.chooser__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: var(--space-5);
+  border-left: 2px solid var(--brand-border);
+}
+
+.chooser__statNum {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--on-brand);
+}
+
+.chooser__statLabel {
+  font-size: var(--text-2xs);
+  color: var(--brand-light);
+}
+
+/* Decorative calendar texture. Sits in the middle-right of the panel
+   — the gap between the lede and the stats — so it fills the void
+   without colliding with the copy at either end. */
+.chooser__art {
+  position: absolute;
+  right: var(--space-8);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 290px;
+  height: 180px;
+  color: var(--on-brand);
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ── Chooser panel ──────────────────────────────────────────────── */
+
+.chooser__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  /* No `justify-content: center` — it would stop the grid below from
+     growing to fill the column. */
+}
+
+.chooser__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .chooser__title {
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
   font-weight: 700;
   color: var(--text-heading);
   margin: 0;
-  text-align: center;
+  letter-spacing: -0.01em;
 }
 
 .chooser__sub {
   font-size: var(--text-sm);
   color: var(--text-muted);
   margin: 0;
-  text-align: center;
 }
 
+/*
+ * The two cards stack vertically rather than sitting side by side.
+ * Side by side they were narrow and their text wrapped awkwardly
+ * ("Book, reschedule, or cancel your / appointments."); stacked, each
+ * card gets the full column width and the bullet list has room.
+ */
 .chooser__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-6);
-  margin-top: var(--space-4);
-}
-
-@media (max-width: 620px) {
-  .chooser__grid {
-    grid-template-columns: 1fr;
-  }
+  /* Let the cards share the panel's full height so the right column
+     matches the hero band instead of ending short. */
+  flex: 1;
 }
 
 .chooser__card {
+  position: relative;
+  overflow: hidden;
   background: var(--surface-card);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-xl);
-  padding: var(--space-9) var(--space-8);
+  padding: var(--space-9) var(--space-10);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  text-align: center;
+  align-items: flex-start;
+  gap: var(--space-5);
+  text-align: left;
   cursor: pointer;
   font: inherit;
-  transition: border-color 120ms ease, box-shadow 120ms ease,
-    transform 120ms ease;
+  color: inherit;
+  transition: border-color 140ms ease, box-shadow 140ms ease,
+    transform 140ms ease;
+  /* Grow to fill the column so the two cards span the same height as
+     the hero panel. */
+  flex: 1;
+  justify-content: flex-start;
+}
+
+/* A coloured rail on the left edge — the card's identity colour.
+   It grows from nothing on hover, so the card "opens" on approach. */
+.chooser__card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--brand-primary);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 140ms ease;
 }
 
 .chooser__card:hover {
   border-color: var(--brand-border);
-  box-shadow: var(--elev-2);
+  box-shadow: var(--elev-3);
   transform: translateY(-2px);
+}
+
+.chooser__card:hover::before {
+  transform: scaleY(1);
 }
 
 .chooser__card:focus-visible {
   outline: none;
+  border-color: var(--brand-primary);
   box-shadow: var(--ring-focus);
 }
 
+/* Icon + title share a baseline row. */
+.chooser__cardTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+/*
+ * Icon tiles are gradient-filled with a soft halo, so they read as
+ * dimensional objects rather than flat grey discs. Each role gets a
+ * distinct tint so the two cards are distinguishable at a glance.
+ */
 .chooser__icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--brand-light-50);
-  color: var(--brand-primary);
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: var(--text-2xl);
+  flex-shrink: 0;
+  color: var(--brand-primary);
+  background: linear-gradient(
+    150deg,
+    var(--brand-light-50) 0%,
+    var(--brand-light) 100%
+  );
+  box-shadow: var(--elev-1);
+}
+
+.chooser__icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.chooser__icon--patient {
+  color: var(--info-text);
+  background: linear-gradient(150deg, var(--info-bg) 0%, var(--surface-soft) 100%);
 }
 
 .chooser__label {
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   font-weight: 700;
   color: var(--text-heading);
+  letter-spacing: -0.01em;
 }
 
 .chooser__desc {
   font-size: var(--text-sm);
-  color: var(--text-muted);
+  color: var(--text-default);
   line-height: 1.5;
 }
 
+/* The capability list — gives each card real substance. */
+.chooser__points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.chooser__point {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-default);
+  line-height: 1.45;
+}
+
+.chooser__check {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--brand-primary);
+}
+
+/* The call to action becomes a real button-looking element that
+   fills with the brand colour on hover. */
 .chooser__cta {
   margin-top: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--brand-primary);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-sm);
+  background: var(--brand-light-50);
+  border: 1px solid var(--brand-border);
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.chooser__card:hover .chooser__cta {
+  background: var(--brand-primary);
+  color: var(--on-brand);
+  border-color: var(--brand-primary);
+}
+
+.chooser__arrow {
+  width: 15px;
+  height: 15px;
+  transition: transform 140ms ease;
+}
+
+.chooser__card:hover .chooser__arrow {
+  transform: translateX(3px);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+
+/* Below 900px the hero stacks above the cards. */
+@media (max-width: 900px) {
+  .chooser {
+    grid-template-columns: 1fr;
+    gap: var(--space-9);
+  }
+
+  .chooser__art {
+    display: none;
+  }
+
+  .chooser__headline {
+    font-size: var(--text-3xl);
+  }
+}
+
+/* On a phone the hero art would compete with the copy; drop the
+   stats row too and keep the panel compact. */
+@media (max-width: 620px) {
+  .chooser__hero {
+    padding: var(--space-9) var(--space-8);
+  }
+
+  .chooser__stats {
+    gap: var(--space-5);
+  }
+
+  .chooser__card {
+    padding: var(--space-8) var(--space-7);
+  }
+
+  .chooser__cardTop {
+    gap: var(--space-5);
+  }
 }
 
 /* ─── cross-links between the login screens ───────────────────────── */

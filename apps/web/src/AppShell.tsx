@@ -3,9 +3,28 @@
  *
  * W10 update: the user chip and "Sign out" affordance are now driven by
  * the auth store. When no session is present (e.g. parent forgot to gate
- * the shell), the chip falls back to the static demo identity. The other
- * admin nav links remain non-active placeholders for now — they become
- * real routes when the router lands (deferral W59 / E1-S0-ui).
+ * the shell), the chip falls back to the static demo identity.
+ *
+ * ── Navigation polish ──────────────────────────────────────────
+ *
+ * The admin nav now shares one visual language with the doctor /
+ * receptionist / patient navs:
+ *
+ *   - The bar is `--space-7` (16px) tall, like the staff bars. It
+ *     used to be `--space-6` (14px), 4px shorter.
+ *   - The links use `var(--space-5)` (12px) gaps, like the staff
+ *     links. It used to be a hard-coded `22px` — a token-invariant
+ *     violation AND visibly wider than every other surface.
+ *   - The links are 13px at weight 500 with a teal hover and a 2px
+ *     teal underline when active, matching `.staff-nav__link`.
+ *   - The role is announced by a PILL next to the wordmark, like the
+ *     doctor / receptionist / patient bars. It used to be the literal
+ *     text "MediSlot · Admin" welded to the brand.
+ *
+ * The active link is a `<button>` with `aria-current="page"` — the
+ * same element the staff nav uses. It used to be a `<span>`, which
+ * meant the active item was not the same kind of control as the
+ * others.
  */
 import type { ReactNode } from 'react';
 import { useAuth, logout } from './auth/store';
@@ -14,12 +33,10 @@ import { BrandMark } from './brand/BrandMark';
 import './styles/shell.css';
 
 export type AdminSection =
-  | 'clinic'
   | 'branches'
   | 'doctors'
   | 'receptionists'
-  | 'types'
-  | 'audit';
+  | 'types';
 
 export type AdminSubPage =
   | { key: 'branch-hours'; branchId: string }
@@ -27,13 +44,11 @@ export type AdminSubPage =
   | { key: 'doctor-schedule'; doctorId: string }
   | { key: 'doctor-blocks'; doctorId: string };
 
-const SECTIONS: { key: AdminSection; label: string; href: string }[] = [
-  { key: 'clinic', label: 'Clinic', href: '/admin/clinic' },
-  { key: 'branches', label: 'Branches', href: '/admin/branches' },
-  { key: 'doctors', label: 'Doctors', href: '/admin/doctors' },
-  { key: 'receptionists', label: 'Receptionists', href: '/admin/receptionists' },
-  { key: 'types', label: 'Appointment types', href: '/admin/types' },
-  { key: 'audit', label: 'Audit log', href: '/admin/audit' },
+const SECTIONS: { key: AdminSection; label: string }[] = [
+  { key: 'branches', label: 'Branches' },
+  { key: 'doctors', label: 'Doctors' },
+  { key: 'receptionists', label: 'Receptionists' },
+  { key: 'types', label: 'Appointment types' },
 ];
 
 const ROLE_LABELS: Record<AuthRole, string> = {
@@ -71,50 +86,36 @@ export function AppShell({ active, onNavigate, children }: AppShellProps) {
     logout();
   };
 
-  const isImplemented = (key: AdminSection): boolean =>
-    key === 'clinic' ||
-    key === 'branches' ||
-    key === 'doctors' ||
-    key === 'receptionists' ||
-    key === 'types' ||
-    key === 'audit';
-
   return (
     <div className="shell">
-      <nav className="nav">
-        <div className="nav__brand">
+      <nav className="nav" data-testid="admin-nav">
+        <div className="nav__brand" data-testid="admin-nav-brand">
           <BrandMark size={28} className="nav__brand-logo" />
-          MediSlot · Admin
+          MediSlot
+          <span className="nav__role-pill" data-testid="admin-nav-role-pill">
+            {displayRole}
+          </span>
         </div>
-        <div className="nav__links">
-          {SECTIONS.map((s) => {
-            if (s.key === active) {
-              return (
-                <span
-                  key={s.key}
-                  className="nav__link nav__link--active"
-                  aria-current="page"
-                >
-                  {s.label}
-                </span>
-              );
-            }
-            const ready = isImplemented(s.key);
-            return (
-              <button
-                key={s.key}
-                type="button"
-                className="nav__link"
-                disabled={!ready}
-                onClick={() => {
-                  if (ready && onNavigate) onNavigate(s.key);
-                }}
-                title={ready ? s.label : 'Not yet implemented'}
-              >
-                {s.label}
-              </button>
-            );
-          })}
+        <div className="nav__links" role="navigation" aria-label="Sections">
+          {SECTIONS.map((s) => (
+            <button
+              key={s.key}
+              type="button"
+              className={
+                s.key === active
+                  ? 'nav__link nav__link--active'
+                  : 'nav__link'
+              }
+              aria-current={s.key === active ? 'page' : undefined}
+              data-testid={`admin-nav-${s.key}`}
+              onClick={() => {
+                if (onNavigate) onNavigate(s.key);
+              }}
+              title={s.label}
+            >
+              {s.label}
+            </button>
+          ))}
         </div>
         <div className="nav__user">
           <div className="nav__user-meta">

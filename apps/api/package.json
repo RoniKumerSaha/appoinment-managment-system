@@ -14,6 +14,7 @@
     "db:migrate": "node-pg-migrate -m db/migrations -j sql --env DATABASE_URL -f dist/db/migrations/.applied.json up",
     "db:seed": "tsx db/seeds/01_minimum.ts",
     "db:seed:rich": "tsx db/seeds/03_rich_operations.ts",
+    "db:seed:demo": "tsx scripts/db-demo-seed.ts",
     "db:reset": "tsx scripts/db-reset.ts"
   },
   "dependencies": {

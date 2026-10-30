@@ -200,8 +200,9 @@
   /* The type column holds "<name> · <duration>" (e.g. "General
      Consultation · 30 min"). At 100px it wrapped onto three lines,
      which made every row twice as tall as it needed to be. The last
-     column holds the three quick-action buttons ("View" + "Audit" +
-     "Check in") and needs room for all three on one line. */
+     column holds the quick-action buttons ("View" + "Audit" +
+     "Mark status" / "Cancel" + "Check in") and needs room for them
+     on one line. */
   grid-template-columns: 70px 1fr 110px 190px 120px 210px;
   gap: var(--space-5);
   align-items: center;
@@ -448,4 +449,103 @@
   padding: var(--space-5);
   font-size: var(--text-sm);
   margin-bottom: var(--space-7);
+}
+
+/* ── Appointment detail panel ──────────────────────────────────── */
+
+/*
+ * The row's "View" button used to open the CANCEL screen, which was
+ * a dead end for every non-Scheduled row (the cancel picker only
+ * lists Scheduled appointments, so the preselected id was never in
+ * the list and step 2 never rendered). This is the read-only detail
+ * panel it opens instead.
+ */
+
+.recep-today__detail-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recep-today__detail {
+  width: 440px;
+  max-width: 100vw;
+  background: var(--surface-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elev-3);
+  overflow: hidden;
+  animation: recep-today__detail-pop 180ms ease-out;
+}
+
+@keyframes recep-today__detail-pop {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.recep-today__detail-head {
+  padding: var(--space-8) var(--space-10);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.recep-today__detail-crumb {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+.recep-today__detail-title {
+  font-size: var(--text-xl);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin: 0;
+}
+
+.recep-today__detail-body {
+  padding: var(--space-7) var(--space-10);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.recep-today__detail-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: var(--space-5);
+  align-items: baseline;
+}
+
+.recep-today__detail-k {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.recep-today__detail-v {
+  font-size: var(--text-sm);
+  color: var(--text-default);
+  font-variant-numeric: tabular-nums;
+}
+
+.recep-today__detail-foot {
+  padding: var(--space-6) var(--space-10);
+  border-top: 1px solid var(--border-default);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  background: var(--surface-card);
 }

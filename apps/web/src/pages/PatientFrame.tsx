@@ -1,9 +1,8 @@
 /**
  * PatientFrame — top-level frame for the patient-facing flow.
  *
- * Distinct from the admin AppShell (E1-S0-ui): a thinner top nav
- * ("MediSlot" wordmark + 4 nav links + "Sign out"), 1200px max-width
- * per mockups 02/03/04. The frame is sticky so the long booking flow
+ * Distinct from the admin AppShell (E1-S0-ui): 1200px max-width per
+ * mockups 02/03/04. The frame is sticky so the long booking flow
  * keeps the progress bar visible while scrolling.
  *
  * Pixel-perfect match to:
@@ -14,6 +13,26 @@
  * The footer / privacy line from mockup 21 is omitted — only the
  * patient booking flow uses this frame, and the privacy line lives on
  * the LoginPage (E1-S0-ui).
+ *
+ * ── Navigation polish ──────────────────────────────────────────
+ *
+ * The patient nav was the odd one out among the four role surfaces:
+ *
+ *   - Its links were 14px with a 24px gap, while the doctor /
+ *     receptionist / admin links are 13px with a 12px gap.
+ *   - Its active link had NO indicator beyond a colour shift — the
+ *     other three all carry a 2px teal underline.
+ *   - It had NO hover state.
+ *   - It had NO role indicator, so the patient bar was the only one
+ *     that did not say who you were signed in as.
+ *   - Two of its four links ("Branches", "Help") were inert `<span>`
+ *     elements that did nothing when clicked. A nav link that goes
+ *     nowhere is worse than no nav link, so they are GONE rather than
+ *     rendered greyed-out.
+ *
+ * The links now share the `.staff-nav__link` visual language
+ * (13px, 12px gap, teal + 2px underline when active) and the frame
+ * carries a "Patient" role pill matching the doctor's.
  */
 import type { ReactNode } from 'react';
 import { useAuth, logout } from '../auth/store';
@@ -24,7 +43,15 @@ import './styles/patient-frame.css';
 interface PatientFrameProps {
   children: ReactNode;
   step?: 1 | 2 | 3 | 4 | 5;
-  activeLink?: 'find-doctor' | 'my-appointments';
+  /**
+   * The section currently on screen.
+   *
+   * `cancel-occurrence` is a STEP of "My appointments" rather than a
+   * section of its own, so it highlights that link — the same alias
+   * treatment the staff nav uses for the recurring flow's
+   * preview / confirm screens.
+   */
+  activeLink?: 'find-doctor' | 'my-appointments' | 'cancel-occurrence';
   onNavigate?: (link: 'find-doctor' | 'my-appointments') => void;
   onSignOut?: () => void;
   /** Optional patient full name. When set, an avatar chip is rendered
@@ -59,70 +86,52 @@ export function PatientFrame({
   const goMyAppointments = (): void => {
     if (onNavigate) onNavigate('my-appointments');
   };
+
+  // The cancel-occurrence screen is a step of "My appointments", so
+  // it highlights that link rather than "Find a doctor".
+  const currentSection =
+    activeLink === 'cancel-occurrence' ? 'my-appointments' : activeLink;
+
   return (
     <div className="patient-frame__root" data-testid="patient-frame">
       <nav className="patient-frame__nav" data-testid="patient-frame-nav">
         <div className="patient-frame__brand" data-testid="patient-frame-brand">
           <BrandMark size={28} className="patient-frame__brand-logo" />
           MediSlot
+          <span className="patient-frame__role-pill" data-testid="patient-frame-role-pill">
+            Patient
+          </span>
         </div>
         <div className="patient-frame__links" data-testid="patient-frame-links">
-          {activeLink === 'find-doctor' ? (
-            <span
-              className="patient-frame__link patient-frame__link--active"
-              data-testid="patient-frame-find-doctor"
-            >
-              Find a doctor
-            </span>
-          ) : (
-            <button
-              type="button"
-              className="patient-frame__link"
-              data-testid="patient-frame-find-doctor"
-              onClick={goFindDoctor}
-            >
-              Find a doctor
-            </button>
-          )}
-          {activeLink === 'my-appointments' ? (
-            <span
-              className="patient-frame__link patient-frame__link--active"
-              data-testid="patient-frame-my-appts"
-            >
-              My appointments
-            </span>
-          ) : (
-            <button
-              type="button"
-              className="patient-frame__link"
-              data-testid="patient-frame-my-appts"
-              onClick={goMyAppointments}
-            >
-              My appointments
-            </button>
-          )}
-          <span
-            className="patient-frame__link patient-frame__link--muted"
-            title="Branches — not yet implemented"
+          <button
+            type="button"
+            className={
+              currentSection === 'find-doctor'
+                ? 'patient-frame__link patient-frame__link--active'
+                : 'patient-frame__link'
+            }
+            data-testid="patient-frame-find-doctor"
+            aria-current={currentSection === 'find-doctor' ? 'page' : undefined}
+            onClick={goFindDoctor}
           >
-            Branches
-          </span>
-          <span
-            className="patient-frame__link patient-frame__link--muted"
-            title="Help — not yet implemented"
+            Find a doctor
+          </button>
+          <button
+            type="button"
+            className={
+              currentSection === 'my-appointments'
+                ? 'patient-frame__link patient-frame__link--active'
+                : 'patient-frame__link'
+            }
+            data-testid="patient-frame-my-appts"
+            aria-current={
+              currentSection === 'my-appointments' ? 'page' : undefined
+            }
+            onClick={goMyAppointments}
           >
-            Help
-          </span>
+            My appointments
+          </button>
         </div>
-        <button
-          type="button"
-          className="patient-frame__cta"
-          data-testid="patient-frame-signout"
-          title={stored ? 'Sign out' : 'Sign in'}
-          onClick={onClickSignOut}
-        >
-          {stored ? 'Sign out' : 'Book appointment'}
-        </button>
         {userName && (
           <div
             className="patient-frame__user-chip"
@@ -135,6 +144,15 @@ export function PatientFrame({
             <span className="patient-frame__user-name">{userName}</span>
           </div>
         )}
+        <button
+          type="button"
+          className="patient-frame__cta"
+          data-testid="patient-frame-signout"
+          title={stored ? 'Sign out' : 'Sign in'}
+          onClick={onClickSignOut}
+        >
+          {stored ? 'Sign out' : 'Book appointment'}
+        </button>
       </nav>
 
       {step !== undefined && (

@@ -29,7 +29,7 @@
  *     anything (`/`, `/admin/clinic`, etc.). Hash routes are also
  *     shareable (just paste the URL).
  *   - Default: when the hash is empty or doesn't match any known
- *     admin route, redirect to `#/admin/clinic`. LoginPage doesn't
+ *     admin route, redirect to `#/admin/branches`. LoginPage doesn't
  *     touch the router.
  */
 
@@ -49,16 +49,14 @@ export type ParsedRoute =
   | { kind: 'unknown'; hash: string };
 
 const SECTION_FROM_PATH: Record<string, AdminSection> = {
-  '/admin/clinic': 'clinic',
   '/admin/branches': 'branches',
   '/admin/doctors': 'doctors',
   '/admin/receptionists': 'receptionists',
   '/admin/types': 'types',
-  '/admin/audit': 'audit',
 };
 
-const DEFAULT_HASH = '#/admin/clinic';
-const DEFAULT_ADMIN_SECTION: AdminSection = 'clinic';
+const DEFAULT_HASH = '#/admin/branches';
+const DEFAULT_ADMIN_SECTION: AdminSection = 'branches';
 
 /** Read the hash without the leading `#`. */
 function readHash(): string {
@@ -70,7 +68,7 @@ function readHash(): string {
 
 /**
  * Parse a hash path into a structured route. Empty hash → default
- * admin-top clinic.
+ * admin-top branches.
  */
 export function parsePath(path: string): ParsedRoute {
   // Normalize: trim trailing slash, ensure leading slash.
@@ -135,12 +133,6 @@ export function parsePath(path: string): ParsedRoute {
   if (p.startsWith('/admin/types')) {
     return { kind: 'admin-top', section: 'types' };
   }
-  if (p.startsWith('/admin/audit')) {
-    return { kind: 'admin-top', section: 'audit' };
-  }
-  if (p.startsWith('/admin/clinic')) {
-    return { kind: 'admin-top', section: 'clinic' };
-  }
 
   return { kind: 'unknown', hash: p };
 }
@@ -154,8 +146,6 @@ export function buildPath(
   sub?: AdminSubPage | null,
 ): string {
   switch (section) {
-    case 'clinic':
-      return '#/admin/clinic';
     case 'branches':
       if (sub?.key === 'branch-hours') {
         return `#/admin/branches/${sub.branchId}/hours`;
@@ -176,8 +166,6 @@ export function buildPath(
       return '#/admin/receptionists';
     case 'types':
       return '#/admin/types';
-    case 'audit':
-      return '#/admin/audit';
   }
 }
 

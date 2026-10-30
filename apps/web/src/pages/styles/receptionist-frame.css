@@ -17,7 +17,11 @@
 .recep-frame__nav {
   background: var(--surface-card);
   border-bottom: 1px solid var(--border-default);
-  padding: var(--space-6) var(--space-12);
+  /* `--space-7` (16px), NOT `--space-6` (14px). The receptionist bar
+     used to be 4px shorter than the doctor's and the patient's, so
+     the two STAFF surfaces — which are supposed to look identical —
+     were visibly different the moment you switched between them. */
+  padding: var(--space-7) var(--space-12);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -44,6 +48,24 @@
   justify-content: center;
   color: var(--brand-primary);
   flex-shrink: 0;
+}
+
+/*
+ * The role pill — identical to the doctor's `.doctor-frame__role-pill`
+ * and the patient's. The receptionist nav used to weld the role onto
+ * the actor's name ("Reem Al-Harbi · Reception") instead, so the four
+ * role surfaces announced themselves in three different ways.
+ */
+.recep-frame__role-pill {
+  background: var(--brand-light-50);
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-border);
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .recep-frame__user {

@@ -14,7 +14,8 @@
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
     "db:migrate": "pnpm --filter @clinic/api run db:migrate",
-    "db:seed": "pnpm --filter @clinic/api run db:seed"
+    "db:seed": "pnpm --filter @clinic/api run db:seed",
+    "db:seed:demo": "pnpm --filter @clinic/api run db:seed:demo"
   },
   "devDependencies": {
     "typescript": "5.6.3",

@@ -11,19 +11,27 @@
  * pill — same shape as the appointment card (DESIGN-SYSTEM §7.10).
  *
  * The page is fed by the REAL confirm response
- * (`POST /recurring/confirm`) — the owner (DoctorApp) holds the
- * request that produced it and passes it down. The page is
- * presentational: it renders what the server said and reports
- * button intent back through props.
+ * (`POST /recurring/confirm`) — the owner (DoctorApp /
+ * ReceptionistApp) holds the request that produced it and passes it
+ * down. The page is presentational: it renders what the server said
+ * and reports button intent back through props.
+ *
+ * As with the preview screen, the frame is a prop: a receptionist
+ * running this flow has to land in the RECEPTIONIST's nav, not the
+ * doctor's. The doctor-only "Back out" screen (`RecurringBackOut`)
+ * reads the series through a doctor-scoped route, so it is not
+ * offered here — `onBackOut` is simply left undefined.
  */
 import { useState, type ReactNode } from 'react';
 import { DoctorFrame } from './DoctorFrame';
+import { ReceptionistFrame } from './ReceptionistFrame';
 import styles from './RecurringConfirmPage.module.css';
 import type {
   RecurringConfirmResponse,
   RecurringCreatedOccurrence,
   RecurringSkippedAtConfirm,
 } from '../api/client';
+import type { RecurringRole } from './RecurringPreviewPage';
 
 type Tab = 'create' | 'skip';
 
@@ -44,8 +52,12 @@ export interface RecurringConfirmPageProps {
   onEditSchedule: () => void;
   onDone: () => void;
   /** Open the back-out screen for the series that was just created
-   *  (mock 40). Optional so the page can be rendered without it. */
+   *  (mock 40). Optional so the page can be rendered without it —
+   *  and left undefined for the receptionist, whose series cannot be
+   *  read back through the doctor-scoped route it uses. */
   onBackOut?: () => void;
+  /** Which surface to render in. Defaults to the doctor. */
+  role?: RecurringRole;
 }
 
 /** `2026-11-04` → the month/day/weekday triple the date-block
@@ -88,6 +100,7 @@ export function RecurringConfirmPage({
   onEditSchedule,
   onDone,
   onBackOut,
+  role = 'doctor',
 }: RecurringConfirmPageProps): ReactNode {
   const [tab, setTab] = useState<Tab>('create');
   const created: RecurringCreatedOccurrence[] = result.created;
@@ -139,9 +152,8 @@ export function RecurringConfirmPage({
     );
   };
 
-  return (
-    <DoctorFrame>
-      <div className={styles['page']}>
+  const body = (
+    <div className={styles['page']}>
         <header className={styles['page-header']}>
           <div className={styles.crumb}>Recurring → Confirm</div>
           <h1>Recurring series ready</h1>
@@ -257,6 +269,11 @@ export function RecurringConfirmPage({
           </div>
         </div>
       </div>
-    </DoctorFrame>
+  );
+
+  return role === 'receptionist' ? (
+    <ReceptionistFrame activeNav="series">{body}</ReceptionistFrame>
+  ) : (
+    <DoctorFrame activeNav="series">{body}</DoctorFrame>
   );
 }

@@ -633,7 +633,7 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
   }, [rows, tzForRow]);
 
   return (
-    <DoctorFrame>
+    <DoctorFrame activeNav="affected">
       <div className="doc-aff__page" data-testid="doc-aff">
         <div className="doc-aff__alert" data-testid="doc-aff-alert">
           <div className="doc-aff__alert-text">

@@ -7,19 +7,28 @@
  * exactly the fields `POST /recurring/preview` accepts, so the
  * request body is the form's output verbatim.
  *
- * The lookups (doctors, branches, appointment types) come from the
- * admin API, so the form never offers an id the server would reject.
+ * The lookups (branches, appointment types) come from the staff
+ * catalogue, so the form never offers an id the server would reject.
+ *
+ * The DOCTOR is not a lookup here. This form is mounted only by
+ * `DoctorApp`, and `POST /recurring/preview` binds a doctor's series
+ * to their OWN id (`claim.doctor_id !== body.doctor_id` → 403
+ * `outside_branch_scope`). The old dropdown listed every active
+ * doctor, so a doctor could pick a colleague — and then the preview
+ * came back 403 with no hint why. The field is now a fixed,
+ * read-only display of the signed-in doctor: the id still travels in
+ * the request body (the API requires it), but there is nothing to
+ * get wrong.
  */
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DoctorFrame } from './DoctorFrame';
+import { useAuth } from '../auth/store';
 import styles from './RecurringSeriesForm.module.css';
 import {
   listStaffAppointmentTypes,
   listStaffBranches,
-  listStaffDoctors,
   type AppointmentTypeDto,
   type BranchDto,
-  type DoctorWithBranchesDto,
   type RecurrenceKind,
   type RecurringSeriesInput,
 } from '../api/client';
@@ -58,13 +67,16 @@ export function RecurringSeriesForm({
   busy,
   onSubmit,
 }: RecurringSeriesFormProps): ReactNode {
+  const { stored } = useAuth();
+  const claim = stored?.claim;
+  const doctorId = claim?.doctor_id ?? '';
+  const doctorName = stored?.profile?.full_name ?? 'your clinic';
+
   const [branches, setBranches] = useState<BranchDto[]>([]);
-  const [doctors, setDoctors] = useState<DoctorWithBranchesDto[]>([]);
   const [types, setTypes] = useState<AppointmentTypeDto[]>([]);
   const [lookupError, setLookupError] = useState<string | null>(null);
 
   const [branchId, setBranchId] = useState('');
-  const [doctorId, setDoctorId] = useState('');
   const [typeId, setTypeId] = useState('');
   const [phone, setPhone] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -82,17 +94,21 @@ export function RecurringSeriesForm({
     let cancelled = false;
     void (async () => {
       try {
-        const [b, d, t] = await Promise.all([
+        const [b, t] = await Promise.all([
           listStaffBranches('active'),
-          listStaffDoctors({ active: true }),
           listStaffAppointmentTypes({ active: true }),
         ]);
         if (cancelled) return;
-        setBranches(b);
-        setDoctors(d);
+        // Only the branches this doctor actually works at. The
+        // preview route requires `branch_id ∈ claim.branch_ids`, so
+        // offering every active branch only produced 403s.
+        const mine = b.filter(
+          (branch) => claim?.branch_ids?.includes(branch.id) ?? false,
+        );
+        const usable = mine.length > 0 ? mine : b;
+        setBranches(usable);
         setTypes(t);
-        setBranchId((prev) => prev || (b[0]?.id ?? ''));
-        setDoctorId((prev) => prev || (d[0]?.id ?? ''));
+        setBranchId((prev) => prev || (usable[0]?.id ?? ''));
         setTypeId((prev) => prev || (t[0]?.id ?? ''));
         // The duration field used to keep a hardcoded '30' while the
         // type was picked programmatically — the select's onChange
@@ -107,19 +123,14 @@ export function RecurringSeriesForm({
         if (firstType) setDuration(String(firstType.duration_minutes));
       } catch {
         if (!cancelled) {
-          setLookupError('Could not load doctors, branches, and appointment types.');
+          setLookupError('Could not load branches and appointment types.');
         }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  const branchDoctors = useMemo(
-    () => doctors.filter((d) => d.branches.some((b) => b.id === branchId)),
-    [doctors, branchId],
-  );
+  }, [claim?.branch_ids]);
 
   const selectedType = useMemo(
     () => types.find((t) => t.id === typeId),
@@ -140,6 +151,16 @@ export function RecurringSeriesForm({
   const onSubmitForm = useCallback(
     (e: React.FormEvent<HTMLFormElement>): void => {
       e.preventDefault();
+      // The doctor id comes from the signed-in claim, so it is always
+      // present for a doctor session. If it is somehow missing the
+      // server would answer 403 `outside_branch_scope` — better to
+      // say so here than to send a request that cannot succeed.
+      if (doctorId === '') {
+        setLookupError(
+          'Your session does not carry a doctor id, so a recurring series cannot be booked. Sign in again.',
+        );
+        return;
+      }
       const body: RecurringSeriesInput = {
         doctor_id: doctorId,
         branch_id: branchId,
@@ -175,7 +196,7 @@ export function RecurringSeriesForm({
   const message = error ?? lookupError;
 
   return (
-    <DoctorFrame>
+    <DoctorFrame activeNav="series">
       <div className={styles['page']}>
         <header className={styles['page-header']}>
           <h1>New recurring series</h1>
@@ -210,18 +231,30 @@ export function RecurringSeriesForm({
 
           <div className={styles['field']}>
             <label htmlFor="rec-doctor">Doctor</label>
-            <select
+            {/*
+              Fixed, not a dropdown. A doctor can only book a
+              recurring series for THEMSELVES — `POST /recurring/preview`
+              binds `doctor_id` to `claim.doctor_id` and rejects
+              anything else with 403 `outside_branch_scope`. Offering
+              a list of colleagues meant a doctor could pick one,
+              press "Preview series", and get a bare 403 with no
+              explanation. The id still travels in the request body
+              (the API requires it); there is simply nothing to
+              choose wrongly.
+            */}
+            <input
               id="rec-doctor"
-              value={doctorId}
-              onChange={(e) => setDoctorId(e.target.value)}
-              required
-            >
-              {branchDoctors.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.full_name}
-                </option>
-              ))}
-            </select>
+              type="text"
+              value={doctorName}
+              readOnly
+              aria-readonly="true"
+              aria-describedby="rec-doctor-hint"
+              style={{ cursor: 'default' }}
+            />
+            <div className={styles.hint} id="rec-doctor-hint">
+              Recurring series are booked for you — this cannot be
+              changed.
+            </div>
           </div>
 
           <div className={styles['field']}>

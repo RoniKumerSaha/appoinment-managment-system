@@ -57,6 +57,8 @@ import { recurringPreviewRouter } from './routes/recurring-preview.js';
 import { recurringConfirmRouter } from './routes/recurring-confirm.js';
 import { staffDoctorMoveRouter } from './routes/staff-doctor-move.js';
 import { doctorAffectedRouter } from './routes/doctor-affected.js';
+import { doctorTodayRouter } from './routes/doctor-today.js';
+import { doctorScheduleRouter } from './routes/doctor-schedule.js';
 import { doctorRecurringSeriesRouter } from './routes/doctor-recurring-series.js';
 import { doctorAppointmentAuditRouter } from './routes/doctor-appointment-audit.js';
 import { receptionAppointmentAuditRouter } from './routes/reception-appointment-audit.js';
@@ -101,6 +103,8 @@ for (const router of [
   recurringConfirmRouter,
   staffDoctorMoveRouter,
   doctorAffectedRouter,
+  doctorTodayRouter,
+  doctorScheduleRouter,
   doctorRecurringSeriesRouter,
   doctorAppointmentAuditRouter,
   receptionAppointmentAuditRouter,
@@ -317,6 +321,31 @@ export function createApp(opts: CreateAppOptions = {}): express.Express {
   // Mounted AFTER authMiddleware; the route is the
   // doctor-only role gate.
   app.use(doctorAffectedRouter);
+
+  // Doctor today dashboard — GET /doctor/today.
+  // The doctor's own day list: the appointments booked against
+  // THEM for a given calendar day, in each branch's own timezone.
+  // This is the doctor's counterpart to the receptionist's
+  // `/reception/branch/today` (E5-S4 / mock 13) and the surface
+  // from which mark-status, cancel and the audit drawer are
+  // reachable for ORDINARY appointments — not just the
+  // out-of-hours rows the affected queue lists.
+  // Mounted AFTER authMiddleware; the route is the doctor-only
+  // role gate.
+  app.use(doctorTodayRouter);
+
+  // Doctor self-service schedule + block time — GET/POST
+  // /doctor/schedule, /doctor/schedule-impact, /doctor/blocks,
+  // /doctor/blocks-impact, DELETE /doctor/blocks/:block_id.
+  //
+  // `doctor.md` Act 1 ("Schedule editor") and Act 2 ("Block
+  // time") are DOCTOR sections. The equivalent admin routes live
+  // under `/admin` and are gated by `adminScope`, so a doctor
+  // could not open their own working hours without an admin.
+  // These routes bind the doctor to `claim.doctor_id` — there is
+  // no `:doctor_id` in the path, so a doctor can only ever
+  // address their own schedule and blocks.
+  app.use(doctorScheduleRouter);
 
   // Doctor recurring series read — GET
   // /doctor/recurring-series/:id (mock 40). Lists the

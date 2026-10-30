@@ -16,6 +16,7 @@ import { useCallback, useRef, useState } from 'react';
 import { ApiError } from '../api/client';
 import { verifyPatientOtp } from '../auth/store';
 import { LoginFrame } from './LoginFrame';
+import { OtpIcon, PhoneIcon } from './LoginIcons';
 import { LOGIN_STAFF_HASH, LOGIN_CHOOSE_HASH, pushLoginRoute } from './login-routes';
 import styles from './LoginPage.module.css';
 
@@ -145,8 +146,11 @@ export function PatientLoginPage() {
         data-testid="patient-login"
       >
         <div className={styles['card__head']}>
-          <div className={styles['card__icon']} aria-hidden="true">
-            🔒
+          <div
+            className={`${styles['card__icon']} ${styles['card__icon--patient']}`}
+            aria-hidden="true"
+          >
+            <OtpIcon />
           </div>
           <div>
             <h2 className={styles['card__title']}>Patient sign-in</h2>
@@ -160,17 +164,20 @@ export function PatientLoginPage() {
           <label className={styles['field__label']} htmlFor="patient-phone">
             Phone number<span className={styles['req']}>*</span>
           </label>
-          <input
-            id="patient-phone"
-            className={styles['field__input']}
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            placeholder="+966 5XX XXX 5555"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            disabled={busy}
-          />
+          <div className={styles['field__shell']}>
+            <PhoneIcon className={styles['field__shellIcon']} />
+            <input
+              id="patient-phone"
+              className={styles['field__input']}
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="+966 5XX XXX 5555"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              disabled={busy}
+            />
+          </div>
           <span className={styles['field__hint']}>
             E.164 — include the country code (e.g. <code>+966…</code> or{' '}
             <code>+1…</code>).
@@ -204,7 +211,7 @@ export function PatientLoginPage() {
             ))}
           </div>
           <span className={styles['field__hint']}>
-            Dev mode: use <code>123456</code>. The mock OTP route is
+            Demo mode: use <code>123456</code>. The mock OTP route is
             dev/test-only; production replaces it with the real SMS gateway.
           </span>
         </div>
@@ -248,9 +255,9 @@ export function PatientLoginPage() {
         </div>
 
         <div className={styles['hint-block']}>
-          <strong>Dev seed:</strong> patients are{' '}
-          <code>+15550000001</code> through <code>+15550000005</code>. Pair
-          with the code above.
+          <strong>Demo patients:</strong> <code>+15550000001</code> through{' '}
+          <code>+15550000005</code>, plus <code>+966501110001</code>–<code>+966501110005</code>.
+          Pair any of them with the code above.
         </div>
 
         <div className={styles['switch']}>

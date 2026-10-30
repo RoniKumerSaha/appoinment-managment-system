@@ -66,8 +66,9 @@ export interface StaffNavProps {
  *
  * The `?page=` query string lives INSIDE the hash fragment (the app
  * is hash-routed), so the shape is `#/doctor?page=series` — not
- * `#/doctor?page=series` as a search string. `readDeepLinkParam`
- * reads the fragment first for exactly this reason.
+ * `#/doctor` with `?page=series` as a search string.
+ * `readDeepLinkParam` reads the fragment first for exactly this
+ * reason.
  */
 export function staffNavHash(base: string, key: string): string {
   return `${base}?page=${key}`;

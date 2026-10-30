@@ -221,7 +221,7 @@ export function ReceptionistCancel({
   }, [selected, reasonKey, notes]);
 
   return (
-    <ReceptionistFrame>
+    <ReceptionistFrame activeNav="cancel">
       <div className="recep-cancel__page">
         <div className="recep-cancel__header">
           <button

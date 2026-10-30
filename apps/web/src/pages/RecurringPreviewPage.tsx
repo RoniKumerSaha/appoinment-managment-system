@@ -11,17 +11,29 @@
  *   4. Confirm creation (text + Cancel + Edit pattern + Create N →)
  *
  * The page is fed by the REAL preview response (`POST /recurring/preview`)
- * — the owner (DoctorApp) holds the series input and the preview result
- * and passes them down. The "Create N appointments" button calls the
- * owner, which POSTs `/recurring/confirm` with the `preview_id`.
+ * — the owner (DoctorApp / ReceptionistApp) holds the series input and
+ * the preview result and passes them down. The "Create N appointments"
+ * button calls the owner, which POSTs `/recurring/confirm` with the
+ * `preview_id`.
+ *
+ * Both roles run this flow, so the frame is a prop rather than a
+ * hardcoded `<DoctorFrame>`: the receptionist's preview has to sit
+ * inside the RECEPTIONIST's nav (their own sections, `#/reception`
+ * links), not the doctor's. Rendering `DoctorFrame` here would have
+ * given a receptionist the doctor's section links — every one of them
+ * a 403.
  */
 import type { ReactNode } from 'react';
 import { DoctorFrame } from './DoctorFrame';
+import { ReceptionistFrame } from './ReceptionistFrame';
 import styles from './RecurringPreviewPage.module.css';
 import type {
   RecurringPreviewResponse,
   RecurringSkippedOccurrence,
 } from '../api/client';
+
+/** Which surface the page is rendered on. */
+export type RecurringRole = 'doctor' | 'receptionist';
 
 const CHECKS = [
   'Branch operating hours',
@@ -53,6 +65,8 @@ export interface RecurringPreviewPageProps {
   onCancel: () => void;
   onEditPattern: () => void;
   onConfirm: () => void;
+  /** Which surface to render in. Defaults to the doctor. */
+  role?: RecurringRole;
 }
 
 function StepNum({ n }: { n: number }): ReactNode {
@@ -118,6 +132,7 @@ export function RecurringPreviewPage({
   onCancel,
   onEditPattern,
   onConfirm,
+  role = 'doctor',
 }: RecurringPreviewPageProps): ReactNode {
   const creates = preview.will_create;
   const skips: RecurringSkippedOccurrence[] = preview.skipped_with_reason;
@@ -129,9 +144,8 @@ export function RecurringPreviewPage({
         ? `Custom · every ${preview.recurrence.interval_days} days`
         : 'Weekly';
 
-  return (
-    <DoctorFrame>
-      <div className={styles['page']}>
+  const body = (
+    <div className={styles['page']}>
         <header className={styles['page-header']}>
           <h1>Preview recurring series</h1>
           <p className={styles['sub']}>
@@ -329,7 +343,12 @@ export function RecurringPreviewPage({
           </div>
         </div>
       </div>
-    </DoctorFrame>
+  );
+
+  return role === 'receptionist' ? (
+    <ReceptionistFrame activeNav="series">{body}</ReceptionistFrame>
+  ) : (
+    <DoctorFrame activeNav="series">{body}</DoctorFrame>
   );
 }
 

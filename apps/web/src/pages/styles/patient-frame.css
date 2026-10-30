@@ -50,30 +50,71 @@
   flex-shrink: 0;
 }
 
-.patient-frame__links {
-  display: flex;
-  gap: var(--space-10);
-  font-size: var(--text-md);
-  color: var(--text-default);
+/*
+ * The role pill — identical to the doctor's `.doctor-frame__role-pill`.
+ * The patient nav was the only one of the four role surfaces that did
+ * not say who you were signed in as.
+ */
+.patient-frame__role-pill {
+  background: var(--brand-light-50);
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-border);
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
+.patient-frame__links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+/*
+ * The patient nav links now use the SAME visual language as the
+ * doctor / receptionist / admin navs: a quiet 13px label that turns
+ * teal and gains a 2px underline when it is the active section.
+ *
+ * They used to be 14px (`var(--text-md)`) with a 24px gap, no hover
+ * state and NO active indicator beyond a colour shift — so a patient
+ * could not see which section they were in by shape, and the patient
+ * bar was the odd one out among the four role surfaces.
+ *
+ * The rules mirror `.staff-nav__link` in `staff-nav.css` exactly.
+ */
 .patient-frame__link {
-  cursor: pointer;
   background: transparent;
   border: 0;
-  padding: 0;
-  font: inherit;
-  color: inherit;
+  border-bottom: 2px solid transparent;
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.patient-frame__link:hover {
+  color: var(--brand-primary);
 }
 
 .patient-frame__link--active {
   color: var(--brand-primary);
   font-weight: 600;
+  border-bottom-color: var(--brand-primary);
 }
 
-.patient-frame__link--muted {
-  color: var(--text-muted);
-  cursor: not-allowed;
+.patient-frame__link:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
 }
 
 .patient-frame__cta {

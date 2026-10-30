@@ -24,7 +24,6 @@ import {
   type AdminSection,
   type AdminSubPage,
 } from './AppShell';
-import { ClinicSettings } from './pages/ClinicSettings';
 import { AdminBranches } from './pages/AdminBranches';
 import { AdminBranchHours } from './pages/AdminBranchHours';
 import { AdminReceptionists } from './pages/AdminReceptionists';
@@ -33,7 +32,6 @@ import { AdminDoctorAssign } from './pages/AdminDoctorAssign';
 import { AdminDoctorSchedule } from './pages/AdminDoctorSchedule';
 import { AdminDoctorBlocks } from './pages/AdminDoctorBlocks';
 import { AdminAppointmentTypes } from './pages/AdminAppointmentTypes';
-import { AdminAuditPage } from './pages/AdminAuditPage';
 import { PatientApp } from './pages/PatientApp';
 import { ReceptionistApp } from './pages/ReceptionistApp';
 import { DoctorApp } from './pages/DoctorApp';
@@ -118,7 +116,7 @@ export function App() {
       return { active: route.section, sub: route.sub };
     }
     return {
-      active: 'clinic' as AdminSection,
+      active: 'branches' as AdminSection,
       sub: null as AdminSubPage | null,
     };
   }, [route]);
@@ -228,7 +226,6 @@ export function App() {
           onBackToDoctors={onBackToDoctors}
         />
       )}
-      {!sub && active === 'clinic' && <ClinicSettings onNavigate={onNavigate} />}
       {!sub && active === 'branches' && (
         <AdminBranches onOpenBranchHours={onOpenBranchHours} />
       )}
@@ -241,7 +238,6 @@ export function App() {
       )}
       {!sub && active === 'receptionists' && <AdminReceptionists />}
       {!sub && active === 'types' && <AdminAppointmentTypes />}
-      {!sub && active === 'audit' && <AdminAuditPage />}
     </AppShell>
   );
 }

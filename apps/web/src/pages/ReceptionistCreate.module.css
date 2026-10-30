@@ -188,6 +188,47 @@
   margin-top: 4px;
 }
 
+/* A `.hint` used OUTSIDE a `.form-group` (the returning-patient
+   match card's neighbours). The rule above is scoped to
+   `.form-group`, so a standalone `.hint` had no styling at all. */
+.hint {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ── Returning-patient match card (E3-S3, mock 14 / mock 26) ── */
+.returning {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--success-badge-bg);
+  border: 1px solid var(--success-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--text-xs);
+  color: var(--success-text);
+  margin-bottom: var(--space-7);
+}
+
+.returning strong {
+  font-weight: 700;
+}
+
+.returning-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--success-text);
+  color: var(--on-brand);
+  font-size: var(--text-3xs);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
 /* ── Branch locked card ──────────────────────────────────────── */
 .branch-card {
   background: var(--surface-soft);

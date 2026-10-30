@@ -23,11 +23,43 @@
  * The "Cancel appointment" link in the header routes to the
  * `ReceptionistCancel` page (mock 15), which uses the same today
  * data as the picker.
+ *
+ * ── Three gaps this screen closed ──────────────────────────────
+ *
+ * 1. **Mark status** (E5-S1). `POST /appointments/:id/mark-status`
+ *    has always allowed `role === 'receptionist'` (branch-scoped,
+ *    BR-004) — but the receptionist had NO entry point for it, so
+ *    Act 4 of the receptionist flow ("the system already flagged him
+ *    — I confirm") was impossible. The row now carries a "Mark
+ *    status" button that opens the SHARED `StaffMarkStatus` modal —
+ *    the same component the doctor uses — so the two surfaces cannot
+ *    drift. The button only appears on rows whose start time has
+ *    already passed, because the server refuses to mark a future
+ *    appointment (BR-040 / FR-037 → 422 appointment_in_future).
+ *
+ * 2. **The "View" button was a dead end.** It opened the CANCEL
+ *    screen with the row preselected. But the cancel picker only
+ *    lists Scheduled rows, so for any Completed / Cancelled /
+ *    No-show row the preselected id was not in the list, step 2
+ *    never rendered, and the receptionist was left looking at a
+ *    radio that did nothing. "View" now opens the row's detail
+ *    panel (mock 15's detail block); only a Scheduled row offers
+ *    "Cancel".
+ *
+ * 3. **The doctor filter was derived from today's rows.** A doctor
+ *    with zero appointments that day could not be selected, and the
+ *    header count "N doctors at this branch" was really "N doctors
+ *    with appointments today" — a silent lie. The list now comes
+ *    from the branch roster (`listStaffDoctors({branch_id})`),
+ *    exactly as the walk-in form and the availability browser
+ *    already do.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ApiError,
   getReceptionistToday,
+  listStaffDoctors,
+  type DoctorWithBranchesDto,
   type ReceptionistAppointmentStatus,
   type ReceptionistTodayAppointment,
   type ReceptionistTodayResponse,
@@ -35,6 +67,7 @@ import {
 import './ReceptionistToday.css';
 import { ReceptionistFrame } from './ReceptionistFrame';
 import { ReceptionistAuditDrawer } from './ReceptionistAuditDrawer';
+import { StaffMarkStatus } from './StaffMarkStatus';
 import { formatTimeLocal, initialsOf, lastNameOf, maskPhone } from './recep-utils';
 import { withDoctorTitle } from './doctor-name';
 
@@ -109,6 +142,33 @@ function describeError(err: unknown): string {
     return 'Connection failed. Is the API running on :3001?';
   }
   return 'Could not load the dashboard.';
+}
+
+/** Errors from the mark-status modal (E5-S1). */
+function describeMarkError(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 401) return 'Session expired. Please sign in again.';
+    if (err.status === 422) {
+      if (err.code === 'already_in_terminal_state') {
+        return 'This appointment is no longer Scheduled.';
+      }
+      if (err.code === 'appointment_in_future') {
+        return 'You can only mark past appointments.';
+      }
+    }
+    if (err.status === 403) {
+      return 'You do not have access to this appointment.';
+    }
+    if (err.status === 404) return 'That appointment no longer exists.';
+    if (err.status === 400 && err.code === 'invalid_status') {
+      return 'Pick Completed or No-show.';
+    }
+    return `Could not mark status (${err.code}).`;
+  }
+  if (err instanceof TypeError) {
+    return 'Connection failed. Is the API running on :3001?';
+  }
+  return 'Could not update the status.';
 }
 
 function statusPillClass(s: ReceptionistAppointmentStatus): string {
@@ -199,8 +259,20 @@ export function ReceptionistToday({
   const [now, setNow] = useState<Date>(new Date());
   /** The appointment whose audit trail is open in the drawer. */
   const [auditId, setAuditId] = useState<string>('');
+  /** The appointment whose detail panel is open. */
+  const [detailId, setDetailId] = useState<string>('');
+  /** The appointment whose mark-status modal is open. */
+  const [markId, setMarkId] = useState<string>('');
   /** Transient message shown as a toast. */
   const [toast, setToast] = useState<{ message: string } | null>(null);
+  /**
+   * The branch roster. The doctor filter is built from THIS, not
+   * from today's appointments: a doctor with no appointments today is
+   * still a doctor at the branch, and silently omitting them from
+   * the filter made "Dr. Hassan has no appointments" indistinguishable
+   * from "Dr. Hassan was never an option".
+   */
+  const [roster, setRoster] = useState<DoctorWithBranchesDto[]>([]);
 
   // On mount, anchor the date to "today" in the branch.tz once we have
   // a branch. We initialize date only when the response arrives; the
@@ -257,9 +329,47 @@ export function ReceptionistToday({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, date, doctorFilter, statusFilter]);
 
-  // Build a doctor list from the current appointments. The today
-  // endpoint doesn't return a separate doctor list, so derive it.
+  // Build a doctor list from the BRANCH ROSTER, not from today's rows.
+  //
+  // It used to be derived from `data.appointments`, which meant a
+  // doctor with zero appointments that day could not be picked in the
+  // filter at all — the receptionist would conclude "Dr. Hassan has
+  // nothing booked" when in fact Dr. Hassan was never an option.
+  // `listStaffDoctors({branch_id})` is the same source the walk-in
+  // form and the availability browser already use.
+  const branchId = data?.branch.id;
+  useEffect(() => {
+    if (branchId === undefined) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const docs = await listStaffDoctors({
+          active: true,
+          branch_id: branchId,
+        });
+        if (cancelled) return;
+        const atBranch = docs.filter((doc) =>
+          doc.branches.some((b) => b.id === branchId),
+        );
+        setRoster(atBranch);
+      } catch {
+        // A roster failure is non-fatal — fall back to the doctors
+        // visible in today's rows so the filter is never empty.
+        if (!cancelled) setRoster([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [branchId]);
+
   const doctors = useMemo(() => {
+    if (roster.length > 0) {
+      return roster
+        .map((d) => ({ id: d.id, name: d.full_name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+    // Fallback: the doctors visible in today's rows.
     if (data === null) return [];
     const seen = new Map<string, string>();
     for (const a of data.appointments) {
@@ -268,7 +378,7 @@ export function ReceptionistToday({
     return Array.from(seen, ([id, name]) => ({ id, name })).sort((a, b) =>
       a.name.localeCompare(b.name),
     );
-  }, [data]);
+  }, [roster, data]);
 
   // Client-side search filter (patient phone only, since the API
   // doesn't echo patient names per E7-S3).
@@ -309,6 +419,16 @@ export function ReceptionistToday({
   const totalCount = data?.appointments.length ?? 0;
   const filteredCount = filtered.length;
 
+  /**
+   * Mark-status is only legal for an appointment whose start time has
+   * already passed (BR-040 / FR-037). The API enforces it; the UI
+   * hides the button so the receptionist is not offered an action
+   * that would be rejected.
+   */
+  const isPastRow = useCallback((a: ReceptionistTodayAppointment): boolean => {
+    return new Date(a.start_datetime).getTime() <= Date.now();
+  }, []);
+
   const onClickCancelRow = useCallback(
     (id: string) => {
       onOpenCancel(id);
@@ -322,8 +442,45 @@ export function ReceptionistToday({
     return data.appointments.find((a) => a.id === auditId);
   }, [data, auditId]);
 
+  /** The row whose detail panel is open. */
+  const detailAppointment = useMemo(() => {
+    if (data === null || detailId === '') return undefined;
+    return data.appointments.find((a) => a.id === detailId);
+  }, [data, detailId]);
+
+  /** The row whose mark-status modal is open. */
+  const markAppointment = useMemo(() => {
+    if (data === null || markId === '') return undefined;
+    return data.appointments.find((a) => a.id === markId);
+  }, [data, markId]);
+
+  const refresh = useCallback(async (): Promise<void> => {
+    try {
+      const res = await getReceptionistToday({});
+      setData(res);
+      setErr(null);
+    } catch (e: unknown) {
+      setErr(describeError(e));
+    }
+  }, []);
+
+  const onMarked = useCallback(
+    async (status: 'Completed' | 'No-show'): Promise<void> => {
+      setMarkId('');
+      setToast({ message: `Marked as ${status}.` });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const onStale = useCallback((): void => {
+    setMarkId('');
+    setToast({ message: 'This appointment is no longer in the list. Refreshing…' });
+    void refresh();
+  }, [refresh]);
+
   return (
-    <ReceptionistFrame>
+    <ReceptionistFrame activeNav="today">
       <div className="recep-today__page">
         <div className="recep-today__header">
           <div className="recep-today__header-left">
@@ -481,7 +638,8 @@ export function ReceptionistToday({
                     <button
                       type="button"
                       className="recep-today__qa-btn"
-                      onClick={() => onClickCancelRow(a.id)}
+                      onClick={() => setDetailId(a.id)}
+                      title="Open this appointment's details"
                     >
                       View
                     </button>
@@ -493,6 +651,27 @@ export function ReceptionistToday({
                     >
                       Audit
                     </button>
+                    {a.status === 'Scheduled' && isPastRow(a) && (
+                      <button
+                        type="button"
+                        className="recep-today__qa-btn"
+                        data-testid={`recep-today-row-${a.id}-mark-btn`}
+                        onClick={() => setMarkId(a.id)}
+                        title="Mark this appointment Completed or No-show"
+                      >
+                        Mark status
+                      </button>
+                    )}
+                    {a.status === 'Scheduled' && (
+                      <button
+                        type="button"
+                        className="recep-today__qa-btn"
+                        onClick={() => onClickCancelRow(a.id)}
+                        title="Cancel this appointment"
+                      >
+                        Cancel
+                      </button>
+                    )}
                     {a.status === 'Scheduled' && (
                       <button
                         type="button"
@@ -521,6 +700,129 @@ export function ReceptionistToday({
             </section>
           ))}
       </div>
+      {detailAppointment !== undefined && data !== null && (
+        <div
+          className="recep-today__detail-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Appointment details for ${maskPhone(detailAppointment.patient_phone)}`}
+          data-testid="recep-today-detail"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDetailId('');
+          }}
+        >
+          <div className="recep-today__detail">
+            <div className="recep-today__detail-head">
+              <div className="recep-today__detail-crumb">Today → Appointment</div>
+              <h2 className="recep-today__detail-title">Appointment details</h2>
+            </div>
+            <div className="recep-today__detail-body">
+              <div className="recep-today__detail-row">
+                <span className="recep-today__detail-k">Patient</span>
+                <span className="recep-today__detail-v">
+                  {maskPhone(detailAppointment.patient_phone)}
+                </span>
+              </div>
+              <div className="recep-today__detail-row">
+                <span className="recep-today__detail-k">Phone</span>
+                <span className="recep-today__detail-v">
+                  {detailAppointment.patient_phone}
+                </span>
+              </div>
+              <div className="recep-today__detail-row">
+                <span className="recep-today__detail-k">When</span>
+                <span className="recep-today__detail-v">
+                  {formatDateHeader(data.date)} ·{' '}
+                  {formatTimeLocal(detailAppointment.start_datetime, data.branch.tz)}{' '}
+                  —{' '}
+                  {formatTimeLocal(detailAppointment.end_datetime, data.branch.tz)}
+                </span>
+              </div>
+              <div className="recep-today__detail-row">
+                <span className="recep-today__detail-k">Doctor</span>
+                <span className="recep-today__detail-v">
+                  {withDoctorTitle(detailAppointment.doctor_name)}
+                </span>
+              </div>
+              <div className="recep-today__detail-row">
+                <span className="recep-today__detail-k">Type</span>
+                <span className="recep-today__detail-v">
+                  {detailAppointment.appointment_type_name}
+                  {durationLabel(
+                    detailAppointment.start_datetime,
+                    detailAppointment.end_datetime,
+                  ) !== null && (
+                    <> · {durationLabel(
+                      detailAppointment.start_datetime,
+                      detailAppointment.end_datetime,
+                    )}</>
+                  )}
+                </span>
+              </div>
+              <div className="recep-today__detail-row">
+                <span className="recep-today__detail-k">Branch</span>
+                <span className="recep-today__detail-v">{data.branch.name}</span>
+              </div>
+              <div className="recep-today__detail-row">
+                <span className="recep-today__detail-k">Status</span>
+                <span className="recep-today__detail-v">
+                  <span className={statusPillClass(detailAppointment.status)}>
+                    {statusPillLabel(detailAppointment.status)}
+                  </span>
+                </span>
+              </div>
+            </div>
+            <div className="recep-today__detail-foot">
+              <button
+                type="button"
+                className="recep-today__qa-btn"
+                onClick={() => setAuditId(detailAppointment.id)}
+              >
+                Audit trail
+              </button>
+              {detailAppointment.status === 'Scheduled' && (
+                <button
+                  type="button"
+                  className="recep-today__qa-btn"
+                  onClick={() => {
+                    const id = detailAppointment.id;
+                    setDetailId('');
+                    onClickCancelRow(id);
+                  }}
+                >
+                  Cancel appointment
+                </button>
+              )}
+              <button
+                type="button"
+                className="recep-today__qa-btn"
+                onClick={() => setDetailId('')}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {markAppointment !== undefined && data !== null && (
+        <StaffMarkStatus
+          appointment={{
+            id: markAppointment.id,
+            branchTz: data.branch.tz,
+            start_datetime: markAppointment.start_datetime,
+            end_datetime: markAppointment.end_datetime,
+            patientLabel: `Patient ···${markAppointment.patient_phone.slice(-4)}`,
+            maskedPhone: maskPhone(markAppointment.patient_phone),
+            branchName: data.branch.name,
+          }}
+          onCancel={() => setMarkId('')}
+          onMarked={onMarked}
+          onStale={onStale}
+          describeError={describeMarkError}
+          role="receptionist"
+          crumb={`Today → ${maskPhone(markAppointment.patient_phone)} → Mark status`}
+        />
+      )}
       {auditId !== '' && data !== null && (
         <ReceptionistAuditDrawer
           appointmentId={auditId}

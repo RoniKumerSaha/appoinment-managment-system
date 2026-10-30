@@ -197,13 +197,14 @@ pnpm --filter @clinic/api run db:seed:rich # baseline + rich operational seed
 pnpm --filter @clinic/api run db:reset     # drop schema → migrate → seed (both)
 ```
 
-### The three seeds
+### The four seeds
 
 | Seed                   | What it gives you                                                        |
 |------------------------|--------------------------------------------------------------------------|
 | `01_minimum.ts`        | The baseline: one clinic, branches, doctors, receptionists, an admin, appointment types, schedules, and five patients. |
 | `02_role_ids.ts`       | Role id constants shared by the other seeds.                             |
 | `03_rich_operations.ts`| **The rich seed.** Adds staff `password_hash` credentials, doctor blocks, full-status appointment history, a recurring series, and an audit trail. |
+| `scripts/db-demo-seed.ts` | **The demo seed.** Promotes three accounts to memorable demo credentials and loads a realistic week of appointments across all branches and every status. Run it on top of a migrated + baseline-seeded database. |
 
 **`db:reset` runs the baseline *and* the rich seed.** The baseline seed alone
 leaves `password_hash` NULL on every staff account, which means the API's
@@ -212,15 +213,47 @@ refuses a blank password, but the API will still honour an email-only request in
 `NODE_ENV=development`. Seed the rich data if you want staff to sign in with a
 password.
 
-### Dev credentials
+The demo seed runs separately, because it is for *presentation* rather than for
+test fixtures:
 
-All seeded staff accounts share one password: **`Clinic@12345678`**
+```bash
+pnpm db:reset        # migrate + baseline + rich
+pnpm db:seed:demo    # promote demo accounts + load the demo week
+```
 
-| Role        | Email                          |
-|-------------|--------------------------------|
-| Admin       | `admin-main@clinic.local`      |
-| Doctor      | `dr.-east-lead@clinic.local`   |
-| Receptionist| `receptionist-east@clinic.local`|
+It is idempotent: re-running replaces the demo appointments rather than
+stacking duplicates. It claims the current demo window on the demo branches,
+so the baseline/rich seeds and stray API traffic in that window are cleared
+first — otherwise the `appointment_no_overlap` exclusion constraint would
+reject the demo rows.
+
+### Demo credentials
+
+`pnpm db:seed:demo` promotes three accounts to memorable demo credentials.
+All three share one password: **`Clinic@12345678`**
+
+| Role        | Email                   |
+|-------------|-------------------------|
+| Admin       | `admin@clinic.com`      |
+| Doctor      | `doctor@clinic.com`     |
+| Receptionist| `reception@clinic.com`  |
+
+The seed also creates ten demo patients — `+15550000001`–`+15550000005` and
+`+966501110001`–`+966501110005` — with bookings against them, so every role's
+dashboard has something to show the moment you sign in.
+
+Patient sign-in uses a dev OTP rather than a password: phone `+15550000001`,
+code `123456`. The mock OTP route is dev/test-only; production replaces it
+with the real SMS gateway.
+
+Before the demo seed runs, the underlying staff accounts keep their seeded
+`*.clinic.local` addresses:
+
+| Role        | Seed email                         |
+|-------------|------------------------------------|
+| Admin       | `admin-main@clinic.local`          |
+| Doctor      | `dr.-east-lead@clinic.local`       |
+| Receptionist| `receptionist-east@clinic.local`  |
 
 ---
 
@@ -408,13 +441,33 @@ Additional invariants with their own tests:
 
 ---
 
+## The admin nav
+
+The admin shell exposes four sections:
+
+| Hash                | Screen                |
+|---------------------|-----------------------|
+| `#/admin/branches`  | `AdminBranches`       |
+| `#/admin/doctors`   | `AdminDoctors`        |
+| `#/admin/receptionists` | `AdminReceptionists` |
+| `#/admin/types`     | `AdminAppointmentTypes` |
+
+**Clinic settings and Audit log are not in the nav.** The pages and their
+API endpoints still exist (`ClinicSettings.tsx`, `AdminAuditPage.tsx`,
+`GET/PATCH /admin/clinic`, `GET /admin/audit`) — they are simply not
+reachable from the shell, and `#/admin/clinic` / `#/admin/audit` no longer
+parse as routes. An empty or unrecognised admin hash lands on
+`#/admin/branches`.
+
+---
+
 ## Known deferrals
 
 These are deliberate, and each is recorded in a spec file's `Deferrals` section.
 
 | Item                       | Status                                                                |
 |----------------------------|-----------------------------------------------------------------------|
-| **The four new e2e specs** | `login-split`, `staff-login`, `staff-nav`, `receptionist-audit` are written but **have not been run against a live API**. Run them once the dev stack is up. |
+| Browser E2E coverage       | The Playwright suite was removed; no browser-journey coverage remains. |
 | Token refresh / denylist   | The JWT is not refreshed and not revocable before expiry.             |
 | Rate limiting              | No brute-force protection on the login routes.                          |
 | Account lockout            | No lockout after N failed attempts.                                    |

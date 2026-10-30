@@ -1,0 +1,174 @@
+/*
+ * DoctorAppointmentTypes styles — the doctor's read-only view of the
+ * appointment catalogue (mock 11).
+ * Token-only CSS (E7-S1 invariant): no hex literals.
+ *
+ * Same visual family as DoctorToday.css so the doctor's surfaces
+ * read as one product.
+ */
+
+.doc-types__page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-9) var(--space-12) var(--space-12);
+}
+
+.doc-types__header {
+  margin-bottom: var(--space-7);
+}
+
+.doc-types__title {
+  font-size: var(--text-4xl);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.doc-types__sub {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  max-width: 60ch;
+  line-height: 1.5;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────────── */
+
+.doc-types__toolbar {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-7);
+  margin-bottom: var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.doc-types__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-strong);
+  cursor: pointer;
+  user-select: none;
+}
+
+.doc-types__toggle input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--brand-primary);
+  cursor: pointer;
+}
+
+/* ── Feedback ──────────────────────────────────────────────────── */
+
+.doc-types__error {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-7);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-5);
+}
+
+.doc-types__loading {
+  text-align: center;
+  padding: var(--space-9);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.doc-types__empty {
+  text-align: center;
+  padding: var(--space-9) var(--space-7);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  background: var(--surface-card);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+/* ── List ──────────────────────────────────────────────────────── */
+
+.doc-types__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-7);
+}
+
+.doc-types__row {
+  display: grid;
+  grid-template-columns: 1fr 110px 110px;
+  gap: var(--space-5);
+  align-items: center;
+  background: var(--surface-card);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-5) var(--space-7);
+  transition: border-color 120ms ease;
+}
+
+.doc-types__row:hover {
+  border-color: var(--brand-border);
+}
+
+.doc-types__row--dim {
+  opacity: 0.55;
+}
+
+.doc-types__row-main {
+  min-width: 0;
+}
+
+.doc-types__row-name {
+  font-weight: 600;
+  color: var(--text-heading);
+  font-size: var(--text-sm);
+}
+
+.doc-types__row-desc {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.doc-types__row-duration {
+  font-size: var(--text-xs);
+  color: var(--text-default);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Pill ──────────────────────────────────────────────────────── */
+
+.doc-types__pill {
+  display: inline-block;
+  font-size: var(--text-3xs);
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.doc-types__pill--active {
+  background: var(--success-badge-bg);
+  color: var(--success-text);
+}
+
+.doc-types__pill--inactive {
+  background: var(--neutral-bg);
+  color: var(--text-muted);
+}
+
+/* ── Foot ──────────────────────────────────────────────────────── */
+
+.doc-types__foot {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 70ch;
+}

@@ -13,6 +13,7 @@
  */
 import type { ReactNode } from 'react';
 import { BrandMark } from '../brand/BrandMark';
+import { ShieldIcon } from './LoginIcons';
 import styles from './LoginPage.module.css';
 
 interface LoginFrameProps {
@@ -35,9 +36,12 @@ export function LoginFrame({ children, pill = 'Sign in' }: LoginFrameProps) {
       <div className={styles['page']}>{children}</div>
 
       <div className={styles['privacy']}>
-        All data is filtered server-side by your account. We never share
-        your appointments. Authentication is required for every interaction
-        with the clinic.
+        <ShieldIcon />
+        <span>
+          All data is filtered server-side by your account. We never share
+          your appointments. Authentication is required for every interaction
+          with the clinic.
+        </span>
       </div>
     </div>
   );

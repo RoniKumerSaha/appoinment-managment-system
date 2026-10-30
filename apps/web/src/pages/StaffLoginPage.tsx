@@ -17,6 +17,7 @@ import { useCallback, useState } from 'react';
 import { ApiError } from '../api/client';
 import { loginAsStaff } from '../auth/store';
 import { LoginFrame } from './LoginFrame';
+import { EyeIcon, EyeOffIcon, KeyIcon, MailIcon, StaffIcon } from './LoginIcons';
 import { LOGIN_PATIENT_HASH, LOGIN_CHOOSE_HASH } from './login-routes';
 import styles from './LoginPage.module.css';
 
@@ -63,6 +64,9 @@ export function StaffLoginPage() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<FormError | null>(null);
+  // Whether the password is shown in clear. Default hidden, as a
+  // password field should be on a shared screen.
+  const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -110,7 +114,7 @@ export function StaffLoginPage() {
       >
         <div className={styles['card__head']}>
           <div className={styles['card__icon']} aria-hidden="true">
-            ◆
+            <StaffIcon />
           </div>
           <div>
             <h2 className={styles['card__title']}>Staff sign-in</h2>
@@ -145,34 +149,52 @@ export function StaffLoginPage() {
           <label className={styles['field__label']} htmlFor="staff-email">
             Email<span className={styles['req']}>*</span>
           </label>
-          <input
-            id="staff-email"
-            className={styles['field__input']}
-            type="email"
-            placeholder="you@clinic.local"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={busy}
-            required
-          />
+          <div className={styles['field__shell']}>
+            <MailIcon className={styles['field__shellIcon']} />
+            <input
+              id="staff-email"
+              className={styles['field__input']}
+              type="email"
+              placeholder="you@clinic.com"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={busy}
+              required
+            />
+          </div>
         </div>
 
         <div className={styles['field']}>
           <label className={styles['field__label']} htmlFor="staff-password">
             Password<span className={styles['req']}>*</span>
           </label>
-          <input
-            id="staff-password"
-            className={styles['field__input']}
-            type="password"
-            placeholder="••••••••••••"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={busy}
-            required
-          />
+          <div
+            className={`${styles['field__shell']} ${styles['field__shell--action']}`}
+          >
+            <KeyIcon className={styles['field__shellIcon']} />
+            <input
+              id="staff-password"
+              className={styles['field__input']}
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••••••"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={busy}
+              required
+            />
+            <button
+              type="button"
+              className={styles['field__toggle']}
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-pressed={showPassword}
+              title={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
+          </div>
           <span className={styles['field__hint']}>
             Your clinic password. Ask an administrator to reset it if you
             have forgotten it.
@@ -196,10 +218,10 @@ export function StaffLoginPage() {
         </div>
 
         <div className={styles['hint-block']}>
-          <strong>Dev seed:</strong>{' '}
-          <code>admin-main@clinic.local</code> (admin),{' '}
-          <code>dr.-east-lead@clinic.local</code> (doctor),{' '}
-          <code>receptionist-east@clinic.local</code> (receptionist). Password
+          <strong>Demo accounts:</strong>{' '}
+          <code>admin@clinic.com</code> (admin),{' '}
+          <code>doctor@clinic.com</code> (doctor),{' '}
+          <code>reception@clinic.com</code> (receptionist). Password
           for all three in dev: <code>Clinic@12345678</code>.
         </div>
 

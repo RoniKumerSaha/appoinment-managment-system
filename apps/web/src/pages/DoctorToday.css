@@ -1,0 +1,320 @@
+/*
+ * DoctorToday styles — the doctor's own day list (mock 12).
+ * Token-only CSS (E7-S1 invariant): no hex literals.
+ *
+ * Mirrors ReceptionistToday.css so the two day boards read as the
+ * same product, with two differences that come from the data:
+ *   - a BRANCH column (the doctor may work at more than one branch,
+ *     and each row renders in its own branch's timezone), and
+ *   - no "Check in" button (check-in is a receptionist concept —
+ *     the doctor marks Completed / No-show instead).
+ */
+
+/* ── Page + header ─────────────────────────────────────────────── */
+
+.doc-today__page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-9) var(--space-12) var(--space-12);
+}
+
+.doc-today__header {
+  margin-bottom: var(--space-7);
+}
+
+.doc-today__header-left {
+  min-width: 0;
+}
+
+.doc-today__title {
+  font-size: var(--text-4xl);
+  color: var(--text-heading);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.doc-today__sub {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ── Toolbar ───────────────────────────────────────────────────── */
+
+.doc-today__toolbar {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-5) var(--space-7);
+  margin-bottom: var(--space-7);
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.doc-today__search {
+  flex: 1;
+  padding: var(--space-3) var(--space-5);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  background: var(--surface-card);
+  color: var(--text-default);
+  min-width: 200px;
+}
+
+.doc-today__search:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: var(--ring-focus);
+}
+
+.doc-today__date,
+.doc-today__select {
+  padding: var(--space-3) var(--space-5);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  background: var(--surface-card);
+  color: var(--text-default);
+}
+
+.doc-today__date:focus,
+.doc-today__select:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: var(--ring-focus);
+}
+
+/* ── Feedback ──────────────────────────────────────────────────── */
+
+.doc-today__error {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-7);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-7);
+}
+
+.doc-today__toast {
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-7);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-7);
+  font-weight: 500;
+}
+
+.doc-today__loading {
+  text-align: center;
+  padding: var(--space-9);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.doc-today__empty {
+  text-align: center;
+  padding: var(--space-9) var(--space-7);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  background: var(--surface-card);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+/* ── Hour groups ───────────────────────────────────────────────── */
+
+.doc-today__hour {
+  margin-bottom: var(--space-7);
+}
+
+.doc-today__hour-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+}
+
+.doc-today__hour-count {
+  background: var(--neutral-bg);
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--text-default);
+  font-weight: 600;
+  font-size: var(--text-2xs);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.doc-today__hour-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border-default);
+}
+
+/* ── Row ───────────────────────────────────────────────────────── */
+
+/* Columns: time · patient · branch · type · status · actions.
+ * The type column holds "<name> · <duration>" (e.g. "General
+ * Consultation · 30 min") and the action column holds up to two
+ * buttons ("Cancel" + "Mark status") — both need room to sit on one
+ * line. */
+.doc-today__row {
+  display: grid;
+  grid-template-columns: 70px 1fr 120px 180px 110px 190px;
+  gap: var(--space-5);
+  align-items: center;
+  background: var(--surface-card);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-5) var(--space-7);
+  margin-bottom: var(--space-2);
+  transition: border-color 120ms ease;
+}
+
+.doc-today__row:hover {
+  border-color: var(--brand-border);
+}
+
+.doc-today__row--now {
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+  box-shadow: 0 0 0 2px var(--warning-soft);
+}
+
+.doc-today__row--done {
+  opacity: 0.55;
+}
+
+.doc-today__row--dim {
+  opacity: 0.5;
+}
+
+.doc-today__time {
+  font-weight: 700;
+  color: var(--text-heading);
+  font-size: var(--text-md);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.doc-today__time-end {
+  font-size: var(--text-3xs);
+  color: var(--text-muted);
+  font-weight: 500;
+  display: block;
+}
+
+.doc-today__patient {
+  min-width: 0;
+}
+
+.doc-today__patient-name {
+  font-weight: 600;
+  color: var(--text-heading);
+  font-size: var(--text-sm);
+}
+
+.doc-today__patient-phone {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.doc-today__branch {
+  font-size: var(--text-xs);
+  color: var(--text-default);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-today__type {
+  font-size: var(--text-xs);
+  color: var(--text-default);
+}
+
+.doc-today__type-dur {
+  color: var(--text-muted);
+}
+
+/* ── Status pill ───────────────────────────────────────────────── */
+
+.doc-today__pill {
+  display: inline-block;
+  font-size: var(--text-3xs);
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.doc-today__pill--scheduled {
+  background: var(--info-bg);
+  color: var(--info-text);
+}
+
+.doc-today__pill--completed {
+  background: var(--success-badge-bg);
+  color: var(--success-text);
+}
+
+.doc-today__pill--cancelled {
+  background: var(--danger-badge-bg);
+  color: var(--danger-dark);
+}
+
+.doc-today__pill--no-show {
+  background: var(--danger-badge-bg);
+  color: var(--danger-dark);
+}
+
+/* ── Quick actions ─────────────────────────────────────────────── */
+
+.doc-today__qa {
+  display: flex;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}
+
+.doc-today__qa-btn {
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  font-size: var(--text-2xs);
+  color: var(--text-strong);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all 120ms ease;
+  white-space: nowrap;
+}
+
+.doc-today__qa-btn:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.doc-today__qa-btn--primary {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: var(--on-brand);
+}
+
+.doc-today__qa-btn--primary:hover {
+  background: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
+  color: var(--on-brand);
+}

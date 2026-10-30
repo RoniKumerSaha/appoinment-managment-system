@@ -170,7 +170,40 @@ export function setOnUnauthorized(cb: (() => void) | null): void {
 
 // ─── request() ─────────────────────────────────────────────────────────
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+/**
+ * Options for a single request.
+ *
+ * `treat401AsAuthFailure` marks a request as an AUTH ATTEMPT rather
+ * than an authenticated call. The two are handled differently:
+ *
+ *   - An authenticated call that gets a 401 means the session died
+ *     (expired, revoked). The app must sign the user out and send
+ *     them back to the login screen.
+ *   - An AUTH ATTEMPT that gets a 401 means the credentials were
+ *     wrong. There is no session to sign out of, and the login form
+ *     must stay on screen to show the error.
+ *
+ * Without this distinction a wrong password signed the user out of
+ * the form itself: the 401 fired the `onUnauthorized` callback, which
+ * called `logout()`, which reset the hash to the chooser and
+ * unmounted `StaffLoginPage` — so the "invalid_credentials" banner
+ * never rendered and the user was bounced to a blank chooser with no
+ * explanation.
+ */
+interface RequestOptions extends RequestInit {
+  /**
+   * True when this request is an attempt to ESTABLISH a session
+   * (sign-in, OTP verification). A 401 is then a credentials
+   * failure, not an expired session, and must not sign the user out.
+   */
+  treat401AsAuthFailure?: boolean;
+}
+
+async function request<T>(
+  path: string,
+  init: RequestOptions = {},
+): Promise<T> {
+  const { treat401AsAuthFailure, ...rest } = init;
   const session = readSession();
   const authHeader: HeadersInit =
     session.kind === 'valid'
@@ -190,16 +223,19 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
           {};
 
   const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
+    ...rest,
     headers: {
       ...authHeader,
       'content-type': 'application/json',
-      ...(init.headers ?? {}),
+      ...(rest.headers ?? {}),
     },
   });
 
   if (res.status === 401) {
-    onUnauthorized?.();
+    // A 401 on an AUTH ATTEMPT is a credentials failure, not an
+    // expired session — do NOT sign the user out, or the login form
+    // is unmounted before it can show the error.
+    if (!treat401AsAuthFailure) onUnauthorized?.();
     const body = await readErrorBody(res);
     const code =
       typeof body['error'] === 'string' ? (body['error'] as string) : 'unauthenticated';
@@ -259,6 +295,9 @@ export function loginStaff(input: {
   return request<LoginResponse>('/auth/login/staff', {
     method: 'POST',
     body: JSON.stringify(input),
+    // A 401 here means "wrong credentials" — the form must stay on
+    // screen and show the error, not sign the user out.
+    treat401AsAuthFailure: true,
   });
 }
 
@@ -269,6 +308,8 @@ export function verifyPatientOtp(input: {
   return request<LoginResponse>('/patient/otp/verify-now', {
     method: 'POST',
     body: JSON.stringify(input),
+    // Same as `loginStaff`: a 401 is a bad OTP, not a dead session.
+    treat401AsAuthFailure: true,
   });
 }
 
@@ -1499,6 +1540,206 @@ export function getDoctorAffected(
     `/doctor/affected${q.length > 0 ? `?${q}` : ''}`,
     { method: 'GET' },
   );
+}
+
+// ─── Doctor today dashboard (mock 12 / doctor.md Act 3) ───────
+//
+// The doctor's OWN day list. The receptionist's counterpart is
+// `/reception/branch/today`, but that one is branch-wide; this one
+// is bound to `claim.doctor_id`, so a doctor only ever sees their
+// own appointments.
+//
+// This is the surface from which mark-status, cancel and the audit
+// drawer are reachable for ORDINARY appointments. The affected
+// queue lists only the rows that fell outside their branch's
+// operating hours, so before this endpoint existed those actions
+// were effectively unreachable in normal operation.
+
+export type DoctorAppointmentStatus =
+  | 'Scheduled'
+  | 'Completed'
+  | 'Cancelled'
+  | 'No-show';
+
+export interface DoctorTodayAppointment {
+  id: string;
+  branch_id: string;
+  branch_name: string;
+  /** The branch's IANA timezone — times render in local wall-clock. */
+  branch_tz: string;
+  doctor_id: string;
+  patient_phone: string;
+  appointment_type_id: string;
+  appointment_type_name: string;
+  start_datetime: string; // ISO UTC
+  end_datetime: string;   // ISO UTC
+  status: DoctorAppointmentStatus;
+}
+
+export interface DoctorTodayBranch {
+  id: string;
+  name: string;
+  tz: string;
+}
+
+export interface DoctorTodayResponse {
+  /** The calendar day (YYYY-MM-DD) the list shows. */
+  date: string;
+  doctor_id: string;
+  branches: DoctorTodayBranch[];
+  filters: {
+    branch_id: string | null;
+    status: string | null;
+    date: string | null;
+  };
+  appointments: DoctorTodayAppointment[];
+}
+
+export interface DoctorTodayInput {
+  branch_id?: string;
+  status?: DoctorAppointmentStatus;
+  date?: string;
+}
+
+export function getDoctorToday(
+  input: DoctorTodayInput = {},
+): Promise<DoctorTodayResponse> {
+  const params = new URLSearchParams();
+  if (typeof input.branch_id === 'string' && input.branch_id.length > 0) {
+    params.set('branch_id', input.branch_id);
+  }
+  if (typeof input.status === 'string' && input.status.length > 0) {
+    params.set('status', input.status);
+  }
+  if (typeof input.date === 'string' && input.date.length > 0) {
+    params.set('date', input.date);
+  }
+  const q = params.toString();
+  return request<DoctorTodayResponse>(
+    `/doctor/today${q.length > 0 ? `?${q}` : ''}`,
+    { method: 'GET' },
+  );
+}
+
+// ─── Doctor self-service schedule + block time ────────────────
+//
+// `doctor.md` Act 1 (Schedule editor) and Act 2 (Block time) are
+// doctor sections, but the only implementation was the admin-only
+// `/admin/doctors/:id/schedule` + `/admin/doctors/:id/blocks`
+// (gated by `adminScope`). These client calls hit the new
+// doctor-scoped routes, which bind to `claim.doctor_id` server-side.
+
+export interface DoctorScheduleRow {
+  branch_id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  effective_from: string;
+  effective_to: string | null;
+}
+
+export interface DoctorScheduleResponse {
+  doctor_id: string;
+  schedule: DoctorScheduleRow[];
+}
+
+export function getMyDoctorSchedule(): Promise<DoctorScheduleResponse> {
+  return request<DoctorScheduleResponse>('/doctor/schedule', { method: 'GET' });
+}
+
+/** Preview: how many future appointments the proposed schedule would
+ *  invalidate. No DB write. */
+export interface DoctorScheduleImpactResponse {
+  future_appointment_count: number;
+  affected_appointments: Array<{
+    id: string;
+    patient_phone_masked: string;
+    doctor_id: string;
+    branch_id: string;
+    start_datetime: string;
+    end_datetime: string;
+    status: string;
+  }>;
+}
+
+export function previewMyDoctorSchedule(
+  rows: DoctorScheduleRow[],
+): Promise<DoctorScheduleImpactResponse> {
+  return request<DoctorScheduleImpactResponse>('/doctor/schedule-impact', {
+    method: 'POST',
+    body: JSON.stringify({ rows }),
+  });
+}
+
+/** Full-set replace. 409 `schedule_invalidates_future_appointments` when
+ *  the proposed hours would orphan a future booking.
+ *
+ *  `acknowledge` is the doctor's explicit "save anyway" — without it the
+ *  API refuses the write and returns the affected appointments so the
+ *  doctor can decide. */
+export function saveMyDoctorSchedule(
+  rows: DoctorScheduleRow[],
+  acknowledge = false,
+): Promise<{ inserted_count: number; schedule: DoctorScheduleRow[] }> {
+  return request<{ inserted_count: number; schedule: DoctorScheduleRow[] }>(
+    '/doctor/schedule',
+    { method: 'POST', body: JSON.stringify({ rows, acknowledge }) },
+  );
+}
+
+export interface DoctorBlock {
+  id: string;
+  doctor_id: string;
+  branch_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  reason: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function listMyDoctorBlocks(input?: {
+  from?: string;
+  to?: string;
+}): Promise<{ blocks: DoctorBlock[] }> {
+  const params = new URLSearchParams();
+  if (input?.from) params.set('from', input.from);
+  if (input?.to) params.set('to', input.to);
+  const q = params.toString();
+  return request<{ blocks: DoctorBlock[] }>(
+    `/doctor/blocks${q.length > 0 ? `?${q}` : ''}`,
+    { method: 'GET' },
+  );
+}
+
+export interface DoctorBlockInput {
+  branch_id: string;
+  start_datetime: string;
+  end_datetime: string;
+  reason?: string;
+}
+
+export function previewMyDoctorBlock(
+  input: DoctorBlockInput,
+): Promise<DoctorScheduleImpactResponse> {
+  return request<DoctorScheduleImpactResponse>('/doctor/blocks-impact', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function createMyDoctorBlock(input: DoctorBlockInput): Promise<DoctorBlock> {
+  return request<DoctorBlock>('/doctor/blocks', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteMyDoctorBlock(blockId: string): Promise<void> {
+  return request<void>(`/doctor/blocks/${encodeURIComponent(blockId)}`, {
+    method: 'DELETE',
+  });
 }
 
 // E6-S2 — doctor move. Atomic two-slot transaction; body schema

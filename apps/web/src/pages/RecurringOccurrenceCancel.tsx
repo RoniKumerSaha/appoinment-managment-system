@@ -194,7 +194,7 @@ export function RecurringOccurrenceCancel(): ReactNode {
 
   if (loading) {
     return (
-      <PatientFrame userName={userName}>
+      <PatientFrame activeLink="cancel-occurrence" userName={userName}>
         <div className={styles['page']}>
           <header className={styles['page-header']}>
             <h1>Cancel one occurrence</h1>
@@ -207,7 +207,7 @@ export function RecurringOccurrenceCancel(): ReactNode {
 
   if (seriesList.length === 0) {
     return (
-      <PatientFrame userName={userName}>
+      <PatientFrame activeLink="cancel-occurrence" userName={userName}>
         <div className={styles['page']}>
           <header className={styles['page-header']}>
             <h1>Cancel one occurrence</h1>
@@ -222,7 +222,7 @@ export function RecurringOccurrenceCancel(): ReactNode {
 
   if (series === null || target === null) {
     return (
-      <PatientFrame userName={userName}>
+      <PatientFrame activeLink="cancel-occurrence" userName={userName}>
         <div className={styles['page']}>
           <header className={styles['page-header']}>
             <h1>Cancel one occurrence</h1>
@@ -240,7 +240,7 @@ export function RecurringOccurrenceCancel(): ReactNode {
   const targetTime = `${timeIn(target.occurrence.start_datetime, tz)}–${timeIn(target.occurrence.end_datetime, tz)}`;
 
   return (
-    <PatientFrame userName={userName}>
+    <PatientFrame activeLink="cancel-occurrence" userName={userName}>
       <div className={styles['page']}>
         {/* Crumb */}
         <nav className={styles.crumb}>

@@ -11,11 +11,29 @@
  * (`GET /reception/branch/schedule`), so it is never a choice.
  * Slots come from `GET /availability` — the same engine the patient
  * flow uses, so the conflict checks are identical (FR-027/029).
+ *
+ * ── Returning-patient detection (E3-S3) ──────────────────────────
+ *
+ * The form now probes `GET /patient/profile` once the phone number
+ * is a valid E.164, and shows a "✓ Returning patient — <name>"
+ * match card with the name pre-filled and still editable.
+ *
+ * It did not used to. The receptionist typed the patient's name from
+ * scratch on every booking, and had no way to tell a new patient
+ * from a known one — which is the whole point of the "five fields,
+ * two minutes" promise in `docs/design/user-flows/receptionist.md`
+ * Act 2 ("✓ Returning patient — Aisha M. Name pre-filled") and
+ * Act 5. Mock 14 and mock 26 both draw the match card.
+ *
+ * The probe is a soft check: a 404 `patient_not_found` simply means
+ * "new patient" (no error), and any other failure is non-fatal —
+ * the receptionist can still type the name by hand.
  */
 import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
@@ -24,6 +42,7 @@ import {
   ApiError,
   createBooking,
   getAvailability,
+  getPatientProfile,
   getReceptionSchedule,
   listStaffAppointmentTypes,
   listStaffDoctors,
@@ -127,6 +146,67 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
     onPhoneChange,
     reset: resetPhone,
   } = usePhoneField();
+
+  /**
+   * E3-S3 returning-patient detection. `returningName` is the
+   * patient's stored full name (null when the phone is not on file),
+   * `profileCheckBusy` is true while the probe is in flight.
+   */
+  const [returningName, setReturningName] = useState<string | null>(null);
+  const [profileCheckBusy, setProfileCheckBusy] = useState<boolean>(false);
+  const profileCheckTimer = useRef<number | null>(null);
+
+  // The probe runs on the CANONICAL E.164 phone, debounced by 350ms
+  // so typing "+966 5" does not fire a request per keystroke.
+  //
+  // `patientName` is intentionally NOT a dependency: the pre-fill
+  // only happens when the receptionist has not typed a name of their
+  // own. If they have, their name wins — the receptionist is at the
+  // desk and knows who is in front of them.
+  useEffect(() => {
+    if (profileCheckTimer.current !== null) {
+      window.clearTimeout(profileCheckTimer.current);
+      profileCheckTimer.current = null;
+    }
+    if (patientPhone === '') {
+      setReturningName(null);
+      setProfileCheckBusy(false);
+      return;
+    }
+    setProfileCheckBusy(true);
+    profileCheckTimer.current = window.setTimeout(() => {
+      getPatientProfile(patientPhone)
+        .then((res) => {
+          setReturningName(res.patient.full_name);
+          if (
+            res.patient.full_name !== null &&
+            patientName.trim().length === 0
+          ) {
+            setPatientName(res.patient.full_name);
+          }
+        })
+        .catch((e: unknown) => {
+          // 404 `patient_not_found` is the normal "new patient" case,
+          // not an error. Anything else is non-fatal too — the
+          // receptionist can still type the name by hand.
+          if (
+            !(e instanceof ApiError && e.status === 404)
+          ) {
+            setReturningName(null);
+          }
+        })
+        .finally(() => {
+          setProfileCheckBusy(false);
+        });
+    }, 350);
+    return () => {
+      if (profileCheckTimer.current !== null) {
+        window.clearTimeout(profileCheckTimer.current);
+        profileCheckTimer.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientPhone]);
 
   // The branch is the receptionist's own — read it, never pick it.
   useEffect(() => {
@@ -303,7 +383,7 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
 
   if (done !== null) {
     return (
-      <ReceptionistFrame>
+      <ReceptionistFrame activeNav="create">
         <div className={styles['page']}>
           <header className={styles['page-header']}>
             <div className={styles.crumb}>Today → + New appointment</div>
@@ -355,6 +435,7 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
                 resetPhone();
                 setPatientName('');
                 setNotes('');
+                setReturningName(null);
               }}
             >
               Book another
@@ -565,6 +646,32 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
                 : `Will book as ${patientPhone}. Existing patients match on phone (BR-016).`}
             </div>
           </div>
+          {/*
+            The returning-patient match card (mock 14 / mock 26, E3-S3).
+            It shows ONLY when the phone is on file. The name it carries
+            is the patient's stored name, and it pre-fills the name
+            field below — but the receptionist can still edit it: the
+            person at the desk knows who is in front of them, and the
+            patient may have changed their name since the last visit.
+          */}
+          {returningName !== null && (
+            <div
+              className={styles.returning}
+              data-testid="recep-create-returning-pill"
+            >
+              <span className={styles['returning-check']} aria-hidden="true">
+                ✓
+              </span>
+              <span>
+                Returning patient — <strong>{returningName}</strong>
+              </span>
+            </div>
+          )}
+          {profileCheckBusy && (
+            <div className={styles.hint} data-testid="recep-create-profile-busy">
+              Checking for a returning patient…
+            </div>
+          )}
           <div className={styles['form-group']} style={{ marginTop: 'var(--space-7)' }}>
             <label htmlFor="recep-create-name">
               Patient name <span className={styles.req}>*</span>
@@ -575,6 +682,12 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
               value={patientName}
               onChange={(e) => setPatientName(e.target.value)}
             />
+            {returningName !== null && (
+              <div className={styles.hint}>
+                Pre-filled from the patient record — edit it if the name has
+                changed.
+              </div>
+            )}
           </div>
           <div className={styles['form-group']} style={{ marginBottom: 0 }}>
             <label htmlFor="recep-create-notes">

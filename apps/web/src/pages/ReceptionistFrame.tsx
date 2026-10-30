@@ -26,7 +26,7 @@ import type { ReactNode } from 'react';
 import { useAuth, logout } from '../auth/store';
 import { BrandMark } from '../brand/BrandMark';
 import { StaffNav, type StaffNavItem } from './StaffNav';
-import { RECEPTIONIST_NAV } from './staff-nav-items';
+import { RECEPTIONIST_NAV, RECEPTIONIST_NAV_ALIASES } from './staff-nav-items';
 import './styles/receptionist-frame.css';
 import './styles/staff-nav.css';
 
@@ -37,6 +37,16 @@ interface ReceptionistFrameProps {
   navItems?: StaffNavItem[];
   /** The `?page=` key of the section currently on screen. */
   activeNav?: string;
+  /**
+   * Maps a `?page=` value that is not a section onto the section it
+   * belongs to. The recurring flow's `preview` / `confirm` screens
+   * are steps of the `series` section, so without an alias the nav
+   * would highlight nothing while they are open.
+   *
+   * Defaults to `RECEPTIONIST_NAV_ALIASES`; pass an explicit map (or
+   * an empty one) to override.
+   */
+  aliases?: Record<string, string>;
 }
 
 function initialsOf(name: string | null, email: string): string {
@@ -54,6 +64,7 @@ export function ReceptionistFrame({
   onSignOut,
   navItems,
   activeNav,
+  aliases = RECEPTIONIST_NAV_ALIASES,
 }: ReceptionistFrameProps) {
   const { stored } = useAuth();
   const profile = stored?.profile ?? null;
@@ -87,10 +98,23 @@ const displayName = profile?.full_name ?? profile?.email ?? 'Receptionist';
   const resolvedNav = navItems ?? RECEPTIONIST_NAV;
   return (
     <div className="recep-frame__root" data-testid="recep-frame">
-      <nav className="recep-frame__nav">
-        <div className="recep-frame__brand">
+      <nav className="recep-frame__nav" data-testid="recep-frame-nav">
+        <div className="recep-frame__brand" data-testid="recep-frame-brand">
           <BrandMark size={28} className="recep-frame__brand-logo" />
           MediSlot
+          {/*
+            The role pill. The receptionist nav used to weld the role
+            onto the actor's name ("Reem Al-Harbi · Reception"), so
+            the four role surfaces announced themselves in three
+            different ways. The pill matches the doctor's and the
+            patient's exactly.
+          */}
+          <span
+            className="recep-frame__role-pill"
+            data-testid="recep-frame-role-pill"
+          >
+            {roleLabel}
+          </span>
         </div>
         {resolvedNav.length > 0 && (
           <StaffNav
@@ -98,11 +122,14 @@ const displayName = profile?.full_name ?? profile?.email ?? 'Receptionist';
             active={activeNav ?? resolvedNav[0]!.key}
             base="#/reception"
             testIdPrefix="recep"
+            aliases={aliases}
           />
         )}
         <div className="recep-frame__user">
           <span className="recep-frame__user-name">
-            {displayName} · {roleLabel}
+            {/* The role lives in the pill next to the wordmark now —
+                repeating it here read as a stutter. */}
+            {displayName}
           </span>
           <div className="recep-frame__avatar" aria-hidden="true">
             {initials}
