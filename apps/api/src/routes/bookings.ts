@@ -6,9 +6,18 @@
  * `appointment` row + an `appointment_audit` row.
  *
  * The route is open to any authenticated role (patient, receptionist,
- * doctor, admin). FR-022 makes phone the patient key, so the JWT's `sub`
- * does NOT pin the booking to a specific patient — the submitted
- * `patient_phone` is the source of truth.
+ * doctor, admin). FR-022 makes phone the patient key. For STAFF the
+ * submitted `patient_phone` is the source of truth — a receptionist
+ * books on behalf of whoever is standing at the desk. For a PATIENT
+ * the phone is taken from the session instead: `claim.sub` IS the
+ * E.164 number they signed in with (the OTP proved they own it), so
+ * a patient cannot book under somebody else's number by editing the
+ * request body.
+ *
+ * The patient's NAME is optional for a self-booking ("name can be added
+ * later") and `patient.full_name` is nullable. An empty name never
+ * overwrites a name already on file. Staff bookings still require a
+ * name — the receptionist has it in front of them.
  *
  * Atomic + GIST-protected:
  *   - All reads + the INSERT + the audit-row write happen in a single
@@ -191,8 +200,11 @@ const INSERT_PATIENT_SQL = `
   RETURNING id::text AS id;
 `;
 
+// Returns the id AND the stored name — the name is needed to report
+// `patient_name_after` faithfully on the path where the caller supplied
+// no name of their own (the stored name stays as it is).
 const SELECT_PATIENT_ID_SQL = `
-  SELECT id::text AS id FROM patient WHERE phone_number = $1;
+  SELECT id::text AS id, full_name FROM patient WHERE phone_number = $1;
 `;
 
 // E3-S3 (FR-023): on a returning-patient booking, update the stored
@@ -434,6 +446,31 @@ bookingsRouter.post(
     const body = validated.value;
     const nowMs = Date.now();
 
+    const isReceptionist = claim.role === 'receptionist';
+    const actorSub = claim.sub;
+
+    // A PATIENT's phone is the phone they signed in with — the OTP
+    // already proved they own it. `claim.sub` IS the E.164 number for
+    // a patient token (see otp/service.ts), so the phone is taken from
+    // the session rather than the body: a patient cannot book on
+    // behalf of somebody else's number by editing the request.
+    //
+    // Staff book ON BEHALF of a patient (receptionist at the desk),
+    // so for them the body's phone stays authoritative — the number
+    // is not the actor's own.
+    const isPatient = claim.role === 'patient';
+    const patientPhone = isPatient ? claim.sub : body.patient_phone;
+
+    // Staff always have the patient's name in front of them, so a
+    // staff booking without one is a mistake worth rejecting. A
+    // patient self-booking may legitimately have no name yet —
+    // "name can be added later" — so the name is optional there and
+    // the stored record is left untouched.
+    if (!isPatient && body.patient_name.trim().length === 0) {
+      respond(400, { error: 'invalid_patient_name' });
+      return;
+    }
+
     // E3-S4 / F-13 / BR-004: receptionist flow locks branch to the
     // receptionist's assigned branch (single-branch invariant). The
     // branch picker is server-trusted here: if the body says branch-west
@@ -447,8 +484,6 @@ bookingsRouter.post(
       respond(403, { error: 'outside_branch_scope' });
       return;
     }
-    const isReceptionist = claim.role === 'receptionist';
-    const actorSub = claim.sub;
 
     const startMs = Date.parse(body.start_datetime);
     const endMs = Date.parse(body.end_datetime);
@@ -580,7 +615,7 @@ bookingsRouter.post(
       // Patient filters (FR-027 / FR-029).
       const { rows: pdRows } = await client.query<{ exists: boolean }>(
         SELECT_PATIENT_DOCTOR_FUTURE_SQL,
-        [body.patient_phone, body.doctor_id],
+        [patientPhone, body.doctor_id],
       );
       if (pdRows.length > 0) {
         await client.query('COMMIT');
@@ -589,7 +624,7 @@ bookingsRouter.post(
       }
       const { rows: poRows } = await client.query<{ exists: boolean }>(
         SELECT_PATIENT_TIME_OVERLAP_SQL,
-        [body.patient_phone, new Date(startMs), new Date(endMs)],
+        [patientPhone, new Date(startMs), new Date(endMs)],
       );
       if (poRows.length > 0) {
         await client.query('COMMIT');
@@ -632,32 +667,46 @@ bookingsRouter.post(
       // predicate in `UPDATE_PATIENT_NAME_SQL` makes the UPDATE a no-op when
       // the name is unchanged, so the common path (same name) writes zero
       // rows. Audit payload is enriched below with `patient_name_after`.
+      //
+      // The name is OPTIONAL for a patient self-booking ("name can be
+      // added later"). Two consequences:
+      //   - an empty name is written as SQL NULL, not '' — `full_name` is
+      //     nullable and NULL is the honest "we don't know it yet".
+      //   - an empty name NEVER overwrites a name already on file. A
+      //     patient who books a second appointment without typing their
+      //     name must not erase the one they gave the first time.
+      const trimmedName = body.patient_name.trim();
       const patientIns = await client.query<{ id: string }>(
         INSERT_PATIENT_SQL,
-        [body.patient_phone, body.patient_name],
+        [patientPhone, trimmedName.length > 0 ? trimmedName : null],
       );
       let patientId: string;
       let patientNameAfter: string;
       if (patientIns.rows[0]) {
         // First-time path: INSERT succeeded, name is the submitted value.
         patientId = patientIns.rows[0].id;
-        patientNameAfter = body.patient_name;
+        patientNameAfter = trimmedName;
       } else {
         // Returning-patient path: SELECT to confirm + UPDATE name if changed.
-        const patientSel = await client.query<{ id: string }>(
-          SELECT_PATIENT_ID_SQL,
-          [body.patient_phone],
-        );
+        const patientSel = await client.query<{
+          id: string;
+          full_name: string | null;
+        }>(SELECT_PATIENT_ID_SQL, [patientPhone]);
         if (patientSel.rows.length === 0) {
           await client.query('ROLLBACK');
           throw new Error('patient_row_missing_after_conflict');
         }
         patientId = patientSel.rows[0]!.id;
-        await client.query(UPDATE_PATIENT_NAME_SQL, [
-          body.patient_name,
-          body.patient_phone,
-        ]);
-        patientNameAfter = body.patient_name;
+        if (trimmedName.length > 0) {
+          await client.query(UPDATE_PATIENT_NAME_SQL, [
+            trimmedName,
+            patientPhone,
+          ]);
+          patientNameAfter = trimmedName;
+        } else {
+          // No name supplied — keep whatever is on file (may be NULL).
+          patientNameAfter = patientSel.rows[0]!.full_name ?? '';
+        }
       }
 
       // INSERT the appointment row. The 0008 GIST exclusion catches any
@@ -676,10 +725,10 @@ bookingsRouter.post(
       // readable form.
       const createdBy = isReceptionist
         ? staffCreatedBy(actorSub)
-        : patientCreatedBy(body.patient_phone);
+        : patientCreatedBy(patientPhone);
       const auditActorId = isReceptionist
         ? `staff:${actorSub}`
-        : `patient:${body.patient_phone}`;
+        : `patient:${patientPhone}`;
       let apptRow: {
         id: string;
         clinic_id: string;
@@ -699,7 +748,7 @@ bookingsRouter.post(
           clinicId,
           body.branch_id,
           body.doctor_id,
-          body.patient_phone,
+          patientPhone,
           body.appointment_type_id,
           new Date(startMs).toISOString(),
           new Date(endMs).toISOString(),

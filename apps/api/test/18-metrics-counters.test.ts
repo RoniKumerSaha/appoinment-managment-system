@@ -205,13 +205,17 @@ test('a rejected booking body increments booking.attempt + booking.failure', asy
 
 test('a successful booking increments booking.attempt + booking.success', async () => {
   const { doctorId, branchId, typeId } = await lookupIds();
+  // A patient books under the phone they signed in with — the route
+  // takes the phone from the session for a patient caller, so the
+  // token and the body must agree.
+  const phone = '+15550009999';
   const res = await request(createApp())
     .post('/bookings')
-    .set('Authorization', `Bearer ${patientToken()}`)
+    .set('Authorization', `Bearer ${patientToken(phone)}`)
     .send({
       doctor_id: doctorId,
       patient_name: 'Metrics Patient',
-      patient_phone: '+15550009999',
+      patient_phone: phone,
       ...futureSlot(typeId, branchId),
     });
   assert.equal(res.status, 201);
@@ -230,7 +234,7 @@ test('a conflicting booking increments booking.conflict', async () => {
 
   const first = await request(createApp())
     .post('/bookings')
-    .set('Authorization', `Bearer ${patientToken()}`)
+    .set('Authorization', `Bearer ${patientToken('+15550009998')}`)
     .send({
       doctor_id: doctorId,
       patient_name: 'Metrics Patient',
@@ -243,7 +247,7 @@ test('a conflicting booking increments booking.conflict', async () => {
   // rejects it with a 409.
   const second = await request(createApp())
     .post('/bookings')
-    .set('Authorization', `Bearer ${patientToken()}`)
+    .set('Authorization', `Bearer ${patientToken('+15550009997')}`)
     .send({
       doctor_id: doctorId,
       patient_name: 'Other Patient',

@@ -56,7 +56,6 @@ import {
   formatTimeUtc,
   iconForType,
   initialsOf,
-  isValidName,
   isValidPhone,
   isoDateOffset,
 } from './booking-utils';
@@ -179,6 +178,13 @@ export function PatientBooking({
   // User identity (mock 20 lines 79-82 — avatar chip in the right of the nav).
   const { stored: storedAuth } = useAuth();
   const userName = storedAuth?.profile?.full_name ?? undefined;
+  // A PATIENT session carries the phone they signed in with — for a
+  // patient token `claim.sub` IS the E.164 number (the OTP proved they
+  // own it). The booking form therefore pre-fills the phone from the
+  // session instead of asking the patient to type a number they already
+  // gave us. Staff sessions have no such phone, so they get ''.
+  const sessionPhone =
+    storedAuth?.claim.role === 'patient' ? storedAuth.claim.sub : '';
   // Catalogue.
   const [doctors, setDoctors] = useState<PublicDoctorDto[]>([]);
   const [branches, setBranches] = useState<PublicBranchDto[]>([]);
@@ -195,12 +201,20 @@ export function PatientBooking({
   // The patient types the whole international number — there is no
   // country picker. `patientPhone` is the normalised E.164 string
   // the rest of the flow reads.
+  //
+  // For a patient session the number comes from the sign-in, so the
+  // field starts out filled AND locked — asking a signed-in patient
+  // to retype the phone they just verified with an OTP is busywork,
+  // and retyping it wrong is how a booking ends up on the wrong
+  // record. The API takes the phone from the session for patients too
+  // (see POST /bookings), so the locked value is the one that counts.
   const {
     phone: phoneInput,
     e164: patientPhone,
     onPhoneChange,
     reset: resetPhone,
-  } = usePhoneField();
+  } = usePhoneField(sessionPhone);
+  const phoneLocked = sessionPhone !== '';
   const [patientName, setPatientName] = useState('');
   const [returningName, setReturningName] = useState<string | null>(null);
   const [profileCheckErr, setProfileCheckErr] = useState<FormError | null>(null);
@@ -344,8 +358,11 @@ export function PatientBooking({
   }, [patientPhone]);
 
   const onContinueFromDetails = useCallback(() => {
-    if (isValidName(patientName) && isValidPhone(patientPhone)) setStep(5);
-  }, [patientName, patientPhone]);
+    // The NAME is optional — a patient may not have told us their name
+    // yet, and the record can be completed later. The PHONE is not
+    // (it identifies the patient), so it stays the gate.
+    if (isValidPhone(patientPhone)) setStep(5);
+  }, [patientPhone]);
 
   const onSubmit = useCallback(async (): Promise<void> => {
     if (
@@ -379,6 +396,9 @@ export function PatientBooking({
 
   const onStartOver = useCallback(() => {
     setDraft(EMPTY_DRAFT);
+    // `reset` restores the INITIAL value — which for a patient session
+    // is the phone they signed in with, not ''. Clearing it here would
+    // leave the locked field empty and the next booking unsendable.
     resetPhone();
     setPatientName('');
     setReturningName(null);
@@ -513,6 +533,7 @@ export function PatientBooking({
           patientPhone={patientPhone}
           phoneInput={phoneInput}
           onPhoneChange={onPhoneChange}
+          phoneLocked={phoneLocked}
           patientName={patientName}
           setPatientName={setPatientName}
           returningName={returningName}
@@ -1177,6 +1198,7 @@ function DetailsStep({
   patientPhone,
   phoneInput,
   onPhoneChange,
+  phoneLocked,
   patientName,
   setPatientName,
   returningName,
@@ -1189,6 +1211,7 @@ function DetailsStep({
   patientPhone: string;
   phoneInput: string;
   onPhoneChange: (s: string) => void;
+  phoneLocked: boolean;
   patientName: string;
   setPatientName: (s: string) => void;
   returningName: string | null;
@@ -1198,8 +1221,10 @@ function DetailsStep({
   onBack: () => void;
   onContinue: () => void;
 }) {
-  const canContinue =
-    isValidName(patientName) && isValidPhone(patientPhone);
+  // The phone identifies the patient, so it gates the step. The name
+  // is optional — it can be added later, and the record is updated
+  // when the patient supplies it.
+  const canContinue = isValidPhone(patientPhone);
   return (
     <div className={styles['layout']} data-testid="patient-booking-step4">
       <div className={styles['main']}>
@@ -1221,11 +1246,13 @@ function DetailsStep({
                 Phone number
               </div>
               <div className={styles['stack-card__meta']}>
-                {profileCheckBusy
-                  ? 'Checking…'
-                  : returningName
-                    ? `Returning patient · ${returningName}`
-                    : 'Required'}
+                {phoneLocked
+                  ? 'From your sign-in'
+                  : profileCheckBusy
+                    ? 'Checking…'
+                    : returningName
+                      ? `Returning patient · ${returningName}`
+                      : 'Required'}
               </div>
             </div>
             <div className={styles['stack-card__body']}>
@@ -1241,18 +1268,33 @@ function DetailsStep({
                   </label>
                   <input
                     id="phone"
-                    className={styles['field__input']}
+                    className={
+                      phoneLocked
+                        ? `${styles['field__input']} ${styles['field__input--locked']}`
+                        : styles['field__input']
+                    }
                     type="tel"
                     inputMode="tel"
                     autoComplete="tel"
                     placeholder="+966 5XX XXX 5555"
                     value={phoneInput}
+                    readOnly={phoneLocked}
+                    aria-readonly={phoneLocked}
                     data-testid="patient-booking-phone-input"
                     onChange={(e) => onPhoneChange(e.target.value)}
                   />
                   <span className={styles['field__hint']}>
-                    Enter your number with its country code, e.g.{' '}
-                    <strong>+966 512345678</strong>.
+                    {phoneLocked ? (
+                      <>
+                        Added automatically from the number you signed in with. You can
+                        update it on your profile later.
+                      </>
+                    ) : (
+                      <>
+                        Enter your number with its country code, e.g.{' '}
+                        <strong>+966 512345678</strong>.
+                      </>
+                    )}
                   </span>
                 </div>
               </div>
@@ -1269,13 +1311,13 @@ function DetailsStep({
             <div className={styles['stack-card__head']}>
               <div className={styles['stack-num']}>2</div>
               <div className={styles['stack-card__title']}>Full name</div>
-              <div className={styles['stack-card__meta']}>Required</div>
+              <div className={styles['stack-card__meta']}>Optional</div>
             </div>
             <div className={styles['stack-card__body']}>
               <div className={styles['field-row']}>
                 <div className={styles['field']}>
                   <label className={styles['field__label']} htmlFor="name">
-                    Full name<span className={styles['field__req']}>*</span>
+                    Full name
                   </label>
                   <input
                     id="name"
@@ -1290,7 +1332,7 @@ function DetailsStep({
                   <span className={styles['field__hint']}>
                     {returningName
                       ? 'Updating the name will update your record on file.'
-                      : '1..120 characters.'}
+                      : 'Optional — you can add it later.'}
                   </span>
                 </div>
               </div>
@@ -1322,8 +1364,12 @@ function DetailsStep({
               <>
                 Returning: <strong>{returningName}</strong>
               </>
+            ) : patientName.trim().length > 0 ? (
+              <>
+                Booking as <strong>{patientName.trim()}</strong>
+              </>
             ) : (
-              'New patient'
+              'Name can be added later'
             )}
           </span>
           <button
@@ -1428,7 +1474,9 @@ function ConfirmStep({
               <div className={styles['stack-card__title']}>Your details</div>
             </div>
             <div className={styles['done-summary']}>
-              <span className={styles['done-summary__v']}>{patientName}</span>
+              <span className={styles['done-summary__v']}>
+                {patientName.trim().length > 0 ? patientName : 'Name not provided'}
+              </span>
               <span className={styles['done-summary__sep']}>·</span>
               <span className={styles['done-summary__v']}>{patientPhone}</span>
             </div>
@@ -1501,11 +1549,16 @@ function ConfirmationReceipt({
   if (!draft.doctor || !draft.branch || !draft.type || !draft.slot) {
     return null;
   }
+  // The name is optional — a patient may have booked without giving
+  // one. The greeting falls back to a neutral form rather than
+  // rendering "You're booked, " with a dangling comma.
+  const firstName = patientName.trim().split(' ')[0] ?? '';
+  const greeting = firstName.length > 0 ? `You&rsquo;re booked, ${firstName}` : 'You&rsquo;re booked';
   return (
     <div className={styles['layout']} data-testid="patient-booking-receipt">
       <div className={styles['main']}>
         <header className={styles['page-header']}>
-          <h1>You&rsquo;re booked, {patientName.split(' ')[0]}</h1>
+          <h1 dangerouslySetInnerHTML={{ __html: greeting }} />
           <p className={styles['sub']}>
             Your appointment is confirmed. No email or SMS needed.
           </p>
@@ -1582,7 +1635,10 @@ function ConfirmationReceipt({
       <aside className={styles['side']}>
         <h3 className={styles['side__title']}>Your details</h3>
         <div className={styles['summary-card']}>
-          <SummaryRow k="Name" v={patientName} />
+          <SummaryRow
+            k="Name"
+            v={patientName.trim().length > 0 ? patientName : 'Not provided yet'}
+          />
           <SummaryRow k="Phone" v={patientPhone} />
         </div>
       </aside>

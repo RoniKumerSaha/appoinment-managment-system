@@ -318,6 +318,150 @@ test('POST /bookings doctor_not_found → 404', async () => {
   assert.equal(res.body.error, 'doctor_not_found');
 });
 
+// ═══════════════════════════════════════════════════════════════════
+// POST /bookings — the phone comes from the session, the name is
+// optional for a patient self-booking.
+// ═══════════════════════════════════════════════════════════════════
+
+test('POST /bookings: a patient books WITHOUT a name → 201, patient row has NULL name', async () => {
+  const { doctorId, branchId, typeId } = await lookupIds();
+  const phone = '+15550000077';
+  // A slot of its own — the whole suite shares one database, so this
+  // must not collide with any other test's booking.
+  const start = nextWeekdayAt(16, 8);
+  const end = new Date(start.getTime() + 30 * 60 * 1000);
+
+  const res = await request(createApp())
+    .post('/bookings')
+    .set('Authorization', `Bearer ${patientToken(phone)}`)
+    .send({
+      doctor_id: doctorId,
+      branch_id: branchId,
+      appointment_type_id: typeId,
+      start_datetime: start.toISOString(),
+      end_datetime: end.toISOString(),
+      slot_duration_minutes: 30,
+      patient_phone: phone,
+      patient_name: '',
+    });
+  assert.equal(res.status, 201, `body=${JSON.stringify(res.body)}`);
+
+  const row = await db.pool.query<{ full_name: string | null }>(
+    `SELECT full_name FROM patient WHERE phone_number = $1`,
+    [phone],
+  );
+  assert.equal(row.rows[0]!.full_name, null, 'empty name is stored as NULL');
+});
+
+test('POST /bookings: an empty name does NOT wipe the stored name', async () => {
+  const { doctorId, branchId, typeId } = await lookupIds();
+  const phone = '+15550000078';
+  // Seed the patient with a name on file.
+  await db.pool.query(
+    `INSERT INTO patient (phone_number, full_name) VALUES ($1, $2)`,
+    [phone, 'Original Name'],
+  );
+  const start = nextWeekdayAt(17, 9);
+  const end = new Date(start.getTime() + 30 * 60 * 1000);
+
+  const res = await request(createApp())
+    .post('/bookings')
+    .set('Authorization', `Bearer ${patientToken(phone)}`)
+    .send({
+      doctor_id: doctorId,
+      branch_id: branchId,
+      appointment_type_id: typeId,
+      start_datetime: start.toISOString(),
+      end_datetime: end.toISOString(),
+      slot_duration_minutes: 30,
+      patient_phone: phone,
+      patient_name: '   ',
+    });
+  assert.equal(res.status, 201, `body=${JSON.stringify(res.body)}`);
+
+  const row = await db.pool.query<{ full_name: string | null }>(
+    `SELECT full_name FROM patient WHERE phone_number = $1`,
+    [phone],
+  );
+  assert.equal(
+    row.rows[0]!.full_name,
+    'Original Name',
+    'a nameless booking must not erase the name on file',
+  );
+});
+
+test('POST /bookings: the appointment phone comes from the SESSION, not the body', async () => {
+  const { doctorId, branchId, typeId } = await lookupIds();
+  const sessionPhone = '+15550000079';
+  const otherPhone = '+15550000080';
+  const start = nextWeekdayAt(18, 10);
+  const end = new Date(start.getTime() + 30 * 60 * 1000);
+
+  const res = await request(createApp())
+    .post('/bookings')
+    .set('Authorization', `Bearer ${patientToken(sessionPhone)}`)
+    .send({
+      doctor_id: doctorId,
+      branch_id: branchId,
+      appointment_type_id: typeId,
+      start_datetime: start.toISOString(),
+      end_datetime: end.toISOString(),
+      slot_duration_minutes: 30,
+      // A patient cannot book under somebody else's number.
+      patient_phone: otherPhone,
+      patient_name: 'Someone Else',
+    });
+  assert.equal(res.status, 201, `body=${JSON.stringify(res.body)}`);
+
+  const appt = await db.pool.query<{ patient_phone: string }>(
+    `SELECT patient_phone FROM appointment WHERE id = $1`,
+    [res.body.appointment.id],
+  );
+  assert.equal(
+    appt.rows[0]!.patient_phone,
+    sessionPhone,
+    'the appointment is filed under the signed-in phone',
+  );
+
+  const other = await db.pool.query<{ id: string }>(
+    `SELECT id FROM patient WHERE phone_number = $1`,
+    [otherPhone],
+  );
+  assert.equal(
+    other.rows.length,
+    0,
+    'no patient row is created for the phone in the body',
+  );
+});
+
+test('POST /bookings: a RECEPTIONIST booking without a name → 400 invalid_patient_name', async () => {
+  const { doctorId, branchId, typeId } = await lookupIds();
+  const start = nextWeekdayAt(19, 11);
+  const end = new Date(start.getTime() + 30 * 60 * 1000);
+  const token = signClaim({
+    sub: 'receptionist-east@clinic.local',
+    role: 'receptionist',
+    branch_ids: [branchId],
+    scope: 'branch',
+  });
+
+  const res = await request(createApp())
+    .post('/bookings')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      doctor_id: doctorId,
+      branch_id: branchId,
+      appointment_type_id: typeId,
+      start_datetime: start.toISOString(),
+      end_datetime: end.toISOString(),
+      slot_duration_minutes: 30,
+      patient_phone: '+15550000081',
+      patient_name: '',
+    });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error, 'invalid_patient_name');
+});
+
 // ── helpers ──
 function tomorrowIso(): string {
   const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -329,8 +473,30 @@ function tomorrowIso(): string {
  *  09-17 ET (Mon-Sat), so 14:00 UTC = 10:00 EDT always lands inside
  *  the working window, and the branch is open (Sun is closed). */
 function nextWeekdayAt14Utc(daysOut: number): Date {
+  return nextWeekdayAt(14, daysOut);
+}
+
+/** The same, but at an arbitrary UTC hour — used to give a test its
+ *  OWN slot so it cannot collide with a 14:00 booking on the same
+ *  doctor.
+ *
+ *  Two constraints, both learned the hard way:
+ *
+ *  1. HOURS, not days, make a slot private. Every test in the suite
+ *     shares ONE database, and `nextWeekdayAt` can slide two
+ *     different `daysOut` values onto the same weekday (a Saturday is
+ *     skipped to the Monday after) — so two tests on the same weekday
+ *     and the same hour collide with a 409 slot_raced. Distinct hours
+ *     never collide.
+ *
+ *  2. The hour must land inside the branch's opening hours, which
+ *     are 09:00–17:00 BRANCH-LOCAL (America/New_York). In EDT that
+ *     is 13:00–21:00 UTC; outside the window the route rejects the
+ *     booking with `outside_branch_hours`. 14:00 and 15:00 UTC are
+ *     already taken by other test files. */
+function nextWeekdayAt(hourUtc: number, daysOut: number): Date {
   const d = new Date(Date.now() + daysOut * 24 * 60 * 60 * 1000);
-  d.setUTCHours(14, 0, 0, 0);
+  d.setUTCHours(hourUtc, 0, 0, 0);
   for (let i = 0; i < 7; i++) {
     if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) return d;
     d.setUTCDate(d.getUTCDate() + 1);

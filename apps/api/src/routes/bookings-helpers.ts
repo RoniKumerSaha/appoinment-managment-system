@@ -6,7 +6,9 @@
  *   2. ISO datetime parse on start_datetime (strict: must carry a TZ).
  *   3. slot_duration_minutes integer 5..480 (matches 0005 CHECK).
  *   4. patient_phone E.164 format.
- *   5. patient_name 1..120 chars (trim-then-length).
+ *   5. patient_name ≤120 chars (trim-then-length). An EMPTY name is
+ *      accepted here — the route layer decides whether the caller's
+ *      role requires one.
  *   6. unknown_field detection.
  *
  * All validators return booleans / parsed values (no tagged unions —
@@ -32,6 +34,14 @@ export interface CreateBookingBody {
   end_datetime: string;
   slot_duration_minutes: number;
   patient_phone: string;
+  /**
+   * The patient's name, trimmed. May be EMPTY — the `patient.full_name`
+   * column is nullable, and a patient who signed in with their phone
+   * has not necessarily told us their name yet ("name can be added
+   * later"). Staff bookings (receptionist on behalf of a patient) still
+   * require it — the route layer enforces that, because a receptionist
+   * standing at the desk always has the name in front of them.
+   */
   patient_name: string;
 }
 
@@ -87,6 +97,21 @@ export function isValidPatientName(s: string): boolean {
   return trimmed.length >= 1 && trimmed.length <= NAME_MAX;
 }
 
+/** Name validator for the CREATE path, where an empty name is legal.
+ *
+ *  A patient who signed in with their phone has not necessarily told
+ *  us their name yet ("name can be added later"), and the
+ *  `patient.full_name` column is nullable — so the body may carry an
+ *  empty name. Staff bookings still require a real name, but that is a
+ *  role-dependent rule and lives in the route layer.
+ *
+ *  A name that is PRESENT must still be within the 1..120 bound — an
+ *  over-long name is a client bug, not a missing one. */
+export function isValidOptionalPatientName(s: string): boolean {
+  const trimmed = s.trim();
+  return trimmed.length <= NAME_MAX;
+}
+
 /** Parses `req.body` into a `CreateBookingBody` or returns the first
  *  validation error encountered. Validators run in fixed order to keep
  *  error envelopes deterministic across runs. */
@@ -137,7 +162,10 @@ export function validateCreateBookingBody(
   ) {
     return { ok: false, error: 'invalid_patient_phone' };
   }
-  if (typeof b['patient_name'] !== 'string' || !isValidPatientName(b['patient_name'])) {
+  if (
+    typeof b['patient_name'] !== 'string' ||
+    !isValidOptionalPatientName(b['patient_name'])
+  ) {
     return { ok: false, error: 'invalid_patient_name' };
   }
 

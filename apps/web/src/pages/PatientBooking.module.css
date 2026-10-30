@@ -880,6 +880,21 @@
   box-shadow: var(--ring-focus);
 }
 
+/* A field the patient cannot change — the phone we already know from
+   their sign-in. It reads as settled, not as a disabled control the
+   user forgot to fill in. */
+.field__input--locked {
+  background: var(--surface-soft);
+  border-style: dashed;
+  color: var(--text-strong);
+  cursor: default;
+}
+
+.field__input--locked:focus {
+  border-color: var(--border-default);
+  box-shadow: none;
+}
+
 .field__hint {
   font-size: var(--text-2xs);
   color: var(--text-muted);
