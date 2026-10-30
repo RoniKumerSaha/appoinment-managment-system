@@ -51,6 +51,7 @@ import {
 } from '../api/client';
 import { ReceptionistFrame } from './ReceptionistFrame';
 import { usePhoneField } from './usePhoneField';
+import { isValidPhone } from './booking-utils';
 import { formatMonthDay, formatTimeLocal } from './recep-utils';
 import { addDays, todayLocalIn } from './reception-schedule';
 import styles from './ReceptionistCreate.module.css';
@@ -92,12 +93,55 @@ function describeError(err: unknown): string {
     if (err.status === 400 && err.code === 'invalid_patient_phone') {
       return 'That phone number is not a valid E.164 number.';
     }
+    // The commit-time conflict codes. These are the errors a
+    // receptionist hits most often — the patient already has a
+    // future appointment with this doctor, or already has one at
+    // that time. Every other surface (PatientBooking, ReschedulePage,
+    // DoctorAffected) maps them to plain English; here they fell
+    // through to the raw code, which read as "Booking failed
+    // (patient_has_future_with_doctor)." to a receptionist at a desk.
+    if (err.code === 'patient_has_future_with_doctor') {
+      return 'This patient already has an upcoming appointment with this doctor. Pick another doctor or cancel the existing appointment first.';
+    }
+    if (err.code === 'patient_time_conflict') {
+      return 'This patient already has an appointment at that time. Pick another slot.';
+    }
+    if (err.code === 'duration_mismatch') {
+      return "The slot's duration doesn't match the appointment type. Pick another slot.";
+    }
+    if (err.code === 'slot_raced') {
+      return 'That slot was just taken. Pick another one.';
+    }
     return `Booking failed (${err.code}).`;
   }
   if (err instanceof TypeError) {
     return 'Connection failed. Is the API running on :3001?';
   }
   return 'Booking failed.';
+}
+
+/** The API's "no slots, and here is why" reason, as plain English.
+ *  Shown in step 3 so the receptionist understands an empty grid
+ *  instead of wondering whether the page failed to load. */
+function describeSlotReason(reason: string): string {
+  switch (reason) {
+    case 'patient_has_future_with_doctor':
+      return 'This patient already has an upcoming appointment with this doctor, so no slots can be offered. Pick another doctor.';
+    case 'patient_time_conflict':
+      return 'This patient already has an appointment on this day.';
+    case 'doctor_unavailable':
+      return 'This doctor does not work on the selected date.';
+    case 'branch_closed':
+      return 'The branch is closed on the selected date.';
+    case 'all_blocked':
+      return 'All slots on this date are blocked.';
+    case 'all_booked':
+      return 'All slots on this date are already booked.';
+    case 'no_fit':
+      return 'No slot on this date fits the selected appointment type.';
+    default:
+      return 'No slots are available for this date.';
+  }
 }
 
 function StepNum({
@@ -138,6 +182,9 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
   const [loading, setLoading] = useState<boolean>(true);
   const [busy, setBusy] = useState<boolean>(false);
   const [err, setErr] = useState<string | null>(null);
+  /** Why the slot grid came back empty (the API's `reason` field).
+   *  Null when slots are available. */
+  const [slotReason, setSlotReason] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
 
   const {
@@ -146,6 +193,47 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
     onPhoneChange,
     reset: resetPhone,
   } = usePhoneField();
+
+  /**
+   * The phone number as the availability request should see it.
+   *
+   * `patientPhone` is the raw normalised string, which changes on
+   * every keystroke ("+8" → "+88" → "+880" → …). Two problems with
+   * using it directly:
+   *   1. The route rejects anything that is not a complete E.164
+   *      number with `invalid_patient_phone`.
+   *   2. Depending on it would refetch the slot grid on every
+   *      character typed.
+   *
+   * So the number is only promoted once it is fully valid, and then
+   * it is held steady for a short settle window. If the receptionist
+   * edits it again, the previous value is dropped first (back to '')
+   * so the grid refetches once the new number settles — rather than
+   * holding a stale filter against a phone that no longer matches.
+   */
+  const [availabilityPhone, setAvailabilityPhone] = useState<string>('');
+  const availabilityPhoneTimer = useRef<number | null>(null);
+  useEffect(() => {
+    if (availabilityPhoneTimer.current !== null) {
+      window.clearTimeout(availabilityPhoneTimer.current);
+      availabilityPhoneTimer.current = null;
+    }
+    if (!isValidPhone(patientPhone)) {
+      // Incomplete or invalid — drop the filter entirely so the
+      // grid is never filtered by a half-typed number.
+      setAvailabilityPhone('');
+      return;
+    }
+    availabilityPhoneTimer.current = window.setTimeout(() => {
+      setAvailabilityPhone(patientPhone);
+    }, 400);
+    return () => {
+      if (availabilityPhoneTimer.current !== null) {
+        window.clearTimeout(availabilityPhoneTimer.current);
+        availabilityPhoneTimer.current = null;
+      }
+    };
+  }, [patientPhone]);
 
   /**
    * E3-S3 returning-patient detection. `returningName` is the
@@ -271,6 +359,21 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
   }, [branch, prefill]);
 
   // The open slots for the chosen day.
+  //
+  // `patient_phone` is passed through so the server applies the same
+  // FR-027/FR-029 patient filters it will apply at commit time.
+  // Without it the route applies NO patient filter for a staff caller,
+  // so the grid offered slots the patient could never take and the
+  // receptionist only learned about the conflict after clicking
+  // "Confirm booking" (a 409 with no visible error). This is the
+  // same fix already applied in ReschedulePage.tsx and DoctorResolve.tsx.
+  //
+  // The phone is only sent once it is a COMPLETE, valid E.164 number.
+  // A half-typed number would be rejected by the route with
+  // `invalid_patient_phone`, and re-sending on every keystroke would
+  // refetch the grid on every character. `availabilityPhone` is the
+  // settled value: it stays '' until the number is valid, then holds
+  // steady while the receptionist continues typing.
   useEffect(() => {
     if (branch === null) return;
     if (doctorId === '' || typeId === '' || date === '') {
@@ -285,6 +388,9 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
           branch_id: branch.id,
           date,
           appointment_type_id: typeId,
+          ...(availabilityPhone !== ''
+            ? { patient_phone: availabilityPhone }
+            : {}),
         });
         if (cancelled) return;
         const duration =
@@ -298,10 +404,12 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
             selected: s.start_datetime === selectedStart,
           })),
         );
+        setSlotReason(res.reason ?? null);
         setErr(null);
       } catch (e: unknown) {
         if (!cancelled) {
           setSlots([]);
+          setSlotReason(null);
           setErr(describeError(e));
         }
       }
@@ -309,7 +417,15 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
     return () => {
       cancelled = true;
     };
-  }, [branch, doctorId, typeId, date, types, selectedStart]);
+  }, [
+    branch,
+    doctorId,
+    typeId,
+    date,
+    types,
+    selectedStart,
+    availabilityPhone,
+  ]);
 
   const selectedType = useMemo(
     () => types.find((t) => t.id === typeId) ?? null,
@@ -477,8 +593,6 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
           </div>
         </div>
 
-        {err && <div className={styles['info-note']}>⚠ {err}</div>}
-
         {/* Step 1 — Branch (locked) */}
         <div className={styles.step}>
           <div className={styles['step-head']}>
@@ -599,7 +713,9 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
             <div className={styles.slots}>
               {slots.length === 0 && (
                 <div className={styles.hint}>
-                  No open slots for this doctor and type on that day.
+                  {slotReason !== null
+                    ? describeSlotReason(slotReason)
+                    : 'No open slots for this doctor and type on that day.'}
                 </div>
               )}
               {slots.map((s) => (
@@ -778,6 +894,18 @@ export function ReceptionistCreate({ prefill, onBooked }: Props): ReactNode {
               </button>
             </div>
           </div>
+
+          {/* The error band lives HERE, beside the Confirm button.
+              It used to sit at the top of the page — thousands of
+              pixels above step 5 — so a failed booking looked like
+              "nothing happened" to a receptionist scrolled down to
+              the button. `role="alert"` so assistive tech announces
+              it too. */}
+          {err !== null && (
+            <div className={styles['info-note']} role="alert">
+              ⚠ {err}
+            </div>
+          )}
         </form>
       </div>
     </ReceptionistFrame>
