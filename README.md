@@ -35,8 +35,7 @@ server may grant or release one.
 | API      | Express 4.21, `pg` 8.13, `pino` 9.5, JWT (HS256)                |
 | Database | PostgreSQL (local dev container)                                 |
 | Web      | React 18.3, Vite 5.4, hand-rolled hash router (no router dep)   |
-| E2E      | Playwright 1.64 (Chromium only, single worker)                   |
-| Tests    | `node:test` + `supertest` (API), `node:test` (web static), Playwright (browser) |
+| Tests    | `node:test` + `supertest` (API), `node:test` (web static)       |
 
 There is **no ORM and no migration framework beyond `node-pg-migrate`** — the API
 writes SQL directly. That is deliberate: the availability engine and the slot-race
@@ -69,9 +68,6 @@ apps/
       router/                Hash router for the admin shell
       styles/                Design tokens (tokens.css)
     test/                    Static/unit runners (node:test)
-    e2e/                     Playwright specs
-      flows/                 One spec per user journey
-      helpers/               API + fixture helpers
 docs/                       Human-facing spec (PRD, BRD, UX flows, design)
 _bmad-output/               BMAD planning + implementation artifacts
 ```
@@ -291,43 +287,12 @@ individual scripts.
 | `test:e7-s5-touch`       | Touch-target and reduced-motion rules                       |
 | `test:e7-s7`             | No tentative client-side slot holds                         |
 
-### 3. E2E — need a running API, a seeded DB, and a browser
+### 3. E2E — removed
 
-```bash
-pnpm --filter @clinic/web run test:e2e
-```
-
-Prerequisites:
-
-1. A **seeded** database (`pnpm --filter @clinic/api run db:reset`) reachable at
-   the `DATABASE_URL` in `.env`.
-2. Playwright browsers installed (`npx playwright install chromium`).
-
-Playwright boots the dev stack itself — the `webServer` block in
-`playwright.config.ts` runs `pnpm dev` and waits for `:5173`, reusing an already-
-running server in local mode. The API must therefore be able to reach your
-Postgres.
-
-`e2e/auth.setup.ts` runs once as the Playwright `globalSetup`. It wipes
-test-prefixed appointment rows first (via `apps/api/scripts/reset-test-appointments.ts`
-— the API forbids `DELETE` on appointments, so this script is the only clean
-way), then obtains a real token per role through the API and writes a
-`storageState` into `apps/web/e2e/.auth/` (gitignored). It obtains tokens
-through the API rather than by driving the login UI, so the login specs can
-still assert on the form itself.
-
-Specs live in `apps/web/e2e/flows/`, one per journey:
-
-| Spec                          | Covers                                            |
-|-------------------------------|---------------------------------------------------|
-| `complete-user-journey.spec.ts`| The full patient path, end to end                |
-| `login-split.spec.ts`         | The three login screens stay separate            |
-| `staff-login.spec.ts`         | A staff password is required                     |
-| `staff-nav.spec.ts`           | Staff navigation                                 |
-| `receptionist-audit.spec.ts`  | The receptionist audit drawer                    |
-| `phone-number.spec.ts`        | International phone entry                        |
-| `reschedule.spec.ts`          | Patient rescheduling                             |
-| `admin-doctor-specialty.spec.ts` | Admin specialty editing                       |
+The Playwright browser-journey suite has been removed from this repository. There
+is no `test:e2e` script and no `apps/web/e2e/` directory; browser-level coverage
+is no longer part of the local or CI test story. The `node:test` runners above
+are the remaining automated coverage.
 
 ### Before you commit
 

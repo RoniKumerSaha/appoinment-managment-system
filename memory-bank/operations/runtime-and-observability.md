@@ -158,8 +158,8 @@ name (`test:e7-s1`, `test:e7-s4`, `test:e7-s5-focus`, `test:e7-s5-pills`,
 `test:e7-s5-touch`, `test:e7-s7`). If you add a web suite, wire it into
 the workflow — otherwise it will only ever run locally.
 
-**CI does not run the E2E journey tests either** — Playwright is
-configured for Chromium with a single worker and is a local tool.
+**There is no browser-level E2E suite.** The Playwright journey specs were
+removed from this repository, so there is no E2E story to wire into CI.
 
 ## The API test suite needs Docker
 

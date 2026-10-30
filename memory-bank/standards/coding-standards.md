@@ -164,7 +164,6 @@ static scanners.
 | API integration | `node:test` + `supertest` + testcontainers Postgres | Any route behaviour, auth gate, transaction, or SQL constraint |
 | Web static invariant | `node:test` + filesystem walk | Any rule about the *shape* of source (CSS tokens, modal singleton, no client-side holds) |
 | Web pure function | `node:test` + `assert` | Phone normalisation, client helpers, error envelope |
-| E2E journey | Playwright 1.64 (Chromium, 1 worker) | Multi-screen user journeys |
 
 **Conventions**:
 

@@ -110,7 +110,8 @@ no Chai.
   `test:<name>` script per suite. The aggregate `test` script is a **no-op
   placeholder** (`echo 'no web tests in E0-S1'`) — it does not run the
   suites. Run the individual scripts.
-- **E2E**: Playwright 1.64 (Chromium only, single worker).
+- **E2E**: removed. The Playwright browser-journey suite was deleted from
+  this repository; there is no browser-level automated coverage.
 
 ## Decision Relationships
 
