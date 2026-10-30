@@ -284,9 +284,18 @@ export function AdminBranches({
               caught.code === 'branch_has_future_appointments'
             ) {
               setConflictName(trimmed);
-              // The API doesn't yet surface a count on this 409; show 0
-              // until E1-S3 lands. The ConflictModal renders fine either way.
-              setConflictCount(0);
+              // The 409 carries the count computed inside the API's
+              // transaction — that is the authoritative number. Fall
+              // back to the stats snapshot if an older API (or a proxy
+              // that strips the field) omits it, but never fall back to
+              // a hardcoded 0: the modal's copy is written for a
+              // non-zero count, so "0" reads as a contradiction.
+              const fromBody = caught.body.future_appointment_count;
+              const count =
+                typeof fromBody === 'number' && Number.isFinite(fromBody)
+                  ? fromBody
+                  : (statsFor(selectedId)?.future_appointment_count ?? 0);
+              setConflictCount(count);
               setConflictOpen(true);
               return;
             }
@@ -299,7 +308,16 @@ export function AdminBranches({
         setBusy(false);
       }
     },
-    [editName, editAddress, editActive, mode, selectedId, branches, reload],
+    [
+      editName,
+      editAddress,
+      editActive,
+      mode,
+      selectedId,
+      branches,
+      reload,
+      statsFor,
+    ],
   );
 
   // (Escape + scrim dismissal handled by ConflictModal directly.)
@@ -619,7 +637,9 @@ export function AdminBranches({
         <ConflictModal
           tone="danger"
           flow="F-17 · Admin branches"
-          title={`Branch has ${conflictCount} future appointments`}
+          title={`Branch has ${conflictCount} future ${
+            conflictCount === 1 ? 'appointment' : 'appointments'
+          }`}
           what={
             <>
               Deactivating <strong>{conflictName}</strong> would leave
@@ -642,7 +662,9 @@ export function AdminBranches({
               onClick: () => setConflictOpen(false),
             },
             {
-              label: `Resolve ${conflictCount} appointments first`,
+              label: `Resolve ${conflictCount} ${
+                conflictCount === 1 ? 'appointment' : 'appointments'
+              } first`,
               variant: 'danger',
               onClick: () => setConflictOpen(false),
             },

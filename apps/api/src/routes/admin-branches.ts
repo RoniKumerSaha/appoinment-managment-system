@@ -113,12 +113,16 @@ const SELECT_BRANCH_FOR_UPDATE_SQL = `
   SELECT id, active FROM branch WHERE id = $1 AND clinic_id = $2 FOR UPDATE;
 `;
 
+/** Counts the future Scheduled appointments on a branch. The count
+ *  (not a bare existence probe) is what the 409 body carries — the
+ *  admin UI has to state how many appointments are in the way, and a
+ *  hardcoded 0 there reads as a contradiction ("has 0 future
+ *  appointments" → "Resolve 0 appointments first"). */
 const COUNT_FUTURE_SCHEDULED_SQL = `
-  SELECT 1 FROM appointment
+  SELECT COUNT(*)::int AS count FROM appointment
    WHERE branch_id = $1
      AND start_datetime > now()
      AND status = 'Scheduled'
-   LIMIT 1;
 `;
 
 function branchJson(r: BranchRow) {
@@ -413,13 +417,19 @@ adminBranchesRouter.patch(
           res.status(404).json({ error: 'branch_not_found' });
           return;
         }
-        const { rows: conflict } = await client.query<{ exists: boolean }>(
+        const { rows: conflict } = await client.query<{ count: number }>(
           COUNT_FUTURE_SCHEDULED_SQL,
           [id],
         );
-        if (conflict.length > 0) {
+        const futureCount = conflict[0]?.count ?? 0;
+        if (futureCount > 0) {
           await client.query('ROLLBACK');
-          res.status(409).json({ error: 'branch_has_future_appointments' });
+          // The count travels with the error so the admin UI can state
+          // how many appointments are in the way (BR-059).
+          res.status(409).json({
+            error: 'branch_has_future_appointments',
+            future_appointment_count: futureCount,
+          });
           return;
         }
         const { rows } = await client.query<BranchRow>(updateSql, updateParams);

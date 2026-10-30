@@ -601,6 +601,10 @@ test('PATCH /admin/branches/:id (deactivate with future appts) → 409 branch_ha
     .send({ active: false });
   assert.equal(res.status, 409);
   assert.equal(res.body.error, 'branch_has_future_appointments');
+  // The count travels with the 409 so the admin UI can state how many
+  // appointments are in the way (BR-059). Exactly one future Scheduled
+  // appointment exists on this branch.
+  assert.equal(res.body.future_appointment_count, 1);
 
   // Cleanup: cancel the appointment so the branch row can be removed
   // (FK from appointment to branch otherwise blocks DELETE). The
