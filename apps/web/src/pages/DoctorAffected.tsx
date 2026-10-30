@@ -53,16 +53,6 @@ import './DoctorAffected.css';
 
 interface DoctorAffectedProps {
   onGoSchedule?: () => void;
-  /**
-   * E7-S2 — invoked when the doctor clicks "View audit log" on a
-   * kanban card. The doctor surface wires this to DoctorApp which
-   * renders the DoctorAuditDrawer modal.
-   */
-  onOpenAudit?: (t: {
-    appointmentId: string;
-    appointmentLabel: string;
-    branchTz: string;
-  }) => void;
 }
 
 function describeError(err: unknown): string {
@@ -279,7 +269,7 @@ async function fetchSavedAuditEvents(
   }));
 }
 
-export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProps) {
+export function DoctorAffected({ onGoSchedule }: DoctorAffectedProps) {
   const { stored } = useAuth();
   const doctorId = stored?.claim.doctor_id ?? null;
   const [rows, setRows] = useState<DoctorAffectedAppointment[] | null>(null);
@@ -760,23 +750,6 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                 >
                   Move →
                 </button>
-                {onOpenAudit && (
-                  <button
-                    type="button"
-                    className="doc-aff__card-btn"
-                    data-testid={`doc-aff-card-${row.id}-audit-btn`}
-                    onClick={() =>
-                      onOpenAudit({
-                        appointmentId: row.id,
-                        appointmentLabel:
-                          row.patientLabel ?? 'Appointment',
-                        branchTz: row.tz,
-                      })
-                    }
-                  >
-                    Audit log
-                  </button>
-                )}
                 <button
                   type="button"
                   className="doc-aff__card-btn doc-aff__card-btn--danger"
@@ -834,23 +807,6 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
                 >
                   Continue →
                 </button>
-                {onOpenAudit && (
-                  <button
-                    type="button"
-                    className="doc-aff__card-btn"
-                    data-testid={`doc-aff-card-${row.id}-audit-btn`}
-                    onClick={() =>
-                      onOpenAudit({
-                        appointmentId: row.id,
-                        appointmentLabel:
-                          row.patientLabel ?? 'Appointment',
-                        branchTz: row.tz,
-                      })
-                    }
-                  >
-                    Audit log
-                  </button>
-                )}
                 <button
                   type="button"
                   className="doc-aff__card-btn doc-aff__card-btn--danger"
@@ -901,25 +857,6 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
               maskedPhone: maskPhone(r.patient_phone),
               resolved: true,
             }))}
-            renderAction={(row) => (
-              onOpenAudit ? (
-                <button
-                  type="button"
-                  className="doc-aff__card-btn"
-                  data-testid={`doc-aff-card-${row.id}-view-audit-btn`}
-                  onClick={() =>
-                    onOpenAudit({
-                      appointmentId: row.id,
-                      appointmentLabel:
-                        row.patientLabel ?? 'Appointment',
-                      branchTz: row.tz,
-                    })
-                  }
-                >
-                  View audit log →
-                </button>
-              ) : null
-            )}
           />
         </div>
 
@@ -970,18 +907,6 @@ export function DoctorAffected({ onGoSchedule, onOpenAudit }: DoctorAffectedProp
           info={completionModal}
           remaining={open.length - 1}
           recent={completionAudit}
-          onOpenAuditDrawer={
-            onOpenAudit
-              ? () => {
-                  setCompletionModal(null);
-                  onOpenAudit({
-                    appointmentId: completionModal.appointment_id,
-                    appointmentLabel: `Appointment ···${completionModal.patient_phone.slice(-4)}`,
-                    branchTz: completionModal.tz,
-                  });
-                }
-              : undefined
-          }
           onClose={() => setCompletionModal(null)}
           onResolveAnother={() => {
             setCompletionModal(null);

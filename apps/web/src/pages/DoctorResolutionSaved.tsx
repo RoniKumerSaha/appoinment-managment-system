@@ -34,8 +34,6 @@ interface DoctorResolutionSavedProps {
    * omitted, fall back to the principle-note copy.
    */
   recent?: SavedAuditEvent[];
-  /** Optional: open the full audit drawer (E7-S2). */
-  onOpenAuditDrawer?: () => void;
 }
 
 export function DoctorResolutionSaved({
@@ -44,7 +42,6 @@ export function DoctorResolutionSaved({
   onClose,
   onResolveAnother,
   recent,
-  onOpenAuditDrawer,
 }: DoctorResolutionSavedProps) {
   // The summary card uses the DESTINATION branch's timezone, which the
   // resolve flow now carries on the info. It used to hardcode 'UTC',
@@ -159,16 +156,6 @@ export function DoctorResolutionSaved({
                 </li>
               ))}
             </ul>
-            {onOpenAuditDrawer && (
-              <button
-                type="button"
-                className="doc-saved__audit-link"
-                data-testid="doc-saved-audit-link-btn"
-                onClick={onOpenAuditDrawer}
-              >
-                View all {recent.length} event{recent.length === 1 ? '' : 's'} in audit drawer →
-              </button>
-            )}
           </div>
         ) : (
           <div className="doc-saved__note" data-testid="doc-saved-note">

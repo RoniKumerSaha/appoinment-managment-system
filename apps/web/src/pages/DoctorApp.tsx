@@ -29,7 +29,6 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { DoctorAffected } from './DoctorAffected';
 import { DoctorAppointmentTypes } from './DoctorAppointmentTypes';
-import { DoctorAuditDrawer } from './DoctorAuditDrawer';
 import { DoctorBlocks } from './DoctorBlocks';
 import { DoctorSchedule } from './DoctorSchedule';
 import { DoctorToday } from './DoctorToday';
@@ -39,12 +38,6 @@ import { RecurringConfirmPage } from './RecurringConfirmPage';
 import { RecurringBackOut } from './RecurringBackOut';
 import { useDeepLinkParam } from './deep-link';
 import { useRecurringFlow } from './useRecurringFlow';
-
-interface AuditTarget {
-  appointmentId: string;
-  appointmentLabel: string;
-  branchTz: string;
-}
 
 type DoctorView =
   | 'today'
@@ -92,7 +85,6 @@ function pushView(view: DoctorView): void {
 
 export function DoctorApp({ initialView }: DoctorAppProps) {
   const [view, setView] = useState<DoctorView>(initialView ?? 'today');
-  const [auditTarget, setAuditTarget] = useState<AuditTarget | null>(null);
 
   // Honour a ?page=… deep-link so the new screens are reachable from
   // a URL paste.
@@ -128,14 +120,6 @@ export function DoctorApp({ initialView }: DoctorAppProps) {
   useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [view]);
-
-  const openAudit = useCallback((t: AuditTarget): void => {
-    setAuditTarget(t);
-  }, []);
-
-  const closeAudit = useCallback((): void => {
-    setAuditTarget(null);
-  }, []);
 
   // The recurring flow is shared with the receptionist — see
   // `useRecurringFlow`. The hook owns the DATA; this component owns
@@ -219,15 +203,7 @@ export function DoctorApp({ initialView }: DoctorAppProps) {
   }
   return (
     <div data-testid="doctor-app">
-      <DoctorAffected onOpenAudit={openAudit} />
-      {auditTarget !== null && (
-        <DoctorAuditDrawer
-          appointmentId={auditTarget.appointmentId}
-          appointmentLabel={auditTarget.appointmentLabel}
-          branchTz={auditTarget.branchTz}
-          onClose={closeAudit}
-        />
-      )}
+      <DoctorAffected />
     </div>
   );
 }

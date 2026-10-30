@@ -66,7 +66,6 @@ import {
 } from '../api/client';
 import './ReceptionistToday.css';
 import { ReceptionistFrame } from './ReceptionistFrame';
-import { ReceptionistAuditDrawer } from './ReceptionistAuditDrawer';
 import { StaffMarkStatus } from './StaffMarkStatus';
 import { formatTimeLocal, initialsOf, lastNameOf, maskPhone } from './recep-utils';
 import { withDoctorTitle } from './doctor-name';
@@ -257,8 +256,6 @@ export function ReceptionistToday({
     ReceptionistAppointmentStatus | 'all'
   >('all');
   const [now, setNow] = useState<Date>(new Date());
-  /** The appointment whose audit trail is open in the drawer. */
-  const [auditId, setAuditId] = useState<string>('');
   /** The appointment whose detail panel is open. */
   const [detailId, setDetailId] = useState<string>('');
   /** The appointment whose mark-status modal is open. */
@@ -435,12 +432,6 @@ export function ReceptionistToday({
     },
     [onOpenCancel],
   );
-
-  /** The row whose audit drawer is open — for the drawer's title. */
-  const auditAppointment = useMemo(() => {
-    if (data === null || auditId === '') return undefined;
-    return data.appointments.find((a) => a.id === auditId);
-  }, [data, auditId]);
 
   /** The row whose detail panel is open. */
   const detailAppointment = useMemo(() => {
@@ -643,14 +634,6 @@ export function ReceptionistToday({
                     >
                       View
                     </button>
-                    <button
-                      type="button"
-                      className="recep-today__qa-btn"
-                      onClick={() => setAuditId(a.id)}
-                      title="View the audit trail for this appointment"
-                    >
-                      Audit
-                    </button>
                     {a.status === 'Scheduled' && isPastRow(a) && (
                       <button
                         type="button"
@@ -773,13 +756,6 @@ export function ReceptionistToday({
               </div>
             </div>
             <div className="recep-today__detail-foot">
-              <button
-                type="button"
-                className="recep-today__qa-btn"
-                onClick={() => setAuditId(detailAppointment.id)}
-              >
-                Audit trail
-              </button>
               {detailAppointment.status === 'Scheduled' && (
                 <button
                   type="button"
@@ -821,18 +797,6 @@ export function ReceptionistToday({
           describeError={describeMarkError}
           role="receptionist"
           crumb={`Today → ${maskPhone(markAppointment.patient_phone)} → Mark status`}
-        />
-      )}
-      {auditId !== '' && data !== null && (
-        <ReceptionistAuditDrawer
-          appointmentId={auditId}
-          appointmentLabel={
-            auditAppointment === undefined
-              ? 'Appointment'
-              : `Patient ···${auditAppointment.patient_phone.slice(-4)}`
-          }
-          branchTz={data.branch.tz}
-          onClose={() => setAuditId('')}
         />
       )}
       {toast && (
