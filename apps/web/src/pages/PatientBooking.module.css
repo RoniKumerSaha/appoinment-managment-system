@@ -26,24 +26,86 @@
   padding: var(--space-12);
 }
 
+/*
+ * The layout grid holds `.main` + `.side` and the sticky `.footer`.
+ *
+ * The grid itself is constrained to the 1200px page measure, but the
+ * FOOTER escapes it with the classic full-bleed technique
+ * (`width: 100vw` + a negative margin of half the viewport). That way
+ * the white bar reaches the viewport edges — reading as a page bar —
+ * while the buttons inside it stay aligned to the content column.
+ *
+ * Previously the footer was simply a grid item, so its white
+ * background was only 1200px wide and the grey page background showed
+ * on both sides. The bar looked like a detached floating strip.
+ */
 .layout {
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
-  /* The frame body is a flex column inside a 100vh frame, so this
+  /*
+   * Two rows:
+   *   row 1 (`auto`)  → the content (main + side)
+   *   row 2 (`1fr`)   → the footer row, which absorbs the leftover
+   *                    height on SHORT steps
+   *
+   * The frame body is a flex column inside a 100vh frame, so this
    * layout expands to fill the remaining height (minus the sticky
-   * nav + progress bar). That keeps the sticky `.footer` pinned to
-   * the viewport bottom on tall content while still expanding with
-   * short content. */
+   * nav + progress bar). The footer row then grows to fill whatever
+   * the content does not use, and the bar itself is aligned to the
+   * END of that row — so on a short step (e.g. "Add your details")
+   * the bar still sits on the bottom edge of the viewport instead of
+   * floating in the middle with a grey band beneath it.
+   */
   flex: 1 1 auto;
-  padding-bottom: 80px; /* leave room for sticky footer */
+  grid-template-rows: auto 1fr;
   align-items: start;
 }
 
+/*
+ * The footer's grid row grows to fill the leftover height, but the
+ * BAR inside it is aligned to the end of that row. This is what pins
+ * the bar to the viewport bottom on short steps while leaving it
+ * exactly where the content ends on tall ones.
+ *
+ * The bar is also FULL BLEED: it breaks out of the 1200px layout grid
+ * and spans the whole viewport width, so the white bar reads as part
+ * of the page rather than a detached strip floating in the grey page
+ * background.
+ *
+ * `position: sticky` + `bottom: 0` keeps it pinned to the viewport
+ * bottom while the slot list scrolls behind it. Because a sticky
+ * element is still laid out inside its parent's box, the
+ * `margin-left` / `margin-right` pair below re-centres it against the
+ * viewport while it escapes the 1200px column.
+ */
+.footer {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-self: end;
+  border-top: 1px solid var(--border-default);
+  background: var(--surface-card);
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+/*
+ * Bottom breathing room for the scrollable content, so the last slot
+ * in the agenda can scroll clear of the sticky bar.
+ *
+ * This is on `.main` (the content row) rather than on `.layout`,
+ * because padding on `.layout` would render as an empty grey band
+ * UNDERNEATH the full-bleed footer.
+ */
 .main {
   padding: var(--space-11) var(--space-12) var(--space-12);
+  padding-bottom: 76px;
   min-width: 0; /* let children shrink so they don't overflow the column */
 }
 
@@ -655,7 +717,21 @@
   background: var(--brand-light-50);
 }
 
-.slot-bar--selected {
+/*
+ * The selected slot keeps its teal fill when hovered.
+ *
+ * `.slot-bar:hover` has specificity (0,2,0) — the `:hover` pseudo-class
+ * counts as a class — while `.slot-bar--selected` is only (0,1,0). So
+ * the hover rule used to WIN and repaint the selected bar with the
+ * near-white `--brand-light-50` while the text stayed `--on-brand`
+ * white. The selected slot effectively vanished into the page the
+ * moment the pointer touched it.
+ *
+ * Restating the selected styles under `.slot-bar--selected:hover`
+ * raises the specificity to (0,3,0) and keeps the chosen slot solid.
+ */
+.slot-bar--selected,
+.slot-bar--selected:hover {
   background: var(--brand-primary);
   border-color: var(--brand-primary);
   color: var(--on-brand);
@@ -1017,25 +1093,60 @@
 
 /* ─── Footer (mock 02/03 sticky bar) ─────────────────────────── */
 
-.footer {
-  grid-column: 1 / -1;
-  border-top: 1px solid var(--border-default);
-  padding: var(--space-5) var(--space-12);
+/*
+ * The inner row keeps the contents on the same 1200px measure as the
+ * page content, so the buttons align with the content column edges
+ * even though the bar itself is full width.
+ *
+ * `position: relative` anchors the summary, which is absolutely
+ * positioned (see below).
+ */
+.footer__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-7) var(--space-12);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--surface-card);
-  position: sticky;
-  bottom: 0;
-  z-index: 5;
   gap: var(--space-5);
+  position: relative;
 }
 
+/*
+ * The summary is ABSOLUTELY centred on the bar.
+ *
+ * It used to be a flex child with `flex: 1` + `text-align: center`,
+ * which centres the text in the space BETWEEN the two buttons — and
+ * because the buttons have different widths ("← Back" is narrower
+ * than "Continue →"), the summary ended up visibly LEFT of the bar's
+ * true centre. A middle `1fr` grid column has the same problem: the
+ * two `auto` side columns are unequal, so `1fr` is not centred on
+ * the bar either.
+ *
+ * Pinning it to the midpoint of the bar and translating it back by
+ * half its own width centres it regardless of the button widths.
+ */
 .footer-summary {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 280px);
   color: var(--text-muted);
   font-size: var(--text-sm);
-  flex: 1;
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * The mockup emphasises the chosen time with a `<strong>` (dark ink)
+ * and keeps the surrounding date/branch muted. Without the emphasis
+ * the whole line reads as placeholder text.
+ */
+.footer-summary strong {
+  color: var(--text-heading);
+  font-weight: 600;
 }
 
 .btn-primary,

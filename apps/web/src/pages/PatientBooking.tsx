@@ -833,21 +833,24 @@ function BranchTypeStep({
       </aside>
 
       <div className={styles['footer']} data-testid="patient-booking-step2-footer">
-        <button type="button" className={styles['btn-ghost']} data-testid="patient-booking-step2-back-foot-btn" onClick={onBack}>
-          ← Back
-        </button>
-        <span className={styles['footer-summary']}>
-          {draft.branch?.name ?? '—'} · {draft.type?.name ?? '—'}
-        </span>
-        <button
-          type="button"
-          className={styles['btn-primary']}
-          data-testid="patient-booking-step2-continue-btn"
-          disabled={!draft.branch || !draft.type}
-          onClick={onContinue}
-        >
-          Find available times →
-        </button>
+        <div className={styles['footer__inner']}>
+          <button type="button" className={styles['btn-ghost']} data-testid="patient-booking-step2-back-foot-btn" onClick={onBack}>
+            ← Back
+          </button>
+          <span className={styles['footer-summary']}>
+            {draft.branch?.name ?? '—'} ·{' '}
+            <strong>{draft.type?.name ?? '—'}</strong>
+          </span>
+          <button
+            type="button"
+            className={styles['btn-primary']}
+            data-testid="patient-booking-step2-continue-btn"
+            disabled={!draft.branch || !draft.type}
+            onClick={onContinue}
+          >
+            Find available times →
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1135,23 +1138,34 @@ function DateTimeStep({
       </aside>
 
       <div className={styles['footer']} data-testid="patient-booking-step3-footer">
-        <button type="button" className={styles['btn-ghost']} data-testid="patient-booking-step3-back-foot-btn" onClick={onBack}>
-          ← Back
-        </button>
-        <span className={styles['footer-summary']}>
-          {draft.slot
-            ? `${formatDayOfWeek(draft.slot.date)}, ${formatMonthDay(draft.slot.date)} · ${formatTimeUtc(draft.slot.start_datetime)} – ${formatTimeUtc(draft.slot.end_datetime)}`
-            : 'Pick a time to continue'}
-        </span>
-        <button
-          type="button"
-          className={styles['btn-primary']}
-          data-testid="patient-booking-step3-continue-btn"
-          disabled={!draft.slot}
-          onClick={onContinue}
-        >
-          Continue →
-        </button>
+        <div className={styles['footer__inner']}>
+          <button type="button" className={styles['btn-ghost']} data-testid="patient-booking-step3-back-foot-btn" onClick={onBack}>
+            ← Back
+          </button>
+          <span className={styles['footer-summary']}>
+            {draft.slot ? (
+              <>
+                {formatDayOfWeek(draft.slot.date)}, {formatMonthDay(draft.slot.date)} ·{' '}
+                <strong>
+                  {formatTimeUtc(draft.slot.start_datetime)} –{' '}
+                  {formatTimeUtc(draft.slot.end_datetime)}
+                </strong>{' '}
+                · {draft.branch.name}
+              </>
+            ) : (
+              'Pick a time to continue'
+            )}
+          </span>
+          <button
+            type="button"
+            className={styles['btn-primary']}
+            data-testid="patient-booking-step3-continue-btn"
+            disabled={!draft.slot}
+            onClick={onContinue}
+          >
+            Continue →
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1299,23 +1313,29 @@ function DetailsStep({
       </aside>
 
       <div className={styles['footer']} data-testid="patient-booking-step4-footer">
-        <button type="button" className={styles['btn-ghost']} data-testid="patient-booking-step4-back-foot-btn" onClick={onBack}>
-          ← Back
-        </button>
-        <span className={styles['footer-summary']}>
-          {returningName
-            ? `Returning: ${returningName}`
-            : 'New patient'}
-        </span>
-        <button
-          type="button"
-          className={styles['btn-primary']}
-          data-testid="patient-booking-step4-continue-btn"
-          disabled={!canContinue}
-          onClick={onContinue}
-        >
-          Review →
-        </button>
+        <div className={styles['footer__inner']}>
+          <button type="button" className={styles['btn-ghost']} data-testid="patient-booking-step4-back-foot-btn" onClick={onBack}>
+            ← Back
+          </button>
+          <span className={styles['footer-summary']}>
+            {returningName ? (
+              <>
+                Returning: <strong>{returningName}</strong>
+              </>
+            ) : (
+              'New patient'
+            )}
+          </span>
+          <button
+            type="button"
+            className={styles['btn-primary']}
+            data-testid="patient-booking-step4-continue-btn"
+            disabled={!canContinue}
+            onClick={onContinue}
+          >
+            Review →
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1439,21 +1459,23 @@ function ConfirmStep({
       </aside>
 
       <div className={styles['footer']} data-testid="patient-booking-step5-footer">
-        <button type="button" className={styles['btn-ghost']} data-testid="patient-booking-step5-back-foot-btn" onClick={onBack}>
-          ← Back
-        </button>
-        <span className={styles['footer-summary']}>
-          Reviewing {draft.doctor.full_name}
-        </span>
-        <button
-          type="button"
-          className={styles['btn-primary']}
-          data-testid="patient-booking-step5-confirm-btn"
-          disabled={submitting}
-          onClick={onSubmit}
-        >
-          {submitting ? 'Booking…' : 'Confirm booking'}
-        </button>
+        <div className={styles['footer__inner']}>
+          <button type="button" className={styles['btn-ghost']} data-testid="patient-booking-step5-back-foot-btn" onClick={onBack}>
+            ← Back
+          </button>
+          <span className={styles['footer-summary']}>
+            Reviewing <strong>{draft.doctor.full_name}</strong>
+          </span>
+          <button
+            type="button"
+            className={styles['btn-primary']}
+            data-testid="patient-booking-step5-confirm-btn"
+            disabled={submitting}
+            onClick={onSubmit}
+          >
+            {submitting ? 'Booking…' : 'Confirm booking'}
+          </button>
+        </div>
       </div>
     </div>
   );
