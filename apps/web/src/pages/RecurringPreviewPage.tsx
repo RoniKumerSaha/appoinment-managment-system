@@ -116,11 +116,40 @@ function formatRange(
 }
 
 /** The server's skip reasons are snake_case codes (`outside_branch_hours`,
- *  `doctor_blocked`, …). They are rendered as-is — the server owns the
- *  vocabulary, and inventing a display label here would let the two
- *  drift apart. */
+ *  `doctor_blocked`, …). The mockup shows them as plain sentences
+ *  ("Outside 30-day window"), and the server's vocabulary is a closed
+ *  set (`SkipReason` in apps/api/src/routes/recurring-helpers.ts), so
+ *  the mapping is safe to keep in one place here.
+ *
+ *  The fallback keeps the raw code — an unknown reason is still shown
+ *  verbatim rather than silently swallowed. */
 function humanizeReason(reason: string): string {
-  return reason.replace(/_/g, ' ');
+  switch (reason) {
+    case 'outside_branch_hours':
+      return 'Outside branch hours';
+    case 'doctor_unavailable':
+      return 'Doctor not scheduled';
+    case 'doctor_blocked':
+      return 'Doctor is blocked';
+    case 'doctor_inactive':
+      return 'Doctor is inactive';
+    case 'branch_inactive':
+      return 'Branch is inactive';
+    case 'appointment_type_inactive':
+      return 'Appointment type is inactive';
+    case 'slot_raced':
+      return 'Slot was taken by another booking';
+    case 'patient_has_future_with_doctor':
+      return 'Patient already has an appointment with this doctor';
+    case 'patient_time_conflict':
+      return 'Patient already has an appointment at that time';
+    case 'outside_30d_window':
+      return 'Outside the 30-day booking window';
+    case 'same_day_exclusion':
+      return 'Same-day bookings are not allowed';
+    default:
+      return reason.replace(/_/g, ' ');
+  }
 }
 
 export function RecurringPreviewPage({
@@ -204,26 +233,45 @@ export function RecurringPreviewPage({
           </div>
           <div className={styles['section-body']}>
             <div className={styles['summary-card']}>
-              <div className={`${styles['summary-num']} ${styles['summary-num-ok']}`}>
+              <div
+                className={`${styles['summary-num']} ${
+                  creates.length === 0
+                    ? styles['summary-num-ok-empty']
+                    : styles['summary-num-ok']
+                }`}
+              >
                 {creates.length}
               </div>
               <div className={styles['summary-text']}>
-                <strong>will be created</strong>of {requested} requested
+                <strong>will be created</strong>
+                of {requested} requested
               </div>
               <div className={`${styles['summary-num']} ${styles['summary-num-skip']}`}>
                 {skips.length}
               </div>
               <div className={styles['summary-text']}>
-                <strong>will be skipped</strong>with reasons below
+                <strong>will be skipped</strong>
+                {skips.length > 0 ? 'with reasons below' : 'nothing was rejected'}
               </div>
             </div>
+
+            {creates.length === 0 && skips.length > 0 && (
+              <div className={styles['all-skipped-note']}>
+                <strong>
+                  All {skips.length} occurrence{skips.length === 1 ? '' : 's'} failed
+                  validation.
+                </strong>{' '}
+                Nothing can be created from this pattern — the reasons are listed
+                below.
+              </div>
+            )}
 
             <div className={styles['checks-label']}>
               Checks performed per occurrence
             </div>
             <div className={styles['checks-grid']}>
               {CHECKS.map((c) => (
-                <div key={c}>➜“ {c}</div>
+                <div key={c}>✓ {c}</div>
               ))}
             </div>
           </div>
@@ -235,60 +283,74 @@ export function RecurringPreviewPage({
             <StepNum n={3} />
             <div style={{ flex: 1 }}>
               <div className={styles['section-title']}>
-                All {creates.length + skips.length} occurrences
+                All {creates.length + skips.length} occurrence
+                {creates.length + skips.length === 1 ? '' : 's'}
               </div>
               <div className={styles['section-sub']}>
-                Each row shows the validation result for that date.
+                {creates.length === 0 && skips.length > 0
+                  ? 'Every date was rejected — the reason is listed against each one.'
+                  : 'Each row shows the validation result for that date.'}
               </div>
             </div>
           </div>
           <div className={styles['section-body']}>
-            <div
-              className={`${styles['group-label']} ${styles['group-label-create']}`}
-            >
-              ➜“ Will be created ({creates.length})
-            </div>
-            <div className={styles['occ-list']}>
-              {creates.map((o) => (
+            {/* An empty group heading ("Will be created (0)") is dead
+                weight — a label with no rows under it. The group is
+                only rendered when it has something in it. */}
+            {creates.length > 0 && (
+              <>
                 <div
-                  key={`c-${o.index}`}
-                  className={`${styles['occ-row']} ${styles['occ-row-create']}`}
+                  className={`${styles['group-label']} ${styles['group-label-create']}`}
                 >
-                  <div className={styles['occ-row-date']}>
-                    {formatLocalDate(o.local_date)}
-                  </div>
-                  <div className={styles['occ-row-time']}>
-                    {formatRange(o.start_datetime, o.end_datetime, tz)}
-                  </div>
-                  <span className={styles['occ-row-badge']}>➜“ Create</span>
+                  ✓ Will be created ({creates.length})
                 </div>
-              ))}
-            </div>
+                <div className={styles['occ-list']}>
+                  {creates.map((o) => (
+                    <div
+                      key={`c-${o.index}`}
+                      className={`${styles['occ-row']} ${styles['occ-row-create']}`}
+                    >
+                      <div className={styles['occ-row-date']}>
+                        {formatLocalDate(o.local_date)}
+                      </div>
+                      <div className={styles['occ-row-time']}>
+                        {formatRange(o.start_datetime, o.end_datetime, tz)}
+                      </div>
+                      <span className={styles['occ-row-badge']}>✓ Create</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
-            <div
-              className={`${styles['group-label']} ${styles['group-label-skip']}`}
-            >
-              ➜— Will be skipped ({skips.length})
-            </div>
-            <div className={styles['occ-list']}>
-              {skips.map((o) => (
+            {skips.length > 0 && (
+              <>
                 <div
-                  key={`s-${o.index}`}
-                  className={`${styles['occ-row']} ${styles['occ-row-skip']}`}
+                  className={`${styles['group-label']} ${styles['group-label-skip']}`}
                 >
-                  <div className={styles['occ-row-date']}>
-                    {formatLocalDate(o.local_date)}
-                  </div>
-                  <div className={styles['occ-row-time']}>
-                    {formatRange(o.start_datetime, o.end_datetime, tz)}
-                  </div>
-                  <span className={styles['occ-row-reason']}>
-                    {humanizeReason(o.reason)}
-                  </span>
-                  <span className={styles['occ-row-badge']}>➜— Skip</span>
+                  — Will be skipped ({skips.length})
                 </div>
-              ))}
-            </div>
+                <div className={styles['occ-list']}>
+                  {skips.map((o) => (
+                    <div
+                      key={`s-${o.index}`}
+                      className={`${styles['occ-row']} ${styles['occ-row-skip']}`}
+                    >
+                      <div className={styles['occ-row-date']}>
+                        {formatLocalDate(o.local_date)}
+                      </div>
+                      <div className={styles['occ-row-time']}>
+                        {formatRange(o.start_datetime, o.end_datetime, tz)}
+                      </div>
+                      <span className={styles['occ-row-reason']}>
+                        {humanizeReason(o.reason)}
+                      </span>
+                      <span className={styles['occ-row-badge']}>— Skip</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
             <div className={styles['footnote']}>
               <strong>Note:</strong> Per-occurrence independence (BR-052). Once created,
@@ -306,14 +368,34 @@ export function RecurringPreviewPage({
             <div style={{ flex: 1 }}>
               <div className={styles['section-title']}>Confirm creation</div>
               <div className={styles['section-sub']}>
-                Atomic batch insert — all {creates.length} created or none.
+                {creates.length === 0
+                  ? 'Nothing to create.'
+                  : `Atomic batch insert — all ${creates.length} created or none.`}
               </div>
             </div>
           </div>
           <div className={styles['section-body']}>
-            Creating <strong>{creates.length} appointments</strong> as an atomic batch.
-            If any one fails (race condition), all are rolled back and the slot is
-            released.
+            {creates.length === 0 ? (
+              <>
+                <strong>No appointments will be created.</strong> Every one of the{' '}
+                {skips.length} occurrence{skips.length === 1 ? '' : 's'} was rejected
+                by the checks above. Adjust the pattern — a different time, day, or
+                doctor — and preview again.
+              </>
+            ) : (
+              <>
+                Creating <strong>{creates.length} appointment{creates.length === 1 ? '' : 's'}</strong>{' '}
+                as an atomic batch. If any one fails (race condition), all are rolled
+                back and the slot is released.
+                {skips.length > 0 && (
+                  <>
+                    {' '}
+                    The {skips.length} skipped occurrence
+                    {skips.length === 1 ? '' : 's'} above will not be created.
+                  </>
+                )}
+              </>
+            )}
           </div>
           <div className={styles['section-actions']}>
             <button
@@ -324,22 +406,43 @@ export function RecurringPreviewPage({
             >
               Cancel
             </button>
-            <button
-              type="button"
-              className={styles['btn-secondary']}
-              onClick={onEditPattern}
-              disabled={busy}
-            >
-              Edit pattern
-            </button>
-            <button
-              type="button"
-              className={styles['btn-primary']}
-              onClick={onConfirm}
-              disabled={busy || creates.length === 0}
-            >
-              {busy ? 'Creating…' : `Create ${creates.length} appointments →`}
-            </button>
+            {/* With nothing to create there is no primary CTA to show —
+                a disabled "Create 0 appointments →" button reads as a
+                broken control. "Edit pattern" is the only useful
+                action left, so it takes the primary slot and the
+                secondary copy of it is dropped — two identically
+                labelled buttons side by side is worse than one. */}
+            {creates.length > 0 ? (
+              <>
+                <button
+                  type="button"
+                  className={styles['btn-secondary']}
+                  onClick={onEditPattern}
+                  disabled={busy}
+                >
+                  Edit pattern
+                </button>
+                <button
+                  type="button"
+                  className={styles['btn-primary']}
+                  onClick={onConfirm}
+                  disabled={busy}
+                >
+                  {busy
+                    ? 'Creating…'
+                    : `Create ${creates.length} appointment${creates.length === 1 ? '' : 's'} →`}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className={styles['btn-primary']}
+                onClick={onEditPattern}
+                disabled={busy}
+              >
+                Edit pattern
+              </button>
+            )}
           </div>
         </div>
       </div>
