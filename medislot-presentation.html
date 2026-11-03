@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MediSlot — Product &amp; AI-Assisted Development</title>
+<style>
+/* ============================================================
+   MediSlot — presentation deck
+   Visual language lifted 1:1 from the product's own design
+   tokens (apps/web/src/styles/tokens.css). No external assets.
+   ============================================================ */
+
+:root{
+  --brand-primary:#0f766e;
+  --brand-primary-hover:#0d6660;
+  --brand-light:#ccfbf1;
+  --brand-light-50:#f0fdfa;
+  --brand-border:#99f6e4;
+
+  --surface-page:#f5f6f8;
+  --surface-card:#ffffff;
+  --surface-soft:#f9fafb;
+  --surface-divider:#f3f4f6;
+  --border-default:#e5e7eb;
+  --border-strong:#d1d5db;
+
+  --text-heading:#111827;
+  --text-body:#1a1d23;
+  --text-strong:#374151;
+  --text-default:#4b5563;
+  --text-muted:#6b7280;
+
+  --success-bg:#f0fdfa; --success-border:#99f6e4; --success-text:#065f46;
+  --warning-bg:#fffbeb; --warning-border:#f59e0b; --warning-text:#422006;
+  --danger-bg:#fef2f2;  --danger-border:#fca5a5;  --danger-text:#7f1d1d;
+  --info-bg:#dbeafe;    --info-text:#1e40af;
+  --neutral-bg:#f3f4f6;
+
+  --text-3xs:10px; --text-2xs:11px; --text-xs:12px; --text-sm:13px;
+  --text-md:14px; --text-lg:15px; --text-xl:16px; --text-2xl:17px;
+  --text-3xl:18px; --text-4xl:22px; --text-5xl:32px; --text-display:36px;
+
+  --space-1:4px; --space-2:6px; --space-3:8px; --space-4:10px; --space-5:12px;
+  --space-6:14px; --space-7:16px; --space-8:18px; --space-9:20px; --space-10:24px;
+  --space-11:28px; --space-12:32px;
+
+  --radius-xs:4px; --radius-sm:6px; --radius-md:8px; --radius-lg:10px;
+  --radius-xl:12px; --radius-pill:999px;
+
+  --elev-1:0 1px 2px rgba(0,0,0,.06);
+  --elev-3:0 2px 8px rgba(15,118,110,.10);
+  --elev-4:0 4px 12px rgba(0,0,0,.06);
+  --elev-modal:0 12px 36px rgba(0,0,0,.18);
+
+  --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,"Liberation Mono",Menlo,monospace;
+
+  --scrim:rgba(15,29,35,.45);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--surface-page);
+  color:var(--text-body);
+  font-family:var(--font-sans);
+  font-size:var(--text-md);
+  font-weight:500;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+
+/* ---------- stage & fixed design canvas ----------
+   Every slide is authored against a 1600x900 canvas. The canvas is then
+   scaled to fit whatever viewport it lands in, so every slide keeps the
+   same proportions and nothing ever overflows or reflows. */
+.stage{
+  position:fixed;inset:0;overflow:hidden;
+  background:var(--surface-page);
+}
+
+/* ---------- chrome ----------
+   The bar, the brand mark and the page number live INSIDE the scaled
+   canvas, not in the viewport. That way they scale with the slides and
+   sit on the same margin as the content, instead of floating in the
+   corners of the window. */
+.progress{
+  position:absolute;top:0;left:0;height:3px;background:var(--brand-primary);
+  width:0;z-index:60;transition:width .3s cubic-bezier(.4,0,.2,1);
+}
+.topbar{
+  position:absolute;top:34px;left:104px;right:104px;height:24px;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+  pointer-events:none;
+}
+.brandmark{display:flex;align-items:center;gap:var(--space-4);opacity:.9}
+.brandmark svg{width:22px;height:22px;display:block}
+.brandmark span{
+  font-size:var(--text-sm);font-weight:700;color:var(--text-strong);
+  letter-spacing:-.01em;
+}
+.hint{
+  font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.02em;
+  display:flex;align-items:center;gap:var(--space-4);
+}
+kbd{
+  font-family:var(--font-mono);font-size:var(--text-3xs);
+  border:1px solid var(--border-strong);border-bottom-width:2px;
+  border-radius:var(--radius-xs);padding:1px 5px;color:var(--text-default);
+  background:var(--surface-card);
+}
+.pagenum{
+  position:absolute;bottom:30px;right:104px;z-index:50;
+  font-size:var(--text-2xs);color:var(--text-muted);font-variant-numeric:tabular-nums;
+  letter-spacing:.04em;
+}
+
+/* ---------- deck & slides ----------
+   The deck is centred by its own margins, then scaled about its centre by
+   script. Because the scale is applied around the middle, the deck's centre
+   stays exactly at the middle of the window at any size. */
+.deck{
+  position:absolute;left:50%;top:50%;
+  width:1600px;height:900px;
+  margin:-450px 0 0 -800px;
+  transform-origin:center center;
+}
+
+/* Slides are a single column anchored to the TOP of the canvas, so every
+   slide starts its kicker and title at exactly the same height — the thing
+   that makes a deck feel like one document rather than a pile of pages.
+   The leftover space is shared out above and below the body by the auto
+   margins further down, so no slide ends up with all its air in one place. */
+.slide{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;justify-content:flex-start;
+  padding:112px 104px 64px;
+  opacity:0;visibility:hidden;
+  transform:translateY(14px);
+  transition:opacity .38s ease,transform .38s cubic-bezier(.4,0,.2,1),visibility .38s;
+  overflow:hidden;
+}
+.slide.is-active{opacity:1;visibility:visible;transform:none}
+.slide.is-active .rise{animation:rise .5s cubic-bezier(.4,0,.2,1) backwards}
+.slide.is-active .rise:nth-child(2){animation-delay:.05s}
+.slide.is-active .rise:nth-child(3){animation-delay:.1s}
+.slide.is-active .rise:nth-child(4){animation-delay:.15s}
+.slide.is-active .rise:nth-child(5){animation-delay:.2s}
+
+/* Every slide starts its header at the same height, and the body follows
+   immediately beneath it. Any leftover space collects at the bottom of the
+   slide rather than being scattered, so the gap under the content looks the
+   same from one slide to the next. */
+.slide > .foot{margin-top:var(--space-11)}
+
+/* The two densest slides carry the same information as the rest but need
+   a tighter rhythm to fit the canvas. Same grid, same margins left and
+   right, just less air between the blocks. */
+.slide.dense{padding:96px 92px 56px}
+.slide.dense .headblock{margin-bottom:var(--space-7)}
+.slide.dense .lede{font-size:var(--text-lg);margin-top:var(--space-5)}
+.slide.dense .title{font-size:34px}
+.slide.dense .card{padding:var(--space-8)}
+.slide.dense .card p,.slide.dense .card li{font-size:var(--text-sm)}
+.slide.dense .card ul{gap:var(--space-2)}
+.slide.dense .flow-step{padding:var(--space-6) var(--space-5)}
+.slide.dense .flow-step p{font-size:var(--text-xs)}
+.slide.dense .stat{padding:var(--space-7) var(--space-7)}
+
+/* The entrance animation must never leave content invisible.
+   A `backwards` fill-mode holds the from-state (opacity 0) until the
+   animation starts — so a screenshot taken before it starts, a print
+   stylesheet that pauses animations, or a browser with animations off
+   would render a blank slide. The content therefore only slides up:
+   opacity stays at 1 throughout, so the text is always legible. */
+@keyframes rise{from{opacity:1;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+/* ---------- typography ---------- */
+.kicker{
+  display:inline-flex;align-items:center;gap:var(--space-3);
+  font-size:var(--text-2xs);font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--brand-primary);
+  margin-bottom:var(--space-5);
+}
+.kicker::before{
+  content:"";width:22px;height:2px;background:var(--brand-primary);border-radius:2px;
+}
+h1.title{
+  font-size:46px;line-height:1.12;font-weight:700;
+  color:var(--text-heading);letter-spacing:-.022em;max-width:22ch;
+}
+h2.title{
+  font-size:36px;line-height:1.15;font-weight:700;
+  color:var(--text-heading);letter-spacing:-.022em;max-width:26ch;
+}
+h2.title.wide{max-width:36ch}
+.lede{
+  font-size:var(--text-xl);color:var(--text-default);max-width:62ch;
+  margin-top:var(--space-6);line-height:1.6;
+}
+.body{font-size:var(--text-lg);color:var(--text-default);max-width:64ch;margin-top:var(--space-5)}
+.small{font-size:var(--text-sm);color:var(--text-muted)}
+.accent{color:var(--brand-primary);font-weight:700}
+.headblock{margin-bottom:var(--space-11)}
+
+/* ---------- layout helpers ----------
+   Cards in the same row stretch to a common height, so a row of boxes
+   always has one clean bottom edge instead of a ragged one. */
+.cols{display:grid;gap:var(--space-9);align-items:stretch}
+.c2{grid-template-columns:1fr 1fr}
+.c3{grid-template-columns:repeat(3,1fr)}
+.c4{grid-template-columns:repeat(4,1fr)}
+.c-2-1{grid-template-columns:1.3fr 1fr}
+.c-1-2{grid-template-columns:1fr 1.3fr}
+.stack{display:flex;flex-direction:column;gap:var(--space-6)}
+.stack > .card{flex:1}
+.row{display:flex;gap:var(--space-5);flex-wrap:wrap;align-items:center}
+
+/* ---------- card ---------- */
+.card{
+  background:var(--surface-card);border:1px solid var(--border-default);
+  border-radius:var(--radius-xl);padding:var(--space-10);
+  box-shadow:var(--elev-1);
+}
+.card.flat{box-shadow:none;background:var(--surface-soft)}
+.card.teal{background:var(--brand-light-50);border-color:var(--brand-border)}
+.card h3{
+  font-size:var(--text-2xl);font-weight:700;color:var(--text-heading);
+  letter-spacing:-.015em;margin-bottom:var(--space-3);
+}
+.card h4{
+  font-size:var(--text-lg);font-weight:700;color:var(--text-heading);
+  margin-bottom:var(--space-2);
+}
+.card p{font-size:var(--text-md);color:var(--text-default);line-height:1.6}
+.card ul{list-style:none;display:flex;flex-direction:column;gap:var(--space-3);margin-top:var(--space-4)}
+.card li{
+  font-size:var(--text-md);color:var(--text-default);padding-left:var(--space-7);
+  position:relative;line-height:1.55;
+}
+.card li::before{
+  content:"";position:absolute;left:0;top:.55em;
+  width:6px;height:6px;border-radius:50%;background:var(--brand-primary);
+}
+.card li.dim{color:var(--text-muted)}
+.card li.dim::before{background:var(--border-strong)}
+.card-head{display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-4)}
+.badge{
+  width:34px;height:34px;flex:none;border-radius:var(--radius-md);
+  background:var(--brand-light-50);border:1px solid var(--brand-border);
+  display:grid;place-items:center;font-size:var(--text-sm);font-weight:700;
+  color:var(--brand-primary);font-family:var(--font-mono);
+}
+.badge.solid{background:var(--brand-primary);color:#fff;border-color:var(--brand-primary)}
+.badge.num{border-radius:50%}
+
+/* ---------- stat ---------- */
+.stat{background:var(--surface-card);border:1px solid var(--border-default);
+  border-radius:var(--radius-xl);padding:var(--space-9) var(--space-8);box-shadow:var(--elev-1)}
+.stat .n{
+  font-size:38px;font-weight:700;color:var(--brand-primary);
+  letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;
+}
+.stat .l{font-size:var(--text-sm);color:var(--text-default);margin-top:var(--space-4);line-height:1.4}
+.stat .s{font-size:var(--text-2xs);color:var(--text-muted);margin-top:var(--space-2)}
+
+/* ---------- pills ---------- */
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:var(--text-2xs);font-weight:600;letter-spacing:.02em;
+  padding:3px 10px;border-radius:var(--radius-pill);
+  background:var(--neutral-bg);color:var(--text-default);border:1px solid var(--border-default);
+}
+.pill.teal{background:var(--brand-light-50);color:var(--brand-primary);border-color:var(--brand-border)}
+.pill.ok{background:var(--success-bg);color:var(--success-text);border-color:var(--success-border)}
+.pill.warn{background:var(--warning-bg);color:var(--warning-text);border-color:var(--warning-border)}
+.pill.info{background:var(--info-bg);color:var(--info-text);border-color:#bfdbfe}
+.pill.dg{background:var(--danger-bg);color:var(--text-strong);border-color:var(--danger-border)}
+.pill-row{display:flex;flex-wrap:wrap;gap:var(--space-3)}
+.arrow{color:var(--brand-border);font-size:var(--text-lg);font-weight:400}
+
+/* ---------- flow ---------- */
+.flow{display:flex;align-items:stretch;gap:0}
+.flow-step{
+  flex:1;background:var(--surface-card);border:1px solid var(--border-default);
+  border-radius:var(--radius-lg);padding:var(--space-7) var(--space-6);
+  position:relative;box-shadow:var(--elev-1);
+}
+.flow-step .n{
+  font-family:var(--font-mono);font-size:var(--text-2xs);font-weight:700;
+  color:var(--brand-primary);letter-spacing:.08em;margin-bottom:var(--space-3);
+  display:block;
+}
+.flow-step h4{font-size:var(--text-lg);font-weight:700;color:var(--text-heading);margin-bottom:6px}
+.flow-step p{font-size:var(--text-sm);color:var(--text-default);line-height:1.5}
+.flow-arrow{
+  flex:none;width:34px;display:grid;place-items:center;color:var(--brand-border);
+  font-size:var(--text-2xl);
+}
+
+/* ---------- quote ---------- */
+.quote{
+  border-left:3px solid var(--brand-primary);padding:var(--space-4) 0 var(--space-4) var(--space-8);
+  font-size:var(--text-2xl);color:var(--text-heading);line-height:1.5;
+  letter-spacing:-.01em;font-weight:600;
+}
+.quote .who{
+  font-size:var(--text-sm);color:var(--text-muted);font-weight:500;
+  margin-top:var(--space-5);font-style:normal;
+}
+
+/* ---------- numbered list ---------- */
+.nlist{display:flex;flex-direction:column;gap:var(--space-7);counter-reset:np}
+.nitem{display:flex;gap:var(--space-7);align-items:flex-start}
+.nitem .idx{
+  flex:none;width:30px;height:30px;border-radius:50%;
+  background:var(--brand-primary);color:#fff;display:grid;place-items:center;
+  font-size:var(--text-sm);font-weight:700;font-family:var(--font-mono);
+}
+.nitem h4{font-size:var(--text-xl);font-weight:700;color:var(--text-heading);margin-bottom:4px;letter-spacing:-.01em}
+.nitem p{font-size:var(--text-md);color:var(--text-default);line-height:1.6}
+
+/* ---------- plain-language "ingredients" ---------- */
+.ingredients{display:flex;flex-wrap:wrap;gap:var(--space-3);margin-top:var(--space-6)}
+.ingredient{
+  display:inline-flex;align-items:center;gap:var(--space-3);
+  background:var(--surface-card);border:1px solid var(--border-default);
+  border-radius:var(--radius-pill);padding:var(--space-4) var(--space-6);
+  font-size:var(--text-sm);color:var(--text-strong);font-weight:600;
+}
+.ingredient .dot{width:7px;height:7px;border-radius:50%;background:var(--brand-primary);flex:none}
+
+/* ---------- cover ----------
+   The cover and the closing slide use the same top-anchored grid as every
+   other slide, so the deck reads as one continuous document instead of
+   two different layouts. */
+.cover{justify-content:flex-start;padding:150px 140px 64px}
+.cover-logo{width:76px;height:76px;margin-bottom:var(--space-9)}
+.cover h1{
+  font-size:86px;font-weight:700;letter-spacing:-.04em;
+  color:var(--text-heading);line-height:1;
+}
+.cover .tag{
+  font-size:26px;color:var(--brand-primary);font-weight:600;
+  margin-top:var(--space-7);letter-spacing:-.01em;
+}
+.cover .sub{
+  font-size:var(--text-xl);color:var(--text-default);margin-top:var(--space-6);max-width:56ch;
+}
+.cover-rule{
+  width:56px;height:3px;background:var(--brand-primary);border-radius:3px;
+  margin:var(--space-9) 0;
+}
+.cover-meta{
+  display:flex;gap:var(--space-11);flex-wrap:wrap;font-size:var(--text-sm);color:var(--text-muted);
+  margin-top:var(--space-10);padding-top:var(--space-8);
+  border-top:1px solid var(--border-default);
+}
+.cover-meta b{display:block;color:var(--text-heading);font-weight:700;font-size:var(--text-lg);margin-bottom:2px}
+
+/* ---------- overview mode ----------
+   Each slide is shown as a true miniature of itself: it still lays out at
+   1600x900 and is then scaled down, so the grid shows exactly what the
+   slide looks like full-size — nothing cropped, nothing reflowed.
+   The slide keeps its 1600px layout box, so negative margins claw back
+   the space the scaled-down copy no longer needs. */
+body.overview{overflow:auto;background:var(--surface-page)}
+body.overview .stage{position:static;overflow:visible}
+body.overview .deck{
+  position:static;width:auto;height:auto;margin:0;transform:none;
+  --thumb:0.29;
+  display:grid;justify-content:center;
+  grid-template-columns:repeat(auto-fill,calc(1600px * var(--thumb)));
+  gap:var(--space-8);padding:var(--space-10);
+}
+body.overview .slide{
+  position:relative;inset:auto;opacity:1;visibility:visible;
+  width:1600px;height:900px;overflow:hidden;
+  padding:112px 104px 64px;
+  border:1px solid var(--border-default);border-radius:var(--radius-xl);
+  background:var(--surface-card);cursor:pointer;
+  box-shadow:var(--elev-1);
+  transform:scale(var(--thumb));transform-origin:top left;
+  margin-right:calc(1600px * (var(--thumb) - 1));
+  margin-bottom:calc(900px * (var(--thumb) - 1));
+}
+body.overview .slide.cover{padding:150px 140px 64px}
+body.overview .slide.dense{padding:96px 92px 56px}
+body.overview .slide:hover{border-color:var(--brand-primary);box-shadow:var(--elev-3)}
+body.overview .slide.is-active{border-color:var(--brand-primary);box-shadow:var(--elev-3)}
+body.overview .topbar,body.overview .pagenum{display:none}
+body.overview .progress{position:fixed;top:0;left:0;height:3px;width:0!important}
+
+/* ---------- help ---------- */
+.help{
+  position:fixed;inset:0;background:var(--scrim);z-index:80;
+  display:none;place-items:center;backdrop-filter:blur(3px);
+}
+.help.is-open{display:grid}
+.help-panel{
+  background:var(--surface-card);border-radius:var(--radius-xl);padding:var(--space-12);
+  box-shadow:var(--elev-modal);width:min(440px,90vw);
+}
+.help-panel h3{font-size:var(--text-2xl);font-weight:700;color:var(--text-heading);margin-bottom:var(--space-7)}
+.help-panel dl{display:grid;grid-template-columns:auto 1fr;gap:var(--space-5) var(--space-8);align-items:center}
+.help-panel dt{text-align:right}
+.help-panel dd{font-size:var(--text-md);color:var(--text-default)}
+
+/* ---------- footer note ---------- */
+.foot{
+  margin-top:var(--space-10);font-size:var(--text-2xs);color:var(--text-muted);
+  display:flex;align-items:center;gap:var(--space-3);
+}
+.foot::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--brand-border)}
+
+/* ---------- responsive ----------
+   The canvas scales, so layout never reflows. These rules only affect
+   the fixed chrome and the overview grid. */
+@media (max-width:760px){
+  .hint{display:none}
+}
+
+@media print{
+  @page{size:1600px 900px;margin:0}
+  body{overflow:visible;background:#fff}
+  .stage{position:static;overflow:visible}
+  .topbar,.pagenum,.help,.progress{display:none}
+  .deck{
+    position:static;width:1600px;height:auto;margin:0;transform:none;
+  }
+  .slide{
+    position:relative;inset:auto;opacity:1;visibility:visible;transform:none;
+    width:1600px;height:900px;
+    page-break-after:always;break-after:page;overflow:hidden;
+    border:none;background:#fff;
+  }
+  .slide:last-child{page-break-after:auto;break-after:auto}
+}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+
+<div class="deck" id="deck">
+
+<div class="progress" id="progress"></div>
+
+<div class="topbar">
+  <div class="brandmark">
+    <svg viewBox="0 0 52 52" aria-label="MediSlot">
+      <rect x="6" y="10" width="40" height="36" rx="7" fill="none" stroke="#0f766e" stroke-width="2.4"/>
+      <line x1="6" y1="20" x2="46" y2="20" stroke="#0f766e" stroke-width="2.4"/>
+      <line x1="18" y1="6" x2="18" y2="14" stroke="#0f766e" stroke-width="2.4" stroke-linecap="round"/>
+      <line x1="34" y1="6" x2="34" y2="14" stroke="#0f766e" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="13" cy="25.5" r="1.4" fill="#0f766e"/>
+      <circle cx="20" cy="25.5" r="1.4" fill="#0f766e"/>
+      <circle cx="27" cy="25.5" r="1.4" fill="#0f766e"/>
+      <circle cx="34" cy="25.5" r="1.4" fill="#0f766e"/>
+      <circle cx="41" cy="25.5" r="1.4" fill="#0f766e"/>
+      <circle cx="13" cy="33" r="2.4" fill="#0f766e"/>
+      <rect x="32" y="29" width="10" height="3.2" rx="1.2" fill="#0f766e"/>
+      <rect x="35.4" y="25.6" width="3.2" height="10" rx="1.2" fill="#0f766e"/>
+      <circle cx="20" cy="40.5" r="1.4" fill="#0f766e"/>
+      <circle cx="27" cy="40.5" r="1.4" fill="#0f766e"/>
+    </svg>
+    <span>MediSlot</span>
+  </div>
+  <div class="hint">
+    <kbd>←</kbd><kbd>→</kbd> navigate · <kbd>O</kbd> overview · <kbd>?</kbd> help
+  </div>
+</div>
+
+<div class="pagenum" id="pagenum"></div>
+
+<!-- ============ 1. COVER ============ -->
+<section class="slide cover is-active">
+  <div class="rise">
+    <svg class="cover-logo" viewBox="0 0 52 52" aria-label="MediSlot">
+      <rect x="6" y="10" width="40" height="36" rx="7" fill="none" stroke="#0f766e" stroke-width="2.4"/>
+      <line x1="6" y1="20" x2="46" y2="20" stroke="#0f766e" stroke-width="2.4"/>
+      <line x1="18" y1="6" x2="18" y2="14" stroke="#0f766e" stroke-width="2.4" stroke-linecap="round"/>
+      <line x1="34" y1="6" x2="34" y2="14" stroke="#0f766e" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="13" cy="25.5" r="1.4" fill="#0f766e"/>
+      <circle cx="20" cy="25.5" r="1.4" fill="#0f766e"/>
+      <circle cx="27" cy="25.5" r="1.4" fill="#0f766e"/>
+      <circle cx="34" cy="25.5" r="1.4" fill="#0f766e"/>
+      <circle cx="41" cy="25.5" r="1.4" fill="#0f766e"/>
+      <circle cx="13" cy="33" r="2.4" fill="#0f766e"/>
+      <rect x="32" y="29" width="10" height="3.2" rx="1.2" fill="#0f766e"/>
+      <rect x="35.4" y="25.6" width="3.2" height="10" rx="1.2" fill="#0f766e"/>
+      <circle cx="20" cy="40.5" r="1.4" fill="#0f766e"/>
+      <circle cx="27" cy="40.5" r="1.4" fill="#0f766e"/>
+    </svg>
+  </div>
+  <div class="rise">
+    <h1>MediSlot</h1>
+    <div class="cover-rule"></div>
+    <div class="tag">Your appointment is real. It's yours. You can see it any time.</div>
+    <p class="sub">
+      Clinic scheduling that replaces the phone call and the paper diary —
+      patients book by phone, reception runs the day, doctors resolve conflicts,
+      administrators own the clinic.
+    </p>
+  </div>
+  <div class="rise">
+    <div class="cover-meta">
+      <div><b>63</b>features shipped</div>
+      <div><b>73</b>days from scratch</div>
+      <div><b>65</b>written specs</div>
+      <div><b>AI</b>built, human-approved</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. PROBLEM ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">The problem</div>
+    <h2 class="title wide">Two people, one missing source of truth</h2>
+    <p class="lede">
+      Right now a patient phones a clinic and a receptionist writes it in a paper diary.
+      Afterwards, neither side can say for certain what is actually booked.
+    </p>
+  </div>
+
+  <div class="cols c2 rise">
+    <div class="card">
+      <div class="card-head"><div class="badge">P</div><h3 style="margin:0">The patient</h3></div>
+      <p style="font-style:italic;color:var(--text-strong)">"I think I have an appointment, somewhere."</p>
+      <ul>
+        <li>Finds a number on Google or Maps, then calls and waits</li>
+        <li>Describes their problem to a stranger</li>
+        <li>Can't confirm, move or cancel it afterwards</li>
+        <li>Pays in lost time and day-of worry</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="badge">C</div><h3 style="margin:0">The clinic</h3></div>
+      <p style="font-style:italic;color:var(--text-strong)">"We think we have 30 appointments today, across three diaries."</p>
+      <ul>
+        <li>Paper diaries and scribbled notes</li>
+        <li>"The doctor said 3 but reception wrote 4"</li>
+        <li>Double bookings, no-shows, and no way to see them coming</li>
+        <li>Pays in staff time and quiet distrust</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="foot">Both costs are felt rather than measured — and neither has a dashboard.</div>
+</section>
+
+<!-- ============ 3. PROMISE ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">The promise</div>
+    <h2 class="title wide">Easy doctor appointment with accuracy.</h2>
+  </div>
+
+  <div class="cols c2 rise">
+    <div class="card teal">
+      <h4>Easy</h4>
+      <p>
+        Booking is faster and less effort than the phone call it replaces.
+        No account, no password — just a phone number and a one-time code.
+      </p>
+    </div>
+    <div class="card teal">
+      <h4>Accurate</h4>
+      <p>
+        The appointment you were given is real, it holds, and it cannot move
+        without you being told.
+      </p>
+    </div>
+  </div>
+
+  <div class="rise" style="margin-top:var(--space-10)">
+    <div class="quote">
+      When easy and accuracy collide, accuracy wins — but only when the user is told why.
+      <div class="who">The rule the whole product is built around</div>
+    </div>
+  </div>
+
+  <div class="rise" style="margin-top:var(--space-10)">
+    <div class="cols c2">
+      <div>
+        <div class="kicker" style="margin-bottom:var(--space-4)">For patients</div>
+        <p class="body" style="margin:0">"Your appointment is real. It's yours. You can see it any time."</p>
+      </div>
+      <div>
+        <div class="kicker" style="margin-bottom:var(--space-4)">For clinics</div>
+        <p class="body" style="margin:0">"What you see is what's true. Across every branch, every doctor, every slot."</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. FOUR ROLES ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">The product</div>
+    <h2 class="title wide">One system, four roles, one truth</h2>
+    <p class="lede">
+      Everyone sees the surface they need — and only that surface.
+      Access is decided by the system itself, not by hiding buttons.
+    </p>
+  </div>
+
+  <div class="cols c4 rise">
+    <div class="card">
+      <div class="card-head"><div class="badge">01</div></div>
+      <h3>Patient</h3>
+      <ul>
+        <li>Books in five steps, by phone</li>
+        <li>Sees, moves or cancels their own appointments</li>
+        <li>Sets up repeat visits</li>
+        <li>No account, no password</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="badge">02</div></div>
+      <h3>Doctor</h3>
+      <ul>
+        <li>Sees their own day</li>
+        <li>Sets their own working hours</li>
+        <li>Blocks time off, with a preview first</li>
+        <li>Resolves clashes one at a time</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="badge">03</div></div>
+      <h3>Receptionist</h3>
+      <ul>
+        <li>Runs the branch day, hour by hour</li>
+        <li>Books walk-ins on a patient's behalf</li>
+        <li>Sees what's open, and what's not</li>
+        <li>Sees phone numbers, not patient names</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="badge">04</div></div>
+      <h3>Administrator</h3>
+      <ul>
+        <li>Manages branches and opening hours</li>
+        <li>Manages doctors and specialties</li>
+        <li>Manages appointment types</li>
+        <li>Sees clinic-wide numbers</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="foot">
+    Administrators cannot open individual appointments at all — the system refuses and explains why.
+  </div>
+</section>
+
+<!-- ============ 5. BOOKING ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">Core journey</div>
+    <h2 class="title wide">Booking, in five steps, without an account</h2>
+    <p class="lede">
+      Deliberately short. Your phone number is your identity — a one-time code and you're in.
+    </p>
+  </div>
+
+  <div class="flow rise">
+    <div class="flow-step">
+      <span class="n">STEP 01</span>
+      <h4>Pick a doctor</h4>
+      <p>Search by name or specialty.</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="n">STEP 02</span>
+      <h4>Branch &amp; visit type</h4>
+      <p>Which location, and what kind of appointment.</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="n">STEP 03</span>
+      <h4>Date &amp; time</h4>
+      <p>Only times that are genuinely free are shown.</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="n">STEP 04</span>
+      <h4>Your details</h4>
+      <p>One phone number. Returning patients are recognised.</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="n">STEP 05</span>
+      <h4>Confirmation</h4>
+      <p>A receipt the patient owns, and can act on.</p>
+    </div>
+  </div>
+
+  <div class="cols c3 rise" style="margin-top:var(--space-11)">
+    <div class="card flat">
+      <h4>Self-service afterwards</h4>
+      <p>Cancel from the appointment list. Reschedule keeps the same doctor and lets the time change.</p>
+    </div>
+    <div class="card flat">
+      <h4>Links from reception</h4>
+      <p>Reception can send a patient a direct link to cancel or move an appointment that needs attention.</p>
+    </div>
+    <div class="card flat">
+      <h4>Repeat visits</h4>
+      <p>Multi-visit bookings are shown in full before confirming, and can be cancelled as a series.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. THE KEY IDEA ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">What makes it trustworthy</div>
+    <h2 class="title wide">Five promises the system keeps for you</h2>
+    <p class="lede">
+      These are built into how the product works, not into how it looks.
+      A competitor shipping a prettier booking screen would have to rebuild the
+      system underneath to match them.
+    </p>
+  </div>
+
+  <div class="cols c-2-1 rise">
+    <div class="nlist">
+      <div class="nitem">
+        <div class="idx">1</div>
+        <div>
+          <h4>Two patients can never hold the same slot</h4>
+          <p>The system guarantees it, not the app displaying it.</p>
+        </div>
+      </div>
+      <div class="nitem">
+        <div class="idx">2</div>
+        <div>
+          <h4>You can see your appointments without calling</h4>
+          <p>You're not dependent on the clinic to tell you the truth.</p>
+        </div>
+      </div>
+      <div class="nitem">
+        <div class="idx">3</div>
+        <div>
+          <h4>Changes that would break a booking are refused</h4>
+          <p>A doctor can't shrink their hours in a way that invalidates someone's appointment.</p>
+        </div>
+      </div>
+      <div class="nitem">
+        <div class="idx">4</div>
+        <div>
+          <h4>Opening-hours changes are saved, but flagged</h4>
+          <p>Affected appointments are surfaced for the doctor to resolve — never quietly cancelled.</p>
+        </div>
+      </div>
+      <div class="nitem">
+        <div class="idx">5</div>
+        <div>
+          <h4>Every change is recorded</h4>
+          <p>Who changed it, and when. The record can't be edited or deleted afterwards.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card teal">
+        <h4>The rule behind all five</h4>
+        <p style="color:var(--text-strong)">
+          Never silently invalidate an appointment. If the truth changed, the person
+          affected is told — by the doctor, or by reception, deliberately.
+        </p>
+      </div>
+      <div class="card">
+        <h4>Why this is the moat</h4>
+        <p>
+          A phone-booking competitor can match our interface in a sprint.
+          They cannot match the guarantees — they'd have to rebuild the engine,
+          the rules and the record-keeping underneath.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7. THE NUMBERS ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">Where the project stands</div>
+    <h2 class="title wide">What actually exists today</h2>
+  </div>
+
+  <div class="cols c4 rise">
+    <div class="stat">
+      <div class="n">63</div>
+      <div class="l">Features shipped</div>
+      <div class="s">Across 8 major areas</div>
+    </div>
+    <div class="stat">
+      <div class="n">73</div>
+      <div class="l">Days from scratch</div>
+      <div class="s">18 Aug → 30 Oct 2026</div>
+    </div>
+    <div class="stat">
+      <div class="n">473</div>
+      <div class="l">Automated tests</div>
+      <div class="s">429 run against a real database</div>
+    </div>
+    <div class="stat">
+      <div class="n">65</div>
+      <div class="l">Written specifications</div>
+      <div class="s">13,000+ lines of planning</div>
+    </div>
+  </div>
+
+  <div class="cols c4 rise" style="margin-top:var(--space-8)">
+    <div class="stat">
+      <div class="n">42</div>
+      <div class="l">Screen designs</div>
+      <div class="s">Every screen drawn before it was built</div>
+    </div>
+    <div class="stat">
+      <div class="n">144</div>
+      <div class="l">Changes shipped</div>
+      <div class="s">Small, reviewable steps</div>
+    </div>
+    <div class="stat">
+      <div class="n">60/63</div>
+      <div class="l">Features complete</div>
+      <div class="s">Three left, all scoped</div>
+    </div>
+    <div class="stat">
+      <div class="n">53</div>
+      <div class="l">Written requirements</div>
+      <div class="s">Plus 65 business rules and 20 user journeys</div>
+
+    </div>
+  </div>
+
+  <div class="rise" style="margin-top:var(--space-10)">
+    <div class="cols c2">
+      <div class="card flat">
+        <h4>Everything is checked automatically</h4>
+        <p>
+          Every push runs the same fixed set of checks — code quality, testing and
+          a full build — before anything can merge. No step can be skipped.
+        </p>
+      </div>
+      <div class="card flat">
+        <h4>Designed to be accessible</h4>
+        <p>
+          Colourblind-safe status markers, keyboard focus on every control,
+          large tap targets, and motion that respects the user's settings.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8. HOW AI BUILT IT ============ -->
+<section class="slide dense">
+  <div class="headblock rise">
+    <div class="kicker">How it was built</div>
+    <h2 class="title wide">AI-native development, in three named phases</h2>
+    <p class="lede">
+      This wasn't "prompt it and see what happens." The work ran on a formal
+      AI-assisted development method — a written plan a person approves before
+      any code is written, built against that plan, then released and watched.
+    </p>
+  </div>
+
+  <div class="flow rise">
+    <div class="flow-step">
+      <span class="n">PHASE 01</span>
+      <h4>Inception</h4>
+      <p>Turn the intent into features, users, flows and the system picture — then agree the plan.</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="n">PHASE 02</span>
+      <h4>Construction</h4>
+      <p>Each piece is designed, built, tested and reviewed against its approved plan.</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="n">PHASE 03</span>
+      <h4>Operations</h4>
+      <p>Build, release through each environment, verify it, then monitor it.</p>
+    </div>
+  </div>
+
+  <div class="cols c3 rise" style="margin-top:var(--space-11)">
+    <div class="card teal">
+      <h4>AI does the work, a human signs off</h4>
+      <p>The AI proposes the plan and the build. People review and approve every decision — not as a rubber stamp at the end.</p>
+    </div>
+    <div class="card">
+      <h4>Planning in a room</h4>
+      <p>Several agents work the plan together, collapsing planning that would normally take weeks into hours.</p>
+    </div>
+    <div class="card">
+      <h4>Context that sticks</h4>
+      <p>A shared project memory means the next piece of work starts with everything already known, instead of from scratch.</p>
+    </div>
+  </div>
+
+  <div class="rise" style="margin-top:var(--space-9)">
+    <div class="cols c-1-2">
+      <div class="card flat">
+        <h4>How the work is broken down</h4>
+        <p>
+          A single intent becomes a set of features, and each feature becomes
+          a written plan with its own definition of done.
+        </p>
+        <div class="ingredients" style="margin-top:var(--space-6)">
+          <span class="ingredient"><span class="dot"></span>Intent</span>
+          <span class="ingredient"><span class="dot"></span>Feature</span>
+          <span class="ingredient"><span class="dot"></span>Task</span>
+        </div>
+      </div>
+      <div class="card flat">
+        <h4>Every feature leaves behind a written record</h4>
+        <p>
+          65 of them. Each one states what was promised, what was built, what was
+          deliberately left undone, and — the important part — every point where
+          reality disagreed with the plan and why.
+        </p>
+        <p style="margin-top:var(--space-5)">
+          That last section is what makes the record useful to the next person,
+          human or agent, picking the work up.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 9. THE SYSTEM UNDERNEATH ============ -->
+<section class="slide dense">
+  <div class="headblock rise">
+    <div class="kicker">What's underneath</div>
+    <h2 class="title wide">The stack we built it on</h2>
+    <p class="lede">
+      Nothing here is exotic, and that is the point. The interesting part of this
+      product is the scheduling logic — so the plumbing is chosen to be ordinary,
+      well understood, and hard to get wrong. Every version below is pinned.
+    </p>
+  </div>
+
+  <div class="cols c4 rise">
+    <div class="card">
+      <div class="card-head"><div class="badge">01</div></div>
+      <h4>Front end</h4>
+      <p class="small" style="margin-bottom:var(--space-4)">What the patient and staff see — 48 screens</p>
+      <ul>
+        <li><strong>React 18.3</strong> — the user interface</li>
+        <li><strong>Vite 5.4</strong> — the build and dev server</li>
+        <li><strong>TypeScript 5.6</strong> — strict, across both halves</li>
+        <li><strong>Hand-rolled router</strong> — no router library</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="badge">02</div></div>
+      <h4>Back end</h4>
+      <p class="small" style="margin-bottom:var(--space-4)">The service that holds the rules — 75 addresses</p>
+      <ul>
+        <li><strong>Express 4.21</strong> — the request handling</li>
+        <li><strong>Node ≥ 20</strong> — the runtime</li>
+        <li><strong>pino 9.5</strong> — structured logging</li>
+        <li><strong>node:crypto</strong> — sign-in tokens, written by hand</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="badge">03</div></div>
+      <h4>Database</h4>
+      <p class="small" style="margin-bottom:var(--space-4)">Where the truth is kept and enforced — 14 tables</p>
+      <ul>
+        <li><strong>PostgreSQL 16</strong> — the database</li>
+        <li><strong>pg 8.13</strong> — the driver, raw SQL, no mapper layer</li>
+        <li><strong>btree_gist</strong> — lets the database refuse double bookings</li>
+        <li><strong>node-pg-migrate 7.6</strong> — 22 replayable build steps</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="badge">04</div></div>
+      <h4>Tooling</h4>
+      <p class="small" style="margin-bottom:var(--space-4)">How it's built, checked and shipped</p>
+      <ul>
+        <li><strong>pnpm 12.3</strong> — workspaces, one command for both halves</li>
+        <li><strong>node:test</strong> — the test runner, no extra framework</li>
+        <li><strong>Testcontainers</strong> — tests run against a real database</li>
+        <li><strong>ESLint 8.57</strong> — the same linting on every push</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="rise" style="margin-top:var(--space-10)">
+    <div class="cols c3">
+      <div class="card flat">
+        <h4>Why so plain?</h4>
+        <p>
+          The booking rules depend on exactly when data is read and locked.
+          Simpler tools let us control that precisely — instead of hiding it
+          behind a layer we'd have to work around.
+        </p>
+      </div>
+      <div class="card flat">
+        <h4>No framework between us and the database</h4>
+        <p>
+          The API writes SQL directly. That is deliberate: an automatic mapper
+          would move the exact query shapes and locking that the slot-race
+          guards depend on.
+        </p>
+      </div>
+      <div class="card flat">
+        <h4>What it buys</h4>
+        <p>
+          Fewer moving parts, a system a new developer can understand in a day,
+          and no licence fees that grow with the number of appointments.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10. WHAT'S NEXT ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">What's next</div>
+    <h2 class="title wide">The next three features, and the honest gaps</h2>
+    <p class="lede">
+      Everything below is already written down and agreed. Nothing here is a surprise.
+    </p>
+  </div>
+
+  <div class="cols c3 rise">
+    <div class="card">
+      <div class="card-head"><div class="badge">01</div></div>
+      <h3>Speed guarantees</h3>
+      <p>Agreed response-time targets for finding an appointment, written down and enforced rather than hoped for.</p>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="badge">02</div></div>
+      <h3>Measuring the funnel</h3>
+      <p>Tracking what actually happens: bookings started, completed, moved, and missed.</p>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="badge">03</div></div>
+      <h3>Two open design questions</h3>
+      <p>How to show a month at a glance, and how to help patients with weak mobile signal.</p>
+    </div>
+  </div>
+
+  <div class="rise" style="margin-top:var(--space-10)">
+    <div class="card flat">
+      <h4>Known gaps — deliberate, recorded, and tracked</h4>
+      <div class="pill-row" style="margin-top:var(--space-6)">
+        <span class="pill warn">No browser-automation tests</span>
+        <span class="pill warn">Logins can't be cancelled early</span>
+        <span class="pill warn">No protection against repeated login attempts</span>
+        <span class="pill warn">No "single sign-on"</span>
+        <span class="pill warn">Patient identity is the phone number</span>
+        <span class="pill warn">Accessibility checked by rule, not page by page</span>
+      </div>
+      <p class="small" style="margin-top:var(--space-6)">
+        Each gap is filed against the feature that deferred it. The habit is to
+        name the gap rather than let it quietly become a claim.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 11. CLOSE ============ -->
+<section class="slide cover">
+  <div class="rise">
+    <div class="kicker">In one line</div>
+    <h1 style="font-size:60px;font-weight:700;letter-spacing:-.035em;color:var(--text-heading);line-height:1.1;max-width:20ch">
+      The appointment is real, and you can see it any time.
+    </h1>
+    <div class="cover-rule"></div>
+  </div>
+  <div class="rise">
+    <p class="sub" style="max-width:60ch">
+      MediSlot is clinic scheduling where the system itself guarantees the booking
+      is real — built by a small team using an AI-assisted method in which every
+      feature starts as a specification a person approves.
+    </p>
+  </div>
+  <div class="rise">
+    <div class="cols c3" style="margin-top:var(--space-10);max-width:820px">
+      <div class="stat">
+        <div class="n">4</div>
+        <div class="l">Roles, one shared truth</div>
+      </div>
+      <div class="stat">
+        <div class="n">0</div>
+        <div class="l">Double bookings — guaranteed by the system</div>
+      </div>
+      <div class="stat">
+        <div class="n">63</div>
+        <div class="l">Features shipped on spec-driven AI development</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+</div><!-- /.stage -->
+
+<div class="help" id="help">
+  <div class="help-panel">
+    <h3>Keyboard</h3>
+    <dl>
+      <dt><kbd>→</kbd> <kbd>Space</kbd></dt><dd>Next slide</dd>
+      <dt><kbd>←</kbd></dt><dd>Previous slide</dd>
+      <dt><kbd>Home</kbd> <kbd>End</kbd></dt><dd>First / last slide</dd>
+      <dt><kbd>O</kbd></dt><dd>Overview — click any slide to jump</dd>
+      <dt><kbd>F</kbd></dt><dd>Fullscreen</dd>
+      <dt><kbd>P</kbd></dt><dd>Print / save as PDF</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Close this panel</dd>
+    </dl>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var deck   = document.getElementById('deck');
+  var bar    = document.getElementById('progress');
+  var num    = document.getElementById('pagenum');
+  var help   = document.getElementById('help');
+  var i = 0;
+
+  function show(n){
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function(s, k){ s.classList.toggle('is-active', k === i); });
+    bar.style.width = ((i + 1) / slides.length * 100) + '%';
+    num.textContent = (i + 1) + ' / ' + slides.length;
+    if (document.body.classList.contains('overview')) {
+      slides[i].scrollIntoView({block:'start', behavior:'smooth'});
+    }
+    syncHash();
+  }
+
+  // Deep link: #7 opens slide 7. Lets a slide be linked to or captured directly.
+  function fromHash(){
+    var h = (window.location.hash || '').replace(/[^0-9]/g, '');
+    return h ? parseInt(h, 10) : 0;
+  }
+
+  function syncHash(){
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', '#' + (i + 1));
+    }
+  }
+
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){ help.classList.remove('is-open'); return; }
+    if (e.key === '?' || (e.key === '/' && e.shiftKey)){
+      help.classList.toggle('is-open'); e.preventDefault(); return;
+    }
+    var tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': case ' ':
+        show(i + 1); e.preventDefault(); break;
+      case 'ArrowLeft': case 'PageUp':
+        show(i - 1); e.preventDefault(); break;
+      case 'ArrowDown':
+        if (!document.body.classList.contains('overview')) { show(i + 1); e.preventDefault(); } break;
+      case 'ArrowUp':
+        if (!document.body.classList.contains('overview')) { show(i - 1); e.preventDefault(); } break;
+      case 'Home': show(0); e.preventDefault(); break;
+      case 'End':  show(slides.length - 1); e.preventDefault(); break;
+      case 'o': case 'O':
+        document.body.classList.toggle('overview');
+        if (!document.body.classList.contains('overview')) show(i);
+        e.preventDefault(); break;
+      case 'f': case 'F':
+        if (!document.fullscreenElement) {
+          (document.documentElement.requestFullscreen || function(){}).call(document.documentElement);
+        } else if (document.exitFullscreen) { document.exitFullscreen(); }
+        e.preventDefault(); break;
+      case 'p': case 'P':
+        window.print(); e.preventDefault(); break;
+    }
+  });
+
+  slides.forEach(function(s, k){
+    s.addEventListener('click', function(){
+      if (document.body.classList.contains('overview')) {
+        document.body.classList.remove('overview');
+        show(k);
+      }
+    });
+  });
+
+  deck.addEventListener('click', function(e){
+    if (document.body.classList.contains('overview')) return;
+    if (e.target.closest('a, button, .card, .flow-step, .stat, table')) return;
+    if (e.clientX > window.innerWidth * 0.6) show(i + 1);
+  });
+
+  var x0 = null;
+  deck.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, {passive:true});
+  deck.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 55) show(dx < 0 ? i + 1 : i - 1);
+    x0 = null;
+  }, {passive:true});
+
+  // Read the target slide BEFORE show() rewrites the hash.
+  // "#overview" opens the grid view — handy for linking straight to it.
+  var raw = (window.location.hash || '').toLowerCase();
+  var initial = fromHash();
+  show(initial ? initial - 1 : 0);
+  if (raw.indexOf('overview') !== -1) {
+    document.body.classList.add('overview');
+    fit();
+  }
+
+  window.addEventListener('hashchange', function(){
+    var n = fromHash() - 1;
+    if (n >= 0 && n !== i) show(n);
+  });
+
+  /* Scale the fixed 1600x900 canvas to fit the viewport.
+     The deck is centred with left/top:50% and a negative margin, and the
+     scale is applied about its own centre — so the deck stays exactly
+     centred in the window and every slide keeps the same size and
+     proportion, whatever the screen is. */
+  var CANVAS_W = 1600, CANVAS_H = 900;
+  function fit(){
+    if (document.body.classList.contains('overview')) {
+      deck.style.transform = '';
+      return;
+    }
+    var s = Math.min(window.innerWidth / CANVAS_W, window.innerHeight / CANVAS_H);
+    deck.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+})();
+</script>
+</body>
+</html>
