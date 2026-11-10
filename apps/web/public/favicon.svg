@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" width="52" height="52" role="img" aria-label="MediSlot">
+  <title>MediSlot</title>
+  <!--
+    MediSlot mark: teal calendar outline (header rule + two top binders),
+    a grid of slot dots, and a medical cross. Mirrors
+    docs/design/mockups/v1/imports/app/logo.svg, which is the source of
+    truth for the in-app BrandMark.
+
+    Browser tab chrome is dark in most browsers, so the mark renders WHITE
+    there. A single static file cannot detect the tab's background, so the
+    SVG carries a prefers-color-scheme media query: dark chrome -> white
+    mark, light chrome -> brand teal. The `currentColor`-driven default is
+    white, because a dark tab is the common case.
+  -->
+  <style>
+    .ms-stroke { stroke: #ffffff; }
+    .ms-fill   { fill: #ffffff; }
+    @media (prefers-color-scheme: light) {
+      .ms-stroke { stroke: #0f766e; }
+      .ms-fill   { fill: #0f766e; }
+    }
+  </style>
+
+  <!-- Calendar frame + header rule -->
+  <g class="ms-stroke" fill="none" stroke-width="2.4">
+    <rect x="6" y="10" width="40" height="36" rx="7"/>
+    <line x1="6" y1="20" x2="46" y2="20"/>
+  </g>
+  <!-- Top binders -->
+  <g class="ms-stroke" stroke-width="2.4" stroke-linecap="round">
+    <line x1="18" y1="6" x2="18" y2="14"/>
+    <line x1="34" y1="6" x2="34" y2="14"/>
+  </g>
+  <!-- Slot dots: header row, "today" slot, and bottom row -->
+  <g class="ms-fill">
+    <circle cx="13" cy="25.5" r="1.4"/>
+    <circle cx="20" cy="25.5" r="1.4"/>
+    <circle cx="27" cy="25.5" r="1.4"/>
+    <circle cx="34" cy="25.5" r="1.4"/>
+    <circle cx="41" cy="25.5" r="1.4"/>
+    <circle cx="13" cy="33" r="2.4"/>
+    <circle cx="20" cy="40.5" r="1.4"/>
+    <circle cx="27" cy="40.5" r="1.4"/>
+  </g>
+  <!-- Medical cross, right side of the calendar body -->
+  <g class="ms-fill">
+    <rect x="32" y="29" width="10" height="3.2" rx="1.2"/>
+    <rect x="35.4" y="25.6" width="3.2" height="10" rx="1.2"/>
+  </g>
+</svg>
