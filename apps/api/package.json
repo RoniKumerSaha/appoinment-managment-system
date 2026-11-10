@@ -15,6 +15,7 @@
     "db:seed": "tsx db/seeds/01_minimum.ts",
     "db:seed:rich": "tsx db/seeds/03_rich_operations.ts",
     "db:seed:demo": "tsx scripts/db-demo-seed.ts",
+    "db:seed:all": "tsx scripts/db-seed-all-types.ts",
     "db:reset": "tsx scripts/db-reset.ts"
   },
   "dependencies": {
