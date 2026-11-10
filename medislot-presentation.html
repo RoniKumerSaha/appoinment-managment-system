@@ -101,10 +101,9 @@ body{
   font-size:var(--text-sm);font-weight:700;color:var(--text-strong);
   letter-spacing:-.01em;
 }
-.hint{
-  font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.02em;
-  display:flex;align-items:center;gap:var(--space-4);
-}
+/* On the cover the deck shows its own large logo, so the small top-left
+   brandmark would just repeat it — hide it there. */
+body.on-cover .topbar{display:none}
 kbd{
   font-family:var(--font-mono);font-size:var(--text-3xs);
   border:1px solid var(--border-strong);border-bottom-width:2px;
@@ -419,7 +418,7 @@ body.overview .progress{position:fixed;top:0;left:0;height:3px;width:0!important
    The canvas scales, so layout never reflows. These rules only affect
    the fixed chrome and the overview grid. */
 @media (max-width:760px){
-  .hint{display:none}
+  .pagenum{display:none}
 }
 
 @media print{
@@ -467,9 +466,6 @@ body.overview .progress{position:fixed;top:0;left:0;height:3px;width:0!important
       <circle cx="27" cy="40.5" r="1.4" fill="#0f766e"/>
     </svg>
     <span>MediSlot</span>
-  </div>
-  <div class="hint">
-    <kbd>←</kbd><kbd>→</kbd> navigate · <kbd>O</kbd> overview · <kbd>?</kbd> help
   </div>
 </div>
 
@@ -1136,6 +1132,9 @@ body.overview .progress{position:fixed;top:0;left:0;height:3px;width:0!important
   function show(n){
     i = Math.max(0, Math.min(slides.length - 1, n));
     slides.forEach(function(s, k){ s.classList.toggle('is-active', k === i); });
+    // The cover carries its own large logo, so the small brandmark in the
+    // top-left chrome is redundant there — hide it while the cover is up.
+    document.body.classList.toggle('on-cover', i === 0);
     bar.style.width = ((i + 1) / slides.length * 100) + '%';
     num.textContent = (i + 1) + ' / ' + slides.length;
     if (document.body.classList.contains('overview')) {
