@@ -3,39 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MediSlot — Product &amp; AI-Assisted Development</title>
+<title>AI-Native Software Development Journey — What Worked and What Did Not</title>
 <style>
 /* ============================================================
-   MediSlot — presentation deck
+   AI-Native Software Development Journey
    Visual language lifted 1:1 from the product's own design
    tokens (apps/web/src/styles/tokens.css). No external assets.
    ============================================================ */
 
 :root{
-  --brand-primary:#0f766e;
-  --brand-primary-hover:#0d6660;
-  --brand-light:#ccfbf1;
-  --brand-light-50:#f0fdfa;
-  --brand-border:#99f6e4;
+  /* The deck deliberately does NOT use the product's teal. The app
+     screenshots are the proof of the work, so the deck's own chrome is
+     shifted to a deep forest green — the product's teal then reads as a
+     different thing entirely, and the screenshots stand out. */
+  --brand-primary:#14532d;
+  --brand-primary-hover:#166534;
+  --brand-light:#dcfce7;
+  --brand-light-50:#f0fdf4;
+  --brand-border:#bbf7d0;
 
-  --surface-page:#f5f6f8;
+  --surface-page:#f5f7f5;
   --surface-card:#ffffff;
-  --surface-soft:#f9fafb;
-  --surface-divider:#f3f4f6;
-  --border-default:#e5e7eb;
-  --border-strong:#d1d5db;
+  --surface-soft:#fafbf9;
+  --surface-divider:#eff2ef;
+  --border-default:#e2e6e1;
+  --border-strong:#cbd3c9;
 
-  --text-heading:#111827;
-  --text-body:#1a1d23;
-  --text-strong:#374151;
-  --text-default:#4b5563;
-  --text-muted:#6b7280;
+  --text-heading:#101613;
+  --text-body:#18201c;
+  --text-strong:#37413b;
+  --text-default:#4e5852;
+  --text-muted:#6f7972;
 
-  --success-bg:#f0fdfa; --success-border:#99f6e4; --success-text:#065f46;
+  --success-bg:#f0fdf4; --success-border:#86efac; --success-text:#166534;
   --warning-bg:#fffbeb; --warning-border:#f59e0b; --warning-text:#422006;
   --danger-bg:#fef2f2;  --danger-border:#fca5a5;  --danger-text:#7f1d1d;
-  --info-bg:#dbeafe;    --info-text:#1e40af;
-  --neutral-bg:#f3f4f6;
+  --info-bg:#f0fdf4;    --info-text:#14532d;
+  --neutral-bg:#eef1ee;
 
   --text-3xs:10px; --text-2xs:11px; --text-xs:12px; --text-sm:13px;
   --text-md:14px; --text-lg:15px; --text-xl:16px; --text-2xl:17px;
@@ -49,14 +53,14 @@
   --radius-xl:12px; --radius-pill:999px;
 
   --elev-1:0 1px 2px rgba(0,0,0,.06);
-  --elev-3:0 2px 8px rgba(15,118,110,.10);
+  --elev-3:0 2px 8px rgba(20,83,45,.14);
   --elev-4:0 4px 12px rgba(0,0,0,.06);
   --elev-modal:0 12px 36px rgba(0,0,0,.18);
 
   --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
   --font-mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,"Liberation Mono",Menlo,monospace;
 
-  --scrim:rgba(15,29,35,.45);
+  --scrim:rgba(16,22,19,.45);
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -101,9 +105,13 @@ body{
   font-size:var(--text-sm);font-weight:700;color:var(--text-strong);
   letter-spacing:-.01em;
 }
-/* On the cover the deck shows its own large logo, so the small top-left
-   brandmark would just repeat it — hide it there. */
 body.on-cover .topbar{display:none}
+/* A screenshot slide is the captured screen and nothing else — it fills
+   the canvas edge to edge. The deck's own chrome (brandmark, progress
+   bar, page number) would sit on top of the product, so it steps aside. */
+body.on-shot .topbar,
+body.on-shot .progress,
+body.on-shot .pagenum{display:none}
 kbd{
   font-family:var(--font-mono);font-size:var(--text-3xs);
   border:1px solid var(--border-strong);border-bottom-width:2px;
@@ -129,9 +137,7 @@ kbd{
 
 /* Slides are a single column anchored to the TOP of the canvas, so every
    slide starts its kicker and title at exactly the same height — the thing
-   that makes a deck feel like one document rather than a pile of pages.
-   The leftover space is shared out above and below the body by the auto
-   margins further down, so no slide ends up with all its air in one place. */
+   that makes a deck feel like one document rather than a pile of pages. */
 .slide{
   position:absolute;inset:0;
   display:flex;flex-direction:column;justify-content:flex-start;
@@ -150,9 +156,54 @@ kbd{
 
 /* Every slide starts its header at the same height, and the body follows
    immediately beneath it. Any leftover space collects at the bottom of the
-   slide rather than being scattered, so the gap under the content looks the
-   same from one slide to the next. */
+   slide rather than being scattered, so the gap under the content looks
+   the same from one slide to the next. */
 .slide > .foot{margin-top:var(--space-11)}
+
+/* The main body block of a slide is the element that should absorb the
+   leftover canvas height, so a slide with a short body ends flush with the
+   bottom margin instead of floating in the middle of the page. `.fill`
+   opts a block into this; everything else keeps its natural height. */
+.slide > .fill{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.slide > .fill > .cols,
+.slide > .fill > .flow,
+.slide > .fill > .shotfeature{flex:1 1 auto}
+/* A filling grid keeps its own display — the generic `.fill` rule above
+   would otherwise force it back to a flex column and undo the columns.
+   The rows stretch so the grid fills the canvas instead of leaving a
+   band of empty space above the summary cards. */
+.slide > .fill.flow6{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  grid-auto-rows:1fr;align-content:stretch;
+}
+.slide > .fill.flow6 .flow-step{justify-content:center}
+/* Inside a filling block, a stack of cards shares the height evenly
+   rather than each card sitting at its natural size with a gap after. */
+.slide > .fill .stack > .card{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center}
+.slide > .fill .stack > .stat{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center}
+/* A filling flow lets its steps grow to the available height, so a row of
+   six cards fills the page instead of leaving a band of empty canvas. */
+.slide > .fill.flow{align-items:stretch}
+.slide > .fill.flow .flow-step{display:flex;flex-direction:column;justify-content:center}
+/* The screenshot frame grows with the block, and the image inside it is
+   scaled to fit — so a taller frame shows more of the screen rather than
+   just more empty chrome. */
+.slide > .fill .shot{flex:1 1 auto}
+.slide > .fill .shot .viewport{flex:1 1 auto;height:auto;min-height:0}
+.slide > .fill .shot .viewport img{width:100%;height:auto;object-fit:contain;object-position:top center}
+/* The notes column beside a screenshot is capped so it can never push the
+   slide past the canvas — the screenshot beside it takes the slack.
+   `.shotfeature` also carries `.fill` so it absorbs the leftover canvas
+   height, and `.slide > .fill` would otherwise turn that block into a
+   flex column, stacking the notes under the screenshot. This rule keeps
+   the two-up grid on those slides. */
+.slide > .fill .col-side{max-height:100%;overflow:hidden}
+.slide > .fill.shotfeature{
+  display:grid;
+  grid-template-columns:1.9fr 1fr;
+  gap:var(--space-9);
+  align-items:start;
+}
 
 /* The two densest slides carry the same information as the rest but need
    a tighter rhythm to fit the canvas. Same grid, same margins left and
@@ -195,6 +246,7 @@ h2.title{
   color:var(--text-heading);letter-spacing:-.022em;max-width:26ch;
 }
 h2.title.wide{max-width:36ch}
+h2.title.xwide{max-width:44ch}
 .lede{
   font-size:var(--text-xl);color:var(--text-default);max-width:62ch;
   margin-top:var(--space-6);line-height:1.6;
@@ -254,6 +306,8 @@ h2.title.wide{max-width:36ch}
 }
 .badge.solid{background:var(--brand-primary);color:#fff;border-color:var(--brand-primary)}
 .badge.num{border-radius:50%}
+.badge.warn{background:var(--warning-bg);border-color:var(--warning-border);color:var(--warning-text)}
+.badge.bad{background:var(--danger-bg);border-color:var(--danger-border);color:var(--danger-text)}
 
 /* ---------- stat ---------- */
 .stat{background:var(--surface-card);border:1px solid var(--border-default);
@@ -275,7 +329,7 @@ h2.title.wide{max-width:36ch}
 .pill.teal{background:var(--brand-light-50);color:var(--brand-primary);border-color:var(--brand-border)}
 .pill.ok{background:var(--success-bg);color:var(--success-text);border-color:var(--success-border)}
 .pill.warn{background:var(--warning-bg);color:var(--warning-text);border-color:var(--warning-border)}
-.pill.info{background:var(--info-bg);color:var(--info-text);border-color:#bfdbfe}
+.pill.info{background:var(--info-bg);color:var(--info-text);border-color:var(--brand-border)}
 .pill.dg{background:var(--danger-bg);color:var(--text-strong);border-color:var(--danger-border)}
 .pill-row{display:flex;flex-wrap:wrap;gap:var(--space-3)}
 .arrow{color:var(--brand-border);font-size:var(--text-lg);font-weight:400}
@@ -299,6 +353,22 @@ h2.title.wide{max-width:36ch}
   font-size:var(--text-2xl);
 }
 
+/* Six moves don't fit in one row without becoming unreadably narrow, so
+   the journey is a 3x2 grid instead of a strip. Each step carries its own
+   verdict, so the failures are visible without reading the text. */
+.flow6{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-7)}
+.flow6 .flow-step{display:flex;flex-direction:column;justify-content:flex-start}
+/* A step that failed is marked in the same place the verdict appears in
+   the rest of the deck, so the two failures can be found at a glance. */
+.flow6 .flow-step.failed{background:var(--danger-bg);border-color:var(--danger-border)}
+.flow6 .flow-step.failed .n{color:var(--danger-text)}
+.flow6 .flow-step.passed{background:var(--brand-light-50);border-color:var(--brand-border)}
+/* A step that half-worked is neither a clean pass nor a clean failure —
+   it lands between the two, so it gets its own colour rather than being
+   rounded up to "worked". */
+.flow6 .flow-step.mixed{background:var(--warning-bg);border-color:var(--warning-border)}
+.flow6 .flow-step.mixed .n{color:var(--warning-text)}
+
 /* ---------- quote ---------- */
 .quote{
   border-left:3px solid var(--brand-primary);padding:var(--space-4) 0 var(--space-4) var(--space-8);
@@ -321,43 +391,391 @@ h2.title.wide{max-width:36ch}
 .nitem h4{font-size:var(--text-xl);font-weight:700;color:var(--text-heading);margin-bottom:4px;letter-spacing:-.01em}
 .nitem p{font-size:var(--text-md);color:var(--text-default);line-height:1.6}
 
-/* ---------- plain-language "ingredients" ---------- */
-.ingredients{display:flex;flex-wrap:wrap;gap:var(--space-3);margin-top:var(--space-6)}
-.ingredient{
-  display:inline-flex;align-items:center;gap:var(--space-3);
-  background:var(--surface-card);border:1px solid var(--border-default);
-  border-radius:var(--radius-pill);padding:var(--space-4) var(--space-6);
-  font-size:var(--text-sm);color:var(--text-strong);font-weight:600;
+/* ---------- journey timeline ----------
+   The AI-assisted story is a sequence of moves, so it is drawn as one:
+   a vertical spine with a step at each point. Each step names the tool
+   on one side and what came out of it on the other, so the reader can
+   see both the method and the result without a second slide. */
+.tline{display:flex;flex-direction:column;position:relative;padding-left:var(--space-11)}
+/* The spine runs through the centre of each marker. The marker is offset
+   back by the timeline's own padding so it lands on that spine. */
+.tline::before{
+  content:"";position:absolute;left:6px;top:12px;bottom:12px;width:2px;
+  background:linear-gradient(var(--brand-primary),var(--brand-border));border-radius:2px;
 }
-.ingredient .dot{width:7px;height:7px;border-radius:50%;background:var(--brand-primary);flex:none}
+.tstep{position:relative;padding-bottom:var(--space-8)}
+.tstep:last-child{padding-bottom:0}
+/* The marker is a small dot on the spine, sized to sit against the 10px
+   mono label rather than dwarfing it, and centred on the label's text
+   line so the two read as one row. */
+.tstep::before{
+  content:"";position:absolute;left:-27px;top:0;
+  width:12px;height:12px;border-radius:50%;
+  background:var(--surface-card);border:2.5px solid var(--brand-primary);
+}
+.tstep.bad::before{border-color:var(--danger-border)}
+.tstep .when{
+  display:block;padding-left:20px;line-height:1.2;
+  font-family:var(--font-mono);font-size:var(--text-3xs);font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--brand-primary);
+  margin-bottom:var(--space-2);
+}
+.tstep.bad .when{color:var(--danger-text)}
+.tstep h4{
+  font-size:var(--text-xl);font-weight:700;color:var(--text-heading);
+  letter-spacing:-.012em;margin-bottom:var(--space-2);
+}
+.tstep .tool{
+  display:inline-flex;align-items:center;gap:var(--space-2);
+  font-size:var(--text-2xs);font-weight:700;color:var(--text-strong);
+  background:var(--brand-light-50);border:1px solid var(--brand-border);
+  border-radius:var(--radius-pill);padding:2px 10px;margin-bottom:var(--space-4);
+}
+.tstep p{font-size:var(--text-md);color:var(--text-default);line-height:1.6}
+.tstep .out{
+  font-size:var(--text-sm);color:var(--text-strong);margin-top:var(--space-3);
+  padding-left:var(--space-5);border-left:2px solid var(--brand-border);
+}
+
+/* A lesson learned, pulled out from the story it came from. */
+.lesson{
+  background:var(--brand-light-50);border:1px solid var(--brand-border);
+  border-radius:var(--radius-lg);padding:var(--space-8) var(--space-9);
+}
+.lesson .lbl{
+  font-family:var(--font-mono);font-size:var(--text-3xs);font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--brand-primary);
+  margin-bottom:var(--space-4);display:block;
+}
+.lesson p{font-size:var(--text-lg);color:var(--text-strong);line-height:1.6}
+
+/* A short failure: what the tool produced, and what was done about it.
+   The "bad" side is deliberately quiet — it should read as history, not
+   as an attack on the tool. */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-8);align-items:stretch}
+.split > .half{border-radius:var(--radius-lg);padding:var(--space-8) var(--space-9)}
+.split .half.was{background:var(--surface-soft);border:1px solid var(--border-default)}
+.split .half.now{background:var(--brand-light-50);border:1px solid var(--brand-border)}
+.split .half .lbl{
+  font-family:var(--font-mono);font-size:var(--text-3xs);font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:var(--space-4);display:block;
+}
+.split .half.was .lbl{color:var(--text-muted)}
+.split .half.now .lbl{color:var(--brand-primary)}
+.split .half h4{font-size:var(--text-xl);font-weight:700;color:var(--text-heading);margin-bottom:var(--space-3)}
+.split .half p{font-size:var(--text-sm);color:var(--text-default);line-height:1.6}
+.split .half ul{list-style:none;display:flex;flex-direction:column;gap:var(--space-2);margin-top:var(--space-4)}
+.split .half li{font-size:var(--text-sm);color:var(--text-default);padding-left:var(--space-6);position:relative;line-height:1.55}
+.split .half li::before{
+  content:"";position:absolute;left:0;top:.55em;
+  width:5px;height:5px;border-radius:50%;background:var(--brand-primary);
+}
+.split .half.was li::before{background:var(--border-strong)}
+
+/* ---------- screenshot ----------
+   Real product screens, framed like a browser window so they read as
+   "this is the running app" rather than as a decorative image.
+   The chrome bar is drawn in CSS, not baked into the PNG, so it stays
+   crisp at any scale and matches the deck's own border tokens. */
+.shot{
+  background:var(--surface-card);border:1px solid var(--border-default);
+  border-radius:var(--radius-xl);overflow:hidden;
+  box-shadow:var(--elev-4);display:flex;flex-direction:column;
+}
+.shot-bar{
+  flex:none;display:flex;align-items:center;gap:var(--space-3);
+  padding:var(--space-4) var(--space-5);
+  background:var(--surface-soft);border-bottom:1px solid var(--border-default);
+}
+.shot-bar .dots{display:flex;gap:5px;flex:none}
+.shot-bar .dots i{width:8px;height:8px;border-radius:50%;background:var(--border-strong);display:block}
+.shot-bar .dots i:first-child{background:#fca5a5}
+.shot-bar .dots i:nth-child(2){background:#fcd34d}
+.shot-bar .dots i:nth-child(3){background:#86efac}
+.shot-bar .url{
+  flex:1;font-family:var(--font-mono);font-size:var(--text-3xs);
+  color:var(--text-muted);background:var(--surface-card);
+  border:1px solid var(--border-default);border-radius:var(--radius-pill);
+  padding:2px 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.shot img{display:block;width:100%;height:auto}
+/* Screens are captured at 1440x900 (2880x1800 @2x). The frame is wider
+   than the screen is tall, so the image is scaled to fill the width and
+   anchored to the top — the top of an app screen (header, nav, first
+   content) is the part worth showing, and the frame is sized so the
+   interesting region is what fills it. `contain` would letterbox the
+   screen into a small strip and waste most of the frame. */
+.shot .viewport{
+  background:var(--surface-soft);
+  height:330px;overflow:hidden;
+}
+.slide.dense .shot .viewport{height:330px}
+.shot .viewport img{
+  display:block;width:100%;height:auto;object-fit:cover;object-position:top center;
+}
+.shot-cap{
+  font-size:var(--text-2xs);color:var(--text-muted);
+  margin-top:var(--space-4);line-height:1.5;
+}
+.shot-cap b{color:var(--text-strong);font-weight:700}
+
+/* A screen shown next to a panel of notes. The panel keeps its own
+   height; the screen is allowed to be shorter and is pinned to the
+   top so both columns start on the same line. */
+.shotgrid{display:grid;gap:var(--space-10);align-items:start}
+.shotgrid .col-side{display:flex;flex-direction:column;gap:var(--space-6)}
+.shotgrid .col-side > .card{flex:0 0 auto}
+
+/* Two screens side by side — used when a slide shows two steps of
+   the same journey. */
+.shots2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-8);align-items:start}
+
+/* A single screen shown large, next to the notes about it. This is the
+   shape used for every screenshot slide: one screen, one argument.
+   The screen column is the wider one — the screenshot is the point. */
+.shotfeature{display:grid;grid-template-columns:1.9fr 1fr;gap:var(--space-9);align-items:start}
+
+/* A screenshot slide now carries the screen and nothing else — no header,
+   no caption, no notes. The image is the whole point of the slide, so it
+   is given the entire canvas and sized to fit inside it. */
+.slide.shotslide{padding:var(--space-7)}
+.slide.shotslide .shotwide{
+  display:flex;flex-direction:column;height:100%;min-height:0;
+}
+.slide.shotslide .shotwide > div:first-of-type{
+  flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+}
+.slide.shotslide .shotwide .shot{
+  width:100%;flex:1 1 auto;min-height:0;
+  display:flex;flex-direction:column;
+}
+/* The viewport takes whatever height is left, so the screen grows to fill
+   the slide instead of being capped and cropped. */
+.slide.shotslide .shotwide .viewport{
+  flex:1 1 auto;height:auto;min-height:0;overflow:hidden;
+}
+/* The captured screens are 16:10, and the frame here is taller than that.
+   Fitting the whole screen would leave a grey gutter either side, so the
+   image is scaled to fill the width and cropped top-down instead — the
+   content stays large and nothing meaningful is lost. */
+.slide.shotslide .shotwide .viewport img{
+  width:100%;height:100%;object-fit:cover;object-position:50% 0%;
+}
+/* The branches screen carries a deactivated row at the very bottom of the
+   table. A top-anchored crop of that screen cuts the row off entirely, so
+   this one frame is nudged down to bring the whole table into view. */
+.slide.shotslide .shotwide .viewport img.crop-lower{
+  object-position:50% 30%;
+}
 
 /* ---------- cover ----------
    The cover and the closing slide use the same top-anchored grid as every
    other slide, so the deck reads as one continuous document instead of
    two different layouts. */
-.cover{justify-content:flex-start;padding:150px 140px 64px}
-.cover-logo{width:76px;height:76px;margin-bottom:var(--space-9)}
+.cover{justify-content:flex-start;padding:130px 140px 64px}
+.cover-logo{width:70px;height:70px;margin-bottom:var(--space-8)}
 .cover h1{
-  font-size:86px;font-weight:700;letter-spacing:-.04em;
-  color:var(--text-heading);line-height:1;
+  font-size:82px;font-weight:700;letter-spacing:-.038em;
+  color:var(--text-heading);line-height:1.02;max-width:20ch;
 }
 .cover .tag{
-  font-size:26px;color:var(--brand-primary);font-weight:600;
-  margin-top:var(--space-7);letter-spacing:-.01em;
+  font-size:28px;color:var(--brand-primary);font-weight:600;
+  margin-top:var(--space-7);letter-spacing:-.01em;max-width:44ch;line-height:1.3;
 }
 .cover .sub{
-  font-size:var(--text-xl);color:var(--text-default);margin-top:var(--space-6);max-width:56ch;
+  font-size:var(--text-2xl);color:var(--text-default);margin-top:var(--space-6);max-width:66ch;line-height:1.5;
 }
 .cover-rule{
   width:56px;height:3px;background:var(--brand-primary);border-radius:3px;
-  margin:var(--space-9) 0;
+  margin:var(--space-8) 0;
 }
 .cover-meta{
   display:flex;gap:var(--space-11);flex-wrap:wrap;font-size:var(--text-sm);color:var(--text-muted);
-  margin-top:var(--space-10);padding-top:var(--space-8);
+  margin-top:var(--space-9);padding-top:var(--space-7);
   border-top:1px solid var(--border-default);
 }
 .cover-meta b{display:block;color:var(--text-heading);font-weight:700;font-size:var(--text-lg);margin-bottom:2px}
+/* A short closing line that hands the deck over to the next slide without
+   previewing it. */
+.cover-note{
+  margin-top:var(--space-10);padding-left:var(--space-7);
+  border-left:3px solid var(--brand-border);
+  font-size:var(--text-lg);color:var(--text-muted);max-width:60ch;line-height:1.55;
+}
+
+/* The cover is a two-column split: the title and the account of the
+   project on the left, and the product itself on the right — a desktop
+   browser drawn in the app's own design language, so the reader sees
+   what was built before hearing about it. */
+.cover-split{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-11);align-items:center}
+.cover-side{display:flex;flex-direction:column;gap:var(--space-6)}
+.cover-cap{
+  font-size:var(--text-sm);color:var(--text-muted);line-height:1.5;
+  max-width:62ch;
+}
+
+/* ---------- device mockups ----------
+   The app's own tokens, shrunk. These are not screenshots — they are
+   re-built from the same colours, spacing and type as the real screens,
+   so the cover shows the design system rather than a picture of it.
+   The app keeps its own teal here, so the mockups read as the product
+   and not as more deck. */
+.cover-devices{
+  --app-primary:#0f766e;
+  --app-light-50:#f0fdfa;
+  --app-border:#99f6e4;
+}
+/* The browser is the hero of the right-hand column. There is no laptop
+   frame and almost no border — the shadow alone lifts it off the page,
+   so the edge stays a hairline and the object still reads as separate. */
+.cover-devices .dev-desktop{
+  box-shadow:
+    0 30px 64px rgba(16,22,19,.18),
+    0 10px 24px rgba(16,22,19,.10),
+    0 2px 4px rgba(16,22,19,.08);
+}
+
+/* Desktop browser.
+   The browser is a fixed frame: the chrome stays put and the page below
+   it clips, so the mockup reads as a window onto the app rather than a
+   page that happens to be short. */
+.dev-desktop{
+  width:100%;height:396px;
+  display:flex;flex-direction:column;
+  background:var(--surface-card);
+  border:0.5px solid var(--border-default);
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+}
+.dev-bar{
+  display:flex;align-items:center;gap:var(--space-5);flex:none;
+  padding:var(--space-4) var(--space-5);
+  background:var(--surface-soft);border-bottom:0.5px solid var(--border-default);
+}
+.dev-dots{display:flex;gap:5px}
+.dev-dots i{width:7px;height:7px;border-radius:50%;background:var(--border-strong)}
+.dev-url{
+  flex:1 1 auto;text-align:center;font-family:var(--font-mono);
+  font-size:9px;color:var(--text-muted);
+  background:var(--surface-card);border:0.5px solid var(--border-default);
+  border-radius:var(--radius-pill);padding:2px 10px;
+}
+.dev-screen{
+  background:var(--surface-page);font-size:9px;line-height:1.4;
+  flex:1 1 auto;min-height:0;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.dev-screen .app-nav,.dev-screen .app-steps{flex:none}
+/* The page body is the part that scrolls inside the window. */
+.dev-screen .app-body{flex:1 1 auto;min-height:0;overflow:hidden}
+/* The page fills the window: the doctor list stretches into whatever
+   height is left, so the frame never ends in a band of empty grey. */
+.dev-screen .app-main{display:flex;flex-direction:column;min-height:0}
+.dev-screen .app-cards{flex:1 1 auto;min-height:0;grid-auto-rows:1fr}
+
+/* The app chrome inside the mockup */
+.app-nav{
+  display:flex;align-items:center;gap:var(--space-6);
+  padding:var(--space-5) var(--space-6);
+  background:var(--surface-card);border-bottom:0.5px solid var(--border-default);
+}
+.app-brand{display:flex;align-items:center;gap:5px}
+.app-brand svg{width:16px;height:16px;flex:none}
+.app-brand b{font-size:11px;color:var(--app-primary);letter-spacing:-.01em}
+.app-role{
+  font-family:var(--font-mono);font-size:7px;font-weight:700;letter-spacing:.08em;
+  color:var(--app-primary);background:var(--app-light-50);
+  border:0.5px solid var(--app-border);border-radius:var(--radius-pill);padding:1px 6px;
+}
+.app-links{margin-left:auto;display:flex;gap:var(--space-6);color:var(--text-muted)}
+.app-links .on{color:var(--app-primary);font-weight:700;border-bottom:1.5px solid var(--app-primary);padding-bottom:2px}
+.app-cta{
+  background:var(--app-primary);color:#fff;font-weight:700;font-size:9px;
+  padding:4px 10px;border-radius:var(--radius-sm);
+}
+/* The five-step booking progress */
+.app-steps{
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap;
+  padding:var(--space-4) var(--space-6);
+  background:var(--surface-card);border-bottom:0.5px solid var(--border-default);
+}
+.app-steps i{color:var(--border-strong);font-style:normal}
+.app-steps .s{
+  display:inline-flex;align-items:center;gap:4px;
+  border:0.5px solid var(--border-default);border-radius:var(--radius-sm);
+  padding:2px 7px;color:var(--text-muted);font-size:8.5px;white-space:nowrap;
+}
+.app-steps .s b{
+  width:12px;height:12px;border-radius:50%;background:var(--neutral-bg);
+  color:var(--text-muted);font-size:7.5px;display:grid;place-items:center;
+}
+.app-steps .s.on{background:var(--app-primary);border-color:var(--app-primary);color:#fff}
+.app-steps .s.on b{background:rgba(255,255,255,.25);color:#fff}
+
+.app-body{display:flex;gap:var(--space-6);padding:var(--space-6);align-items:stretch}
+.app-main{flex:1 1 auto;min-width:0}
+.app-aside{
+  flex:none;width:158px;background:var(--surface-soft);
+  border-left:0.5px solid var(--border-default);padding:var(--space-6);
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
+/* The availability sits at the foot of the sidebar, so the column reads
+   top-to-bottom instead of trailing off into the middle. */
+.app-aside .app-slots{margin-top:auto}
+.app-crumb{color:var(--app-primary);font-size:9px;margin-bottom:var(--space-4)}
+.app-main h5{margin:0 0 3px;font-size:15px;color:var(--text-heading);letter-spacing:-.015em}
+.app-lede{margin:0 0 var(--space-6);color:var(--text-default);font-size:9.5px}
+.app-rowhead{
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin-bottom:var(--space-4);color:var(--text-heading);font-size:11px;font-weight:700;
+}
+.app-rowhead em{font-style:normal;color:var(--text-muted);font-weight:400;font-size:9px}
+.app-cards{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+.app-doc{
+  display:flex;align-items:flex-start;gap:var(--space-4);
+  background:var(--surface-card);border:0.5px solid var(--border-default);
+  border-radius:var(--radius-md);padding:var(--space-4);
+  min-width:0;
+}
+/* The text column is the one that must shrink — the avatar and the pill
+   keep their size, but the name and the meta line wrap inside the card
+   instead of pushing past its border. */
+.app-doc > div{min-width:0;flex:1 1 auto}
+.app-doc.sel{border-color:var(--app-border);background:var(--app-light-50)}
+.app-doc .av{
+  flex:none;width:22px;height:22px;border-radius:var(--radius-sm);
+  background:var(--app-light-50);border:0.5px solid var(--app-border);
+  color:var(--app-primary);font-weight:700;font-size:8.5px;
+  display:grid;place-items:center;
+}
+.app-doc b{display:block;color:var(--text-heading);font-size:10px}
+.app-doc .sp{
+  display:inline-block;margin:2px 5px 0 0;font-size:8px;font-weight:600;
+  color:var(--app-primary);background:var(--app-light-50);
+  border:0.5px solid var(--app-border);border-radius:var(--radius-pill);padding:0 5px;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.app-doc .mut{display:block;color:var(--text-muted);font-size:8px}
+.app-aside h6{
+  margin:0 0 var(--space-3);font-family:var(--font-mono);font-size:8px;
+  font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);
+}
+.app-aside h6:not(:first-child){margin-top:var(--space-6)}
+.app-aside ul{margin:0;padding-left:var(--space-5);color:var(--text-default)}
+.app-aside li{margin-bottom:2px}
+/* The available times, as the patient sees them — small pills, one of
+   them already chosen. */
+.app-slots{display:flex;flex-wrap:wrap;gap:4px}
+.app-slots .slot{
+  font-family:var(--font-mono);font-size:8px;font-weight:600;
+  color:var(--text-default);background:var(--surface-card);
+  border:0.5px solid var(--border-default);border-radius:var(--radius-sm);
+  padding:2px 6px;
+}
+.app-slots .slot.on{
+  color:#fff;background:var(--app-primary);border-color:var(--app-primary);
+}
 
 /* ---------- overview mode ----------
    Each slide is shown as a true miniature of itself: it still lays out at
@@ -385,7 +803,7 @@ body.overview .slide{
   margin-right:calc(1600px * (var(--thumb) - 1));
   margin-bottom:calc(900px * (var(--thumb) - 1));
 }
-body.overview .slide.cover{padding:150px 140px 64px}
+body.overview .slide.cover{padding:130px 140px 64px}
 body.overview .slide.dense{padding:96px 92px 56px}
 body.overview .slide:hover{border-color:var(--brand-primary);box-shadow:var(--elev-3)}
 body.overview .slide.is-active{border-color:var(--brand-primary);box-shadow:var(--elev-3)}
@@ -450,22 +868,22 @@ body.overview .progress{position:fixed;top:0;left:0;height:3px;width:0!important
 <div class="topbar">
   <div class="brandmark">
     <svg viewBox="0 0 52 52" aria-label="MediSlot">
-      <rect x="6" y="10" width="40" height="36" rx="7" fill="none" stroke="#0f766e" stroke-width="2.4"/>
-      <line x1="6" y1="20" x2="46" y2="20" stroke="#0f766e" stroke-width="2.4"/>
-      <line x1="18" y1="6" x2="18" y2="14" stroke="#0f766e" stroke-width="2.4" stroke-linecap="round"/>
-      <line x1="34" y1="6" x2="34" y2="14" stroke="#0f766e" stroke-width="2.4" stroke-linecap="round"/>
-      <circle cx="13" cy="25.5" r="1.4" fill="#0f766e"/>
-      <circle cx="20" cy="25.5" r="1.4" fill="#0f766e"/>
-      <circle cx="27" cy="25.5" r="1.4" fill="#0f766e"/>
-      <circle cx="34" cy="25.5" r="1.4" fill="#0f766e"/>
-      <circle cx="41" cy="25.5" r="1.4" fill="#0f766e"/>
-      <circle cx="13" cy="33" r="2.4" fill="#0f766e"/>
-      <rect x="32" y="29" width="10" height="3.2" rx="1.2" fill="#0f766e"/>
-      <rect x="35.4" y="25.6" width="3.2" height="10" rx="1.2" fill="#0f766e"/>
-      <circle cx="20" cy="40.5" r="1.4" fill="#0f766e"/>
-      <circle cx="27" cy="40.5" r="1.4" fill="#0f766e"/>
+      <rect x="6" y="10" width="40" height="36" rx="7" fill="none" stroke="#14532d" stroke-width="2.4"/>
+      <line x1="6" y1="20" x2="46" y2="20" stroke="#14532d" stroke-width="2.4"/>
+      <line x1="18" y1="6" x2="18" y2="14" stroke="#14532d" stroke-width="2.4" stroke-linecap="round"/>
+      <line x1="34" y1="6" x2="34" y2="14" stroke="#14532d" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="13" cy="25.5" r="1.4" fill="#14532d"/>
+      <circle cx="20" cy="25.5" r="1.4" fill="#14532d"/>
+      <circle cx="27" cy="25.5" r="1.4" fill="#14532d"/>
+      <circle cx="34" cy="25.5" r="1.4" fill="#14532d"/>
+      <circle cx="41" cy="25.5" r="1.4" fill="#14532d"/>
+      <circle cx="13" cy="33" r="2.4" fill="#14532d"/>
+      <rect x="32" y="29" width="10" height="3.2" rx="1.2" fill="#14532d"/>
+      <rect x="35.4" y="25.6" width="3.2" height="10" rx="1.2" fill="#14532d"/>
+      <circle cx="20" cy="40.5" r="1.4" fill="#14532d"/>
+      <circle cx="27" cy="40.5" r="1.4" fill="#14532d"/>
     </svg>
-    <span>MediSlot</span>
+    <span>MediSlot · AI-Native Journey</span>
   </div>
 </div>
 
@@ -473,630 +891,924 @@ body.overview .progress{position:fixed;top:0;left:0;height:3px;width:0!important
 
 <!-- ============ 1. COVER ============ -->
 <section class="slide cover is-active">
-  <div class="rise">
-    <svg class="cover-logo" viewBox="0 0 52 52" aria-label="MediSlot">
-      <rect x="6" y="10" width="40" height="36" rx="7" fill="none" stroke="#0f766e" stroke-width="2.4"/>
-      <line x1="6" y1="20" x2="46" y2="20" stroke="#0f766e" stroke-width="2.4"/>
-      <line x1="18" y1="6" x2="18" y2="14" stroke="#0f766e" stroke-width="2.4" stroke-linecap="round"/>
-      <line x1="34" y1="6" x2="34" y2="14" stroke="#0f766e" stroke-width="2.4" stroke-linecap="round"/>
-      <circle cx="13" cy="25.5" r="1.4" fill="#0f766e"/>
-      <circle cx="20" cy="25.5" r="1.4" fill="#0f766e"/>
-      <circle cx="27" cy="25.5" r="1.4" fill="#0f766e"/>
-      <circle cx="34" cy="25.5" r="1.4" fill="#0f766e"/>
-      <circle cx="41" cy="25.5" r="1.4" fill="#0f766e"/>
-      <circle cx="13" cy="33" r="2.4" fill="#0f766e"/>
-      <rect x="32" y="29" width="10" height="3.2" rx="1.2" fill="#0f766e"/>
-      <rect x="35.4" y="25.6" width="3.2" height="10" rx="1.2" fill="#0f766e"/>
-      <circle cx="20" cy="40.5" r="1.4" fill="#0f766e"/>
-      <circle cx="27" cy="40.5" r="1.4" fill="#0f766e"/>
-    </svg>
-  </div>
-  <div class="rise">
-    <h1>MediSlot</h1>
-    <div class="cover-rule"></div>
-    <div class="tag">Your appointment is real. It's yours. You can see it any time.</div>
-    <p class="sub">
-      Clinic scheduling that replaces the phone call and the paper diary —
-      patients book by phone, reception runs the day, doctors resolve conflicts,
-      administrators own the clinic.
-    </p>
-  </div>
-  <div class="rise">
-    <div class="cover-meta">
-      <div><b>63</b>features shipped</div>
-      <div><b>73</b>days from scratch</div>
-      <div><b>65</b>written specs</div>
-      <div><b>AI</b>built, human-approved</div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ 2. PROBLEM ============ -->
-<section class="slide">
-  <div class="headblock rise">
-    <div class="kicker">The problem</div>
-    <h2 class="title wide">Two people, one missing source of truth</h2>
-    <p class="lede">
-      Right now a patient phones a clinic and a receptionist writes it in a paper diary.
-      Afterwards, neither side can say for certain what is actually booked.
-    </p>
-  </div>
-
-  <div class="cols c2 rise">
-    <div class="card">
-      <div class="card-head"><div class="badge">P</div><h3 style="margin:0">The patient</h3></div>
-      <p style="font-style:italic;color:var(--text-strong)">"I think I have an appointment, somewhere."</p>
-      <ul>
-        <li>Finds a number on Google or Maps, then calls and waits</li>
-        <li>Describes their problem to a stranger</li>
-        <li>Can't confirm, move or cancel it afterwards</li>
-        <li>Pays in lost time and day-of worry</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="badge">C</div><h3 style="margin:0">The clinic</h3></div>
-      <p style="font-style:italic;color:var(--text-strong)">"We think we have 30 appointments today, across three diaries."</p>
-      <ul>
-        <li>Paper diaries and scribbled notes</li>
-        <li>"The doctor said 3 but reception wrote 4"</li>
-        <li>Double bookings, no-shows, and no way to see them coming</li>
-        <li>Pays in staff time and quiet distrust</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="foot">Both costs are felt rather than measured — and neither has a dashboard.</div>
-</section>
-
-<!-- ============ 3. PROMISE ============ -->
-<section class="slide">
-  <div class="headblock rise">
-    <div class="kicker">The promise</div>
-    <h2 class="title wide">Easy doctor appointment with accuracy.</h2>
-  </div>
-
-  <div class="cols c2 rise">
-    <div class="card teal">
-      <h4>Easy</h4>
-      <p>
-        Booking is faster and less effort than the phone call it replaces.
-        No account, no password — just a phone number and a one-time code.
-      </p>
-    </div>
-    <div class="card teal">
-      <h4>Accurate</h4>
-      <p>
-        The appointment you were given is real, it holds, and it cannot move
-        without you being told.
-      </p>
-    </div>
-  </div>
-
-  <div class="rise" style="margin-top:var(--space-10)">
-    <div class="quote">
-      When easy and accuracy collide, accuracy wins — but only when the user is told why.
-      <div class="who">The rule the whole product is built around</div>
-    </div>
-  </div>
-
-  <div class="rise" style="margin-top:var(--space-10)">
-    <div class="cols c2">
-      <div>
-        <div class="kicker" style="margin-bottom:var(--space-4)">For patients</div>
-        <p class="body" style="margin:0">"Your appointment is real. It's yours. You can see it any time."</p>
+  <div class="cover-split">
+    <div>
+      <div class="rise">
+        <svg class="cover-logo" viewBox="0 0 52 52" aria-label="MediSlot">
+          <rect x="6" y="10" width="40" height="36" rx="7" fill="none" stroke="#14532d" stroke-width="2.4"/>
+          <line x1="6" y1="20" x2="46" y2="20" stroke="#14532d" stroke-width="2.4"/>
+          <line x1="18" y1="6" x2="18" y2="14" stroke="#14532d" stroke-width="2.4" stroke-linecap="round"/>
+          <line x1="34" y1="6" x2="34" y2="14" stroke="#14532d" stroke-width="2.4" stroke-linecap="round"/>
+          <circle cx="13" cy="25.5" r="1.4" fill="#14532d"/>
+          <circle cx="20" cy="25.5" r="1.4" fill="#14532d"/>
+          <circle cx="27" cy="25.5" r="1.4" fill="#14532d"/>
+          <circle cx="34" cy="25.5" r="1.4" fill="#14532d"/>
+          <circle cx="41" cy="25.5" r="1.4" fill="#14532d"/>
+          <circle cx="13" cy="33" r="2.4" fill="#14532d"/>
+          <rect x="32" y="29" width="10" height="3.2" rx="1.2" fill="#14532d"/>
+          <rect x="35.4" y="25.6" width="3.2" height="10" rx="1.2" fill="#14532d"/>
+          <circle cx="20" cy="40.5" r="1.4" fill="#14532d"/>
+          <circle cx="27" cy="40.5" r="1.4" fill="#14532d"/>
+        </svg>
       </div>
-      <div>
-        <div class="kicker" style="margin-bottom:var(--space-4)">For clinics</div>
-        <p class="body" style="margin:0">"What you see is what's true. Across every branch, every doctor, every slot."</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ 4. FOUR ROLES ============ -->
-<section class="slide">
-  <div class="headblock rise">
-    <div class="kicker">The product</div>
-    <h2 class="title wide">One system, four roles, one truth</h2>
-    <p class="lede">
-      Everyone sees the surface they need — and only that surface.
-      Access is decided by the system itself, not by hiding buttons.
-    </p>
-  </div>
-
-  <div class="cols c4 rise">
-    <div class="card">
-      <div class="card-head"><div class="badge">01</div></div>
-      <h3>Patient</h3>
-      <ul>
-        <li>Books in five steps, by phone</li>
-        <li>Sees, moves or cancels their own appointments</li>
-        <li>Sets up repeat visits</li>
-        <li>No account, no password</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="badge">02</div></div>
-      <h3>Doctor</h3>
-      <ul>
-        <li>Sees their own day</li>
-        <li>Sets their own working hours</li>
-        <li>Blocks time off, with a preview first</li>
-        <li>Resolves clashes one at a time</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="badge">03</div></div>
-      <h3>Receptionist</h3>
-      <ul>
-        <li>Runs the branch day, hour by hour</li>
-        <li>Books walk-ins on a patient's behalf</li>
-        <li>Sees what's open, and what's not</li>
-        <li>Sees phone numbers, not patient names</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="badge">04</div></div>
-      <h3>Administrator</h3>
-      <ul>
-        <li>Manages branches and opening hours</li>
-        <li>Manages doctors and specialties</li>
-        <li>Manages appointment types</li>
-        <li>Sees clinic-wide numbers</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="foot">
-    Administrators cannot open individual appointments at all — the system refuses and explains why.
-  </div>
-</section>
-
-<!-- ============ 5. BOOKING ============ -->
-<section class="slide">
-  <div class="headblock rise">
-    <div class="kicker">Core journey</div>
-    <h2 class="title wide">Booking, in five steps, without an account</h2>
-    <p class="lede">
-      Deliberately short. Your phone number is your identity — a one-time code and you're in.
-    </p>
-  </div>
-
-  <div class="flow rise">
-    <div class="flow-step">
-      <span class="n">STEP 01</span>
-      <h4>Pick a doctor</h4>
-      <p>Search by name or specialty.</p>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step">
-      <span class="n">STEP 02</span>
-      <h4>Branch &amp; visit type</h4>
-      <p>Which location, and what kind of appointment.</p>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step">
-      <span class="n">STEP 03</span>
-      <h4>Date &amp; time</h4>
-      <p>Only times that are genuinely free are shown.</p>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step">
-      <span class="n">STEP 04</span>
-      <h4>Your details</h4>
-      <p>One phone number. Returning patients are recognised.</p>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step">
-      <span class="n">STEP 05</span>
-      <h4>Confirmation</h4>
-      <p>A receipt the patient owns, and can act on.</p>
-    </div>
-  </div>
-
-  <div class="cols c3 rise" style="margin-top:var(--space-11)">
-    <div class="card flat">
-      <h4>Self-service afterwards</h4>
-      <p>Cancel from the appointment list. Reschedule keeps the same doctor and lets the time change.</p>
-    </div>
-    <div class="card flat">
-      <h4>Links from reception</h4>
-      <p>Reception can send a patient a direct link to cancel or move an appointment that needs attention.</p>
-    </div>
-    <div class="card flat">
-      <h4>Repeat visits</h4>
-      <p>Multi-visit bookings are shown in full before confirming, and can be cancelled as a series.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ============ 6. THE KEY IDEA ============ -->
-<section class="slide">
-  <div class="headblock rise">
-    <div class="kicker">What makes it trustworthy</div>
-    <h2 class="title wide">Five promises the system keeps for you</h2>
-    <p class="lede">
-      These are built into how the product works, not into how it looks.
-      A competitor shipping a prettier booking screen would have to rebuild the
-      system underneath to match them.
-    </p>
-  </div>
-
-  <div class="cols c-2-1 rise">
-    <div class="nlist">
-      <div class="nitem">
-        <div class="idx">1</div>
-        <div>
-          <h4>Two patients can never hold the same slot</h4>
-          <p>The system guarantees it, not the app displaying it.</p>
-        </div>
-      </div>
-      <div class="nitem">
-        <div class="idx">2</div>
-        <div>
-          <h4>You can see your appointments without calling</h4>
-          <p>You're not dependent on the clinic to tell you the truth.</p>
-        </div>
-      </div>
-      <div class="nitem">
-        <div class="idx">3</div>
-        <div>
-          <h4>Changes that would break a booking are refused</h4>
-          <p>A doctor can't shrink their hours in a way that invalidates someone's appointment.</p>
-        </div>
-      </div>
-      <div class="nitem">
-        <div class="idx">4</div>
-        <div>
-          <h4>Opening-hours changes are saved, but flagged</h4>
-          <p>Affected appointments are surfaced for the doctor to resolve — never quietly cancelled.</p>
-        </div>
-      </div>
-      <div class="nitem">
-        <div class="idx">5</div>
-        <div>
-          <h4>Every change is recorded</h4>
-          <p>Who changed it, and when. The record can't be edited or deleted afterwards.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="stack">
-      <div class="card teal">
-        <h4>The rule behind all five</h4>
-        <p style="color:var(--text-strong)">
-          Never silently invalidate an appointment. If the truth changed, the person
-          affected is told — by the doctor, or by reception, deliberately.
+      <div class="rise">
+        <h1>AI-Native Software Development</h1>
+        <div class="cover-rule"></div>
+        <div class="tag">My journey building MediSlot — what worked, and what did not.</div>
+        <p class="sub">
+          I am a software quality analyst, not a developer. This is the honest
+          account of shipping a working clinic scheduling system with AI tools —
+          the two things that went exactly right, and the two that silently failed.
         </p>
       </div>
-      <div class="card">
-        <h4>Why this is the moat</h4>
-        <p>
-          A phone-booking competitor can match our interface in a sprint.
-          They cannot match the guarantees — they'd have to rebuild the engine,
-          the rules and the record-keeping underneath.
+      <div class="rise">
+        <div class="cover-meta">
+          <div><b>49</b>web screens shipped</div>
+          <div><b>429</b>API test cases</div>
+          <div><b>71</b>written specs</div>
+          <div><b>1</b>human reviewer</div>
+        </div>
+      </div>
+      <div class="rise">
+        <p class="cover-note">
+          Every failure in this deck was silent — the tool looked like it was
+          working the whole time. The results are on the next slide.
         </p>
       </div>
     </div>
+
+    <div class="rise cover-side">
+      <div class="cover-devices">
+        <!-- Desktop browser -->
+        <div class="dev dev-desktop">
+          <div class="dev-bar">
+            <div class="dev-dots"><i></i><i></i><i></i></div>
+            <div class="dev-url">medislot.app/find-a-doctor</div>
+          </div>
+          <div class="dev-screen">
+            <div class="app-nav">
+              <div class="app-brand">
+                <svg viewBox="0 0 52 52" aria-hidden="true">
+                  <rect x="6" y="10" width="40" height="36" rx="7" fill="none" stroke="#0f766e" stroke-width="2.6"/>
+                  <line x1="6" y1="20" x2="46" y2="20" stroke="#0f766e" stroke-width="2.6"/>
+                  <line x1="18" y1="6" x2="18" y2="14" stroke="#0f766e" stroke-width="2.6" stroke-linecap="round"/>
+                  <line x1="34" y1="6" x2="34" y2="14" stroke="#0f766e" stroke-width="2.6" stroke-linecap="round"/>
+                  <circle cx="13" cy="25.5" r="1.6" fill="#0f766e"/>
+                  <circle cx="20" cy="25.5" r="1.6" fill="#0f766e"/>
+                  <circle cx="27" cy="25.5" r="1.6" fill="#0f766e"/>
+                  <circle cx="34" cy="25.5" r="1.6" fill="#0f766e"/>
+                  <circle cx="41" cy="25.5" r="1.6" fill="#0f766e"/>
+                  <circle cx="13" cy="33" r="2.6" fill="#0f766e"/>
+                  <rect x="32" y="29" width="10" height="3.4" rx="1.4" fill="#0f766e"/>
+                  <rect x="35.3" y="25.6" width="3.4" height="10" rx="1.4" fill="#0f766e"/>
+                  <circle cx="20" cy="40.5" r="1.6" fill="#0f766e"/>
+                  <circle cx="27" cy="40.5" r="1.6" fill="#0f766e"/>
+                </svg>
+                <b>MediSlot</b>
+                <span class="app-role">PATIENT</span>
+              </div>
+              <div class="app-links"><span class="on">Find a doctor</span><span>My appointments</span></div>
+              <div class="app-cta">Sign out</div>
+            </div>
+            <div class="app-steps">
+              <span class="s on"><b>1</b> Doctor</span><i>›</i>
+              <span class="s"><b>2</b> Branch &amp; type</span><i>›</i>
+              <span class="s"><b>3</b> Date &amp; time</span><i>›</i>
+              <span class="s"><b>4</b> Your details</span><i>›</i>
+              <span class="s"><b>5</b> Confirm</span>
+            </div>
+            <div class="app-body">
+              <div class="app-main">
+                <div class="app-crumb">← Branches / Help</div>
+                <h5>Find a doctor</h5>
+                <p class="app-lede">Pick the doctor you'd like to see.</p>
+                <div class="app-rowhead"><span>Available doctors</span><em>5 doctors on staff</em></div>
+                <div class="app-cards">
+                  <div class="app-doc">
+                    <span class="av">DS</span>
+                    <div><b>Dr. East Support</b>
+                      <span class="sp">Internal Medicine</span>
+                      <span class="mut">1 branch · Next: Tomorrow</span>
+                    </div>
+                  </div>
+                  <div class="app-doc">
+                    <span class="av">DL</span>
+                    <div><b>Dr. West Lead</b>
+                      <span class="sp">Family Medicine</span>
+                      <span class="mut">1 branch · Next: in 5 days</span>
+                    </div>
+                  </div>
+                  <div class="app-doc sel">
+                    <span class="av">DH</span>
+                    <div><b>Dr. Yara Haddad</b>
+                      <span class="sp">Cardiology</span>
+                      <span class="mut">1 branch · Next: in 4 days</span>
+                    </div>
+                  </div>
+                  <div class="app-doc">
+                    <span class="av">DR</span>
+                    <div><b>Dr. Zoya Rahman</b>
+                      <span class="sp">Neurology</span>
+                      <span class="mut">2 branches · Next: in 6 days</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="app-aside">
+                <h6>What you'll need</h6>
+                <ul>
+                  <li>The doctor's name</li>
+                  <li>The branch you want to visit</li>
+                  <li>The appointment type</li>
+                  <li>A date and time in the next 30 days</li>
+                </ul>
+                <h6>Good to know</h6>
+                <ul>
+                  <li>Same-day booking isn't available</li>
+                  <li>Slots refresh in real time</li>
+                </ul>
+                <h6>Next available</h6>
+                <div class="app-slots">
+                  <span class="slot on">09:30</span>
+                  <span class="slot">11:00</span>
+                  <span class="slot">14:15</span>
+                  <span class="slot">16:45</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cover-cap">
+        MediSlot — clinic scheduling where the system guarantees the booking is
+        real. One shared truth, four roles: patient, doctor, receptionist,
+        administrator. Shown here: the patient's booking flow.
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- ============ 7. THE NUMBERS ============ -->
-<section class="slide">
-  <div class="headblock rise">
-    <div class="kicker">Where the project stands</div>
-    <h2 class="title wide">What actually exists today</h2>
-  </div>
-
-  <div class="cols c4 rise">
-    <div class="stat">
-      <div class="n">63</div>
-      <div class="l">Features shipped</div>
-      <div class="s">Across 8 major areas</div>
-    </div>
-    <div class="stat">
-      <div class="n">73</div>
-      <div class="l">Days from scratch</div>
-      <div class="s">18 Aug → 30 Oct 2026</div>
-    </div>
-    <div class="stat">
-      <div class="n">473</div>
-      <div class="l">Automated tests</div>
-      <div class="s">429 run against a real database</div>
-    </div>
-    <div class="stat">
-      <div class="n">65</div>
-      <div class="l">Written specifications</div>
-      <div class="s">13,000+ lines of planning</div>
-    </div>
-  </div>
-
-  <div class="cols c4 rise" style="margin-top:var(--space-8)">
-    <div class="stat">
-      <div class="n">42</div>
-      <div class="l">Screen designs</div>
-      <div class="s">Every screen drawn before it was built</div>
-    </div>
-    <div class="stat">
-      <div class="n">144</div>
-      <div class="l">Changes shipped</div>
-      <div class="s">Small, reviewable steps</div>
-    </div>
-    <div class="stat">
-      <div class="n">60/63</div>
-      <div class="l">Features complete</div>
-      <div class="s">Three left, all scoped</div>
-    </div>
-    <div class="stat">
-      <div class="n">53</div>
-      <div class="l">Written requirements</div>
-      <div class="s">Plus 65 business rules and 20 user journeys</div>
-
-    </div>
-  </div>
-
-  <div class="rise" style="margin-top:var(--space-10)">
-    <div class="cols c2">
-      <div class="card flat">
-        <h4>Everything is checked automatically</h4>
-        <p>
-          Every push runs the same fixed set of checks — code quality, testing and
-          a full build — before anything can merge. No step can be skipped.
-        </p>
-      </div>
-      <div class="card flat">
-        <h4>Designed to be accessible</h4>
-        <p>
-          Colourblind-safe status markers, keyboard focus on every control,
-          large tap targets, and motion that respects the user's settings.
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ 8. HOW AI BUILT IT ============ -->
+<!-- ============ 2. THE WHOLE JOURNEY ============ -->
 <section class="slide dense">
   <div class="headblock rise">
-    <div class="kicker">How it was built</div>
-    <h2 class="title wide">AI-native development, in three named phases</h2>
+    <div class="kicker">The whole journey</div>
+    <h2 class="title wide">Six moves. Two of them failed.</h2>
     <p class="lede">
-      This wasn't "prompt it and see what happens." The work ran on a formal
-      AI-assisted development method — a written plan a person approves before
-      any code is written, built against that plan, then released and watched.
+      I started with a one-line project idea and ended with a working system.
+      The order mattered — each tool was introduced only after the previous
+      step had produced something I could check.
     </p>
   </div>
 
-  <div class="flow rise">
-    <div class="flow-step">
-      <span class="n">PHASE 01</span>
-      <h4>Inception</h4>
-      <p>Turn the intent into features, users, flows and the system picture — then agree the plan.</p>
+  <div class="flow6 rise fill">
+    <div class="flow-step passed">
+      <span class="n">01 · WORKED</span>
+      <h4>Interview</h4>
+      <p>ChatGPT asked me the questions and wrote the product brief.</p>
     </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step">
-      <span class="n">PHASE 02</span>
-      <h4>Construction</h4>
-      <p>Each piece is designed, built, tested and reviewed against its approved plan.</p>
+    <div class="flow-step passed">
+      <span class="n">02 · WORKED</span>
+      <h4>Define</h4>
+      <p>BMAD turned the brief into a PRD, rules, and 43 buildable stories.</p>
     </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step">
-      <span class="n">PHASE 03</span>
-      <h4>Operations</h4>
-      <p>Build, release through each environment, verify it, then monitor it.</p>
+    <div class="flow-step failed">
+      <span class="n">03 · FAILED</span>
+      <h4>Mock up</h4>
+      <p>BMAD-UI gave generic screens. I asked it to start from scratch.</p>
+    </div>
+    <div class="flow-step passed">
+      <span class="n">04 · WORKED</span>
+      <h4>Design</h4>
+      <p>Colour, then components, then layouts — then 5 variants of every screen.</p>
+    </div>
+    <div class="flow-step mixed">
+      <span class="n">05 · MIXED</span>
+      <h4>Build</h4>
+      <p>BMAD and AI-DLC together, story by story. Some features worked like magic; others needed a screenshot.</p>
+    </div>
+    <div class="flow-step failed">
+      <span class="n">06 · FAILED</span>
+      <h4>Verify</h4>
+      <p>AI tests passed on broken features. So I wrote my own test skill.</p>
     </div>
   </div>
 
-  <div class="cols c3 rise" style="margin-top:var(--space-11)">
+  <div class="cols c2 rise" style="margin-top:var(--space-10)">
     <div class="card teal">
-      <h4>AI does the work, a human signs off</h4>
-      <p>The AI proposes the plan and the build. People review and approve every decision — not as a rubber stamp at the end.</p>
+      <h4>What I learned early</h4>
+      <p>
+        ChatGPT gives its best results when you use it to <strong>summarise and
+        define the product goal and scope</strong> — not when you use it to
+        produce artefacts. The interview was the value; the brief was just
+        the receipt.
+      </p>
     </div>
     <div class="card">
-      <h4>Planning in a room</h4>
-      <p>Several agents work the plan together, collapsing planning that would normally take weeks into hours.</p>
+      <h4>What the failures taught me</h4>
+      <p>
+        Every failure happened where I gave the AI <strong>output</strong> to
+        fill in. Every one was fixed by giving it <strong>decisions</strong>
+        instead — the colour, the rule, the assertion, the screenshot of the
+        bug. The tool was never bad. My instructions were.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. THE STARTING POINT ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">Before any tool</div>
+    <h2 class="title wide">I didn't open an editor. I opened a conversation.</h2>
+    <p class="lede">
+      I am a software quality analyst, not a developer. My job is to check that
+      a system behaves — not to write one. So the first question wasn't
+      "how do I build this", it was "how do I get a system worth checking".
+    </p>
+  </div>
+
+  <div class="cols c2 rise">
+    <div class="card">
+      <div class="card-head"><div class="badge">A</div><h3 style="margin:0">What I actually knew</h3></div>
+      <ul>
+        <li>Multi-branch clinics book on paper and by phone</li>
+        <li>Double bookings and no-shows are normal, not exceptional</li>
+        <li>The rules of a clinic day are learnable by asking the right person</li>
+        <li>I could verify an outcome, but I could not evaluate an architecture</li>
+      </ul>
     </div>
     <div class="card">
-      <h4>Context that sticks</h4>
-      <p>A shared project memory means the next piece of work starts with everything already known, instead of from scratch.</p>
+      <div class="card-head"><div class="badge">B</div><h3 style="margin:0">What I did not know</h3></div>
+      <ul>
+        <li>How to scope a product so it doesn't sprawl</li>
+        <li>How to get a design that isn't generic</li>
+        <li>How to tell the AI to build the <em>right</em> thing rather than the <em>plausible</em> thing</li>
+        <li>How to test work that was written by something that never sleeps</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="rise" style="margin-top:var(--space-10)">
+    <div class="lesson">
+      <span class="lbl">The decision that shaped everything after</span>
+      <p>
+        I treated AI as the author and myself as the reviewer — and made sure
+        the reviewer role got stronger at every stage, not weaker. Every tool
+        I used later was chosen for how well it could be <em>checked</em>,
+        not for how fast it could produce output.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. STEP 01 — CHATGPT INTERVIEW ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">Step 01 — Discovery · Worked</div>
+    <h2 class="title wide">I let ChatGPT interview me</h2>
+    <p class="lede">
+      I didn't give it a prompt. I gave it permission to ask me questions.
+      It interviewed me about the clinic, the roles, the failure modes and the
+      promises — and wrote up a detailed product brief from the answers.
+    </p>
+  </div>
+
+  <div class="cols c-1-2 rise">
+    <div class="card teal">
+      <h4>What came out</h4>
+      <div class="stat" style="box-shadow:none;border-color:var(--brand-border);margin-top:var(--space-5)">
+        <div class="n">191</div>
+        <div class="l">Lines of product brief</div>
+        <div class="s">Written from my answers, not my prompt</div>
+      </div>
+      <p style="margin-top:var(--space-6)">
+        The brief opened with a two-word promise —
+        <strong style="color:var(--text-strong)">easy</strong> and
+        <strong style="color:var(--text-strong)">accuracy</strong> — and then
+        made each one carry a duty: easy must not cost accuracy, and accuracy
+        must never be silent.
+      </p>
+    </div>
+
+    <div class="tline">
+      <div class="tstep">
+        <span class="when">The interview</span>
+        <h4>It asked before it assumed</h4>
+        <span class="tool">ChatGPT</span>
+        <p>
+          Every assumption I had not made explicit got challenged. The
+          interview surfaced things I had never said out loud — that a patient
+          has no account, that the receptionist must never see a name, that the
+          doctor owns the resolution, not the system.
+        </p>
+      </div>
+      <div class="tstep">
+        <span class="when">The output</span>
+        <h4>A brief I could defend</h4>
+        <span class="tool">ChatGPT</span>
+        <p>
+          The before/after states for both audiences, the world being replaced,
+          and the operational rule underneath everything: if the truth changes,
+          the person affected is told.
+        </p>
+      </div>
     </div>
   </div>
 
   <div class="rise" style="margin-top:var(--space-9)">
-    <div class="cols c-1-2">
-      <div class="card flat">
-        <h4>How the work is broken down</h4>
-        <p>
-          A single intent becomes a set of features, and each feature becomes
-          a written plan with its own definition of done.
-        </p>
-        <div class="ingredients" style="margin-top:var(--space-6)">
-          <span class="ingredient"><span class="dot"></span>Intent</span>
-          <span class="ingredient"><span class="dot"></span>Feature</span>
-          <span class="ingredient"><span class="dot"></span>Task</span>
-        </div>
-      </div>
-      <div class="card flat">
-        <h4>Every feature leaves behind a written record</h4>
-        <p>
-          65 of them. Each one states what was promised, what was built, what was
-          deliberately left undone, and — the important part — every point where
-          reality disagreed with the plan and why.
-        </p>
-        <p style="margin-top:var(--space-5)">
-          That last section is what makes the record useful to the next person,
-          human or agent, picking the work up.
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ 9. THE SYSTEM UNDERNEATH ============ -->
-<section class="slide dense">
-  <div class="headblock rise">
-    <div class="kicker">What's underneath</div>
-    <h2 class="title wide">The stack we built it on</h2>
-    <p class="lede">
-      Nothing here is exotic, and that is the point. The interesting part of this
-      product is the scheduling logic — so the plumbing is chosen to be ordinary,
-      well understood, and hard to get wrong. Every version below is pinned.
-    </p>
-  </div>
-
-  <div class="cols c4 rise">
-    <div class="card">
-      <div class="card-head"><div class="badge">01</div></div>
-      <h4>Front end</h4>
-      <p class="small" style="margin-bottom:var(--space-4)">What the patient and staff see — 48 screens</p>
-      <ul>
-        <li><strong>React 18.3</strong> — the user interface</li>
-        <li><strong>Vite 5.4</strong> — the build and dev server</li>
-        <li><strong>TypeScript 5.6</strong> — strict, across both halves</li>
-        <li><strong>Hand-rolled router</strong> — no router library</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="badge">02</div></div>
-      <h4>Back end</h4>
-      <p class="small" style="margin-bottom:var(--space-4)">The service that holds the rules — 75 addresses</p>
-      <ul>
-        <li><strong>Express 4.21</strong> — the request handling</li>
-        <li><strong>Node ≥ 20</strong> — the runtime</li>
-        <li><strong>pino 9.5</strong> — structured logging</li>
-        <li><strong>node:crypto</strong> — sign-in tokens, written by hand</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="badge">03</div></div>
-      <h4>Database</h4>
-      <p class="small" style="margin-bottom:var(--space-4)">Where the truth is kept and enforced — 14 tables</p>
-      <ul>
-        <li><strong>PostgreSQL 16</strong> — the database</li>
-        <li><strong>pg 8.13</strong> — the driver, raw SQL, no mapper layer</li>
-        <li><strong>btree_gist</strong> — lets the database refuse double bookings</li>
-        <li><strong>node-pg-migrate 7.6</strong> — 22 replayable build steps</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="badge">04</div></div>
-      <h4>Tooling</h4>
-      <p class="small" style="margin-bottom:var(--space-4)">How it's built, checked and shipped</p>
-      <ul>
-        <li><strong>pnpm 12.3</strong> — workspaces, one command for both halves</li>
-        <li><strong>node:test</strong> — the test runner, no extra framework</li>
-        <li><strong>Testcontainers</strong> — tests run against a real database</li>
-        <li><strong>ESLint 8.57</strong> — the same linting on every push</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="rise" style="margin-top:var(--space-10)">
-    <div class="cols c3">
-      <div class="card flat">
-        <h4>Why so plain?</h4>
-        <p>
-          The booking rules depend on exactly when data is read and locked.
-          Simpler tools let us control that precisely — instead of hiding it
-          behind a layer we'd have to work around.
-        </p>
-      </div>
-      <div class="card flat">
-        <h4>No framework between us and the database</h4>
-        <p>
-          The API writes SQL directly. That is deliberate: an automatic mapper
-          would move the exact query shapes and locking that the slot-race
-          guards depend on.
-        </p>
-      </div>
-      <div class="card flat">
-        <h4>What it buys</h4>
-        <p>
-          Fewer moving parts, a system a new developer can understand in a day,
-          and no licence fees that grow with the number of appointments.
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ 10. WHAT'S NEXT ============ -->
-<section class="slide">
-  <div class="headblock rise">
-    <div class="kicker">What's next</div>
-    <h2 class="title wide">The next three features, and the honest gaps</h2>
-    <p class="lede">
-      Everything below is already written down and agreed. Nothing here is a surprise.
-    </p>
-  </div>
-
-  <div class="cols c3 rise">
-    <div class="card">
-      <div class="card-head"><div class="badge">01</div></div>
-      <h3>Speed guarantees</h3>
-      <p>Agreed response-time targets for finding an appointment, written down and enforced rather than hoped for.</p>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="badge">02</div></div>
-      <h3>Measuring the funnel</h3>
-      <p>Tracking what actually happens: bookings started, completed, moved, and missed.</p>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="badge">03</div></div>
-      <h3>Two open design questions</h3>
-      <p>How to show a month at a glance, and how to help patients with weak mobile signal.</p>
-    </div>
-  </div>
-
-  <div class="rise" style="margin-top:var(--space-10)">
-    <div class="card flat">
-      <h4>Known gaps — deliberate, recorded, and tracked</h4>
-      <div class="pill-row" style="margin-top:var(--space-6)">
-        <span class="pill warn">No browser-automation tests</span>
-        <span class="pill warn">Logins can't be cancelled early</span>
-        <span class="pill warn">No protection against repeated login attempts</span>
-        <span class="pill warn">No "single sign-on"</span>
-        <span class="pill warn">Patient identity is the phone number</span>
-        <span class="pill warn">Accessibility checked by rule, not page by page</span>
-      </div>
-      <p class="small" style="margin-top:var(--space-6)">
-        Each gap is filed against the feature that deferred it. The habit is to
-        name the gap rather than let it quietly become a claim.
+    <div class="lesson">
+      <span class="lbl">Learning</span>
+      <p>
+        ChatGPT gives its best results when you use it to
+        <strong>summarise and define the product goal and scope</strong> — not
+        when you use it to produce artefacts. The interview was the value.
+        The brief was just the receipt.
       </p>
     </div>
   </div>
 </section>
 
-<!-- ============ 11. CLOSE ============ -->
-<section class="slide cover">
-  <div class="rise">
-    <div class="kicker">In one line</div>
-    <h1 style="font-size:60px;font-weight:700;letter-spacing:-.035em;color:var(--text-heading);line-height:1.1;max-width:20ch">
-      The appointment is real, and you can see it any time.
-    </h1>
-    <div class="cover-rule"></div>
-  </div>
-  <div class="rise">
-    <p class="sub" style="max-width:60ch">
-      MediSlot is clinic scheduling where the system itself guarantees the booking
-      is real — built by a small team using an AI-assisted method in which every
-      feature starts as a specification a person approves.
+<!-- ============ 5. STEP 02 — BMAD PRD ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">Step 02 — Definition · Worked</div>
+    <h2 class="title wide">BMAD turned the brief into a PRD</h2>
+    <p class="lede">
+      With the goal and scope settled, I moved to BMAD to write the PRD. Its
+      advantage was structure: the brief answered <em>what</em> the product
+      is, and the PRD had to answer <em>how it is decided</em>.
     </p>
   </div>
-  <div class="rise">
-    <div class="cols c3" style="margin-top:var(--space-10);max-width:820px">
+
+  <div class="flow rise">
+    <div class="flow-step">
+      <span class="n">INPUT</span>
+      <h4>Product brief</h4>
+      <p>Promise, audiences, the world being replaced, the rule underneath.</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="n">BMAD</span>
+      <h4>PRD</h4>
+      <p>Requirements, business rules, and the acceptance criteria for each one.</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="n">OUTPUT</span>
+      <h4>Epics &amp; stories</h4>
+      <p>8 epics, split into 43 stories that could each be built and checked alone.</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="n">THE POINT</span>
+      <h4>71 written specs</h4>
+      <p>One file per story, each with its own definition of done.</p>
+    </div>
+  </div>
+
+  <div class="cols c3 rise" style="margin-top:var(--space-11)">
+    <div class="card flat">
+      <h4>Requirements</h4>
+      <p>Each one stated as a testable claim, not a wish. "A patient can see their appointments" — checkable. "The UI should feel calm" — not.</p>
+    </div>
+    <div class="card flat">
+      <h4>Business rules</h4>
+      <p>The scheduling rules, written where the AI had to follow them exactly: no double booking, no silent cancellation, no overlap.</p>
+    </div>
+    <div class="card flat">
+      <h4>User journeys</h4>
+      <p>The flows a real person walks, per role — the thing I would later test against.</p>
+    </div>
+  </div>
+
+  <div class="foot">
+    The PRD was not the goal. It was the contract I would hold the AI to.
+  </div>
+</section>
+
+<!-- ============ 6. STEP 03 — THE MOCKUP FAILURE ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">Step 03 — Where it went wrong</div>
+    <h2 class="title wide">The BMAD-UI agent did not do well</h2>
+    <p class="lede">
+      This was the first real failure of the project, and it was a useful one.
+      The mockups it produced were generic — the kind of screen that could
+      belong to any product, because nothing about them was <em>mine</em>.
+    </p>
+  </div>
+
+  <div class="split rise">
+    <div class="half was">
+      <span class="lbl">What came first</span>
+      <h4>The generic mockup</h4>
+      <p>The agent was given the PRD and asked for screens. It gave screens — technically plausible, correctly structured, and completely interchangeable with any other SaaS product.</p>
+      <ul>
+        <li>Default blue-grey palette, not the clinic's</li>
+        <li>Layouts chosen from convention, not from the workflow</li>
+        <li>No design system behind them, so nothing carried across pages</li>
+        <li>Nothing I could point at and say "yes, this one"</li>
+      </ul>
+    </div>
+    <div class="half now">
+      <span class="lbl">What I did instead</span>
+      <h4>I asked it to start from scratch</h4>
+      <p>I stopped supplying screens and started supplying decisions. The palette came first — because colour is the one thing every screen has to agree on before anything else can be right.</p>
+      <ul>
+        <li>Chose the colours, and wrote down what each one means</li>
+        <li>Defined the components and the page layout for each page type</li>
+        <li>Then asked for variants against <em>my</em> system</li>
+        <li>Picked one, and let it become the rule for the next page</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="rise" style="margin-top:var(--space-10)">
+    <div class="lesson">
+      <span class="lbl">The real lesson</span>
+      <p>
+        The agent never failed at drawing. It failed at
+        <strong>deciding</strong>. Give it the decisions — the colour, the type,
+        the spacing, the shape of the flow — and it becomes very good at
+        proposing. My job moved upstream from "review the screen" to
+        "define the system the screen lives in".
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7. STEP 04 — THE DESIGN SYSTEM ============ -->
+<section class="slide dense">
+  <div class="headblock rise">
+    <div class="kicker">Step 04 — Starting from the colour</div>
+    <h2 class="title wide">I defined the system, then asked for options</h2>
+    <p class="lede">
+      I picked the colours, wrote the meaning of each, defined the components
+      and the layout for each page type — and then asked for variants of every
+      screen, all built from that same system.
+    </p>
+  </div>
+
+  <div class="cols c-2-1 rise">
+    <div class="stack">
+      <div class="card">
+        <div class="card-head"><div class="badge">01</div><h3 style="margin:0">Colour first</h3></div>
+        <p>
+          One teal as the brand and the primary action, a set of surfaces from
+          white down to a soft page grey, four levels of text, and status
+          colours reserved for status only. Every token got a stated usage —
+          which is what stopped the pages drifting apart.
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="badge">02</div><h3 style="margin:0">Then the components</h3></div>
+        <p>
+          Cards, pills, stat tiles, form fields, tables, empty states, the
+          conflict modal. Named, so the same component looks the same on the
+          doctor's screen and the receptionist's.
+        </p>
+      </div>
+      <div class="card teal">
+        <div class="card-head"><div class="badge solid">03</div><h3 style="margin:0">Then the page layouts</h3></div>
+        <p>
+          One layout per screen type, defined before any screen was drawn.
+          When the variants came back, they were variations on a system —
+          not four different products.
+        </p>
+      </div>
+    </div>
+
+    <div class="stack">
       <div class="stat">
-        <div class="n">4</div>
-        <div class="l">Roles, one shared truth</div>
+        <div class="n">42</div>
+        <div class="l">Screens mocked, each with 4–5 variants</div>
+        <div class="s">Every one generated against my colour and component rules</div>
       </div>
       <div class="stat">
-        <div class="n">0</div>
-        <div class="l">Double bookings — guaranteed by the system</div>
+        <div class="n">40</div>
+        <div class="l">Design decisions recorded</div>
+        <div class="s">Each pick logged with the pattern it belongs to</div>
+      </div>
+      <div class="card flat">
+        <h4>The result</h4>
+        <p>
+          The UI came out better than I expected — and, more usefully, it came
+          out <em>mine</em>. The one design pattern won 31 of the 40 screens,
+          because it was the one the system was actually built around.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    The design system is not aspirational — every value in it was taken from the screens that were chosen.
+  </div>
+</section>
+
+<!-- ============ 8. UI SCREENSHOT 1 — PATIENT BOOKING ============ -->
+<section class="slide dense shotslide">
+  <div class="shotwide rise fill">
+    <div>
+      <div class="shot">
+        <div class="shot-bar">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="url">medislot.app/book · step 1 of 5 — Find a doctor</div>
+        </div>
+        <div class="viewport">
+          <img src="docs/presentation/screens/3-patient-booking.png" alt="Patient booking wizard" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 9. UI SCREENSHOT 2 — RECEPTION TODAY ============ -->
+<section class="slide dense shotslide">
+  <div class="shotwide rise fill">
+    <div>
+      <div class="shot">
+        <div class="shot-bar">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="url">medislot.app/reception/today</div>
+        </div>
+        <div class="viewport">
+          <img src="docs/presentation/screens/1-reception-today.png" alt="Receptionist's Today screen" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10. UI SCREENSHOT 3 — DOCTOR TODAY ============ -->
+<section class="slide dense shotslide">
+  <div class="shotwide rise fill">
+    <div>
+      <div class="shot">
+        <div class="shot-bar">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="url">medislot.app/doctor/today</div>
+        </div>
+        <div class="viewport">
+          <img src="docs/presentation/screens/2-doctor-today.png" alt="Doctor's Today screen" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 11. UI SCREENSHOT 4 — ADMIN BRANCHES ============ -->
+<section class="slide dense shotslide">
+  <div class="shotwide rise fill">
+    <div>
+      <div class="shot">
+        <div class="shot-bar">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="url">medislot.app/admin/branches</div>
+        </div>
+        <div class="viewport">
+          <img src="docs/presentation/screens/4-admin-branches.png" class="crop-lower" alt="Administrator branch management" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 12. UI SCREENSHOT 5 — THE DESIGN SYSTEM ITSELF ============ -->
+<section class="slide dense">
+  <div class="headblock rise">
+    <div class="kicker">The result · Screen 5 of 5 · The system</div>
+    <h2 class="title wide">The part that made the other four possible</h2>
+    <p class="lede">
+      Before any screen was drawn I wrote down the colours, what each one
+      means, and when it is allowed to be used. This is that page — and it is
+      the artefact that survived every later decision.
+    </p>
+  </div>
+
+  <div class="cols c-2-1 rise">
+    <div class="card">
+      <div class="card-head">
+        <div class="badge solid">DS</div>
+        <h3 style="margin:0">Clinical Calm — the token set</h3>
+      </div>
+      <p>
+        One brand teal and one primary action colour. Four surface levels,
+        from card white down to the page grey. Four levels of text, so
+        hierarchy is a decision with a name rather than an opinion.
+      </p>
+      <ul>
+        <li><strong>Brand primary</strong> — the primary action, and nothing else</li>
+        <li><strong>Surfaces</strong> — page, card, soft, divider</li>
+        <li><strong>Text</strong> — heading, body, strong, default, muted</li>
+        <li><strong>Status</strong> — success, warning, danger, info, each reserved for its meaning</li>
+      </ul>
+      <p class="small" style="margin-top:var(--space-6)">
+        Written to <code>apps/web/src/styles/tokens.css</code> and consumed
+        directly by the components — which is why the app and this deck
+        look like the same design.
+      </p>
+    </div>
+
+    <div class="stack">
+      <div class="stat">
+        <div class="n">5</div>
+        <div class="l">Layout patterns defined</div>
+        <div class="s">Sidebar, stacked flow, agenda, card grid, quick-action</div>
       </div>
       <div class="stat">
-        <div class="n">63</div>
-        <div class="l">Features shipped on spec-driven AI development</div>
+        <div class="n">49</div>
+        <div class="l">Routes in the connected mockup shell</div>
+        <div class="s">Patient 13 · Doctor 12 · Reception 5 · Admin 17</div>
       </div>
+      <div class="card flat">
+        <h4>The rule I wrote down</h4>
+        <p>
+          Default layout is a <strong>760px stacked vertical flow</strong> when
+          there's no summary, and a <strong>sidebar</strong> when there is.
+          Deviate only when the workflow gives a reason — and write the reason down.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="rise" style="margin-top:var(--space-9)">
+    <div class="lesson" style="padding:var(--space-6) var(--space-9)">
+      <span class="lbl">Why this slide is in a talk about AI</span>
+      <p style="font-size:var(--text-md)">
+        Because this is the artefact that changed my job. I stopped reviewing
+        screens and started writing the rules the screens get built from.
+        The AI could never have produced it — it needed a decision, not a prompt.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 13. STEP 05 — DEVELOPMENT ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">Step 05 — Development · Worked, unevenly</div>
+    <h2 class="title wide">A mix of BMAD and AI-DLC — and it went unevenly</h2>
+    <p class="lede">
+      Once the PRD and the design system existed, the build got faster. I ran
+      BMAD for the spec-driven work and AI-DLC alongside it — the two
+      overlapping more helpfully than I expected. But "it turned out fine" is
+      too simple: some features worked like magic, and some did not.
+    </p>
+  </div>
+
+  <div class="cols c2 rise">
+    <div class="card">
+      <div class="card-head"><div class="badge">BMAD</div><h3 style="margin:0">Spec-driven</h3></div>
+      <p>
+        Story by story. Each story has a written spec, an implementation, and a
+        record of what was deliberately left undone. The spec was the contract
+        I checked the build against — so the AI couldn't quietly redefine the
+        requirement while satisfying it.
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="badge">AI</div><h3 style="margin:0">DLC — spec-driven too</h3></div>
+      <p>
+        Inception, construction, operations: intent becomes plan, plan becomes
+        build, build becomes a verified release. It ran in parallel with BMAD,
+        and whichever was ahead carried the other forward.
+      </p>
+    </div>
+  </div>
+
+  <div class="cols c4 rise" style="margin-top:var(--space-10)">
+    <div class="stat">
+      <div class="n">8</div>
+      <div class="l">Epics</div>
+      <div class="s">Each an area of the product</div>
+    </div>
+    <div class="stat">
+      <div class="n">43</div>
+      <div class="l">Stories</div>
+      <div class="s">Each buildable and checkable alone</div>
+    </div>
+    <div class="stat">
+      <div class="n">71</div>
+      <div class="l">Written specs</div>
+      <div class="s">One file per story</div>
+    </div>
+    <div class="stat">
+      <div class="n">49</div>
+      <div class="l">Web screens</div>
+      <div class="s">React + Vite, strict TypeScript</div>
+    </div>
+  </div>
+
+  <div class="foot">
+    51 API route files, 22 replayable migrations, 15 tables. All of it traced back to a written spec.
+  </div>
+</section>
+
+<!-- ============ 14. THE TWO MODES OF BUILDING ============ -->
+<section class="slide dense">
+  <div class="headblock rise">
+    <div class="kicker">Step 05 — Development · The reality</div>
+    <h2 class="title wide">Some features worked like magic. Some needed a screenshot.</h2>
+    <p class="lede">
+      Development was not one smooth phase — it was two completely different
+      experiences depending on the feature. I never knew in advance which one
+      I was going to get, so the way I worked changed too.
+    </p>
+  </div>
+
+  <div class="split rise">
+    <div class="half now">
+      <span class="lbl">Mode A — it just worked</span>
+      <h4>Some features, it worked like magic</h4>
+      <p>The spec was clear enough, the design system already existed, and the story was well understood. These went through in one pass — implemented, correct, and matching the mockup without me having to say a word about the UI.</p>
+      <ul>
+        <li>Clear acceptance criteria in the PRD</li>
+        <li>The colour and component rules already decided</li>
+        <li>A matching mockup file to build from, one-for-one</li>
+        <li>Nothing invented, so nothing invented wrongly</li>
+      </ul>
+    </div>
+    <div class="half was">
+      <span class="lbl">Mode B — it needed evidence</span>
+      <h4>For some, I had to show the bug</h4>
+      <p>These came back subtly wrong — and the tests were green, so nothing flagged them. The only way I could get them fixed was to make the bug visible: a screenshot of what was actually built, and a reference to the mockup it was supposed to match.</p>
+      <ul>
+        <li>A screenshot of the screen as it actually rendered</li>
+        <li>The exact mockup file it was meant to match</li>
+        <li>The specific difference, named out loud</li>
+        <li>Until then, the feature was not done — however green the suite was</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="rise" style="margin-top:var(--space-9)">
+    <div class="lesson">
+      <span class="lbl">The lesson I did not expect</span>
+      <p>
+        The UI drift was invisible to both the AI and the tests, because
+        <strong>nothing was broken</strong> — it was just wrong. A screenshot
+        next to the mockup turned a vague "this doesn't look right" into a
+        <strong>diff the AI could act on</strong>. That became my default:
+        if a screen didn't match, I didn't describe it — I showed it.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 15. STEP 06 — THE SQA LIMIT ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">Step 06 — The limit of my role</div>
+    <h2 class="title wide">I could not evaluate it further — and that was the problem</h2>
+    <p class="lede">
+      At this point the code was largely written and largely good. But I am an
+      SQA, not a developer. I could verify that a feature did what it claimed.
+      I could not evaluate whether the architecture underneath was sound, and
+      I was not going to pretend otherwise.
+    </p>
+  </div>
+
+  <div class="cols c2 rise">
+    <div class="card">
+      <div class="card-head"><div class="badge">✓</div><h3 style="margin:0">What I could still do</h3></div>
+      <ul>
+        <li>Read each feature against its written spec</li>
+        <li>Run the flows end to end and observe the actual outcome</li>
+        <li>Compare behaviour against the rule that was supposed to hold</li>
+        <li>Report precisely what happened, without diagnosing the code</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="badge bad">×</div><h3 style="margin:0">What I could not</h3></div>
+      <ul>
+        <li>Judge whether the data model or the query strategy was right</li>
+        <li>Assess the code for patterns that would fail under load</li>
+        <li>Trust a passing test as evidence the feature worked</li>
+        <li>Review the implementation the way a developer would</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="rise" style="margin-top:var(--space-10)">
+    <div class="lesson">
+      <span class="lbl">So I changed the job I was doing</span>
+      <p>
+        Instead of reviewing the code, I started reviewing the
+        <strong>evidence</strong>. Every feature was tested on its outcome
+        alone: does the appointment really hold, is the slot really free, does
+        the patient really see it? If the answer was no, the feature was
+        not done — no matter how finished it looked.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 16. STEP 07 — THE TEST FAILURE ============ -->
+<section class="slide dense">
+  <div class="headblock rise">
+    <div class="kicker">Step 07 — Testing · Did not work</div>
+    <h2 class="title wide">The tests passed. Even when the features didn't.</h2>
+    <p class="lede">
+      This was the failure that mattered most, because it was silent. The AI
+      wrote tests the way I asked — and what it produced was tests that passed.
+      Consistently. Even for features that were plainly broken.
+    </p>
+  </div>
+
+  <div class="split rise">
+    <div class="half was">
+      <span class="lbl">What the AI gave me by default</span>
+      <h4>Tests that always passed</h4>
+      <p>Well-written, idiomatic, professional-looking test files. The problem was not the syntax — it was what they asserted. They checked the shape of the response, not the behaviour of the feature.</p>
+      <ul>
+        <li>Asserted a status code, and called that a passing test</li>
+        <li>Never checked the actual scheduling rule underneath</li>
+        <li>Never asserted on the state that was supposed to change</li>
+        <li>Green on a feature that did nothing at all</li>
+      </ul>
+    </div>
+    <div class="half now">
+      <span class="lbl">What I built instead</span>
+      <h4>My own test skill</h4>
+      <p>I wrote a skill that encodes how I want tests written — derived from my manual test cases, one for one, each with a real pre-condition and a real assertion on the outcome.</p>
+      <ul>
+        <li>Every case traced to a numbered manual test case</li>
+        <li>Preconditions set up in the database, not assumed</li>
+        <li>Assertions on the outcome — the slot, the state, the audit row</li>
+        <li>A rule table covering the constraints that must never break</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="cols c3 rise" style="margin-top:var(--space-9)">
+    <div class="card flat">
+      <h4>Before</h4>
+      <p>Features that did not work still had green tests. The suite was measuring the tests, not the product.</p>
+    </div>
+    <div class="card flat">
+      <h4>After</h4>
+      <p>Broken features now fail. The suite catches them — because the cases were written from the requirement, not from the code that happened to exist.</p>
+    </div>
+    <div class="card teal">
+      <h4>Why it works</h4>
+      <p>The cases get better as they go. A failure is a real finding, so it feeds the next case — and the test suite tightens with the product instead of drifting away from it.</p>
+    </div>
+  </div>
+
+  <div class="foot">
+    21 API test files and 429 test cases running against a real database — because a booking rule that only exists in a mock is not a rule.
+  </div>
+</section>
+
+<!-- ============ 17. WHAT I'D TELL SOMEONE STARTING ============ -->
+<section class="slide">
+  <div class="headblock rise">
+    <div class="kicker">If you are starting now</div>
+    <h2 class="title wide">What I'd tell someone in my position</h2>
+    <p class="lede">
+      Nothing here required me to become a developer. It required me to become
+      a better judge of what a correct answer looks like — and to refuse
+      output I couldn't check.
+    </p>
+  </div>
+
+  <div class="cols c2 rise">
+    <div class="card teal">
+      <div class="card-head"><div class="badge solid">→</div><h3 style="margin:0">Do this</h3></div>
+      <ul>
+        <li>Let AI interview you before it builds anything</li>
+        <li>Write the brief yourself — goal and scope, not artefacts</li>
+        <li>Define the design system before the first screen</li>
+        <li>Give the AI decisions, not blanks to fill</li>
+        <li>Keep the mockup file next to the story — it is the contract</li>
+        <li>Show the bug with a screenshot; don't describe it</li>
+        <li>Judge every output by its outcome, never its polish</li>
+        <li>Write the skill for the step the AI gets wrong</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="badge bad">×</div><h3 style="margin:0">Don't do this</h3></div>
+      <ul>
+        <li>Don't ask for screens before you have a colour and a rule</li>
+        <li>Don't accept a green test as evidence of a working feature</li>
+        <li>Don't let the tool choose the thing you would have to defend</li>
+        <li>Don't review code you can't read — review outcomes instead</li>
+        <li>Don't assume a screen matches until you've seen it side by side</li>
+        <li>Don't treat "it generated a lot" as "it generated it correctly"</li>
+        <li>Don't stop at the first plausible answer</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="rise" style="margin-top:var(--space-10)">
+    <div class="lesson">
+      <span class="lbl">The one sentence</span>
+      <p>
+        AI-native development is not about prompting better. It is about
+        <strong>moving your judgement upstream</strong> — into the brief, the
+        rules, and the assertions — so that everything downstream inherits
+        your standards instead of its defaults.
+      </p>
     </div>
   </div>
 </section>
@@ -1135,6 +1847,9 @@ body.overview .progress{position:fixed;top:0;left:0;height:3px;width:0!important
     // The cover carries its own large logo, so the small brandmark in the
     // top-left chrome is redundant there — hide it while the cover is up.
     document.body.classList.toggle('on-cover', i === 0);
+    // A screenshot slide fills the whole canvas with the captured screen,
+    // so the deck's own chrome would sit on top of it. Hide it there too.
+    document.body.classList.toggle('on-shot', slides[i].classList.contains('shotslide'));
     bar.style.width = ((i + 1) / slides.length * 100) + '%';
     num.textContent = (i + 1) + ' / ' + slides.length;
     if (document.body.classList.contains('overview')) {
