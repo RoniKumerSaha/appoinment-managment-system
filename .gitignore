@@ -353,3 +353,9 @@ apps/web/shot-*.png
 .continue/
 .codex/
 .roo/
+
+# ---------- presentation deck ----------
+# The debug captures from the deck's visual checks are not deck assets.
+# `docs/presentation/screens/` IS committed — the deck loads those by
+# relative path, so the screenshot slides need them.
+docs/presentation/_verify/
